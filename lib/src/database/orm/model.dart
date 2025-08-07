@@ -1,12 +1,10 @@
 import 'package:flint_dart/schema.dart';
-import 'package:mysql_dart/mysql_dart.dart';
 import '../connection.dart';
-import '../../validation/validator.dart';
 import 'query_builder.dart';
 
 abstract class Model<T extends Model<T>> {
   /// Table name
-  String get tableName;
+  // String get tableName;
 
   /// Primary key column
   String get primaryKey => 'id';
@@ -109,12 +107,14 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Get all records
-  static Future<List<T>> all<T extends Model<T>>(T model) async {
+
+  Future<List<T>> all() async {
     final conn = DB.instance;
-    final stmt = await conn.prepare('SELECT * FROM ${model.table}');
+    final stmt = await conn.prepare('SELECT * FROM ${table.name}');
     final result = await stmt.execute([]);
 
-    return result.rows.map((r) => model.fromMap(r.assoc())).toList();
+    final list = result.rows.map((r) => fromMap(r.assoc())).toList();
+    return list; // ✅ Now it's returning Future<List<T>> because the function is async
   }
 
   /// Where clause
@@ -147,13 +147,13 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Validate input using rules
-  static Map<String, dynamic>? validate(
-      Map<String, dynamic> input, Map<String, String> rules) {
-    Validator.validate(input, rules);
-  }
+  // static Map<String, dynamic>? validate(
+  //     Map<String, dynamic> input, Map<String, String> rules) {
+  //   Validator.validate(input, rules);
+  // }
 
   /// Custom query builder (you’ll implement this)
   static QueryBuilder query<T extends Model<T>>(T model) {
-    return QueryBuilder(table: model.tableName);
+    return QueryBuilder(table: model.table.name);
   }
 }

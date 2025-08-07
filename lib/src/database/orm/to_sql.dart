@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/connection.dart';
 import 'package:mysql_dart/exception.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 
 extension TableSQL on Table {
-  String toSQL() {
+  String toCreateSQL() {
     final buffer = StringBuffer();
     buffer.write('CREATE TABLE `$name` (\n');
 
@@ -47,20 +48,22 @@ extension TableSQL on Table {
 }
 
 extension TableMigration on Table {
-  List<String> compareWith(Table updated) {
+  /// Returns a single ALTER TABLE SQL statement, or null if no changes
+  String? compareWith(Table updated) {
     final oldCols = {for (var c in columns) c.name: c};
     final newCols = {for (var c in updated.columns) c.name: c};
     final changes = <String>[];
 
     for (var name in newCols.keys) {
+      final newCol = newCols[name]!;
+
       if (!oldCols.containsKey(name)) {
-        final c = newCols[name]!;
-        changes.add(
-            'ADD COLUMN `${c.name}` ${c.sqlType()} ${c.isNullable ? "" : "NOT NULL"}');
-      } else if (oldCols[name] != newCols[name]) {
-        final c = newCols[name]!;
-        changes.add(
-            'MODIFY COLUMN `${c.name}` ${c.sqlType()} ${c.isNullable ? "" : "NOT NULL"}');
+        changes.add(_buildAddColumnSQL(newCol));
+      } else {
+        final oldCol = oldCols[name]!;
+        if (oldCol != newCol) {
+          changes.add(_buildModifyColumnSQL(newCol));
+        }
       }
     }
 
@@ -70,27 +73,39 @@ extension TableMigration on Table {
       }
     }
 
-    return changes;
+    if (changes.isEmpty) return null;
+
+    return 'ALTER TABLE `$name`\n  ${changes.join(",\n  ")};';
   }
 
-  Future<List<Column>> getMySQLColumns() async {
-    final MySQLConnection conn = DB.instance;
-    final resultSet = await conn.execute("SHOW COLUMNS FROM `$name`");
-    final rows = resultSet.rows;
+  String _buildAddColumnSQL(Column col) {
+    final buffer = StringBuffer();
+    buffer.write('ADD COLUMN `${col.name}` ${col.sqlType()}');
 
-    return rows.map((row) {
-      final data = row.assoc();
-      return Column(
-        name: data['Field'] as String,
-        type: TableMySQL._inferColumnType(data['Type'] as String),
-        length: TableMySQL._extractLength(data['Type'] as String),
-        isPrimaryKey: data['Key'] == 'PRI',
-        isAutoIncrement:
-            (data['Extra'] as String?)?.contains('auto_increment') ?? false,
-        isNullable: (data['Null'] as String).toUpperCase() == 'YES',
-        defaultValue: data['Default'],
-      );
-    }).toList();
+    if (!col.isNullable) buffer.write(' NOT NULL');
+    if (col.defaultValue != null)
+      buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+    if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+
+    return buffer.toString();
+  }
+
+  String _buildModifyColumnSQL(Column col) {
+    final buffer = StringBuffer();
+    buffer.write('MODIFY COLUMN `${col.name}` ${col.sqlType()}');
+
+    if (!col.isNullable) buffer.write(' NOT NULL');
+    if (col.defaultValue != null)
+      buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+    if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+
+    return buffer.toString();
+  }
+
+  String _formatDefault(dynamic value) {
+    if (value is String) return "'$value'";
+    if (value == null) return 'NULL';
+    return value.toString();
   }
 }
 
@@ -118,11 +133,12 @@ extension ColumnSQL on Column {
 extension TableMySQL on Table {
   static Table fromMySQL(String tableName, List<ResultSetRow> rows) {
     final columns = rows.map((row) {
-      final data = row.assoc();
+      final data = decodeAssoc(row.assoc());
+
       return Column(
         name: data['Field'] as String,
         type: _inferColumnType(data['Type'] as String),
-        length: _extractLength(data['Type'] as String),
+        length: _extractLength(data['Type'] as String) ?? 0,
         isPrimaryKey: data['Key'] == 'PRI',
         isAutoIncrement:
             (data['Extra'] as String?)?.contains('auto_increment') ?? false,
@@ -134,24 +150,27 @@ extension TableMySQL on Table {
     return Table(name: tableName, columns: columns);
   }
 
-  static ColumnType _inferColumnType(String typeStr) {
-    final lower = typeStr.toLowerCase();
-    if (lower.startsWith('int')) return ColumnType.integer;
-    if (lower.startsWith('varchar') || lower.startsWith('char'))
+  /// Extracts the base type (e.g. "int", "varchar") from column definition
+  static ColumnType _inferColumnType(String mysqlType) {
+    final type = mysqlType.toLowerCase();
+    if (type.contains('int')) return ColumnType.integer;
+    if (type.contains('varchar') || type.contains('text'))
       return ColumnType.string;
-    if (lower.startsWith('text')) return ColumnType.text;
-    if (lower.startsWith('bool')) return ColumnType.boolean;
-    if (lower.startsWith('double') || lower.startsWith('float'))
-      return ColumnType.double;
-    if (lower.contains('datetime')) return ColumnType.datetime;
-    if (lower.contains('timestamp')) return ColumnType.timestamp;
-    return ColumnType.string;
+    if (type.contains('bool') || type == 'tinyint(1)')
+      return ColumnType.boolean;
+    if (type.contains('double') ||
+        type.contains('float') ||
+        type.contains('decimal')) return ColumnType.double;
+    if (type.contains('datetime') ||
+        type.contains('timestamp') ||
+        type.contains('date')) return ColumnType.string;
+    return ColumnType.string; // fallback
   }
 
-  static int _extractLength(String typeStr) {
-    final regExp = RegExp(r'\((\d+)\)');
-    final match = regExp.firstMatch(typeStr);
-    return match != null ? int.parse(match.group(1)!) : 255;
+  /// Extracts number from varchar(255), int(11), etc.
+  static int? _extractLength(String mysqlType) {
+    final match = RegExp(r'\((\d+)\)').firstMatch(mysqlType);
+    return match != null ? int.tryParse(match.group(1)!) : null;
   }
 }
 
@@ -160,22 +179,31 @@ Future<Table?> getTableSchema(String tableName) async {
 
   try {
     conn = await DB.autoConnect();
-
-    // await conn.execute('DROP TABLE IF EXISTS `$tableName`');
-    // await conn.execute('''
-    //   CREATE TABLE `$tableName` (
-    //     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    //     name VARCHAR(255),
-    //     email VARCHAR(255),
-    //     age INT
-    //   )
-    // ''');
-
     final resultSet = await conn.execute("SHOW COLUMNS FROM `$tableName`");
+    if (resultSet.rows.isEmpty) return null;
+
     return TableMySQL.fromMySQL(tableName, resultSet.rows.toList());
-  } on MySQLClientException catch (e) {
-    throw Exception("❌ MySQL Error (${e.message}): ${e.message}");
+  } on MySQLServerException catch (e) {
+    if (e.message.contains("doesn't exist")) {
+      return null; // ✅ table does not exist
+    }
+    return null; // ✅ table does not exist
   } finally {
     await conn?.close();
   }
+}
+
+/// Decodes all List<int> (UTF-8 bytes) in a MySQL assoc() row to Strings.
+Map<String, dynamic> decodeAssoc(Map<String, dynamic> row) {
+  return row.map((key, value) {
+    if (value is List<int>) {
+      try {
+        return MapEntry(key, utf8.decode(value));
+      } catch (_) {
+        // Return original value if decoding fails
+        return MapEntry(key, value);
+      }
+    }
+    return MapEntry(key, value);
+  });
 }

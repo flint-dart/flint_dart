@@ -13,11 +13,15 @@ void runTableRegistry(List<Table> tables, [_, SendPort? sendPort]) async {
 
   for (final table in tables) {
     final existingTable = await getTableSchema(table.name);
-    // final updated = existingTable.compareWith(table);
-    // diffs.add(updated);
-    print(existingTable?.toSQL());
+    if (existingTable == null) {
+      diffs.add(table.toCreateSQL());
+    } else {
+      final diff = existingTable.compareWith(table);
+      if (diff != null) {
+        diffs.add(diff.toString());
+      }
+    }
   }
-
-  // print(diffs);
-  // sendPort.send(diffs as List<String>);
+  print(diffs.map((e) => e.toString()).toList());
+  sendPort.send(diffs.map((e) => e.toString()).toList());
 }

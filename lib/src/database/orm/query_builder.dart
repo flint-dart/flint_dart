@@ -1,5 +1,4 @@
 import 'package:flint_dart/src/database/connection.dart';
-import 'package:mysql_dart/mysql_dart.dart';
 
 class QueryBuilder {
   final String table;

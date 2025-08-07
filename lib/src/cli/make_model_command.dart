@@ -19,7 +19,7 @@ class MakeModelCommand extends FlintCommand {
 
     final content = _generateModelTemplate(className, fileName);
 
-    final dir = Directory('lib/app/models');
+    final dir = Directory('lib/src/models');
     if (!await dir.exists()) await dir.create(recursive: true);
 
     final file = File('${dir.path}/$fileName.dart');
@@ -29,7 +29,7 @@ class MakeModelCommand extends FlintCommand {
     }
 
     await file.writeAsString(content);
-    print('✅ Model created: lib/app/models/$fileName.dart');
+    print('✅ Model created: lib/src/models/$fileName.dart');
   }
 
   String _capitalize(String str) =>
@@ -42,8 +42,8 @@ class MakeModelCommand extends FlintCommand {
 
   String _generateModelTemplate(String className, String fileName) {
     return '''
-import 'package:flint_dart/src/orm/model.dart';
-import 'package:flint_dart/src/orm/schema.dart';
+import 'package:flint_dart/model.dart';
+import 'package:flint_dart/schema.dart';
 
 class $className extends Model<$className> {
   int? id;
