@@ -9,9 +9,6 @@ class DB {
   /// Tracks whether the connection has been initialized.
   static bool _isInitialized = false;
 
-
-  
-
   /// Manually establish connection using config values.
   static Future<MySQLConnection> connect({
     required String host,
@@ -37,9 +34,9 @@ class DB {
 
     final host = FlintEnv.get('DB_HOST', 'localhost');
     final port = FlintEnv.getInt('DB_PORT', 3306);
-    final user = FlintEnv.get('DB_USER', 'flint_sample');
-    final password = FlintEnv.get('DB_PASSWORD', 'flint_sample');
-    final db = FlintEnv.get('DB_NAME', 'flint_sample');
+    final user = FlintEnv.get('DB_USER', 'root');
+    final password = FlintEnv.get('DB_PASSWORD', '');
+    final db = FlintEnv.get('DB_NAME', '');
 
     print("🔍 ENV VALUES LOADED:");
     print(" - DB_HOST: $host");

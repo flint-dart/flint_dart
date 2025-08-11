@@ -16,11 +16,11 @@ class Response {
   /// Sends a plain text or custom content response.
   void send(
     String body, {
-    int status = 200,
+    int? status,
     String contentType = 'text/plain',
   }) {
     try {
-      raw.statusCode = status;
+      raw.statusCode = status ?? raw.statusCode; // ✅ use existing if set
       raw.headers.contentType = ContentType.parse(contentType);
       raw.write(body);
     } catch (e) {
@@ -31,10 +31,10 @@ class Response {
   }
 
   /// Sends a JSON response with a map or list.
-  void json(dynamic data, {int status = 200}) {
+  void json(dynamic data, {int? status}) {
     try {
       final encoded = jsonEncode(data);
-      raw.statusCode = status;
+      raw.statusCode = status ?? raw.statusCode; // ✅ use existing if set
       raw.headers.contentType = ContentType.json;
       raw.write(encoded);
     } catch (e) {
@@ -48,7 +48,7 @@ class Response {
   /// Automatically responds based on [RespondType] or inferred type.
   void respond(
     dynamic data, {
-    int status = 200,
+    int? status,
     RespondType? type,
   }) {
     try {
@@ -62,7 +62,6 @@ class Response {
           send(data.toString(), status: status, contentType: 'text/html');
           break;
         case RespondType.plain:
-        default:
           send(data.toString(), status: status, contentType: 'text/plain');
       }
     } catch (e) {
@@ -91,10 +90,18 @@ class Response {
     return this;
   }
 
+  /// Streams the contents of a [file] directly to the response body.
+  ///
+  /// @param file The [File] to be served.
+  Future<void> streamFile(File file) async {
+    await raw.addStream(file.openRead());
+  }
+
   /// Sends a predefined status message and closes the response.
   void sendStatus(int code) {
     final message = _statusMessages[code] ?? 'Status';
-    send(message, status: code);
+    raw.statusCode = code;
+    send(message);
     raw.close();
   }
 }

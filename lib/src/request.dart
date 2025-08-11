@@ -1,7 +1,23 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:convert';
+import 'package:flint_dart/src/validation/validator.dart';
+import 'package:mime/mime.dart';
+
+/// Represents a single uploaded file.
+class UploadedFile {
+  final String fieldName;
+  final String filename;
+  final String? contentType;
+  final Stream<List<int>> content;
+
+  UploadedFile({
+    required this.fieldName,
+    required this.filename,
+    this.contentType,
+    required this.content,
+  });
+}
 
 /// Represents an HTTP request with convenient accessors for
 /// method, headers, parameters, body, and other common features.
@@ -11,6 +27,9 @@ class Request {
 
   /// Route parameters matched by the router (e.g. `/user/:id`).
   final Map<String, String> params;
+
+  /// A cache for the parsed body content.
+  dynamic _bodyCache;
 
   /// Constructs a [Request] with the raw [HttpRequest] and optional route [params].
   Request(this.raw, {Map<String, String>? params}) : params = params ?? {};
@@ -34,19 +53,141 @@ class Request {
   /// Query parameters from the URL as a [Map<String, String>].
   Map<String, String> get query => raw.uri.queryParameters;
 
+  /// Parses the request body and caches the result.
+  Future<void> _parseBody() async {
+    if (_bodyCache != null) return;
+
+    final contentTypeHeader = raw.headers.contentType;
+    if (contentTypeHeader == null) {
+      _bodyCache = await utf8.decodeStream(raw);
+      return;
+    }
+
+    final mimeType = contentTypeHeader.mimeType;
+
+    if (mimeType == 'multipart/form-data') {
+      final boundary = contentTypeHeader.parameters['boundary'];
+      if (boundary == null) {
+        throw FormatException('Missing multipart boundary.');
+      }
+      final parts = await MimeMultipartTransformer(boundary).bind(raw).toList();
+      final files = <String, UploadedFile>{};
+      final fields = <String, String>{};
+
+      for (var part in parts) {
+        final contentDisposition = part.headers['content-disposition'];
+        if (contentDisposition != null) {
+          final isFile = contentDisposition.contains('filename=');
+          final fieldName = contentDisposition
+              .split('name=')[1]
+              .split(';')[0]
+              .replaceAll('"', '');
+
+          if (isFile) {
+            final filename =
+                contentDisposition.split('filename=')[1].replaceAll('"', '');
+            final contentType = part.headers['content-type']?.split(';')[0];
+            final file = UploadedFile(
+              fieldName: fieldName,
+              filename: filename,
+              contentType: contentType,
+              content: part,
+            );
+            files[fieldName] = file;
+          } else {
+            fields[fieldName] = await utf8.decodeStream(part);
+          }
+        }
+      }
+      _bodyCache = {'files': files, 'fields': fields};
+    } else if (mimeType == 'application/x-www-form-urlencoded') {
+      final content = await utf8.decodeStream(raw);
+      _bodyCache = Uri.splitQueryString(content);
+    } else {
+      _bodyCache = await utf8.decodeStream(raw);
+    }
+  }
+
   /// Reads and returns the raw request body as a [String].
-  Future<String> body() => raw
-      .transform(
-        SystemEncoding().decoder as StreamTransformer<Uint8List, dynamic>,
-      )
-      .join();
+  /// Note: This will not work for `multipart/form-data` requests.
+  Future<String> body() async {
+    await _parseBody();
+    if (_bodyCache is String) {
+      return _bodyCache;
+    }
+    return '';
+  }
+
+  /// Parses the body as JSON and returns a [Map<String, dynamic>].
+  /// Throws if the body is not valid JSON.
+  Future<Map<String, dynamic>> json() async {
+    final content = await body();
+    final decoded = jsonDecode(content);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    throw FormatException('Expected a JSON object');
+  }
+
+  /// Parses the request body and returns a [Map] of form fields.
+  ///
+  /// This method handles two types of form data:
+  /// 1. `application/x-www-form-urlencoded`: Returns the key-value pairs directly.
+  /// 2. `multipart/form-data`: Extracts and returns the non-file fields.
+  ///
+  /// Use this method to access form data, especially when handling file uploads
+  /// where the other fields (e.g., user name, file description) are sent
+  /// alongside the file.
+  ///
+  /// @returns A [Future] that completes with a [Map<String, String>] of the form fields.
+  Future<Map<String, String>> form() async {
+    await _parseBody();
+    if (_bodyCache is Map<String, String>) {
+      return _bodyCache;
+    }
+    if (_bodyCache is Map && _bodyCache.containsKey('fields')) {
+      return _bodyCache['fields'] as Map<String, String>;
+    }
+    return {};
+  }
+
+  /// Checks if a file with the given name exists in the request.
+  /// @param name The name of the file field.
+  /// @returns [true] if the file exists, otherwise [false].
+  Future<bool> hasFile(String name) async {
+    await _parseBody();
+    if (_bodyCache is Map && _bodyCache.containsKey('files')) {
+      final files = _bodyCache['files'] as Map<String, UploadedFile>;
+      return files.containsKey(name);
+    }
+    return false;
+  }
+
+  /// Retrieves a single uploaded file by its field name.
+  /// @param name The name of the file field.
+  /// @returns An [UploadedFile] object or [null] if not found.
+  Future<UploadedFile?> file(String name) async {
+    await _parseBody();
+    if (_bodyCache is Map && _bodyCache.containsKey('files')) {
+      final files = _bodyCache['files'] as Map<String, UploadedFile>;
+      return files[name];
+    }
+    return null;
+  }
+
+  /// Retrieves all uploaded files from the request.
+  /// @returns A [Map] of all uploaded files, keyed by field name.
+  Future<Map<String, UploadedFile>> files() async {
+    await _parseBody();
+    if (_bodyCache is Map && _bodyCache.containsKey('files')) {
+      return _bodyCache['files'] as Map<String, UploadedFile>;
+    }
+    return {};
+  }
+
+  // --- Other existing methods ---
 
   /// Returns the bearer token from the `Authorization` header if present.
-  ///
-  /// Example:
-  /// ```
-  /// Authorization: Bearer <token>
-  /// ```
   String? get bearerToken {
     final auth = headers['authorization'];
     if (auth != null && auth.startsWith('Bearer ')) {
@@ -65,19 +206,13 @@ class Request {
     }));
   }
 
-  /// Parses the body as JSON and returns a [Map<String, dynamic>].
-  ///
-  /// Throws if the body is not valid JSON.
-  Future<Map<String, dynamic>> json() async {
-    final content = await body();
-    return jsonDecode(content);
-  }
-
-  /// Parses the body as `application/x-www-form-urlencoded` data.
-  ///
-  /// Returns a [Map<String, String>] of form fields.
-  Future<Map<String, String>> form() async {
-    final content = await body();
-    return Uri.splitQueryString(content);
+  Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
+    final body = await json();
+    await Validator.validate(body, {
+      "email": "required|string|email|min:3",
+      "username": "required|string|min:5",
+      "password": "required|string|min:8"
+    });
+    return body;
   }
 }

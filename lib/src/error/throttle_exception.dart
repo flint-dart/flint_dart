@@ -1,5 +1,3 @@
-import 'package:flint_dart/src/response.dart';
-
 import 'base_http_error.dart';
 
 class ThrottleError extends BaseHttpResponseErorr {
@@ -10,6 +8,4 @@ class ThrottleError extends BaseHttpResponseErorr {
     required super.code,
     this.headers,
   });
-
- 
 }

@@ -1,6 +1,6 @@
 import 'package:flint_dart/flint_dart.dart';
 
-void userData(App app) {
+void userData(Flint app) {
   app.get("/", (req, res) async {
     res.json({"user": "i love"});
   });

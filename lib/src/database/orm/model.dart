@@ -10,12 +10,12 @@ abstract class Model<T extends Model<T>> {
   String get primaryKey => 'id';
 
   /// Convert model to map
-  Map<String, dynamic> toMap();
+  Map<dynamic, dynamic> toMap();
 
   late Table table;
 
   /// Convert map to model
-  T fromMap(Map<String, dynamic> map);
+  T fromMap(Map<dynamic, dynamic> map);
 
   /// Refresh the model from DB
   Future<T?> refresh() async {
@@ -24,7 +24,7 @@ abstract class Model<T extends Model<T>> {
 
     final conn = DB.instance;
     final stmt = await conn.prepare(
-      'SELECT * FROM $table WHERE $primaryKey = ? LIMIT 1',
+      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
     );
     final result = await stmt.execute([id]);
 
@@ -33,36 +33,33 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Insert new record
-  Future<T> create() async {
-    final map = toMap();
-    map.remove(primaryKey);
+  Future<T> create(Map<String, dynamic> map) async {
+    final insertMap = Map.of(map)..remove(primaryKey);
 
     final conn = DB.instance;
-    final fields = map.keys.toList();
-    final values = map.values.toList();
+    final fields = insertMap.keys.toList();
+    final values = insertMap.values.toList();
     final placeholders = List.filled(fields.length, '?').join(', ');
 
     final sql =
-        'INSERT INTO $table (${fields.join(', ')}) VALUES ($placeholders)';
+        'INSERT INTO ${table.name} (${fields.join(', ')}) VALUES ($placeholders)';
     final stmt = await conn.prepare(sql);
-    await stmt.execute(values);
+    final result = await stmt.execute(values);
+    await stmt.deallocate();
 
-    final idStmt = await conn.prepare('SELECT LAST_INSERT_ID() as id');
-    final idResult = await idStmt.execute([]);
-    final id = idResult.rows.first.assoc()['id'];
+    final id = result.lastInsertID.toDouble();
 
     final refreshStmt = await conn.prepare(
-      'SELECT * FROM $table WHERE $primaryKey = ? LIMIT 1',
+      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
     );
     final refreshed = await refreshStmt.execute([id]);
+    await refreshStmt.deallocate();
 
     return fromMap(refreshed.rows.first.assoc());
   }
 
   /// Update existing record
-  Future<T> update() async {
-    final map = toMap();
-    final id = map[primaryKey];
+  Future<T> update(dynamic id, Map<String, dynamic> map) async {
     if (id == null) throw Exception("Cannot update: $primaryKey is null");
 
     map.remove(primaryKey);
@@ -70,13 +67,13 @@ abstract class Model<T extends Model<T>> {
     final values = map.values.toList();
     final setClause = fields.map((f) => '$f = ?').join(', ');
 
-    final sql = 'UPDATE $table SET $setClause WHERE $primaryKey = ?';
+    final sql = 'UPDATE ${table.name} SET $setClause WHERE $primaryKey = ?';
     final conn = DB.instance;
     final stmt = await conn.prepare(sql);
     await stmt.execute([...values, id]);
 
     final refreshStmt = await conn.prepare(
-      'SELECT * FROM $table WHERE $primaryKey = ? LIMIT 1',
+      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
     );
     final refreshed = await refreshStmt.execute([id]);
 
@@ -88,22 +85,22 @@ abstract class Model<T extends Model<T>> {
     final id = toMap()[primaryKey];
     if (id == null) return;
 
-    final sql = 'DELETE FROM $table WHERE $primaryKey = ?';
+    final sql = 'DELETE FROM ${table.name} WHERE $primaryKey = ?';
     final conn = DB.instance;
     final stmt = await conn.prepare(sql);
     await stmt.execute([id]);
   }
 
   /// Find by ID
-  static Future<T?> find<T extends Model<T>>(T model, dynamic id) async {
+  Future<T?> find(dynamic id) async {
     final conn = DB.instance;
     final stmt = await conn.prepare(
-      'SELECT * FROM ${model.table} WHERE ${model.primaryKey} = ? LIMIT 1',
+      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
     );
     final result = await stmt.execute([id]);
 
     if (result.rows.isEmpty) return null;
-    return model.fromMap(result.rows.first.assoc());
+    return fromMap(result.rows.first.assoc());
   }
 
   /// Get all records
@@ -118,15 +115,14 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Where clause
-  static Future<List<T>> where<T extends Model<T>>(
-      T model, String field, dynamic value) async {
+  Future<List<T>> where(String field, dynamic value) async {
     final conn = DB.instance;
     final stmt = await conn.prepare(
-      'SELECT * FROM ${model.table} WHERE $field = ?',
+      'SELECT * FROM ${table.name} WHERE $field = ?',
     );
     final result = await stmt.execute([value]);
 
-    return result.rows.map((r) => model.fromMap(r.assoc())).toList();
+    return result.rows.map((r) => fromMap(r.assoc())).toList();
   }
 
   /// Count all records
@@ -140,9 +136,9 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Truncate table
-  static Future<void> truncate<T extends Model<T>>(T model) async {
+  Future<void> truncate() async {
     final conn = DB.instance;
-    final stmt = await conn.prepare('TRUNCATE TABLE ${model.table}');
+    final stmt = await conn.prepare('TRUNCATE TABLE ${table.name}');
     await stmt.execute([]);
   }
 
@@ -153,7 +149,7 @@ abstract class Model<T extends Model<T>> {
   // }
 
   /// Custom query builder (you’ll implement this)
-  static QueryBuilder query<T extends Model<T>>(T model) {
-    return QueryBuilder(table: model.table.name);
+  QueryBuilder query() {
+    return QueryBuilder(table: table.name);
   }
 }

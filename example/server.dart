@@ -3,7 +3,7 @@ import 'package:flint_dart/flint_dart.dart';
 import 'user.dart';
 
 void main() {
-  final app = App(rootPath: "example");
+  final app = Flint(rootPath: "example");
 
   // app.setPath('example'); // Watch 'example' folder instead of default 'bin'
   app.use(LoggerMiddleware());

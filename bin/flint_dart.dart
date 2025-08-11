@@ -4,13 +4,17 @@ import 'dart:io';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/create_project_command.dart';
 import 'package:flint_dart/src/cli/db_commands.dart';
+import 'package:flint_dart/src/cli/make_controller_command.dart';
+import 'package:flint_dart/src/cli/make_middleware_command.dart';
 import 'package:flint_dart/src/cli/make_model_command.dart';
 
 final Map<String, FlintCommand> commands = {
   'create': CreateProjectCommand(),
-  'run': RunServerCommand(),
+  'start': RunServerCommand(),
   'migrate': DBMigrateCommand(),
   'make:model': MakeModelCommand(), // ✅ Add this
+  'make:controller': MakeControllerCommand(), // ✅ Add this
+  'make:middleware': MakeMiddlewareCommand(), // ✅ Add this
 };
 void main(List<String> args) async {
   if (args.isEmpty || !commands.containsKey(args[0])) {

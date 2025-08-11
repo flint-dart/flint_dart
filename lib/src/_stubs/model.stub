@@ -1,7 +1,7 @@
 import 'package:flint_dart/src/orm/model.dart';
 
 class {{ClassName}} extends Model<{{ClassName}}> {
-  int? id;
+  String? id;
 
   @override
   Map<String, dynamic> toMap() => {

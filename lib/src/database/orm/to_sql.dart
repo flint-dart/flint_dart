@@ -83,8 +83,9 @@ extension TableMigration on Table {
     buffer.write('ADD COLUMN `${col.name}` ${col.sqlType()}');
 
     if (!col.isNullable) buffer.write(' NOT NULL');
-    if (col.defaultValue != null)
+    if (col.defaultValue != null) {
       buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+    }
     if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
 
     return buffer.toString();
@@ -95,8 +96,9 @@ extension TableMigration on Table {
     buffer.write('MODIFY COLUMN `${col.name}` ${col.sqlType()}');
 
     if (!col.isNullable) buffer.write(' NOT NULL');
-    if (col.defaultValue != null)
+    if (col.defaultValue != null) {
       buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+    }
     if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
 
     return buffer.toString();
@@ -154,16 +156,22 @@ extension TableMySQL on Table {
   static ColumnType _inferColumnType(String mysqlType) {
     final type = mysqlType.toLowerCase();
     if (type.contains('int')) return ColumnType.integer;
-    if (type.contains('varchar') || type.contains('text'))
+    if (type.contains('varchar') || type.contains('text')) {
       return ColumnType.string;
-    if (type.contains('bool') || type == 'tinyint(1)')
+    }
+    if (type.contains('bool') || type == 'tinyint(1)') {
       return ColumnType.boolean;
+    }
     if (type.contains('double') ||
         type.contains('float') ||
-        type.contains('decimal')) return ColumnType.double;
+        type.contains('decimal')) {
+      return ColumnType.double;
+    }
     if (type.contains('datetime') ||
         type.contains('timestamp') ||
-        type.contains('date')) return ColumnType.string;
+        type.contains('date')) {
+      return ColumnType.string;
+    }
     return ColumnType.string; // fallback
   }
 
@@ -193,7 +201,7 @@ Future<Table?> getTableSchema(String tableName) async {
   }
 }
 
-/// Decodes all List<int> (UTF-8 bytes) in a MySQL assoc() row to Strings.
+/// Decodes all List&ltint&gt (UTF-8 bytes) in a MySQL assoc() row to Strings.
 Map<String, dynamic> decodeAssoc(Map<String, dynamic> row) {
   return row.map((key, value) {
     if (value is List<int>) {

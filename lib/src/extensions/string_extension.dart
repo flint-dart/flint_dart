@@ -2,8 +2,8 @@ import 'dart:math';
 
 extension FlintExention on String {
   String toSnakeCase() {
-    if (this.isEmpty) return this;
-    final result = this.replaceAllMapped(
+    if (isEmpty) return this;
+    final result = replaceAllMapped(
         RegExp(r'[A-Z]'),
         (match) =>
             (match.start > 0 ? '_' : '') + match.group(0)!.toLowerCase());
@@ -13,7 +13,7 @@ extension FlintExention on String {
   /// Sanitizes a route path by replacing multiple slashes with a single slash and
   /// removing leading and trailing slashes.
   String sanitizeRoutePath() {
-    var value = this.replaceAll(RegExp(r'/+'), '/');
+    var value = replaceAll(RegExp(r'/+'), '/');
     return value.replaceAll(RegExp('^\\/+|\\/+\$'), '');
   }
 

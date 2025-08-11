@@ -1,9 +1,9 @@
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 
-class Jwt {
+class FlintJwt {
   final String secretKey;
 
-  Jwt(this.secretKey);
+  FlintJwt(this.secretKey);
 
   String generateToken(
     Map<String, dynamic> payload, {

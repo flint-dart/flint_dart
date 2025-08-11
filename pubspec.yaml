@@ -15,7 +15,8 @@ dependencies:
   mysql_dart: ^1.0.0
   postgres: ^3.5.6
   sqlite3: ^2.8.0
-  meta: ^1.17.0
+  mime: ^2.0.0
+  uuid: ^4.5.1
 
 dev_dependencies:
   lints: ^5.0.0         # Dart lint rules

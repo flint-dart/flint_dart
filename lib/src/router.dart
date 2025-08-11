@@ -23,6 +23,12 @@ class Router {
     for (final route in routes) {
       if (route.method != method) continue;
 
+      if (route.path.endsWith('/*')) {
+        final prefix = route.path.substring(0, route.path.length - 1);
+        if (pathToMatch.startsWith(prefix)) {
+          return route.handler;
+        }
+      }
       final routeParts = route.path.split('/');
       final pathParts = pathToMatch.split('/');
 

@@ -1,6 +1,4 @@
-import 'dart:async';
 import 'package:flint_dart/schema.dart';
-import 'package:flint_dart/src/database/connection.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 
 extension ColumnSQL on Column {
@@ -142,12 +140,14 @@ extension TableSQL on Table {
   static ColumnType _inferColumnType(String typeStr) {
     final lower = typeStr.toLowerCase();
     if (lower.startsWith('int')) return ColumnType.integer;
-    if (lower.startsWith('varchar') || lower.startsWith('char'))
+    if (lower.startsWith('varchar') || lower.startsWith('char')) {
       return ColumnType.string;
+    }
     if (lower.startsWith('text')) return ColumnType.text;
     if (lower.startsWith('bool')) return ColumnType.boolean;
-    if (lower.startsWith('double') || lower.startsWith('float'))
+    if (lower.startsWith('double') || lower.startsWith('float')) {
       return ColumnType.double;
+    }
     if (lower.contains('datetime')) return ColumnType.datetime;
     if (lower.contains('timestamp')) return ColumnType.timestamp;
     return ColumnType.string;

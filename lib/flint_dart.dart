@@ -12,3 +12,4 @@ export 'src/request.dart';
 export 'src/response.dart';
 export 'model.dart';
 export 'schema.dart';
+export 'src/validation/validator.dart';
