@@ -26,8 +26,8 @@ class Validator {
       String? listItemType;
       int? minLength;
       int? maxLength;
-      num? minValue;
-      num? maxValue;
+      // num? minValue;
+      // num? maxValue;
       RegExp? regex;
 
       for (var part in ruleParts) {
