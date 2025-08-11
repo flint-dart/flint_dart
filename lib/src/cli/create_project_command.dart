@@ -1,6 +1,4 @@
-// Expanded CreateProjectCommand
 import 'dart:io';
-
 import 'package:flint_dart/src/cli/commands.dart';
 
 class CreateProjectCommand extends FlintCommand {
@@ -16,78 +14,58 @@ class CreateProjectCommand extends FlintCommand {
       return;
     }
 
-    await dir.create();
-    print('Creating FlintDart project in ${dir.path}...');
+    print('Cloning Flint Dart sample project...');
+    final cloneResult = await Process.run(
+      'git',
+      [
+        'clone',
+        'https://github.com/flint-dart/flint-dart-sample.git',
+        projectName
+      ],
+    );
 
-    // Create basic project structure
-    await _createFile('${dir.path}/pubspec.yaml', _pubspecContent(projectName));
-    await _createFile('${dir.path}/lib/main.dart', _mainDartContent());
-    await _createFile('${dir.path}/.gitignore', _gitignoreContent());
-    await _createProjectStructure(dir.path); // ✅ Pass the path here
+    if (cloneResult.exitCode != 0) {
+      print('Error cloning repo: ${cloneResult.stderr}');
+      return;
+    }
 
-    print('Project created successfully!');
-    print('To get started:\n'
-        '  cd $projectName\n'
-        '  dart pub get\n'
-        '  flint run');
+    // Remove .git so it's a fresh project
+    await Directory('${dir.path}/.git').delete(recursive: true);
+
+    // Change package name in pubspec.yaml
+    final pubspecFile = File('${dir.path}/pubspec.yaml');
+    if (await pubspecFile.exists()) {
+      String content = await pubspecFile.readAsString();
+      content = content.replaceFirst(
+        RegExp(r'^name:.*', multiLine: true),
+        'name: $projectName',
+      );
+      await pubspecFile.writeAsString(content);
+    }
+
+    // Update all "package:sample/" imports to new project name
+    await _updatePackageImports(dir.path, 'sample', projectName);
+
+    print('Project "$projectName" created successfully!');
+    print('To get started:');
+    print('  cd $projectName');
+    print('  dart pub get');
+    print('  flint run');
   }
 
-  Future<void> _createFile(String path, String content) async {
-    await File(path).writeAsString(content);
-  }
+  Future<void> _updatePackageImports(
+      String rootPath, String oldName, String newName) async {
+    final dir = Directory(rootPath);
 
-  String _pubspecContent(String name) => '''
-name: $name
-description: A FlintDart application
-version: 1.0.0
-
-environment:
-  sdk: ^3.0.0
-
-dependencies:
-  flint_dart: ^1.0.0
-
-''';
-
-  String _mainDartContent() => '''
-import 'package:flint_dart/flint_dart.dart';
-
-void main() {
-  final app = App();
-
-  app.get('/', (req, res) async {
-    res.send('Hello from FlintDart!');
-  });
-
-  app.listen(3000);
-}
-
-''';
-
-  String _gitignoreContent() => '''
-# Dart
-.dart_tool/
-.packages
-.pub/
-build/
-
-# Environment files
-.env
-''';
-}
-
-Future<void> _createProjectStructure(String basePath) async {
-  final folders = [
-    'lib/src/controllers',
-    'lib/src/models',
-    'lib/src/routes',
-    'lib/src/middleware',
-    'lib/src/config',
-    'lib/src/utils',
-    'lib/src/services',
-  ];
-
-  for (final path in folders) {
-    await Directory('$basePath/$path').create(recursive: true);
+    await for (var entity in dir.list(recursive: true, followLinks: false)) {
+      if (entity is File && entity.path.endsWith('.dart')) {
+        String content = await entity.readAsString();
+        if (content.contains('package:$oldName/')) {
+          content =
+              content.replaceAll('package:$oldName/', 'package:$newName/');
+          await entity.writeAsString(content);
+        }
+      }
+    }
   }
 }
