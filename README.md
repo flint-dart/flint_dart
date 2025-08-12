@@ -35,7 +35,7 @@ dart pub add flint_dart
 import 'package:flint_dart/flint_dart.dart';
 
 void main() {
-  final app = App();
+  final app = Flint();
 
   app.get('/', (req, res) async {
     res.send('Welcome to Flint Dart!');
