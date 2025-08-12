@@ -1,6 +1,6 @@
 name: flint_dart
 description: A minimal Dart backend framework by Eulogia Technologies.
-version: 1.0.0+1
+version: 1.0.0+2
 homepage: https://flintdart.eulogia.net
 repository: https://github.com/eulogiatechnologies/flint_dart
 issue_tracker: https://github.com/eulogiatechnologies/flint_dart/issues

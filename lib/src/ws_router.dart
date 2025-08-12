@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flint_dart/src/websocket.dart';
 
 // typedef WsHandler = void Function(

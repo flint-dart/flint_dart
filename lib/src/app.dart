@@ -10,35 +10,79 @@ import 'router.dart';
 import 'websocket.dart'; // FlintWebSocket and wsManager
 import 'ws_router.dart'; // _WsRoute, WsHandler, WsAuthMiddleware typedefs
 
+/// The core application class for the Flint Dart framework.
+///
+/// Provides:
+/// - HTTP route handling (`get`, `post`, `put`, etc.)
+/// - WebSocket routing with optional authentication
+/// - Static file serving
+/// - Middleware support
+/// - Mounting of sub-applications
+/// - Automatic database connection (via `.env`)
+/// - Hot reload support during development
 class Flint {
+  /// The root path of your Flint project (defaults to `"lib"`).
   final String rootPath;
+
+  /// Creates a new Flint application instance.
+  ///
+  /// [rootPath] is used for resolving hot reload entry points
+  /// and mounted sub-apps.
   Flint({this.rootPath = "lib"});
 
   final Router _router = Router();
   final List<Middleware> _middlewares = [];
 
   bool _dbInitialized = false;
+
+  /// Returns `true` if the database connection has been established.
   bool get isDatabaseConnected => _dbInitialized;
 
   // ===== HTTP ROUTES =====
+
+  /// Registers a GET route.
   void get(String path, Handler handler) => _router.add('GET', path, handler);
+
+  /// Registers a POST route.
   void post(String path, Handler handler) => _router.add('POST', path, handler);
+
+  /// Registers a PUT route.
   void put(String path, Handler handler) => _router.add('PUT', path, handler);
+
+  /// Registers a PATCH route.
   void patch(String path, Handler handler) =>
       _router.add('PATCH', path, handler);
+
+  /// Registers a DELETE route.
   void delete(String path, Handler handler) =>
       _router.add('DELETE', path, handler);
+
+  /// Registers a route for a custom HTTP method.
   void route(String method, String path, Handler handler) =>
       _router.add(method.toUpperCase(), path, handler);
 
   // ===== WEBSOCKET ROUTES =====
+
   final List<WsRoute> _wsRoutes = [];
 
+  /// Registers a WebSocket route.
+  ///
+  /// [path] is the WebSocket endpoint (e.g. `/chat`).
+  /// [handler] is the callback for connected clients.
+  /// [auth] is an optional authentication middleware that runs
+  /// before upgrading the connection.
   void websocket(String path, WsHandler handler, {WsAuthMiddleware? auth}) {
     _wsRoutes.add(WsRoute(path, handler, auth));
   }
 
   // ===== STATIC FILES =====
+
+  /// Serves static files from [directoryPath] at [urlPrefix].
+  ///
+  /// Example:
+  /// ```dart
+  /// app.static('/public', 'public');
+  /// ```
   void static(String urlPrefix, String directoryPath) {
     final directory = Directory(directoryPath);
     if (!directory.existsSync()) {
@@ -63,9 +107,19 @@ class Flint {
   }
 
   // ===== MIDDLEWARE =====
+
+  /// Adds a [middleware] to the application.
+  ///
+  /// Middlewares run for every incoming request in the order
+  /// they are registered.
   void use(Middleware middleware) => _middlewares.add(middleware);
 
   // ===== MOUNTING =====
+
+  /// Mounts a sub-application under [prefix].
+  ///
+  /// Useful for modular route organization.
+  /// You can also pass specific [middlewares] for the mounted app.
   void mount(String prefix, void Function(Flint subApp) callback,
       {List<Middleware> middlewares = const []}) {
     final subApp = Flint(rootPath: rootPath);
@@ -91,6 +145,12 @@ class Flint {
   }
 
   // ===== START SERVER =====
+
+  /// Starts the HTTP & WebSocket server on [port].
+  ///
+  /// - Attempts to auto-connect to the database via `.env` unless already connected.
+  /// - Runs with hot reload during development unless `FLINT_HOT` is set.
+  /// - Handles both HTTP and WebSocket upgrade requests.
   Future<void> listen(int port) async {
     if (!_dbInitialized) {
       try {

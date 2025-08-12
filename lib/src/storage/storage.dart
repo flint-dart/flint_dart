@@ -3,6 +3,22 @@ import 'dart:io';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:uuid/uuid.dart';
 
+/// Handles file storage operations for uploaded files in Flint Dart.
+///
+/// This class provides static helper methods to:
+/// - Save uploaded files to a public directory
+/// - Delete files by their public URL
+/// - Replace existing files with new ones
+///
+/// Files are stored in the `public/uploads` directory by default
+/// and accessed via the `/uploads` URL path.
+///
+/// Example:
+/// ```dart
+/// final fileUrl = await Storage.create(uploadedFile);
+/// await Storage.delete(fileUrl);
+/// final newFileUrl = await Storage.update(fileUrl, newUploadedFile);
+/// ```
 class Storage {
   /// The base directory where all files are stored.
   static const String _baseDir = 'public/uploads';
@@ -12,12 +28,13 @@ class Storage {
 
   /// Saves an uploaded file to the server.
   ///
-  /// This method generates a unique filename and ensures the target
-  /// directory exists before saving the file's content.
+  /// Generates a unique filename to avoid collisions, ensures the target
+  /// directory exists, and writes the file's content to disk.
   ///
-  /// @param file The [UploadedFile] object from the request.
-  /// @param subdirectory The optional subdirectory within the base directory.
-  /// @returns A [Future] that completes with the public URL of the saved file.
+  /// [file] - The [UploadedFile] object from the request.
+  /// [subdirectory] - Optional subdirectory within the base directory.
+  ///
+  /// Returns the public URL of the saved file.
   static Future<String> create(UploadedFile file,
       {String subdirectory = ''}) async {
     final String uniqueFileName = '${Uuid().v4()}_${file.filename}';
@@ -36,8 +53,9 @@ class Storage {
 
   /// Deletes a file from the server using its public URL.
   ///
-  /// @param fileUrl The public URL of the file to delete.
-  /// @returns A [Future] that completes when the file is deleted or if it does not exist.
+  /// [fileUrl] - The public URL of the file to delete.
+  ///
+  /// Does nothing if the file does not exist or the URL is invalid.
   static Future<void> delete(String fileUrl) async {
     if (!fileUrl.startsWith(_baseUrl)) {
       return;
@@ -53,13 +71,13 @@ class Storage {
 
   /// Replaces an old file with a new uploaded file.
   ///
-  /// This is a convenience method that first deletes the old file
-  /// and then creates the new one.
+  /// Deletes the existing file (if it exists) and saves the new file.
   ///
-  /// @param oldFileUrl The public URL of the file to replace.
-  /// @param newFile The [UploadedFile] object for the new file.
-  /// @param subdirectory The optional subdirectory for the new file.
-  /// @returns A [Future] that completes with the public URL of the new file.
+  /// [oldFileUrl] - The public URL of the file to replace.
+  /// [newFile] - The [UploadedFile] object for the new file.
+  /// [subdirectory] - Optional subdirectory for the new file.
+  ///
+  /// Returns the public URL of the new file.
   static Future<String> update(String oldFileUrl, UploadedFile newFile,
       {String subdirectory = ''}) async {
     await delete(oldFileUrl);

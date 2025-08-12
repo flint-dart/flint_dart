@@ -54,11 +54,6 @@
 </h1></div>
 
     
-<section class="desc markdown">
-  <p>Abstract base class for all ORM models in the FlintDart framework.</p>
-<p>Provides built-in support for database interaction including
-CRUD operations, validation, timestamps, and query helpers.</p>
-</section>
 
 
 
@@ -80,33 +75,9 @@ CRUD operations, validation, timestamps, and query helpers.</p>
       id="instance-properties">
     <h2>Properties</h2>
     <dl class="properties">
-        <dt id="createdAt" class="property">
-  <span class="name"><a href="../flint_dart/Model/createdAt.html">createdAt</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/DateTime-class.html">DateTime</a>?</span>
-  
-
-</dt>
-<dd>
-  Returns the creation timestamp if the model exists.
-  <div class="features"><span class="feature">no setter</span></div>
-
-</dd>
-
-        <dt id="existsInDatabase" class="property">
-  <span class="name"><a href="../flint_dart/Model/existsInDatabase.html">existsInDatabase</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
-  
-
-</dt>
-<dd>
-  Whether the model exists in the database (after insert or fetch).
-  <div class="features"><span class="feature">no setter</span></div>
-
-</dd>
-
         <dt id="hashCode" class="property inherited">
-  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/int-class.html">int</a></span>
   
 
 </dt>
@@ -118,19 +89,20 @@ CRUD operations, validation, timestamps, and query helpers.</p>
 
         <dt id="primaryKey" class="property">
   <span class="name"><a href="../flint_dart/Model/primaryKey.html">primaryKey</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>
   
 
 </dt>
 <dd>
-  The name of the primary key column. Defaults to <code>'id'</code>.
+  Table name
+Primary key column
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
 
         <dt id="runtimeType" class="property inherited">
-  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Type-class.html">Type</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Type-class.html">Type</a></span>
   
 
 </dt>
@@ -142,37 +114,13 @@ CRUD operations, validation, timestamps, and query helpers.</p>
 
         <dt id="table" class="property">
   <span class="name"><a href="../flint_dart/Model/table.html">table</a></span>
-  <span class="signature">&#8594; <a href="../flint_dart/Table-class.html">Table</a></span>
+  <span class="signature">&#8596; <a href="../flint_dart/Table-class.html">Table</a></span>
   
 
 </dt>
 <dd>
-  Returns the table schema associated with this model.
-  <div class="features"><span class="feature">no setter</span></div>
-
-</dd>
-
-        <dt id="timestamps" class="property">
-  <span class="name"><a href="../flint_dart/Model/timestamps.html">timestamps</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
   
-
-</dt>
-<dd>
-  Whether to automatically manage <code>created_at</code> and <code>updated_at</code> fields.
-  <div class="features"><span class="feature">no setter</span></div>
-
-</dd>
-
-        <dt id="updatedAt" class="property">
-  <span class="name"><a href="../flint_dart/Model/updatedAt.html">updatedAt</a></span>
-  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/DateTime-class.html">DateTime</a>?</span>
-  
-
-</dt>
-<dd>
-  Returns the last update timestamp if the model exists.
-  <div class="features"><span class="feature">no setter</span></div>
+  <div class="features"><span class="feature">getter/setter pair</span></div>
 
 </dd>
 
@@ -185,60 +133,73 @@ CRUD operations, validation, timestamps, and query helpers.</p>
       id="instance-methods">
     <h2>Methods</h2>
     <dl class="callables">
-        <dt id="copyValues" class="callable">
-  <span class="name"><a href="../flint_dart/Model/copyValues.html">copyValues</a></span><span class="signature">(<wbr><span class="parameter" id="copyValues-param-other"><span class="type-annotation">T</span> <span class="parameter-name">other</span></span>)
-    <span class="returntype parameter">&#8594; void</span>
+        <dt id="all" class="callable">
+  <span class="name"><a href="../flint_dart/Model/all.html">all</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Copies values from another model instance of the same type.
+  Get all records
+  
+
+</dd>
+
+        <dt id="create" class="callable">
+  <span class="name"><a href="../flint_dart/Model/create.html">create</a></span><span class="signature">(<wbr><span class="parameter" id="create-param-map"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">map</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Insert new record
   
 
 </dd>
 
         <dt id="delete" class="callable">
   <span class="name"><a href="../flint_dart/Model/delete.html">delete</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Deletes the model from the database.
+  Delete this model
+  
+
+</dd>
+
+        <dt id="find" class="callable">
+  <span class="name"><a href="../flint_dart/Model/find.html">find</a></span><span class="signature">(<wbr><span class="parameter" id="find-param-id"><span class="type-annotation">dynamic</span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Find by ID
   
 
 </dd>
 
         <dt id="fromMap" class="callable">
-  <span class="name"><a href="../flint_dart/Model/fromMap.html">fromMap</a></span><span class="signature">(<wbr><span class="parameter" id="fromMap-param-map"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">map</span></span>)
+  <span class="name"><a href="../flint_dart/Model/fromMap.html">fromMap</a></span><span class="signature">(<wbr><span class="parameter" id="fromMap-param-map"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a></span> <span class="parameter-name">map</span></span>)
     <span class="returntype parameter">&#8594; T</span>
   </span>
   
 
 </dt>
 <dd>
-  Rehydrates the model from a DB record.
-  
-
-</dd>
-
-        <dt id="insert" class="callable">
-  <span class="name"><a href="../flint_dart/Model/insert.html">insert</a></span><span class="signature">(<wbr><span class="parameter" id="insert-param-map"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">map</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-  </span>
-  
-
-</dt>
-<dd>
-  Inserts the model into the database.
+  Convert map to model
   
 
 </dd>
 
         <dt id="noSuchMethod" class="callable inherited">
-  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
     <span class="returntype parameter">&#8594; dynamic</span>
   </span>
   
@@ -250,61 +211,49 @@ CRUD operations, validation, timestamps, and query helpers.</p>
 
 </dd>
 
+        <dt id="query" class="callable">
+  <span class="name"><a href="../flint_dart/Model/query.html">query</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; QueryBuilder</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Validate input using rules
+Custom query builder (you’ll implement this)
+  
+
+</dd>
+
         <dt id="refresh" class="callable">
   <span class="name"><a href="../flint_dart/Model/refresh.html">refresh</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Reloads the model data from the database.
-  
-
-</dd>
-
-        <dt id="rules" class="callable">
-  <span class="name"><a href="../flint_dart/Model/rules.html">rules</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>
-  </span>
-  
-
-</dt>
-<dd>
-  Returns a map of validation rules.
-  
-
-</dd>
-
-        <dt id="save" class="callable">
-  <span class="name"><a href="../flint_dart/Model/save.html">save</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-  </span>
-  
-
-</dt>
-<dd>
-  Saves the model to the database. Inserts or updates depending on existence.
+  Refresh the model from DB
   
 
 </dd>
 
         <dt id="toMap" class="callable">
   <span class="name"><a href="../flint_dart/Model/toMap.html">toMap</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a></span>
   </span>
   
 
 </dt>
 <dd>
-  Serializes the model into a Map for DB operations.
+  Convert model to map
   
 
 </dd>
 
         <dt id="toString" class="callable inherited">
-  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>
   </span>
   
 
@@ -315,15 +264,41 @@ CRUD operations, validation, timestamps, and query helpers.</p>
 
 </dd>
 
-        <dt id="update" class="callable">
-  <span class="name"><a href="../flint_dart/Model/update.html">update</a></span><span class="signature">(<wbr><span class="parameter" id="update-param-map"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">map</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+        <dt id="truncate" class="callable">
+  <span class="name"><a href="../flint_dart/Model/truncate.html">truncate</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Updates the model in the database.
+  Truncate table
+  
+
+</dd>
+
+        <dt id="update" class="callable">
+  <span class="name"><a href="../flint_dart/Model/update.html">update</a></span><span class="signature">(<wbr><span class="parameter" id="update-param-id"><span class="type-annotation">dynamic</span> <span class="parameter-name">id</span>, </span><span class="parameter" id="update-param-map"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">map</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Update existing record
+  
+
+</dd>
+
+        <dt id="where" class="callable">
+  <span class="name"><a href="../flint_dart/Model/where.html">where</a></span><span class="signature">(<wbr><span class="parameter" id="where-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="where-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Where clause
   
 
 </dd>
@@ -337,8 +312,8 @@ CRUD operations, validation, timestamps, and query helpers.</p>
     <h2>Operators</h2>
     <dl class="callables">
         <dt id="operator ==" class="callable inherited">
-  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/bool-class.html">bool</a></span>
   </span>
   
 
@@ -352,75 +327,19 @@ CRUD operations, validation, timestamps, and query helpers.</p>
     </dl>
   </section>
     
-  <section class="summary offset-anchor" id="static-properties">
-    <h2>Static Properties</h2>
-    <dl class="properties">
-        <dt id="connection" class="property">
-  <span class="name"><a href="../flint_dart/Model/connection.html">connection</a></span>
-  <span class="signature">&#8594; <a href="https://pub.dev/documentation/mysql1/0.20.0/mysql1/MySqlConnection-class.html">MySqlConnection</a></span>
-  
-
-</dt>
-<dd>
-  Provides access to the global MySQL connection instance.
-  <div class="features"><span class="feature">no setter</span></div>
-
-</dd>
-
-    </dl>
-  </section>
     
   <section class="summary offset-anchor" id="static-methods">
     <h2>Static Methods</h2>
     <dl class="callables">
-        <dt id="all" class="callable">
-  <span class="name"><a href="../flint_dart/Model/all.html">all</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="all-param-model"><span class="type-annotation">T</span> <span class="parameter-name">model</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+        <dt id="count" class="callable">
+  <span class="name"><a href="../flint_dart/Model/count.html">count</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="count-param-model"><span class="type-annotation">T</span> <span class="parameter-name">model</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/int-class.html">int</a></span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Returns all records of a given model.
-  
-
-</dd>
-
-        <dt id="find" class="callable">
-  <span class="name"><a href="../flint_dart/Model/find.html">find</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="find-param-id"><span class="type-annotation">dynamic</span> <span class="parameter-name">id</span>, </span><span class="parameter" id="find-param-model"><span class="type-annotation">T</span> <span class="parameter-name">model</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
-  </span>
-  
-
-</dt>
-<dd>
-  Finds a model by its primary key.
-  
-
-</dd>
-
-        <dt id="query" class="callable">
-  <span class="name"><a href="../flint_dart/Model/query.html">query</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="query-param-model"><span class="type-annotation">T</span> <span class="parameter-name">model</span></span>)
-    <span class="returntype parameter">&#8594; QueryBuilder</span>
-  </span>
-  
-
-</dt>
-<dd>
-  Creates a new query builder for the given model.
-  
-
-</dd>
-
-        <dt id="where" class="callable">
-  <span class="name"><a href="../flint_dart/Model/where.html">where</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span><span class="signature">(<wbr>{<span class="parameter" id="where-param-model"><span>required</span> <span class="type-annotation">T</span> <span class="parameter-name">model</span>, </span><span class="parameter" id="where-param-column"><span>required</span> <span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">column</span>, </span><span class="parameter" id="where-param-value"><span>required</span> <span class="type-annotation">dynamic</span> <span class="parameter-name">value</span>, </span><span class="parameter" id="where-param-operator"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">operator</span>, </span><span class="parameter" id="where-param-limit"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">limit</span>, </span><span class="parameter" id="where-param-offset"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">offset</span>, </span><span class="parameter" id="where-param-orderBy"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">orderBy</span>, </span><span class="parameter" id="where-param-orderDesc"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">orderDesc</span> = <span class="default-value">false</span></span>})
-    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
-  </span>
-  
-
-</dt>
-<dd>
-  Filters records by a column value with optional conditions.
+  Count all records
   
 
 </dd>
@@ -452,7 +371,7 @@ CRUD operations, validation, timestamps, and query helpers.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0
+      1.0.0+1
   </span>
   
 </footer>

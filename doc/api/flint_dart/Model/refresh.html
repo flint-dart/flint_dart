@@ -54,7 +54,7 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
 <span class="name ">refresh</span>(<wbr>)
 
       
@@ -62,31 +62,25 @@
     </section>
     
 <section class="desc markdown">
-  <p>Reloads the model data from the database.</p>
+  <p>Refresh the model from DB</p>
 </section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; refresh() async {
-  if (!_existsInDb) {
-    throw StateError(
-        &#39;Cannot refresh a model that doesn\&#39;t exist in database&#39;);
-  }
+  <pre class="language-dart"><code class="language-dart">Future&lt;T?&gt; refresh() async {
+  final id = toMap()[primaryKey];
+  if (id == null) return null;
 
-  final map = toMap();
-  final result = await connection.query(
-    &#39;SELECT * FROM `${table.name}` WHERE `$primaryKey` = ? LIMIT 1&#39;,
-    [map[primaryKey]],
+  final conn = DB.instance;
+  final stmt = await conn.prepare(
+    &#39;SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1&#39;,
   );
+  final result = await stmt.execute([id]);
 
-  if (result.isEmpty) {
-    throw StateError(&#39;Record no longer exists in database&#39;);
-  }
-
-  final refreshed = fromMap(result.first.fields);
-  copyValues(refreshed as T);
+  if (result.rows.isEmpty) return null;
+  return fromMap(result.rows.first.assoc());
 }</code></pre>
 </section>
 
@@ -115,7 +109,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0
+      1.0.0+1
   </span>
   
 </footer>

@@ -59,7 +59,15 @@
 </ul>
 <hr>
 <h2 id="-getting-started">🚀 Getting Started</h2>
-<h3 id="1-add-flint-to-your-project">1. Add Flint to your project</h3>
+<h3 id="1--install-as-a-global-package">1.  Install as a Global Package</h3>
+<p>If you want to quickly create and run apps without adding Flint as a dependency, install it globally:</p>
+<pre class="language-bash"><code class="language-bash">dart pub global activate flint_dart
+</code></pre>
+<pre class="language-bash"><code class="language-bash">flint create new_app   # Create a new Flint project
+flint run              # Run the project
+</code></pre>
+<h3 id="2-add-as-a-project-dependency">2. Add as a Project Dependency</h3>
+<p>If you prefer Flint to be part of your project’s dependencies:</p>
 <pre class="language-bash"><code class="language-bash">dart pub add flint_dart
 </code></pre>
 <pre class="language-bash"><code class="language-bash">dart run 
@@ -67,7 +75,7 @@
 <pre class="language-bash"><code class="language-bash">import 'package:flint_dart/flint_dart.dart';
 
 void main() {
-  final app = App();
+  final app = Flint();
 
   app.get('/', (req, res) async {
     res.send('Welcome to Flint Dart!');
@@ -86,13 +94,23 @@ app.get('/hello', (req, res) async {
 </code></pre>
 <h3 id="middleware">Middleware</h3>
 <pre class="language-bash"><code class="language-bash">
-app.use((next) {
-  return (req, res) async {
-    print('${req.method} ${req.path}');
-    await next(req, res);
-  };
-});
+import 'package:flint_dart/flint_dart.dart';
 
+class AuthMiddleware extends Middleware {
+  @override
+  Handler handle(Handler next) {
+    return (Request req, Response res) async {
+      final token = req.bearerToken;
+      if (token == null || token != "expected_token") {
+        res.status(401).send("Unauthorized");
+        return;
+      }
+      await next(req, res);
+    };
+  }
+</code></pre>
+<pre class="language-bash"><code class="language-bash">
+  app.put('/:id', AuthMiddleware().handle(controller.update));
 </code></pre>
 <h3 id="jwt-authentication">JWT Authentication</h3>
 <pre class="language-bash"><code class="language-bash">final token = JwtUtil.generateToken({'userId': 123});
@@ -105,7 +123,7 @@ final isValid = Hashing.verifyPassword('mySecret', hash);
 </code></pre>
 <h3 id="-project-structure">📁 Project Structure</h3>
 <pre class="language-bash"><code class="language-bash">lib/
-├── flint_dart.dart
+├── main.dart
 ├── src/
 │   ├── app.dart
 │   ├── router.dart
@@ -133,6 +151,20 @@ dart pub get
       <section class="summary">
           <h2>Libraries</h2>
         <dl>
+          <dt id="auth">
+  <span class="name"><a href="auth/">auth</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="db">
+  <span class="name"><a href="db/">db</a></span> 
+
+</dt>
+<dd>
+</dd>
+
           <dt id="flint_dart">
   <span class="name"><a href="flint_dart/">flint_dart</a></span> 
 
@@ -161,6 +193,13 @@ dart pub get
 <dd>
 </dd>
 
+          <dt id="storage">
+  <span class="name"><a href="storage/">storage</a></span> 
+
+</dt>
+<dd>
+</dd>
+
         </dl>
       </section>
   </div> <!-- /.main-content -->
@@ -178,10 +217,13 @@ dart pub get
     <h5 class="hidden-xs"><span class="package-name">flint_dart</span> <span class="package-kind">package</span></h5>
     <ol>
       <li class="section-title">Libraries</li>
+      <li><a href="auth/">auth</a></li>
+      <li><a href="db/">db</a></li>
       <li><a href="flint_dart/">flint_dart</a></li>
       <li><a href="model/">model</a></li>
       <li><a href="schema/">schema</a></li>
       <li><a href="security/">security</a></li>
+      <li><a href="storage/">storage</a></li>
 </ol>
 
   </div>
@@ -191,7 +233,7 @@ dart pub get
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0
+      1.0.0+1
   </span>
   
 </footer>

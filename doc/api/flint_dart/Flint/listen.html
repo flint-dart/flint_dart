@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the listen method from the Flint class, for the Dart programming language.">
+  <title>listen method - Flint class - flint_dart library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">flint_dart</a></li>
+    <li><a href="../../flint_dart/">flint_dart.dart</a></li>
+    <li><a href="../../flint_dart/Flint-class.html">Flint</a></li>
+    <li class="self-crumb">listen method</li>
+  </ol>
+  <div class="self-name">listen</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="flint_dart&#47;Flint-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">listen</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="name ">listen</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="listen-param-port"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/int-class.html">int</a></span> <span class="parameter-name">port</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Starts the HTTP &amp; WebSocket server on <code>port</code>.</p>
+<ul>
+<li>Attempts to auto-connect to the database via <code>.env</code> unless already connected.</li>
+<li>Runs with hot reload during development unless <code>FLINT_HOT</code> is set.</li>
+<li>Handles both HTTP and WebSocket upgrade requests.</li>
+</ul>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; listen(int port) async {
+  if (!_dbInitialized) {
+    try {
+      await DB.autoConnect();
+      _dbInitialized = true;
+      print(&#39;[FLINT] Database auto-connected via .env&#39;);
+    } catch (e) {
+      print(&#39;[FLINT] ⚠️ Could not auto-connect to database: $e&#39;);
+    }
+  }
+
+  &#47;&#47; Hot reload parent process
+  if (Platform.environment[&#39;FLINT_HOT&#39;] != &#39;1&#39;) {
+    print(&#39;[FLINT] Starting with hot reload...&#39;);
+    final child = await Process.start(
+      &#39;dart&#39;,
+      [&#39;--enable-vm-service&#39;, &#39;run&#39;, &#39;flint_dart:hot_reload&#39;, rootPath],
+      environment: {&#39;FLINT_HOT&#39;: &#39;1&#39;},
+      mode: ProcessStartMode.inheritStdio,
+    );
+
+    ProcessSignal.sigint.watch().listen((_) async {
+      print(&#39;\n[FLINT] Shutting down...&#39;);
+      child.kill(ProcessSignal.sigint);
+      child.kill();
+      await child.exitCode;
+      exit(0);
+    });
+
+    return;
+  }
+
+  HttpServer? server;
+  try {
+    server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+    print(&#39;Server running on http:&#47;&#47;localhost:$port&#39;);
+  } on SocketException catch (e) {
+    print(&#39;[FLINT] ❌ ERROR: Could not bind to port $port. Is it in use?&#39;);
+    print(&#39;[FLINT] 🔎 Details: ${e.message}&#39;);
+    await Future.delayed(const Duration(seconds: 1));
+    exit(1);
+  }
+
+  ProcessSignal.sigint.watch().listen((_) async {
+    print(&#39;\n[FLINT] Server shutting down...&#39;);
+    await server?.close(force: true);
+    exit(0);
+  });
+
+  await for (var req in server) {
+    &#47;&#47; ===== WebSocket check =====
+    if (WebSocketTransformer.isUpgradeRequest(req)) {
+      bool matched = false;
+
+      for (final route in _wsRoutes) {
+        final params = route.match(req.uri.path);
+        if (params != null) {
+          matched = true;
+
+          if (route.auth != null) {
+            final allowed = await route.auth!(req);
+            if (!allowed) {
+              req.response.statusCode = HttpStatus.unauthorized;
+              await req.response.close();
+              break;
+            }
+          }
+
+          final socket = await WebSocketTransformer.upgrade(req);
+          final clientId = DateTime.now().microsecondsSinceEpoch.toString();
+          final client = FlintWebSocket(socket, clientId);
+          wsManager.addClient(clientId, client);
+
+          route.handler(client, params);
+          break;
+        }
+      }
+
+      if (!matched) {
+        req.response.statusCode = HttpStatus.notFound;
+        await req.response.close();
+      }
+      continue;
+    }
+
+    &#47;&#47; ===== HTTP Request handling =====
+    final request = Request(req);
+    final response = Response(req.response);
+    final handler =
+        _router.match(request.method, request.path, request.params);
+
+    final pipeline = _middlewares.fold&lt;Handler&gt;(
+      handler ?? ((req, res) async =&gt; res.send(&#39;404 Not Found&#39;, status: 404)),
+      (prev, middleware) =&gt; middleware.handle(prev),
+    );
+
+    await pipeline(request, response);
+    await req.response.close();
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">flint_dart</a></li>
+    <li><a href="../../flint_dart/">flint_dart</a></li>
+    <li><a href="../../flint_dart/Flint-class.html">Flint</a></li>
+    <li class="self-crumb">listen method</li>
+</ol>
+
+    <h5>Flint class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    flint_dart
+      1.0.0+1
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

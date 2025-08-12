@@ -1,12 +1,71 @@
+/// An exception that is thrown when validation fails.
+///
+/// Contains a map of validation errors, where each key is the field name
+/// and the value is a list of error messages for that field.
+///
+/// Example:
+/// ```dart
+/// try {
+///   await Validator.validate(data, {
+///     "email": "required|string|email",
+///   });
+/// } on ValidationException catch (e) {
+///   print(e.errors); // { "email": ["The email field is required."] }
+/// }
+/// ```
 class ValidationException implements Exception {
+  /// The map of validation errors.
+  ///
+  /// Key: field name
+  /// Value: list of error messages
   final Map<String, List<String>> errors;
+
+  /// Creates a [ValidationException] with the given [errors].
   ValidationException(this.errors);
 
   @override
   String toString() => 'ValidationException: $errors';
 }
 
+/// A utility class for validating input data against a set of rules.
+///
+/// The rules use a pipe-separated format (e.g., `"required|string|min:3"`)
+/// and support the following checks:
+///
+/// - `required`: Field must be present and not empty.
+/// - `string`: Value must be a string.
+/// - `int`: Value must be an integer.
+/// - `bool`: Value must be a boolean.
+/// - `email`: Must be a valid email address.
+/// - `regex:<pattern>`: Value must match the given regular expression.
+/// - `list`: Value must be a list.
+/// - `list:<type>`: All items in the list must match the given type
+///   (`string`, `int`, `bool`).
+/// - `min:<n>`: Minimum length (for strings/lists) or value (for numbers).
+/// - `max:<n>`: Maximum length (for strings/lists) or value (for numbers).
+///
+/// Example:
+/// ```dart
+/// final body = {
+///   "email": "test@example.com",
+///   "name": "John Doe",
+///   "password": "secret123"
+/// };
+///
+/// await Validator.validate(body, {
+///   "email": "required|string|email|min:3",
+///   "name": "required|string|min:5",
+///   "password": "required|string|min:8"
+/// });
+/// ```
 class Validator {
+  /// Validates the given [data] against the provided [rules].
+  ///
+  /// Throws a [ValidationException] if any validation errors are found.
+  ///
+  /// [data] is a `Map<String, dynamic>` containing the input data.
+  /// [rules] is a `Map<String, String>` where the key is the field name
+  /// and the value is a pipe-separated list of validation rules.
   static Future<void> validate(
       Map<String, dynamic> data, Map<String, String> rules) async {
     if (rules.isEmpty) return;
@@ -26,8 +85,6 @@ class Validator {
       String? listItemType;
       int? minLength;
       int? maxLength;
-      // num? minValue;
-      // num? maxValue;
       RegExp? regex;
 
       for (var part in ruleParts) {

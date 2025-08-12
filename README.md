@@ -20,7 +20,22 @@ Developed and maintained by **[Eulogia Technologies](https://flintdart.eulogia.n
 
 ## 🚀 Getting Started
 
-### 1. Add Flint to your project
+### 1.  Install as a Global Package
+If you want to quickly create and run apps without adding Flint as a dependency, install it globally:
+
+
+```bash
+dart pub global activate flint_dart
+ ```
+
+```bash
+flint create new_app   # Create a new Flint project
+flint run              # Run the project
+ ```
+
+### 2. Add as a Project Dependency
+If you prefer Flint to be part of your project’s dependencies:
+
 
 ```bash
 dart pub add flint_dart
@@ -58,13 +73,26 @@ app.get('/hello', (req, res) async {
 
 ```bash
 
-app.use((next) {
-  return (req, res) async {
-    print('${req.method} ${req.path}');
-    await next(req, res);
-  };
-});
+import 'package:flint_dart/flint_dart.dart';
 
+class AuthMiddleware extends Middleware {
+  @override
+  Handler handle(Handler next) {
+    return (Request req, Response res) async {
+      final token = req.bearerToken;
+      if (token == null || token != "expected_token") {
+        res.status(401).send("Unauthorized");
+        return;
+      }
+      await next(req, res);
+    };
+  }
+```
+
+
+```bash
+
+  app.put('/:id', AuthMiddleware().handle(controller.update));
 ```
 ### JWT Authentication
 ```bash
@@ -81,7 +109,7 @@ final isValid = Hashing.verifyPassword('mySecret', hash);
 
 ```bash
 lib/
-├── flint_dart.dart
+├── main.dart
 ├── src/
 │   ├── app.dart
 │   ├── router.dart

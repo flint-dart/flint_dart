@@ -1,26 +1,55 @@
 import 'dart:convert';
 import 'dart:io';
 
-/// Supported response types
+/// Supported response types for automatic content handling.
 enum RespondType {
+  /// JSON data (application/json)
   json,
+
+  /// HTML content (text/html)
   html,
+
+  /// Plain text (text/plain)
   plain,
 }
 
+/// A wrapper around [HttpResponse] for sending HTTP responses in Flint Dart.
+///
+/// The [Response] class provides helper methods to:
+/// - Send plain text, HTML, or JSON responses
+/// - Stream files
+/// - Set HTTP status codes
+/// - Automatically determine response types
+///
+/// Example:
+/// ```dart
+/// app.get('/hello', (req, res) {
+///   res.send('Hello World!');
+/// });
+///
+/// app.get('/user', (req, res) {
+///   res.json({'name': 'John'});
+/// });
+/// ```
 class Response {
+  /// The underlying raw [HttpResponse] object.
   final HttpResponse raw;
 
+  /// Creates a new [Response] instance with the given [HttpResponse].
   Response(this.raw);
 
   /// Sends a plain text or custom content response.
+  ///
+  /// [body] is the content to send.
+  /// [status] is the optional HTTP status code.
+  /// [contentType] defaults to `text/plain`.
   void send(
     String body, {
     int? status,
     String contentType = 'text/plain',
   }) {
     try {
-      raw.statusCode = status ?? raw.statusCode; // ✅ use existing if set
+      raw.statusCode = status ?? raw.statusCode;
       raw.headers.contentType = ContentType.parse(contentType);
       raw.write(body);
     } catch (e) {
@@ -30,11 +59,14 @@ class Response {
     }
   }
 
-  /// Sends a JSON response with a map or list.
+  /// Sends a JSON response with a [Map] or [List].
+  ///
+  /// Automatically sets the `Content-Type` header to `application/json`.
+  /// [status] can be provided to override the HTTP status code.
   void json(dynamic data, {int? status}) {
     try {
       final encoded = jsonEncode(data);
-      raw.statusCode = status ?? raw.statusCode; // ✅ use existing if set
+      raw.statusCode = status ?? raw.statusCode;
       raw.headers.contentType = ContentType.json;
       raw.write(encoded);
     } catch (e) {
@@ -45,7 +77,10 @@ class Response {
     }
   }
 
-  /// Automatically responds based on [RespondType] or inferred type.
+  /// Sends a response automatically based on [RespondType] or inferred type.
+  ///
+  /// - If [type] is provided, it is used directly.
+  /// - If not, the type is inferred from [data] (Map/List → JSON, HTML tags → HTML, otherwise plain text).
   void respond(
     dynamic data, {
     int? status,
@@ -72,7 +107,11 @@ class Response {
     }
   }
 
-  /// Infers response type from data.
+  /// Attempts to guess the best [RespondType] based on [data].
+  ///
+  /// - Map/List → JSON
+  /// - HTML-like string → HTML
+  /// - Otherwise → Plain text
   RespondType _inferRespondType(dynamic data) {
     if (data is Map || data is List) {
       return RespondType.json;
@@ -84,20 +123,30 @@ class Response {
     }
   }
 
-  /// Sets the status code of the response without sending data.
+  /// Sets the HTTP status code for the response without sending content.
+  ///
+  /// Can be chained with other calls:
+  /// ```dart
+  /// res.status(404).send('Not Found');
+  /// ```
   Response status(int code) {
     raw.statusCode = code;
     return this;
   }
 
-  /// Streams the contents of a [file] directly to the response body.
+  /// Streams the contents of a [File] directly to the response body.
   ///
-  /// @param file The [File] to be served.
+  /// Does not set the content type automatically — you should set it before calling.
   Future<void> streamFile(File file) async {
     await raw.addStream(file.openRead());
   }
 
-  /// Sends a predefined status message and closes the response.
+  /// Sends a predefined HTTP status message and closes the response.
+  ///
+  /// Example:
+  /// ```dart
+  /// res.sendStatus(404); // Sends "Not Found"
+  /// ```
   void sendStatus(int code) {
     final message = _statusMessages[code] ?? 'Status';
     raw.statusCode = code;
@@ -106,7 +155,7 @@ class Response {
   }
 }
 
-/// Common HTTP status codes and their default messages
+/// Common HTTP status codes and their default messages.
 const Map<int, String> _statusMessages = {
   200: 'OK',
   201: 'Created',

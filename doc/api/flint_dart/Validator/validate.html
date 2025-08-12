@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the validate method from the Validator class, for the Dart programming language.">
+  <title>validate method - Validator class - flint_dart library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">flint_dart</a></li>
+    <li><a href="../../flint_dart/">flint_dart.dart</a></li>
+    <li><a href="../../flint_dart/Validator-class.html">Validator</a></li>
+    <li class="self-crumb">validate static method</li>
+  </ol>
+  <div class="self-name">validate</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="flint_dart&#47;Validator-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">validate</span> static method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="name ">validate</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="validate-param-data"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">data</span>, </span></li>
+<li><span class="parameter" id="validate-param-rules"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">rules</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+<section class="desc markdown">
+  <p>Validates the given <code>data</code> against the provided <code>rules</code>.</p>
+<p>Throws a <a href="../../flint_dart/ValidationException-class.html">ValidationException</a> if any validation errors are found.</p>
+<p><code>data</code> is a <code>Map&lt;String, dynamic&gt;</code> containing the input data.
+<code>rules</code> is a <code>Map&lt;String, String&gt;</code> where the key is the field name
+and the value is a pipe-separated list of validation rules.</p>
+</section>
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">static Future&lt;void&gt; validate(
+    Map&lt;String, dynamic&gt; data, Map&lt;String, String&gt; rules) async {
+  if (rules.isEmpty) return;
+
+  final errors = &lt;String, List&lt;String&gt;&gt;{};
+
+  bool isInt(num? value) =&gt; value is int;
+  bool isString(dynamic value) =&gt; value is String;
+  bool isList(dynamic value) =&gt; value is List;
+  bool isBool(dynamic value) =&gt; value is bool;
+
+  rules.forEach((field, rule) {
+    final value = data[field];
+    final ruleParts = rule.split(&#39;|&#39;);
+
+    bool isListType = false;
+    String? listItemType;
+    int? minLength;
+    int? maxLength;
+    RegExp? regex;
+
+    for (var part in ruleParts) {
+      if (part == &#39;required&#39;) {
+        if (value == null || (value is String &amp;&amp; value.isEmpty)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field field is required.&#39;);
+        }
+      } else if (part == &#39;string&#39;) {
+        if (value != null &amp;&amp; !isString(value)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be a string.&#39;);
+        }
+      } else if (part == &#39;int&#39;) {
+        if (value != null &amp;&amp; !isInt(value)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be an integer.&#39;);
+        }
+      } else if (part == &#39;bool&#39;) {
+        if (value != null &amp;&amp; !isBool(value)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be a boolean.&#39;);
+        }
+      } else if (part == &#39;email&#39;) {
+        if (value != null &amp;&amp;
+            isString(value) &amp;&amp;
+            !RegExp(r&#39;^[^@]+@[^@]+\.[^@]+$&#39;).hasMatch(value)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be a valid email address.&#39;);
+        }
+      } else if (part.startsWith(&#39;regex:&#39;)) {
+        final pattern = part.substring(6);
+        try {
+          regex = RegExp(pattern);
+          if (value != null &amp;&amp; isString(value) &amp;&amp; !regex.hasMatch(value)) {
+            errors
+                .putIfAbsent(field, () =&gt; [])
+                .add(&#39;The $field format is invalid.&#39;);
+          }
+        } catch (e) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;Invalid regex pattern for $field.&#39;);
+        }
+      } else if (part == &#39;list&#39;) {
+        isListType = true;
+        if (value != null &amp;&amp; !isList(value)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be a list.&#39;);
+        }
+      } else if (part.startsWith(&#39;list:&#39;)) {
+        isListType = true;
+        listItemType = part.substring(&#39;list:&#39;.length);
+        if (value != null &amp;&amp; isList(value)) {
+          for (var item in value) {
+            if (listItemType == &#39;string&#39; &amp;&amp; item is! String) {
+              errors
+                  .putIfAbsent(field, () =&gt; [])
+                  .add(&#39;All items in $field must be strings.&#39;);
+              break;
+            }
+            if (listItemType == &#39;int&#39; &amp;&amp; item is! int) {
+              errors
+                  .putIfAbsent(field, () =&gt; [])
+                  .add(&#39;All items in $field must be integers.&#39;);
+              break;
+            }
+            if (listItemType == &#39;bool&#39; &amp;&amp; item is! bool) {
+              errors
+                  .putIfAbsent(field, () =&gt; [])
+                  .add(&#39;All items in $field must be booleans.&#39;);
+              break;
+            }
+          }
+        }
+      } else if (part.startsWith(&#39;min:&#39;)) {
+        final val = int.tryParse(part.substring(4));
+        if (val != null) minLength = val;
+      } else if (part.startsWith(&#39;max:&#39;)) {
+        final val = int.tryParse(part.substring(4));
+        if (val != null) maxLength = val;
+      }
+    }
+
+    if (value != null) {
+      if (isListType &amp;&amp; value is List) {
+        if (minLength != null &amp;&amp; value.length &lt; minLength) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field list must have at least $minLength items.&#39;);
+        }
+        if (maxLength != null &amp;&amp; value.length &gt; maxLength) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field list must have at most $maxLength items.&#39;);
+        }
+      } else if (value is String) {
+        if (minLength != null &amp;&amp; value.length &lt; minLength) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be at least $minLength characters.&#39;);
+        }
+        if (maxLength != null &amp;&amp; value.length &gt; maxLength) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be at most $maxLength characters.&#39;);
+        }
+      } else if (value is num) {
+        if (minLength != null &amp;&amp; value &lt; minLength) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be at least $minLength.&#39;);
+        }
+        if (maxLength != null &amp;&amp; value &gt; maxLength) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be at most $maxLength.&#39;);
+        }
+      }
+    }
+  });
+
+  if (errors.isNotEmpty) {
+    throw ValidationException(errors);
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">flint_dart</a></li>
+    <li><a href="../../flint_dart/">flint_dart</a></li>
+    <li><a href="../../flint_dart/Validator-class.html">Validator</a></li>
+    <li class="self-crumb">validate static method</li>
+</ol>
+
+    <h5>Validator class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    flint_dart
+      1.0.0+1
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
