@@ -84,9 +84,23 @@ class DB {
     }
   }
 
+  static Future<MySQLConnection> _ensureConnected() async {
+    if (_connection != null && _isInitialized) {
+      return _connection!;
+    }
+
+    try {
+      await autoConnect();
+      return _connection!;
+    } catch (e) {
+      print("⚠️ Could not connect to DB: $e");
+      rethrow;
+    }
+  }
+
   /// Execute a raw SQL query (non-select).
   static Future<void> execute(String sql) async {
-    final conn = instance;
+    final conn = await _ensureConnected();
     try {
       await conn.execute(sql);
     } catch (e, st) {
@@ -95,6 +109,30 @@ class DB {
       print("📍 Stacktrace: $st");
       rethrow;
     }
+  }
+
+  static Future<bool> isHealthy() async {
+    try {
+      final conn = await _ensureConnected();
+      await conn.execute("SELECT 1");
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Background retry for connection (non-blocking).
+  static Future<void> tryAutoConnect({int retries = 5}) async {
+    for (int i = 1; i <= retries; i++) {
+      try {
+        await autoConnect();
+        return;
+      } catch (e) {
+        print("⏳ Retry $i/$retries in 3s...");
+        await Future.delayed(const Duration(seconds: 3));
+      }
+    }
+    print("❌ Could not connect to DB after $retries attempts.");
   }
 
   /// Return the active connection instance.

@@ -71,7 +71,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static Future&lt;void&gt; execute(String sql) async {
-  final conn = instance;
+  final conn = await _ensureConnected();
   try {
     await conn.execute(sql);
   } catch (e, st) {
@@ -108,7 +108,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+1
+      1.0.0+2
   </span>
   
 </footer>

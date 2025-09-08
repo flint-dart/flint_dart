@@ -91,8 +91,9 @@
         res.raw.headers.contentType = ContentType.parse(mimeType);
       }
       await res.streamFile(file);
+      return res; &#47;&#47; ✅ always return
     } else {
-      res.status(404).send(&#39;Not Found&#39;);
+      return res.status(404).send(&#39;Not Found&#39;); &#47;&#47; ✅ return
     }
   });
 }</code></pre>
@@ -123,7 +124,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+1
+      1.0.0+2
   </span>
   
 </footer>

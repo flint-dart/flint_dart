@@ -69,11 +69,7 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;&gt; validate(Map&lt;String, String&gt; rules) async {
   final body = await json();
-  await Validator.validate(body, {
-    &quot;email&quot;: &quot;required|string|email|min:3&quot;,
-    &quot;username&quot;: &quot;required|string|min:5&quot;,
-    &quot;password&quot;: &quot;required|string|min:8&quot;
-  });
+  await Validator.validate(body, rules); &#47;&#47; use passed rules, not hardcoded
   return body;
 }</code></pre>
 </section>
@@ -103,7 +99,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+1
+      1.0.0+2
   </span>
   
 </footer>

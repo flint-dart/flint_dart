@@ -72,6 +72,15 @@ class Validator {
 
     final errors = <String, List<String>>{};
 
+    // 🔹 1. Check for unknown fields
+    for (final key in data.keys) {
+      if (!rules.containsKey(key)) {
+        errors
+            .putIfAbsent(key, () => [])
+            .add('The field "$key" is not allowed.');
+      }
+    }
+
     bool isInt(num? value) => value is int;
     bool isString(dynamic value) => value is String;
     bool isList(dynamic value) => value is List;

@@ -208,11 +208,7 @@ class Request {
 
   Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
     final body = await json();
-    await Validator.validate(body, {
-      "email": "required|string|email|min:3",
-      "username": "required|string|min:5",
-      "password": "required|string|min:8"
-    });
+    await Validator.validate(body, rules); // use passed rules, not hardcoded
     return body;
   }
 }

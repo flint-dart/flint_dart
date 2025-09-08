@@ -24,11 +24,35 @@ class Flint {
   /// The root path of your Flint project (defaults to `"lib"`).
   final String rootPath;
 
+  /// Whether to automatically connect to the database when [listen] is called.
+  ///
+  /// - If `true` (default), Flint will attempt to initialize the database
+  ///   connection in the background as soon as the server starts.
+  /// - If `false`, Flint will not auto-connect, and you must manually call
+  ///   `DB.connect()` before using any database features.
+  final bool autoConnectDb;
+
+  /// Whether to include Flint’s default middleware stack.
+  ///
+  /// - If `true` (default), Flint automatically registers useful middleware
+  ///   such as [ExceptionMiddleware] for error handling.
+  /// - If `false`, no middleware is added — you must register your own with [use()].
+  ///   This is useful for very minimal or fully customized setups.
+  final bool withDefaultMiddleware;
+
   /// Creates a new Flint application instance.
   ///
   /// [rootPath] is used for resolving hot reload entry points
   /// and mounted sub-apps.
-  Flint({this.rootPath = "lib"});
+  Flint({
+    this.rootPath = "lib",
+    this.autoConnectDb = true,
+    this.withDefaultMiddleware = true,
+  }) {
+    if (withDefaultMiddleware) {
+      _middlewares.add(ExceptionMiddleware());
+    }
+  }
 
   final Router _router = Router();
   final List<Middleware> _middlewares = [];
@@ -100,8 +124,9 @@ class Flint {
           res.raw.headers.contentType = ContentType.parse(mimeType);
         }
         await res.streamFile(file);
+        return res; // ✅ always return
       } else {
-        res.status(404).send('Not Found');
+        return res.status(404).send('Not Found'); // ✅ return
       }
     });
   }
@@ -152,16 +177,9 @@ class Flint {
   /// - Runs with hot reload during development unless `FLINT_HOT` is set.
   /// - Handles both HTTP and WebSocket upgrade requests.
   Future<void> listen(int port) async {
-    if (!_dbInitialized) {
-      try {
-        await DB.autoConnect();
-        _dbInitialized = true;
-        print('[FLINT] Database auto-connected via .env');
-      } catch (e) {
-        print('[FLINT] ⚠️ Could not auto-connect to database: $e');
-      }
+    if (autoConnectDb) {
+      _connectDatabaseInBackground();
     }
-
     // Hot reload parent process
     if (Platform.environment['FLINT_HOT'] != '1') {
       print('[FLINT] Starting with hot reload...');
@@ -247,8 +265,36 @@ class Flint {
         (prev, middleware) => middleware.handle(prev),
       );
 
-      await pipeline(request, response);
-      await req.response.close();
+      // await pipeline(request, response);
+
+      try {
+        await pipeline(request, response);
+
+        // ✅ Only close once
+        if (!response.isClosed) {
+          await response.close();
+          await req.response.close();
+        }
+      } catch (e, st) {
+        if (!response.isClosed) {
+          response.raw.statusCode = 500;
+          response.raw.write('Internal Server Error: $e');
+          await response.close();
+        }
+        print('[FLINT] ❌ Handler error: $e\n$st');
+      }
+    }
+  }
+
+  void _connectDatabaseInBackground() async {
+    try {
+      await DB.autoConnect();
+      _dbInitialized = true;
+      print('[FLINT] Database auto-connected via .env');
+    } catch (e) {
+      print('[FLINT] ⚠️ Could not auto-connect to database: $e');
+      // retry later if you want
+      Future.delayed(const Duration(seconds: 10), _connectDatabaseInBackground);
     }
   }
 }

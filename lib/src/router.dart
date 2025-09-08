@@ -1,6 +1,6 @@
 import 'package:flint_dart/flint_dart.dart';
 
-typedef Handler = Future<void> Function(Request req, Response res);
+typedef Handler = Future<Response?> Function(Request req, Response res);
 
 class Route {
   final String method;

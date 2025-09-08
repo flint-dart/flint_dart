@@ -54,7 +54,7 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype">void</span>
+<span class="returntype"><a href="../../flint_dart/Response-class.html">Response</a></span>
 <span class="name ">respond</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="respond-param-data"><span class="type-annotation">dynamic</span> <span class="parameter-name">data</span>, {</span></li>
 <li><span class="parameter" id="respond-param-status"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">status</span>, </span></li>
 <li><span class="parameter" id="respond-param-type"><span class="type-annotation"><a href="../../flint_dart/RespondType.html">RespondType</a>?</span> <span class="parameter-name">type</span>, </span></li>
@@ -76,7 +76,7 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">void respond(
+  <pre class="language-dart"><code class="language-dart">Response respond(
   dynamic data, {
   int? status,
   RespondType? type,
@@ -100,6 +100,8 @@
     raw.write(&#39;❌ Failed to send response: ${e.runtimeType}&#39;);
     print(&#39;[Flint] respond() Error: $e&#39;);
   }
+  close();
+  return this; &#47;&#47; ✅ return Response
 }</code></pre>
 </section>
 
@@ -128,7 +130,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+1
+      1.0.0+2
   </span>
   
 </footer>

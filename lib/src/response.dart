@@ -34,16 +34,25 @@ enum RespondType {
 class Response {
   /// The underlying raw [HttpResponse] object.
   final HttpResponse raw;
+  bool _closed = false;
 
   /// Creates a new [Response] instance with the given [HttpResponse].
   Response(this.raw);
+  bool get isClosed => _closed;
+
+  Future<void> close() async {
+    if (!_closed) {
+      _closed = true;
+      await raw.close();
+    }
+  }
 
   /// Sends a plain text or custom content response.
   ///
   /// [body] is the content to send.
   /// [status] is the optional HTTP status code.
   /// [contentType] defaults to `text/plain`.
-  void send(
+  Response send(
     String body, {
     int? status,
     String contentType = 'text/plain',
@@ -57,13 +66,15 @@ class Response {
       raw.headers.contentType = ContentType.text;
       raw.write('❌ Failed to send response: Invalid content.');
     }
+    close();
+    return this; // ✅ return Response
   }
 
   /// Sends a JSON response with a [Map] or [List].
   ///
   /// Automatically sets the `Content-Type` header to `application/json`.
   /// [status] can be provided to override the HTTP status code.
-  void json(dynamic data, {int? status}) {
+  Response json(dynamic data, {int? status}) {
     try {
       final encoded = jsonEncode(data);
       raw.statusCode = status ?? raw.statusCode;
@@ -75,13 +86,15 @@ class Response {
       raw.write('❌ Failed to encode JSON response: ${e.runtimeType}');
       print('[Flint] JSON Error: $e');
     }
+    close();
+    return this; // ✅ return Response
   }
 
   /// Sends a response automatically based on [RespondType] or inferred type.
   ///
   /// - If [type] is provided, it is used directly.
   /// - If not, the type is inferred from [data] (Map/List → JSON, HTML tags → HTML, otherwise plain text).
-  void respond(
+  Response respond(
     dynamic data, {
     int? status,
     RespondType? type,
@@ -105,6 +118,8 @@ class Response {
       raw.write('❌ Failed to send response: ${e.runtimeType}');
       print('[Flint] respond() Error: $e');
     }
+    close();
+    return this; // ✅ return Response
   }
 
   /// Attempts to guess the best [RespondType] based on [data].
@@ -147,11 +162,10 @@ class Response {
   /// ```dart
   /// res.sendStatus(404); // Sends "Not Found"
   /// ```
-  void sendStatus(int code) {
+  Response sendStatus(int code) {
     final message = _statusMessages[code] ?? 'Status';
     raw.statusCode = code;
-    send(message);
-    raw.close();
+    return send(message);
   }
 }
 

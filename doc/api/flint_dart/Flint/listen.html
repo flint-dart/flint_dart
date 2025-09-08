@@ -76,16 +76,9 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; listen(int port) async {
-  if (!_dbInitialized) {
-    try {
-      await DB.autoConnect();
-      _dbInitialized = true;
-      print(&#39;[FLINT] Database auto-connected via .env&#39;);
-    } catch (e) {
-      print(&#39;[FLINT] ⚠️ Could not auto-connect to database: $e&#39;);
-    }
+  if (autoConnectDb) {
+    _connectDatabaseInBackground();
   }
-
   &#47;&#47; Hot reload parent process
   if (Platform.environment[&#39;FLINT_HOT&#39;] != &#39;1&#39;) {
     print(&#39;[FLINT] Starting with hot reload...&#39;);
@@ -171,8 +164,24 @@
       (prev, middleware) =&gt; middleware.handle(prev),
     );
 
-    await pipeline(request, response);
-    await req.response.close();
+    &#47;&#47; await pipeline(request, response);
+
+    try {
+      await pipeline(request, response);
+
+      &#47;&#47; ✅ Only close once
+      if (!response.isClosed) {
+        await response.close();
+        await req.response.close();
+      }
+    } catch (e, st) {
+      if (!response.isClosed) {
+        response.raw.statusCode = 500;
+        response.raw.write(&#39;Internal Server Error: $e&#39;);
+        await response.close();
+      }
+      print(&#39;[FLINT] ❌ Handler error: $e\n$st&#39;);
+    }
   }
 }</code></pre>
 </section>
@@ -202,7 +211,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+1
+      1.0.0+2
   </span>
   
 </footer>
