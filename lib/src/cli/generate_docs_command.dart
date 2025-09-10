@@ -1,4 +1,6 @@
 // lib/src/cli/commands.dart
+// ignore_for_file: valid_regexps
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,9 +12,9 @@ class GenerateDocsCommand extends FlintCommand {
 
   @override
   Future<void> execute(List<String> args) async {
-    final routesDir = Directory('bin/routes');
+    final routesDir = Directory('lib/src/routes');
     if (!routesDir.existsSync()) {
-      print('[FLINT] ❌ No routes directory found at bin/routes');
+      print('[FLINT] ❌ No routes directory found at lib/src/routes');
       return;
     }
 
@@ -21,11 +23,14 @@ class GenerateDocsCommand extends FlintCommand {
         .where((f) => f.path.endsWith('.dart'));
 
     final paths = <String, dynamic>{};
+    final servers = <Map<String, dynamic>>[];
 
     for (var file in files) {
       final lines = File(file.path).readAsLinesSync();
 
       List<String> docBuffer = [];
+      String? currentPrefix;
+
       for (var i = 0; i < lines.length; i++) {
         final line = lines[i].trim();
 
@@ -34,24 +39,70 @@ class GenerateDocsCommand extends FlintCommand {
           continue;
         }
 
-        if (line.startsWith('app.get') ||
-            line.startsWith('app.post') ||
-            line.startsWith('app.put') ||
-            line.startsWith('app.delete')) {
+        if (line.contains('app.get') ||
+            line.contains('app.post') ||
+            line.contains('app.put') ||
+            line.contains('app.delete') ||
+            line.contains('app.patch')) {
           final docs = _parseDocs(docBuffer);
+
+          // Prefix
+          if (docs.containsKey('prefix')) {
+            currentPrefix = docs['prefix'];
+          }
+
+          // Servers
+          if (docs.containsKey('servers')) {
+            for (var s in docs['servers']) {
+              if (!servers.any((srv) => srv['url'] == s)) {
+                servers.add({"url": s});
+                print("✅ Added server: $s");
+              }
+            }
+          }
+
           final routeInfo = _parseRoute(line);
           if (routeInfo != null) {
-            paths.putIfAbsent(routeInfo['path'], () => {});
-            paths[routeInfo['path']][routeInfo['method']] = {
+            var fullPath = routeInfo['path'];
+            if (currentPrefix != null && !fullPath.startsWith(currentPrefix)) {
+              fullPath = currentPrefix + fullPath;
+            }
+
+            paths.putIfAbsent(fullPath, () => {});
+
+            final operation = <String, dynamic>{
               "summary": docs['summary'] ?? '',
               "responses": docs['responses'] ??
                   {
                     "200": {"description": "OK"}
                   }
             };
+
+            // Attach requestBody
+            if (docs.containsKey('requestBody')) {
+              operation['requestBody'] = docs['requestBody'];
+            }
+
+            // Auto-generate path params
+            final autoParams = _extractPathParams(fullPath);
+            if (docs.containsKey('parameters')) {
+              autoParams.addAll(docs['parameters']);
+            }
+            if (autoParams.isNotEmpty) {
+              operation['parameters'] = autoParams;
+            }
+
+            // Auth/Security
+            if (docs.containsKey('auth')) {
+              final authType = docs['auth'];
+              operation['security'] = [
+                {authType: []} // e.g., {"bearer": []} or {"basicAuth": []}
+              ];
+            }
+
+            paths[fullPath][routeInfo['method']] = operation;
           }
-          docBuffer = [];
-        } else {
+
           docBuffer = [];
         }
       }
@@ -60,52 +111,123 @@ class GenerateDocsCommand extends FlintCommand {
     final swagger = {
       "openapi": "3.0.0",
       "info": {"title": "Flint API", "version": "1.0.0"},
-      "paths": paths
+      if (servers.isNotEmpty) "servers": servers,
+      "paths": paths,
+      "components": {
+        "securitySchemes": {
+          "bearer": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},
+          "basicAuth": {"type": "http", "scheme": "basic"}
+        }
+      }
     };
 
-    final outFile = File('swagger.json');
+    final docsDir = Directory('docs');
+    if (!docsDir.existsSync()) docsDir.createSync(recursive: true);
+
+    final outFile = File('${docsDir.path}/swagger.json');
     outFile.writeAsStringSync(JsonEncoder.withIndent('  ').convert(swagger));
-    print('✅ Swagger docs generated at swagger.json');
+    print('✅ Swagger docs generated at ${outFile.path}');
+  }
+
+  Map<String, dynamic>? _parseRoute(String line) {
+    final regex = RegExp(
+      r'''(app|router|flint)\.(get|post|put|delete|patch|options|head)\(\s*['\"]([^'\"]+)['\"]''',
+      caseSensitive: false,
+    );
+
+    final match = regex.firstMatch(line);
+    if (match != null) {
+      final method = match.group(2);
+      var path = match.group(3);
+
+      if (method != null && path != null) {
+        path = path.replaceAllMapped(RegExp(r':(\w+)'), (m) => '{${m[1]}}');
+        return {"method": method.toLowerCase(), "path": path};
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic> _parseDocs(List<String> docs) {
     final result = <String, dynamic>{};
     final responses = <String, dynamic>{};
+    final parameters = <Map<String, dynamic>>[];
+    final servers = <String>[];
 
     for (var line in docs) {
-      if (line.startsWith('@summary')) {
+      if (line.startsWith('@auth')) {
+        final value = line.replaceFirst('@auth', '').trim();
+        result['auth'] = value.isEmpty ? 'bearer' : value;
+      } else if (line.startsWith('@server')) {
+        servers.add(line.replaceFirst('@server', '').trim());
+      } else if (line.startsWith('@prefix')) {
+        result['prefix'] = line.replaceFirst('@prefix', '').trim();
+      } else if (line.startsWith('@summary')) {
         result['summary'] = line.replaceFirst('@summary', '').trim();
       } else if (line.startsWith('@response')) {
         final parts = line.split(' ');
         if (parts.length >= 3) {
           responses[parts[1]] = {"description": parts.sublist(2).join(' ')};
         }
+      } else if (line.startsWith('@param')) {
+        final parts = line.split(' ');
+        if (parts.length >= 5) {
+          final name = parts[1];
+          final location = parts[2];
+          final type = parts[3];
+          final required = parts[4].toLowerCase() == "required";
+          final description = parts.sublist(5).join(' ');
+          parameters.add({
+            "name": name,
+            "in": location,
+            "schema": {"type": type},
+            "required": location == "path" ? true : required,
+            "description": description
+          });
+        }
+      } else if (line.startsWith('@body')) {
+        final jsonStr = line.replaceFirst('@body', '').trim();
+        try {
+          final Map<String, dynamic> bodySchema =
+              jsonDecode(jsonStr) as Map<String, dynamic>;
+          result['requestBody'] = {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties":
+                      bodySchema.map((k, v) => MapEntry(k, {"type": v}))
+                }
+              }
+            }
+          };
+        } catch (e) {
+          print("[FLINT] ⚠️ Invalid @body JSON: $jsonStr ($e)");
+        }
       }
     }
 
     if (responses.isNotEmpty) result['responses'] = responses;
+    if (parameters.isNotEmpty) result['parameters'] = parameters;
+    if (servers.isNotEmpty) result['servers'] = servers;
+
     return result;
   }
 
-  Map<String, dynamic>? _parseRoute(String line) {
-    // Handle multiple patterns for different syntax variations
-    // final patterns = [
-    //   'app\.(get|post|put|delete|patch|options|head|all)\(\s*["\']([^"\']+)["\']',
-    //   // ... other patterns
-    // ];
-    // for (final pattern in patterns) {
-    //   final match = RegExp(pattern, caseSensitive: false).firstMatch(line);
-    //   if (match != null) {
-    //     final method = match.group(1);
-    //     final path = match.group(2);
-    //     if (method != null && path != null) {
-    //       return {
-    //         "method": method.toUpperCase(),
-    //         "path": path,
-    //       };
-    //     }
-    //   }
-    // }
-    return null;
+  List<Map<String, dynamic>> _extractPathParams(String path) {
+    final params = <Map<String, dynamic>>[];
+    final exp = RegExp(r'\{(\w+)\}');
+    for (final match in exp.allMatches(path)) {
+      final paramName = match.group(1)!;
+      params.add({
+        "name": paramName,
+        "in": "path",
+        "required": true,
+        "schema": {"type": "string"},
+        "description": "Path parameter: $paramName"
+      });
+    }
+    return params;
   }
 }

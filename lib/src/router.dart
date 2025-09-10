@@ -1,6 +1,8 @@
+import 'dart:async';
+
 import 'package:flint_dart/flint_dart.dart';
 
-typedef Handler = Future<Response?> Function(Request req, Response res);
+typedef Handler = FutureOr<Response?> Function(Request req, Response res);
 
 class Route {
   final String method;

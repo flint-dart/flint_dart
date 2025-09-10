@@ -9,7 +9,79 @@ import 'response.dart';
 import 'router.dart';
 import 'websocket.dart'; // FlintWebSocket and wsManager
 import 'ws_router.dart'; // _WsRoute, WsHandler, WsAuthMiddleware typedefs
+import 'package:path/path.dart' as path;
+import 'package:package_config/package_config.dart';
 
+Future<String> _getFlintDartLibPath() async {
+  // Load the package configuration from the sample project
+  final packageConfig = await findPackageConfig(Directory.current);
+  if (packageConfig == null) {
+    throw Exception(
+        'Could not find package configuration in ${Directory.current.path}');
+  }
+
+  // Find the flint_dart package
+  final flintPackage = packageConfig['flint_dart'];
+  if (flintPackage == null) {
+    throw Exception('flint_dart package not found in dependencies');
+  }
+
+  // Return the path to flint_dart's lib folder
+  return path.join(
+      flintPackage.root.toFilePath(windows: Platform.isWindows), 'lib');
+}
+
+//  void _registerSwaggerDocs() async {
+//    // Resolve flint_dart's lib path
+//    final flintLibPath = await _getFlintDartLibPath();
+//    final swaggerDir = Directory(path.join(flintLibPath, 'swagger', 'swagger-ui'));
+//    print('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
+
+//    // Serve swagger.json from sample project
+//    get('/swagger.json', (req, res) async {
+//      final file = File(path.join(Directory.current.path, 'docs', 'swagger.json'));
+//      print('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
+//      if (await file.exists()) {
+//        print('[DEBUG] swagger.json found');
+//        final bytes = await file.readAsBytes();
+//        res.raw.headers.contentType = ContentType.json;
+//        await res.raw.addStream(Stream.fromIterable([bytes]));
+//        await res.raw.close();
+//      } else {
+//        print('[DEBUG] swagger.json not found');
+//        res.raw.statusCode = 404;
+//        res.raw.write('swagger.json not found');
+//        await res.raw.close();
+//      }
+//    });
+
+//    // Check if swagger-ui directory exists
+//    if (!await swaggerDir.exists()) {
+//      print('[FLINT] ⚠️ Warning: Static directory not found: ${swaggerDir.absolute.path}');
+//      return;
+//    }
+
+//    // Serve static Swagger UI files
+//    static('/swagger-ui', swaggerDir.path);
+
+//    // Serve /docs
+//    get('/docs', (req, res) async {
+//      final file = File(path.join(swaggerDir.path, 'index.html'));
+//      print('[DEBUG] Checking for index.html at: ${file.absolute.path}');
+//      if (await file.exists()) {
+//        print('[DEBUG] index.html found');
+//        final bytes = await file.readAsBytes();
+//        res.raw.headers.contentType = ContentType.html;
+//        await res.raw.addStream(Stream.fromIterable([bytes]));
+//        await res.raw.close();
+//      } else {
+//        print('[DEBUG] index.html not found');
+//        res.raw.statusCode = 404;
+//        res.raw.write('Swagger UI not found in the framework');
+//        await res.raw.close();
+//      }
+//    });
+//  }
 /// The core application class for the Flint Dart framework.
 ///
 /// Provides:
@@ -39,19 +111,83 @@ class Flint {
   /// - If `false`, no middleware is added — you must register your own with [use()].
   ///   This is useful for very minimal or fully customized setups.
   final bool withDefaultMiddleware;
+  final bool enableSwaggerDocs;
 
   /// Creates a new Flint application instance.
   ///
   /// [rootPath] is used for resolving hot reload entry points
   /// and mounted sub-apps.
-  Flint({
-    this.rootPath = "lib",
-    this.autoConnectDb = true,
-    this.withDefaultMiddleware = true,
-  }) {
+  Flint(
+      {this.rootPath = "lib",
+      this.autoConnectDb = true,
+      this.withDefaultMiddleware = true,
+      this.enableSwaggerDocs = false}) {
     if (withDefaultMiddleware) {
       _middlewares.add(ExceptionMiddleware());
     }
+    if (enableSwaggerDocs) {
+      _registerSwaggerDocs();
+    }
+  }
+
+  void _registerSwaggerDocs() async {
+    // Resolve flint_dart's lib path
+    final flintLibPath = await _getFlintDartLibPath();
+    final swaggerDir =
+        Directory(path.join(flintLibPath, 'swagger', 'swagger-ui'));
+    print('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
+
+    // Serve swagger.json from sample project
+    get('/swagger.json', (req, res) async {
+      final file =
+          File(path.join(Directory.current.path, 'docs', 'swagger.json'));
+      print('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
+      if (await file.exists()) {
+        print('[DEBUG] swagger.json found');
+        final bytes = await file.readAsBytes();
+        res.raw.headers.contentType = ContentType.json;
+        await res.raw.addStream(Stream.fromIterable([bytes]));
+        await res.raw.close();
+      } else {
+        print('[DEBUG] swagger.json not found');
+        res.raw.statusCode = 404;
+        res.raw.write('swagger.json not found');
+        await res.raw.close();
+      }
+      return;
+    });
+
+    // Check if swagger-ui directory exists
+    if (!await swaggerDir.exists()) {
+      print(
+          '[FLINT] ⚠️ Warning: Static directory not found: ${swaggerDir.absolute.path}');
+      return;
+    }
+
+    // Serve static Swagger UI files
+    static('/swagger-ui', swaggerDir.path);
+
+    // Serve /docs
+    get('/docs', (req, res) async {
+      final file = File(path.join(swaggerDir.path, 'index.html'));
+      if (await file.exists()) {
+        var content = await file.readAsString();
+
+        // Rewrite asset paths so they load correctly
+        content = content.replaceAll('href="./', 'href="/swagger-ui/');
+        content = content.replaceAll('src="./', 'src="/swagger-ui/');
+        // Replace default Petstore spec with /swagger.json
+
+        res.raw.headers.contentType = ContentType.html;
+        res.raw.write(content);
+        return;
+      } else {
+        res.raw.statusCode = 404;
+        res.raw.write('Swagger UI not found');
+      }
+      await res.raw.close();
+      return;
+    });
   }
 
   final Router _router = Router();
