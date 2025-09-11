@@ -1,59 +1,18 @@
 import 'package:flint_dart/src/database/connection.dart';
 
 /// A simple SQL query builder for MySQL/PostgreSQL in Flint Dart.
-///
-/// `QueryBuilder` provides a fluent API for constructing and executing
-/// common SQL operations such as:
-/// - `SELECT` (with optional `WHERE` and `LIMIT`)
-/// - `INSERT`
-/// - `UPDATE`
-/// - `DELETE`
-///
-/// Queries are built safely using prepared statements and bound parameters
-/// to avoid SQL injection.
-///
-/// ### Example
-/// ```dart
-/// // Select example
-/// final users = await QueryBuilder(table: 'users')
-///   .select(['id', 'name'])
-///   .where('status', '=', 'active')
-///   .limit(10)
-///   .get();
-///
-/// // Insert example
-/// await QueryBuilder(table: 'users').insert({
-///   'name': 'John Doe',
-///   'email': 'john@example.com',
-/// });
-///
-/// // Update example
-/// await QueryBuilder(table: 'users')
-///   .where('id', '=', 1)
-///   .update({'name': 'Jane Doe'});
-///
-/// // Delete example
-/// await QueryBuilder(table: 'users')
-///   .where('id', '=', 1)
-///   .delete();
-/// ```
 class QueryBuilder {
-  /// The name of the table to run queries against.
   final String table;
 
   final List<String> _selects = [];
   final List<String> _wheres = [];
-  final List<dynamic> _bindings = [];
+  final Map<String, dynamic> _bindings = {};
   int? _limit;
+  int _paramIndex = 1; // for @p1, @p2, ... bindings
 
-  /// Creates a new [QueryBuilder] for the given [table].
   QueryBuilder({required this.table});
 
-  /// Adds selected fields to the query.
-  ///
-  /// If [fields] is `null` or empty, all columns (`*`) are selected.
-  ///
-  /// Returns the current [QueryBuilder] instance for chaining.
+  /// SELECT fields
   QueryBuilder select([List<String>? fields]) {
     if (fields != null && fields.isNotEmpty) {
       _selects.addAll(fields);
@@ -61,32 +20,20 @@ class QueryBuilder {
     return this;
   }
 
-  /// Adds a `WHERE` condition to the query.
-  ///
-  /// [field] is the column name.
-  /// [operator] is the SQL operator (e.g., `"="`, `">"`, `"<"`, `"LIKE"`).
-  /// [value] is the value to bind.
-  ///
-  /// Returns the current [QueryBuilder] instance for chaining.
+  /// WHERE clause
   QueryBuilder where(String field, String operator, dynamic value) {
-    _wheres.add('$field $operator ?');
-    _bindings.add(value);
+    final paramName = 'p${_paramIndex++}';
+    _wheres.add('$field $operator @$paramName');
+    _bindings[paramName] = value;
     return this;
   }
 
-  /// Adds a `LIMIT` clause to the query.
-  ///
-  /// [value] is the maximum number of rows to return.
-  ///
-  /// Returns the current [QueryBuilder] instance for chaining.
+  /// LIMIT
   QueryBuilder limit(int value) {
     _limit = value;
     return this;
   }
 
-  /// Builds the SQL `SELECT` query string.
-  ///
-  /// Used internally by [get] and [first].
   String _buildSelectQuery() {
     final select = _selects.isEmpty ? '*' : _selects.join(', ');
     final whereClause =
@@ -95,68 +42,62 @@ class QueryBuilder {
     return 'SELECT $select FROM $table$whereClause$limitClause';
   }
 
-  /// Executes the query and returns all matching rows.
-  ///
-  /// Returns a list of maps where each map represents a row:
-  /// - Keys are column names
-  /// - Values are column values
+  /// Fetch all rows
   Future<List<Map<String, dynamic>>> get() async {
     final conn = DB.instance;
     final sql = _buildSelectQuery();
-    final stmt = await conn.prepare(sql);
-    final result = await stmt.execute(_bindings);
-    return result.rows.map((row) => row.assoc()).toList();
+    final result = await conn.query(sql, namedParams: _bindings);
+    return result;
   }
 
-  /// Executes the query and returns the first matching row.
-  ///
-  /// Returns:
-  /// - A map representing the row, or
-  /// - `null` if no rows are found.
+  /// Fetch first row
   Future<Map<String, dynamic>?> first() async {
     limit(1);
     final rows = await get();
     return rows.isNotEmpty ? rows.first : null;
   }
 
-  /// Inserts a new record into the table.
-  ///
-  /// [data] is a map where:
-  /// - Keys are column names
-  /// - Values are the values to insert
+  /// INSERT
   Future<void> insert(Map<String, dynamic> data) async {
     final conn = DB.instance;
     final fields = data.keys.join(', ');
-    final placeholders = List.filled(data.length, '?').join(', ');
-    final sql = 'INSERT INTO $table ($fields) VALUES ($placeholders)';
-    final stmt = await conn.prepare(sql);
-    await stmt.execute(data.values.toList());
+    final params = <String>[];
+    final bindings = <String, dynamic>{};
+
+    var i = 1;
+    data.forEach((k, v) {
+      final param = 'p${i++}';
+      params.add('@$param');
+      bindings[param] = v;
+    });
+
+    final sql = 'INSERT INTO $table ($fields) VALUES (${params.join(', ')})';
+    await conn.query(sql, namedParams: bindings);
   }
 
-  /// Updates existing record(s) matching the `WHERE` clause.
-  ///
-  /// Throws an exception if no `WHERE` clause is set to prevent
-  /// accidental updates to all rows.
-  ///
-  /// [data] is a map where:
-  /// - Keys are column names
-  /// - Values are the values to update
+  /// UPDATE
   Future<void> update(Map<String, dynamic> data) async {
     if (_wheres.isEmpty) {
       throw Exception('Update requires a where clause.');
     }
 
     final conn = DB.instance;
-    final setClause = data.keys.map((k) => '$k = ?').join(', ');
-    final sql = 'UPDATE $table SET $setClause WHERE ${_wheres.join(' AND ')}';
-    final stmt = await conn.prepare(sql);
-    await stmt.execute([...data.values, ..._bindings]);
+    final setClauses = <String>[];
+    final bindings = {..._bindings};
+    var i = bindings.length + 1;
+
+    data.forEach((k, v) {
+      final param = 'p${i++}';
+      setClauses.add('$k = @$param');
+      bindings[param] = v;
+    });
+
+    final sql =
+        'UPDATE $table SET ${setClauses.join(', ')} WHERE ${_wheres.join(' AND ')}';
+    await conn.query(sql, namedParams: bindings);
   }
 
-  /// Deletes record(s) matching the `WHERE` clause.
-  ///
-  /// Throws an exception if no `WHERE` clause is set to prevent
-  /// accidental deletion of all rows.
+  /// DELETE
   Future<void> delete() async {
     if (_wheres.isEmpty) {
       throw Exception('Delete requires a where clause.');
@@ -164,7 +105,6 @@ class QueryBuilder {
 
     final conn = DB.instance;
     final sql = 'DELETE FROM $table WHERE ${_wheres.join(' AND ')}';
-    final stmt = await conn.prepare(sql);
-    await stmt.execute(_bindings);
+    await conn.query(sql, namedParams: _bindings);
   }
 }

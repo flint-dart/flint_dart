@@ -3,9 +3,6 @@ import '../connection.dart';
 import 'query_builder.dart';
 
 abstract class Model<T extends Model<T>> {
-  /// Table name
-  // String get tableName;
-
   /// Primary key column
   String get primaryKey => 'id';
 
@@ -22,40 +19,32 @@ abstract class Model<T extends Model<T>> {
     final id = toMap()[primaryKey];
     if (id == null) return null;
 
-    final conn = DB.instance;
-    final stmt = await conn.prepare(
-      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
+    final result = await DB.instance.query(
+      'SELECT * FROM ${table.name} WHERE $primaryKey = @id LIMIT 1',
+      namedParams: {'id': id},
     );
-    final result = await stmt.execute([id]);
 
-    if (result.rows.isEmpty) return null;
-    return fromMap(result.rows.first.assoc());
+    if (result.isEmpty) return null;
+    return fromMap(result.first);
   }
 
   /// Insert new record
   Future<T> create(Map<String, dynamic> map) async {
     final insertMap = Map.of(map)..remove(primaryKey);
 
-    final conn = DB.instance;
-    final fields = insertMap.keys.toList();
-    final values = insertMap.values.toList();
-    final placeholders = List.filled(fields.length, '?').join(', ');
+    final fields = insertMap.keys.join(', ');
+    final params = insertMap.keys.map((k) => '@$k').join(', ');
 
-    final sql =
-        'INSERT INTO ${table.name} (${fields.join(', ')}) VALUES ($placeholders)';
-    final stmt = await conn.prepare(sql);
-    final result = await stmt.execute(values);
-    await stmt.deallocate();
+    final sql = 'INSERT INTO ${table.name} ($fields) VALUES ($params)';
 
-    final id = result.lastInsertID.toDouble();
+    await DB.instance.query(sql, namedParams: insertMap);
 
-    final refreshStmt = await conn.prepare(
-      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
+    // fetch the latest record (works for Postgres & MySQL if PK is serial/auto-increment)
+    final refreshed = await DB.instance.query(
+      'SELECT * FROM ${table.name} ORDER BY $primaryKey DESC LIMIT 1',
     );
-    final refreshed = await refreshStmt.execute([id]);
-    await refreshStmt.deallocate();
 
-    return fromMap(refreshed.rows.first.assoc());
+    return fromMap(refreshed.first);
   }
 
   /// Update existing record
@@ -63,21 +52,20 @@ abstract class Model<T extends Model<T>> {
     if (id == null) throw Exception("Cannot update: $primaryKey is null");
 
     map.remove(primaryKey);
-    final fields = map.keys.toList();
-    final values = map.values.toList();
-    final setClause = fields.map((f) => '$f = ?').join(', ');
+    final setClause = map.keys.map((k) => '$k = @$k').join(', ');
 
-    final sql = 'UPDATE ${table.name} SET $setClause WHERE $primaryKey = ?';
-    final conn = DB.instance;
-    final stmt = await conn.prepare(sql);
-    await stmt.execute([...values, id]);
+    final sql = 'UPDATE ${table.name} SET $setClause WHERE $primaryKey = @id';
 
-    final refreshStmt = await conn.prepare(
-      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
+    final params = {...map, 'id': id};
+
+    await DB.instance.query(sql, namedParams: params);
+
+    final refreshed = await DB.instance.query(
+      'SELECT * FROM ${table.name} WHERE $primaryKey = @id LIMIT 1',
+      namedParams: {'id': id},
     );
-    final refreshed = await refreshStmt.execute([id]);
 
-    return fromMap(refreshed.rows.first.assoc());
+    return fromMap(refreshed.first);
   }
 
   /// Delete this model
@@ -85,70 +73,53 @@ abstract class Model<T extends Model<T>> {
     final id = toMap()[primaryKey];
     if (id == null) return;
 
-    final sql = 'DELETE FROM ${table.name} WHERE $primaryKey = ?';
-    final conn = DB.instance;
-    final stmt = await conn.prepare(sql);
-    await stmt.execute([id]);
+    await DB.instance.query(
+      'DELETE FROM ${table.name} WHERE $primaryKey = @id',
+      namedParams: {'id': id},
+    );
   }
 
   /// Find by ID
   Future<T?> find(dynamic id) async {
-    final conn = DB.instance;
-    final stmt = await conn.prepare(
-      'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
+    final result = await DB.instance.query(
+      'SELECT * FROM ${table.name} WHERE $primaryKey = @id LIMIT 1',
+      namedParams: {'id': id},
     );
-    final result = await stmt.execute([id]);
 
-    if (result.rows.isEmpty) return null;
-    return fromMap(result.rows.first.assoc());
+    return result.isNotEmpty ? fromMap(result.first) : null;
   }
 
   /// Get all records
-
   Future<List<T>> all() async {
-    final conn = DB.instance;
-    final stmt = await conn.prepare('SELECT * FROM ${table.name}');
-    final result = await stmt.execute([]);
-
-    final list = result.rows.map((r) => fromMap(r.assoc())).toList();
-    return list; // ✅ Now it's returning Future<List<T>> because the function is async
+    final result = await DB.instance.query('SELECT * FROM ${table.name}');
+    return result.map(fromMap).toList();
   }
 
   /// Where clause
   Future<List<T>> where(String field, dynamic value) async {
-    final conn = DB.instance;
-    final stmt = await conn.prepare(
-      'SELECT * FROM ${table.name} WHERE $field = ?',
+    final result = await DB.instance.query(
+      'SELECT * FROM ${table.name} WHERE $field = @value',
+      namedParams: {'value': value},
     );
-    final result = await stmt.execute([value]);
 
-    return result.rows.map((r) => fromMap(r.assoc())).toList();
+    return result.map(fromMap).toList();
   }
 
   /// Count all records
   static Future<int> count<T extends Model<T>>(T model) async {
-    final conn = DB.instance;
-    final stmt =
-        await conn.prepare('SELECT COUNT(*) as count FROM ${model.table}');
-    final result = await stmt.execute([]);
+    final result = await DB.instance.query(
+      'SELECT COUNT(*) as count FROM ${model.table.name}',
+    );
 
-    return result.rows.first.assoc()['count'];
+    return result.first['count'] as int;
   }
 
   /// Truncate table
   Future<void> truncate() async {
-    final conn = DB.instance;
-    final stmt = await conn.prepare('TRUNCATE TABLE ${table.name}');
-    await stmt.execute([]);
+    await DB.instance.query('TRUNCATE TABLE ${table.name}');
   }
 
-  /// Validate input using rules
-  // static Map<String, dynamic>? validate(
-  //     Map<String, dynamic> input, Map<String, String> rules) {
-  //   Validator.validate(input, rules);
-  // }
-
-  /// Custom query builder (you’ll implement this)
+  /// Custom query builder
   QueryBuilder query() {
     return QueryBuilder(table: table.name);
   }

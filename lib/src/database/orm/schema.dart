@@ -54,6 +54,27 @@ class Column {
     this.length = 255,
     this.defaultValue,
   });
+
+  /// Returns a new [Column] with updated values while keeping immutability.
+  Column copyWith({
+    String? name,
+    ColumnType? type,
+    int? length,
+    bool? isPrimaryKey,
+    bool? isAutoIncrement,
+    bool? isNullable,
+    dynamic defaultValue,
+  }) {
+    return Column(
+      name: name ?? this.name,
+      type: type ?? this.type,
+      length: length ?? this.length,
+      isPrimaryKey: isPrimaryKey ?? this.isPrimaryKey,
+      isAutoIncrement: isAutoIncrement ?? this.isAutoIncrement,
+      isNullable: isNullable ?? this.isNullable,
+      defaultValue: defaultValue ?? this.defaultValue,
+    );
+  }
 }
 
 /// Enum representing supported column types for a table schema.

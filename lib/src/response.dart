@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flint_dart/src/template_engine/template.dart';
+
 /// Supported response types for automatic content handling.
 enum RespondType {
   /// JSON data (application/json)
@@ -166,6 +168,40 @@ class Response {
     final message = _statusMessages[code] ?? 'Status';
     raw.statusCode = code;
     return send(message);
+  }
+
+  /// Renders an HTML view from a file.
+  ///
+  /// [filePath] can be absolute or relative to your project's `views` directory.
+  /// Optionally, you can pass [data] for simple variable replacement in the template.
+  Future<void> view(String filePath, {Map<String, dynamic>? data}) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      raw.statusCode = 404;
+      raw.write('❌ View not found: $filePath');
+      await raw.close();
+      return;
+    }
+
+    String content;
+
+    if (filePath.endsWith('.flint.html')) {
+      // Use the template engine
+      content = await TemplateEngine().render(filePath, data: data);
+    } else if (filePath.endsWith('.html')) {
+      // Serve plain HTML directly
+      content = await file.readAsString();
+    } else {
+      raw.statusCode = 400;
+      raw.write('❌ Unsupported file type: $filePath');
+      await raw.close();
+      return;
+    }
+
+    raw.statusCode = 200;
+    raw.headers.contentType = ContentType.html;
+    raw.write(content);
+    await raw.close();
   }
 }
 

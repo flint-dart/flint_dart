@@ -1,12 +1,20 @@
-import 'connection.dart';
+import 'db.dart';
 
 class DBUtils {
   /// Get all column names from a table
   static Future<List<String>> getColumns(String tableName) async {
-    final conn = await DB.autoConnect();
-    final result = await conn.execute("SHOW COLUMNS FROM `$tableName`");
+    final conn = DB.instance;
 
-    return result.rows.map((row) => row.colByName('Field') as String).toList();
+    final result = await conn.query(
+      '''
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = @tableName
+      ''',
+      namedParams: {'tableName': tableName},
+    );
+
+    return result.map((row) => row['column_name'] as String).toList();
   }
 
   /// Check if a column exists in a table
@@ -17,11 +25,18 @@ class DBUtils {
 
   /// Checks if a given table exists in the database.
   static Future<bool> tableExists(String tableName) async {
-    final conn = await DB.autoConnect();
-    final result = await conn.execute(
-      "SHOW TABLES LIKE :tableName",
-      {'tableName': tableName},
+    final conn = DB.instance;
+
+    final result = await conn.query(
+      '''
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_name = @tableName
+      ) AS exists
+      ''',
+      namedParams: {'tableName': tableName},
     );
-    return result.rows.isNotEmpty;
+
+    return result.isNotEmpty && result.first['exists'] == true;
   }
 }

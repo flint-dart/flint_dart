@@ -57,20 +57,21 @@ extension TableSQL on Table {
     return buffer.toString();
   }
 
-  List<String> compareWith(Table updated) {
+  String? compareWith(Table updated) {
     final oldCols = {for (var c in columns) c.name: c};
     final newCols = {for (var c in updated.columns) c.name: c};
     final changes = <String>[];
 
     for (var name in newCols.keys) {
+      final newCol = newCols[name]!;
+
       if (!oldCols.containsKey(name)) {
-        final c = newCols[name]!;
-        changes.add(
-            'ADD COLUMN `${c.name}` ${ColumnSQL(c).sqlType()} ${c.isNullable ? "" : "NOT NULL"}');
-      } else if (oldCols[name] != newCols[name]) {
-        final c = newCols[name]!;
-        changes.add(
-            'MODIFY COLUMN `${c.name}` ${ColumnSQL(c).sqlType()} ${c.isNullable ? "" : "NOT NULL"}');
+        changes.add(_buildAddColumnSQL(newCol));
+      } else {
+        final oldCol = oldCols[name]!;
+        if (oldCol != newCol) {
+          changes.add(_buildModifyColumnSQL(newCol));
+        }
       }
     }
 
@@ -80,7 +81,41 @@ extension TableSQL on Table {
       }
     }
 
-    return changes;
+    if (changes.isEmpty) return null;
+
+    return 'ALTER TABLE `$name`\n  ${changes.join(",\n  ")};';
+  }
+
+  String _buildAddColumnSQL(Column col) {
+    final buffer = StringBuffer();
+    buffer.write('ADD COLUMN `${col.name}` ${col.sqlType()}');
+
+    if (!col.isNullable) buffer.write(' NOT NULL');
+    if (col.defaultValue != null) {
+      buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+    }
+    if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+
+    return buffer.toString();
+  }
+
+  String _buildModifyColumnSQL(Column col) {
+    final buffer = StringBuffer();
+    buffer.write('MODIFY COLUMN `${col.name}` ${col.sqlType()}');
+
+    if (!col.isNullable) buffer.write(' NOT NULL');
+    if (col.defaultValue != null) {
+      buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+    }
+    if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+
+    return buffer.toString();
+  }
+
+  String _formatDefault(dynamic value) {
+    if (value is String) return "'$value'";
+    if (value == null) return 'NULL';
+    return value.toString();
   }
 
   static Table fromMySQL(String tableName, List<ResultSetRow> rows) {

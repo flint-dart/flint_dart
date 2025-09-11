@@ -1,5 +1,6 @@
 import 'dart:isolate';
 import 'package:flint_dart/schema.dart';
+import 'package:flint_dart/src/extensions/table_extension.dart';
 
 /// Runs the table registry process inside a Dart isolate.
 ///
@@ -38,6 +39,7 @@ import 'package:flint_dart/schema.dart';
 /// Throws no exceptions directly — errors are logged and an empty list may be sent.
 ///
 /// Used internally by the Flint Dart CLI.
+///
 void runTableRegistry(
   List<Table> tables, [
   dynamic _,
@@ -51,18 +53,23 @@ void runTableRegistry(
 
   final List<String> diffs = [];
 
-  for (final table in tables) {
-    final existingTable = await getTableSchema(table.name);
-    if (existingTable == null) {
-      diffs.add(table.toCreateSQL());
-    } else {
-      final diff = existingTable.compareWith(table);
-      if (diff != null) {
-        diffs.add(diff.toString());
+  try {
+    for (final table in tables) {
+      final existingTable = await getTableSchema(table.name);
+
+      if (existingTable == null) {
+        // Table doesn’t exist → create it
+        diffs.add(table.toCreateSQL());
+      } else {
+        // Table exists → diff it
+        final diff = existingTable.compareWith(table);
+        if (diff != null) diffs.add(diff);
       }
     }
+  } catch (e, st) {
+    print("⚠️ Error in table registry: $e\n$st");
   }
 
-  print(diffs);
+  // ✅ Always send result back, even if empty
   sendPort.send(diffs);
 }
