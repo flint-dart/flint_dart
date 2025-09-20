@@ -84,6 +84,11 @@ extension TableSQL on Table {
   }
 
   String _buildAddColumnSQL(Column col) {
+    if (!col.isNullable && col.defaultValue == null && !col.isAutoIncrement) {
+      throw ArgumentError(
+          'Column ${col.name} is NOT NULL but has no default value. '
+          'Either make it nullable or provide a default value.');
+    }
     final buffer = StringBuffer();
     buffer.write('ADD COLUMN `${col.name}` ${col.sqlTypeMySQL()}');
 
@@ -140,50 +145,50 @@ extension TableSQL on Table {
 }
 
 // --- MYSQL HELPERS ---
-String _buildAddColumnMySQL(Column col, {bool checkIfExists = false}) {
-  // Validate that NOT NULL columns have defaults (unless auto-increment)
-  if (!col.isNullable && col.defaultValue == null && !col.isAutoIncrement) {
-    throw ArgumentError(
-        'Column ${col.name} is NOT NULL but has no default value. '
-        'Either make it nullable or provide a default value.');
-  }
+// String _buildAddColumnMySQL(Column col, {bool checkIfExists = false}) {
+//   // Validate that NOT NULL columns have defaults (unless auto-increment)
+//   if (!col.isNullable && col.defaultValue == null && !col.isAutoIncrement) {
+//     throw ArgumentError(
+//         'Column ${col.name} is NOT NULL but has no default value. '
+//         'Either make it nullable or provide a default value.');
+//   }
 
-  final buffer = StringBuffer();
+//   final buffer = StringBuffer();
 
-  if (checkIfExists) {
-    buffer.write('ADD COLUMN IF NOT EXISTS ');
-  } else {
-    buffer.write('ADD COLUMN ');
-  }
+//   if (checkIfExists) {
+//     buffer.write('ADD COLUMN IF NOT EXISTS ');
+//   } else {
+//     buffer.write('ADD COLUMN ');
+//   }
 
-  buffer.write('`${col.name}` ${col.mysqlType()}');
+//   buffer.write('`${col.name}` ${col.mysqlType()}');
 
-  if (!col.isNullable) buffer.write(' NOT NULL');
+//   if (!col.isNullable) buffer.write(' NOT NULL');
 
-  if (col.defaultValue != null) {
-    buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
-  }
+//   if (col.defaultValue != null) {
+//     buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+//   }
 
-  if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
-  if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
-  if (col.isUnique) buffer.write(' UNIQUE');
+//   if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+//   if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
+//   if (col.isUnique) buffer.write(' UNIQUE');
 
-  return buffer.toString();
-}
+//   return buffer.toString();
+// }
 
-String _buildModifyColumnMySQL(Column col) {
-  final buffer = StringBuffer();
-  buffer.write('MODIFY COLUMN `${col.name}` ${col.mysqlType()}');
+// String _buildModifyColumnMySQL(Column col) {
+//   final buffer = StringBuffer();
+//   buffer.write('MODIFY COLUMN `${col.name}` ${col.mysqlType()}');
 
-  if (!col.isNullable) buffer.write(' NOT NULL');
-  if (col.defaultValue != null) {
-    buffer.write(
-        ' DEFAULT ${_formatDefault(col.defaultValue, dialect: "mysql")}');
-  }
-  if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+//   if (!col.isNullable) buffer.write(' NOT NULL');
+//   if (col.defaultValue != null) {
+//     buffer.write(
+//         ' DEFAULT ${_formatDefault(col.defaultValue, dialect: "mysql")}');
+//   }
+//   if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
 
-  return buffer.toString();
-}
+//   return buffer.toString();
+// }
 
 // --- POSTGRES HELPERS ---
 String _buildAddColumnPostgres(Column col) {

@@ -8,7 +8,7 @@ class PgConnectionWrapper implements DBWrapper {
   Connection? _connection;
   bool _connected = false;
   String? _lastError;
-  final Map<String, StreamSubscription<Notification>> _listeners = {};
+  // final Map<String, StreamSubscription<Notification>> _listeners = {};
   Future<void> connect({
     required String host,
     required int port,

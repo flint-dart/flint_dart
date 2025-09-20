@@ -1,6 +1,5 @@
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/storage.dart';
-import 'package:sample/src/models/student_model.dart';
 import 'package:sample/src/models/user_model.dart';
 
 class UserController {
@@ -13,18 +12,10 @@ class UserController {
   }
 
   Future<Response?> show(Request req, Response res) async {
-    // var user = await User().find(req.params['id']);
-    // var body = await req.validate({
-    //   "name": "required|string",
-    //   "email": "required|string",
-    //   "password": "required|string"
-    // });
-    var user = await User().delete(req.params['id']);
-    // var user = await User()
-    //     .create({"name": "lola", "email": "ademola", 'password': "m"});
-    // var student = StudentModel().create({"name": "ademol"});
+    var user = await User().find(req.params['id']);
+
     if (user != null) {
-      return res.respond({"msg": "Delected"});
+      return res.respond({"msg": "Get user successfull", "data": user.toMap()});
     }
     return res.status(404).json({"message": "user not found"});
   }
@@ -88,6 +79,11 @@ class UserController {
   }
 
   Future<Response> delete(Request req, Response res) async {
-    return res.send('Deleting user ${req.params['id']}');
+    var user = await User().delete(req.params['id']);
+    if (user) {
+      return res.send('Deleting user ${req.params['id']}');
+    } else {
+      return res.status(404).json({"message": "user not found"});
+    }
   }
 }
