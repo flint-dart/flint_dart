@@ -64,10 +64,10 @@
     </section>
     
 <section class="desc markdown">
-  <p>Returns the value for the given <code>key</code> from the environment.</p>
+  <p>Returns the value for the given <code>key</code>.</p>
 <p>If the key is not found, returns the <code>defaultValue</code> (defaults to <code>''</code>).</p>
 <p>Example:</p>
-<pre class="language-dart"><code class="language-dart">String dbHost = FlintEnv.get('DB_HOST', 'localhost');
+<pre class="language-dart"><code class="language-dart">final apiKey = FlintEnv.get('API_KEY', 'default-key');
 </code></pre>
 </section>
 
@@ -76,6 +76,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static String get(String key, [String defaultValue = &#39;&#39;]) {
+  _ensureLoaded();
   return _env[key] ?? defaultValue;
 }</code></pre>
 </section>
@@ -105,7 +106,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

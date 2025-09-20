@@ -76,6 +76,14 @@
   Describes a column in a database table.
 </dd>
 
+          <dt id="Default">
+  <span class="name "><a href="../flint_dart/Default-class.html">Default</a></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
           <dt id="ExceptionMiddleware">
   <span class="name "><a href="../flint_dart/ExceptionMiddleware-class.html">ExceptionMiddleware</a></span> 
 
@@ -97,8 +105,7 @@
 
 </dt>
 <dd>
-  A lightweight environment variable parser for loading <code>.env</code> files
-into memory for configuration purposes.
+  A lightweight environment variable loader for Dart applications.
 </dd>
 
           <dt id="FlintJwt">
@@ -157,6 +164,22 @@ into memory for configuration purposes.
   
 </dd>
 
+          <dt id="MySQLDialect">
+  <span class="name "><a href="../flint_dart/MySQLDialect-class.html">MySQLDialect</a></span> 
+
+</dt>
+<dd>
+  ---------------- MySQL ----------------
+</dd>
+
+          <dt id="PostgresDialect">
+  <span class="name "><a href="../flint_dart/PostgresDialect-class.html">PostgresDialect</a></span> 
+
+</dt>
+<dd>
+  ---------------- Postgres ----------------
+</dd>
+
           <dt id="Request">
   <span class="name "><a href="../flint_dart/Request-class.html">Request</a></span> 
 
@@ -188,6 +211,14 @@ method, headers, parameters, body, and other common features.
 </dt>
 <dd>
   
+</dd>
+
+          <dt id="SQLDialect">
+  <span class="name "><a href="../flint_dart/SQLDialect-class.html">SQLDialect</a></span> 
+
+</dt>
+<dd>
+  Base dialect interface
 </dd>
 
           <dt id="Table">
@@ -259,22 +290,12 @@ method, headers, parameters, body, and other common features.
 
 </dt>
 <dd>
-  
+  ---------------- Column helpers ----------------
 </dd>
 
-          <dt id="TableMigration">
-  <span class="name "><a href="../flint_dart/TableMigration.html">TableMigration</a></span>
-  on <a href="../flint_dart/Table-class.html">Table</a>
-  
-
-</dt>
-<dd>
-  
-</dd>
-
-          <dt id="TableMySQL">
-  <span class="name "><a href="../flint_dart/TableMySQL.html">TableMySQL</a></span>
-  on <a href="../flint_dart/Table-class.html">Table</a>
+          <dt id="FirstWhereOrNullExtension">
+  <span class="name "><a href="../flint_dart/FirstWhereOrNullExtension.html">FirstWhereOrNullExtension</a></span>
+  on <a href="https://api.dart.dev/stable/3.8.1/dart-core/Iterable-class.html">Iterable</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
   
 
 </dt>
@@ -289,7 +310,7 @@ method, headers, parameters, body, and other common features.
 
 </dt>
 <dd>
-  
+  ---------------- Dispatcher ----------------
 </dd>
 
       </dl>
@@ -300,22 +321,35 @@ method, headers, parameters, body, and other common features.
     <section class="summary offset-anchor" id="functions">
       <h2>Functions</h2>
       <dl class="callables">
-          <dt id="decodeAssoc" class="callable">
-  <span class="name"><a href="../flint_dart/decodeAssoc.html">decodeAssoc</a></span><span class="signature">(<wbr><span class="parameter" id="decodeAssoc-param-row"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">row</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
+          <dt id="getTableSchema" class="callable">
+  <span class="name"><a href="../flint_dart/getTableSchema.html">getTableSchema</a></span><span class="signature">(<wbr><span class="parameter" id="getTableSchema-param-tableName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">tableName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Table-class.html">Table</a>?</span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Decodes all List&amp;ltint&amp;gt (UTF-8 bytes) in a MySQL assoc() row to Strings.
+  Helper function to get table schema
   
 
 </dd>
 
-          <dt id="getTableSchema" class="callable">
-  <span class="name"><a href="../flint_dart/getTableSchema.html">getTableSchema</a></span><span class="signature">(<wbr><span class="parameter" id="getTableSchema-param-tableName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">tableName</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Table-class.html">Table</a>?</span>&gt;</span></span>
+          <dt id="parseInt" class="callable">
+  <span class="name"><a href="../flint_dart/parseInt.html">parseInt</a></span><span class="signature">(<wbr><span class="parameter" id="parseInt-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/int-class.html">int</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+          <dt id="parseMySQLType" class="callable">
+  <span class="name"><a href="../flint_dart/parseMySQLType.html">parseMySQLType</a></span><span class="signature">(<wbr><span class="parameter" id="parseMySQLType-param-rawType"><span class="type-annotation">dynamic</span> <span class="parameter-name">rawType</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>
   </span>
   
 
@@ -348,7 +382,7 @@ method, headers, parameters, body, and other common features.
           
   <dt id="Handler" class="callable">
     <span class="name"><a href="../flint_dart/Handler.html">Handler</a></span><span class="signature">
-      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Response-class.html">Response</a>?</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-req"><span class="type-annotation"><a href="../flint_dart/Request-class.html">Request</a></span> <span class="parameter-name">req</span>, </span><span class="parameter" id="param-res"><span class="type-annotation"><a href="../flint_dart/Response-class.html">Response</a></span> <span class="parameter-name">res</span></span>)</span></span>
+      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.8.1/dart-async/FutureOr-class.html">FutureOr</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Response-class.html">Response</a>?</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-req"><span class="type-annotation"><a href="../flint_dart/Request-class.html">Request</a></span> <span class="parameter-name">req</span>, </span><span class="parameter" id="param-res"><span class="type-annotation"><a href="../flint_dart/Response-class.html">Response</a></span> <span class="parameter-name">res</span></span>)</span></span>
     </span>
     
 
@@ -408,7 +442,7 @@ method, headers, parameters, body, and other common features.
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

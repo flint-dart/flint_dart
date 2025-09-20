@@ -54,7 +54,7 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
 <span class="name ">save</span>(<wbr>)
 
       
@@ -62,21 +62,19 @@
     </section>
     
 <section class="desc markdown">
-  <p>Saves the model to the database. Inserts or updates depending on existence.</p>
+  <p>Save model (create or update)</p>
 </section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; save() async {
-  final map = toMap();
-  await Validator.validate(map, rules());
-
-  if (_existsInDb) {
-    await update(map);
+  <pre class="language-dart"><code class="language-dart">Future&lt;T?&gt; save() async {
+  final currentId = id;
+  if (currentId == null) {
+    return await create();
   } else {
-    await insert(map);
+    return await update();
   }
 }</code></pre>
 </section>
@@ -106,7 +104,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0
+      1.0.0+4
   </span>
   
 </footer>

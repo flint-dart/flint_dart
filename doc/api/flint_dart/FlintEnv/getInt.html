@@ -64,11 +64,11 @@
     </section>
     
 <section class="desc markdown">
-  <p>Returns the integer value for the given <code>key</code> from the environment.</p>
+  <p>Returns the integer value for the given <code>key</code>.</p>
 <p>If the key is not found or cannot be parsed as an integer,
 returns the <code>defaultValue</code> (defaults to <code>0</code>).</p>
 <p>Example:</p>
-<pre class="language-dart"><code class="language-dart">int port = FlintEnv.getInt('DB_PORT', 3306);
+<pre class="language-dart"><code class="language-dart">final port = FlintEnv.getInt('DB_PORT', 3306);
 </code></pre>
 </section>
 
@@ -77,6 +77,7 @@ returns the <code>defaultValue</code> (defaults to <code>0</code>).</p>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static int getInt(String key, [int defaultValue = 0]) {
+  _ensureLoaded();
   return int.tryParse(_env[key] ?? &#39;&#39;) ?? defaultValue;
 }</code></pre>
 </section>
@@ -106,7 +107,7 @@ returns the <code>defaultValue</code> (defaults to <code>0</code>).</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

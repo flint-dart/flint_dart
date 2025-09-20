@@ -59,7 +59,7 @@
   <section id="getter">
     <section class="multi-line-signature">
       
-      <span class="returntype"><a href="https://pub.dev/documentation/mysql_dart/1.0.0/mysql_dart/MySQLConnection-class.html">MySQLConnection</a></span>
+      <span class="returntype">DBWrapper</span>
       get
       <span class="name ">instance</span>
       
@@ -67,19 +67,18 @@
     </section>
     
 <section class="desc markdown">
-  <p>Return the active connection instance.</p>
+  <p>Returns the active connection (MySQL or PostgreSQL).</p>
 </section>
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">static MySQLConnection get instance {
-  if (!_isInitialized || _connection == null) {
-    throw Exception(
-      &quot;Database not initialized. Call DB.connect() or DB.autoConnect() first.&quot;,
-    );
+  <pre class="language-dart"><code class="language-dart">static DBWrapper get instance {
+  _ensureConnected();
+  if (_driver == null) {
+    throw Exception(&quot;Database not initialized.&quot;);
   }
-  return _connection!;
+  return _driver == DBDriver.mysql ? _mysql! : _pg!;
 }</code></pre>
 </section>
 
@@ -110,7 +109,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

@@ -79,10 +79,78 @@ Handler handle(Handler next) {
       return await next(req, res);
     } on ValidationException catch (e) {
       return res.json({&quot;status&quot;: false, &quot;errors&quot;: e.errors}, status: 400);
+    } on FormatException catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.message,
+        },
+        status: 500,
+      );
+    } on TimeoutException catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.message,
+        },
+        status: 500,
+      );
+    } on ArgumentError catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.message,
+        },
+        status: 500,
+      );
+    } on PgException catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.message,
+        },
+        status: 500,
+      );
+    } on MySQLClientException catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.message,
+        },
+        status: 500,
+      );
+    } on MySQLException catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.message,
+        },
+        status: 500,
+      );
+    } on ForbiddenErorr catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.message,
+        },
+        status: 500,
+      );
+    } on Exception catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;:
+              e.toString().replaceAll(&quot;Exception:&quot;, &quot;&quot;).trim().toString(),
+        },
+        status: 500,
+      );
     } catch (e, stack) {
       print(&#39;[Flint] Unhandled error: $e\n$stack&#39;);
       return res.json(
-        {&quot;status&quot;: false, &quot;message&quot;: e.toString()},
+        {
+          &quot;status&quot;: false,
+          &quot;message&quot;: e.toString(),
+        },
         status: 500,
       );
     }
@@ -115,7 +183,7 @@ Handler handle(Handler next) {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

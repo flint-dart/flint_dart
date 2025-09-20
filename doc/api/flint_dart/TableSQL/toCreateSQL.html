@@ -67,37 +67,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">String toCreateSQL() {
-  final buffer = StringBuffer();
-  buffer.write(&#39;CREATE TABLE `$name` (\n&#39;);
-
-  for (int i = 0; i &lt; columns.length; i++) {
-    final col = columns[i];
-    buffer.write(&#39;  `${col.name}` ${col.sqlType()}&#39;);
-
-    if (!col.isNullable) buffer.write(&#39; NOT NULL&#39;);
-    if (col.isAutoIncrement) buffer.write(&#39; AUTO_INCREMENT&#39;);
-    if (col.defaultValue != null) {
-      buffer.write(&#39; DEFAULT ${_formatDefaultValue(col.defaultValue)}&#39;);
-    }
-    if (col.isPrimaryKey) buffer.write(&#39; PRIMARY KEY&#39;);
-
-    if (i &lt; columns.length - 1 || foreignKeys.isNotEmpty) buffer.write(&#39;,&#39;);
-    buffer.write(&#39;\n&#39;);
-  }
-
-  for (int i = 0; i &lt; foreignKeys.length; i++) {
-    final fk = foreignKeys[i];
-    buffer.write(
-        &#39;  FOREIGN KEY (`${fk.column}`) REFERENCES `${fk.referenceTable}`(`${fk.referenceColumn}`)&#39;);
-    buffer.write(&#39; ON DELETE ${fk.onDelete}&#39;);
-    buffer.write(&#39; ON UPDATE ${fk.onUpdate}&#39;);
-
-    if (i &lt; foreignKeys.length - 1) buffer.write(&#39;,&#39;);
-    buffer.write(&#39;\n&#39;);
-  }
-
-  buffer.write(&#39;);&#39;);
-  return buffer.toString();
+  return _dialectFor(DB.driver).createTable(this);
 }</code></pre>
 </section>
 
@@ -126,7 +96,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

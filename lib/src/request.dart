@@ -153,7 +153,8 @@ class Request {
 
   /// Checks if a file with the given name exists in the request.
   /// @param name The name of the file field.
-  /// @returns [true] if the file exists, otherwise [false].
+  /// Returns `true` if a file is uploaded with the given `field`.
+  /// Returns `false` otherwise.
   Future<bool> hasFile(String name) async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {
@@ -165,7 +166,7 @@ class Request {
 
   /// Retrieves a single uploaded file by its field name.
   /// @param name The name of the file field.
-  /// @returns An [UploadedFile] object or [null] if not found.
+  /// @returns An [UploadedFile] object or `null` if not found.
   Future<UploadedFile?> file(String name) async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {

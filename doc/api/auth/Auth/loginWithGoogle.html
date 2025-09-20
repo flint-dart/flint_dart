@@ -65,22 +65,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Handles user authentication using Google's OAuth service.</p>
-<p>This method supports two primary flows:</p>
-<ul>
-<li><strong>ID Token Flow</strong>: The client sends a Google-provided <code>idToken</code>, which is verified
-by the server.</li>
-<li><strong>Authorization Code Flow</strong>: The client sends a <code>code</code>, which the server
-exchanges for an access token to retrieve user profile data.</li>
-</ul>
-<p>The method manages user data in the database by either finding an existing
-user, linking a new provider to an existing account, or creating a new user.</p>
-<p>Throws an <a href="https://api.dart.dev/stable/3.8.1/dart-core/ArgumentError-class.html">ArgumentError</a> if required parameters are missing or an
-<a href="https://api.dart.dev/stable/3.8.1/dart-core/Exception-class.html">Exception</a> if the authentication process fails.</p>
-<p>@param idToken The ID token from the client (for the frontend flow).
-@param code The authorization code from the client (for the server flow).
-@param callbackPath The redirect path required for the code flow.
-@returns A <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a> that completes with a map containing the JWT token and user data.</p>
+  <p>Google OAuth login</p>
 </section>
 
 
@@ -90,7 +75,7 @@ user, linking a new provider to an existing account, or creating a new user.</p>
   <pre class="language-dart"><code class="language-dart">static Future&lt;Map&lt;String, dynamic&gt;&gt; loginWithGoogle({
   String? idToken,
   String? code,
-  String? callbackPath, &#47;&#47; required when using code flow
+  String? callbackPath,
 }) async {
   if (idToken == null &amp;&amp; code == null) {
     throw ArgumentError(&#39;Either idToken or code must be provided.&#39;);
@@ -100,7 +85,7 @@ user, linking a new provider to an existing account, or creating a new user.</p>
   final googleClientSecret = config.googleClientSecret;
   final redirectBase = config.redirectBase;
 
-  if (googleClientId == null || googleClientSecret == null) {
+  if (googleClientId == null || googleClientSecret!.isEmpty) {
     throw Exception(
         &#39;Google Auth is not configured. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.&#39;);
   }
@@ -108,10 +93,8 @@ user, linking a new provider to an existing account, or creating a new user.</p>
   Map&lt;String, dynamic&gt; profile;
 
   if (idToken != null) {
-    &#47;&#47; Verify id_token using Google&#39;s token info endpoint
     profile = await _verifyGoogleIdToken(idToken);
   } else {
-    &#47;&#47; code flow: exchange authorization code for tokens, then fetch profile
     if (callbackPath == null) {
       throw ArgumentError(&#39;callbackPath is required when exchanging code.&#39;);
     }
@@ -132,6 +115,7 @@ user, linking a new provider to an existing account, or creating a new user.</p>
           &#39;Could not obtain access_token or id_token from Google.&#39;);
     }
   }
+
   await _ensureProviderColumns();
 
   final provider = &#39;google&#39;;
@@ -144,85 +128,72 @@ user, linking a new provider to an existing account, or creating a new user.</p>
     throw Exception(&#39;Could not determine Google provider id from profile.&#39;);
   }
 
-  &#47;&#47; Upsert user into configured table
-  final conn = DB.instance;
+  final db = DB.instance;
   final cfg = config;
 
-  &#47;&#47; 1) Try find by provider+provider_id
-  final byProvider = await _dbQuery(
-    conn,
+  &#47;&#47; 1) Find by provider + providerId
+  var rows = await db.query(
     &#39;SELECT * FROM `${cfg.table}` WHERE `${cfg.providerColumn}` = ? AND `${cfg.providerIdColumn}` = ? LIMIT 1&#39;,
-    [provider, providerId],
+    positionalParams: [provider, providerId],
   );
 
   int userId;
-  Map&lt;String, dynamic&gt;? userRow;
+  Map&lt;String, dynamic&gt; userRow;
 
-  if (byProvider.isNotEmpty) {
-    userRow = byProvider.first;
+  if (rows.isNotEmpty) {
+    userRow = rows.first;
     userId = userRow[&#39;id&#39;] as int;
-    &#47;&#47; Optionally update name&#47;email
-    await _dbExecute(
-      conn,
+    await db.execute(
       &#39;UPDATE `${cfg.table}` SET `${cfg.nameColumn}` = ?, `${cfg.emailColumn}` = ? WHERE id = ?&#39;,
-      [name, email, userId],
+      positionalParams: [name, email, userId],
     );
-  } else {
-    &#47;&#47; 2) Try find by email (user may have registered with email previously)
-    if (email != null) {
-      final byEmail = await _dbQuery(
-        conn,
-        &#39;SELECT * FROM `${cfg.table}` WHERE `${cfg.emailColumn}` = ? LIMIT 1&#39;,
-        [email],
+  } else if (email != null) {
+    &#47;&#47; 2) Find by email
+    rows = await db.query(
+      &#39;SELECT * FROM `${cfg.table}` WHERE `${cfg.emailColumn}` = ? LIMIT 1&#39;,
+      positionalParams: [email],
+    );
+    if (rows.isNotEmpty) {
+      userRow = rows.first;
+      userId = userRow[&#39;id&#39;] as int;
+      await db.execute(
+        &#39;UPDATE `${cfg.table}` SET `${cfg.providerColumn}` = ?, `${cfg.providerIdColumn}` = ? WHERE id = ?&#39;,
+        positionalParams: [provider, providerId, userId],
       );
-
-      if (byEmail.isNotEmpty) {
-        userRow = byEmail.first;
-        userId = userRow[&#39;id&#39;] as int;
-        &#47;&#47; Link provider
-        await _dbExecute(
-          conn,
-          &#39;UPDATE `${cfg.table}` SET `${cfg.providerColumn}` = ?, `${cfg.providerIdColumn}` = ? WHERE id = ?&#39;,
-          [provider, providerId, userId],
-        );
-      } else {
-        &#47;&#47; 3) Create new user
-        final insertResult = await _dbExecute(
-          conn,
-          &#39;INSERT INTO `${cfg.table}` (`${cfg.emailColumn}`, `${cfg.nameColumn}`, `${cfg.providerColumn}`, `${cfg.providerIdColumn}`, created_at) VALUES (?, ?, ?, ?, NOW())&#39;,
-          [email, name, provider, providerId],
-        );
-        userId = insertResult.insertId ?? await _getLastInsertId(conn);
-        userRow = (await _dbQuery(
-                conn,
-                &#39;SELECT * FROM `${cfg.table}` WHERE id = ? LIMIT 1&#39;,
-                [userId]))
-            .first;
-      }
     } else {
-      &#47;&#47; No email available: create a user with provider id only (or reject)
-      final insertResult = await _dbExecute(
-        conn,
-        &#39;INSERT INTO `${cfg.table}` (`${cfg.nameColumn}`, `${cfg.providerColumn}`, `${cfg.providerIdColumn}`, created_at) VALUES (?, ?, ?, NOW())&#39;,
-        [name, provider, providerId],
+      &#47;&#47; 3) Create new user
+      var inserted = await db.query(
+        &#39;INSERT INTO `${cfg.table}` (`${cfg.emailColumn}`, `${cfg.nameColumn}`, `${cfg.providerColumn}`, `${cfg.providerIdColumn}`, created_at) VALUES (?, ?, ?, ?, NOW())&#39;,
+        positionalParams: [email, name, provider, providerId],
       );
-      userId = insertResult.insertId ?? await _getLastInsertId(conn);
-      userRow = (await _dbQuery(conn,
-              &#39;SELECT * FROM `${cfg.table}` WHERE id = ? LIMIT 1&#39;, [userId]))
-          .first;
+      userId = await inserted.firstOrNull?[&#39;id&#39;];
+      rows = await db.query(
+        &#39;SELECT * FROM `${cfg.table}` WHERE id = ? LIMIT 1&#39;,
+        positionalParams: [userId],
+      );
+      userRow = rows.first;
     }
+  } else {
+    &#47;&#47; No email: create user with provider only
+    var user = await db.query(
+      &#39;INSERT INTO `${cfg.table}` (`${cfg.nameColumn}`, `${cfg.providerColumn}`, `${cfg.providerIdColumn}`, created_at) VALUES (?, ?, ?, NOW())&#39;,
+      positionalParams: [name, provider, providerId],
+    );
+    userId = user.single[&#39;id&#39;];
+    rows = await db.query(
+      &#39;SELECT * FROM `${cfg.table}` WHERE id = ? LIMIT 1&#39;,
+      positionalParams: [userId],
+    );
+    userRow = rows.first;
   }
 
-  &#47;&#47; Build payload and token
-  final payload = {
+  final token = FlintJwt(&quot;sdf&quot;).generateToken({
     &#39;id&#39;: userRow[&#39;id&#39;],
     &#39;email&#39;: userRow[cfg.emailColumn],
     &#39;provider&#39;: provider,
-  };
+  });
 
-  final token = FlintJwt(&quot;sdf&quot;).generateToken(payload);
-
-  return {&#39;token&#39;: token, &#39;user&#39;: payload};
+  return {&#39;token&#39;: token, &#39;user&#39;: userRow};
 }</code></pre>
 </section>
 
@@ -251,7 +222,7 @@ user, linking a new provider to an existing account, or creating a new user.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

@@ -70,12 +70,8 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;List&lt;T&gt;&gt; all() async {
-  final conn = DB.instance;
-  final stmt = await conn.prepare(&#39;SELECT * FROM ${table.name}&#39;);
-  final result = await stmt.execute([]);
-
-  final list = result.rows.map((r) =&gt; fromMap(r.assoc())).toList();
-  return list; &#47;&#47; ✅ Now it&#39;s returning Future&lt;List&lt;T&gt;&gt; because the function is async
+  final result = await DB.query(&#39;SELECT * FROM ${table.name}&#39;);
+  return result.map((map) =&gt; fromMap(_convertDatabaseTypes(map))).toList();
 }</code></pre>
 </section>
 
@@ -104,7 +100,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

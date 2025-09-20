@@ -62,27 +62,30 @@
 
     </section>
     
+<section class="desc markdown">
+  <p>Helper function to get table schema</p>
+</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;Table?&gt; getTableSchema(String tableName) async {
-  MySQLConnection? conn;
-
   try {
-    conn = await DB.autoConnect();
-    final resultSet = await conn.execute(&quot;SHOW COLUMNS FROM `$tableName`&quot;);
-    if (resultSet.rows.isEmpty) return null;
-
-    return TableMySQL.fromMySQL(tableName, resultSet.rows.toList());
-  } on MySQLServerException catch (e) {
-    if (e.message.contains(&quot;doesn&#39;t exist&quot;)) {
-      return null; &#47;&#47; ✅ table does not exist
+    if (!DB.isConnected) {
+      await DB.tryAutoConnect();
     }
-    return null; &#47;&#47; ✅ table does not exist
-  } finally {
-    await conn?.close();
+
+    final driver = DB.driver;
+    switch (driver) {
+      case DBDriver.mysql:
+        return MySQLDialect().getTableSchema(tableName);
+      case DBDriver.postgres:
+        return PostgresDialect().getTableSchema(tableName);
+    }
+  } catch (e) {
+    print(&#39;Error in getTableSchema: $e&#39;);
+    return null;
   }
 }</code></pre>
 </section>
@@ -111,7 +114,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

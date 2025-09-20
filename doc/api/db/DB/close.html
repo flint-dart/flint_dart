@@ -62,7 +62,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Closes and resets the database connection.</p>
+  <p>Close active connection.</p>
 </section>
 
 
@@ -70,9 +70,12 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static Future&lt;void&gt; close() async {
-  await _connection?.close();
-  _connection = null;
-  _isInitialized = false;
+  await _mysql?.close();
+  await _pg?.close();
+  _driver = null;
+  _isConnected = false;
+  _mysql = null;
+  _pg = null;
 }</code></pre>
 </section>
 
@@ -101,7 +104,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

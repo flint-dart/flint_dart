@@ -118,19 +118,28 @@ runTableRegistry([
 
   final List&lt;String&gt; diffs = [];
 
-  for (final table in tables) {
-    final existingTable = await getTableSchema(table.name);
-    if (existingTable == null) {
-      diffs.add(table.toCreateSQL());
-    } else {
-      final diff = existingTable.compareWith(table);
-      if (diff != null) {
-        diffs.add(diff.toString());
+  try {
+    for (final table in tables) {
+      &#47;&#47; diffs.add(await table.toCreateSQL());
+
+      final existingTable = await getTableSchema(table.name);
+
+      if (existingTable == null) {
+        &#47;&#47; Table doesn’t exist → create it
+        diffs.add(table.toCreateSQL());
+      } else {
+        &#47;&#47; Table exists → diff it
+        final diff = existingTable.compareWith(table);
+        if (diff != null) diffs.add(diff);
       }
     }
+  } catch (e, st) {
+    print(&quot;⚠️ Error in table registry: $e\n$st&quot;);
   }
 
   print(diffs);
+
+  &#47;&#47; &#47;&#47; ✅ Always send result back, even if empty
   sendPort.send(diffs);
 }</code></pre>
 </section>
@@ -159,7 +168,7 @@ runTableRegistry([
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>

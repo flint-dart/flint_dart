@@ -64,19 +64,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Authenticates a user with an email and password.</p>
-<p>The method performs the following steps:</p>
-<ol>
-<li>Queries the database for a user with the provided email.</li>
-<li>Verifies the user's password against the stored hash.</li>
-<li>Generates a secure JWT token upon successful authentication.</li>
-</ol>
-<p>Throws a <a href="../../flint_dart/ValidationException-class.html">ValidationException</a> with a generic "Invalid email or password"
-message if authentication fails, preventing attackers from knowing
-whether an email exists in the database.</p>
-<p>@param emailColumn The {config.table}'s address.
-@param password The user's plain-text password.
-@returns A <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a> that completes with a JWT token string.</p>
+  <p>Email/password login</p>
 </section>
 
 
@@ -84,35 +72,29 @@ whether an email exists in the database.</p>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static Future&lt;String&gt; login(String email, String password) async {
-  final conn = DB.instance;
+  final db = DB.instance;
 
-  &#47;&#47; 1. Check if user exists
-  final pre = await conn.prepare(
+  final rows = await db.query(
     &#39;SELECT * FROM `${config.table}` WHERE `${config.emailColumn}` = ? LIMIT 1&#39;,
+    positionalParams: [email],
   );
 
-  final result = await pre.execute(
-    [email],
-  );
-
-  if (result.rows.isEmpty) {
+  if (rows.isEmpty) {
     throw ValidationException({
-      &quot;password&quot;: [&quot;Invalid email or password.&quot;]
+      &#39;password&#39;: [&#39;Invalid email or password.&#39;]
     });
   }
 
-  final user = result.rows.first.assoc();
-
-  &#47;&#47; 2. Verify password
+  final user = rows.first;
   final hashedPassword = user[config.passwordColumn] as String;
   final isMatch = Hashing().verify(password, hashedPassword);
+
   if (!isMatch) {
     throw ValidationException({
-      &quot;password&quot;: [&quot;Invalid email or password.&quot;]
+      &#39;password&#39;: [&#39;Invalid email or password.&#39;]
     });
   }
 
-  &#47;&#47; 3. Generate JWT token
   final token = FlintJwt(&quot;sdf&quot;).generateToken({
     &#39;id&#39;: user[&#39;id&#39;],
     &#39;email&#39;: user[config.emailColumn],
@@ -147,7 +129,7 @@ whether an email exists in the database.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+2
+      1.0.0+4
   </span>
   
 </footer>
