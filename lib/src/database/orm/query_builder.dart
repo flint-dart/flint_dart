@@ -1,4 +1,4 @@
-import 'package:flint_dart/src/database/connection.dart';
+import 'package:flint_dart/src/database/db.dart';
 
 /// A simple SQL query builder for MySQL/PostgreSQL in Flint Dart.
 class QueryBuilder {
@@ -103,8 +103,7 @@ class QueryBuilder {
       throw Exception('Delete requires a where clause.');
     }
 
-    final conn = DB.instance;
     final sql = 'DELETE FROM $table WHERE ${_wheres.join(' AND ')}';
-    await conn.query(sql, namedParams: _bindings);
+    await DB.query(sql, namedParams: _bindings);
   }
 }

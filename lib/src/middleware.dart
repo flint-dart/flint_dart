@@ -1,7 +1,12 @@
 // File: lib/src/middleware.dart
+import 'dart:async';
+
+import 'package:flint_dart/src/error/forbidden_exception.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';
 import 'package:flint_dart/src/validation/validator.dart';
+import 'package:mysql_dart/exception.dart';
+import 'package:postgres/postgres.dart';
 
 import 'router.dart';
 
@@ -17,10 +22,78 @@ class ExceptionMiddleware extends Middleware {
         return await next(req, res);
       } on ValidationException catch (e) {
         return res.json({"status": false, "errors": e.errors}, status: 400);
+      } on FormatException catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: 500,
+        );
+      } on TimeoutException catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: 500,
+        );
+      } on ArgumentError catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: 500,
+        );
+      } on PgException catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: 500,
+        );
+      } on MySQLClientException catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: 500,
+        );
+      } on MySQLException catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: 500,
+        );
+      } on ForbiddenErorr catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: 500,
+        );
+      } on Exception catch (e) {
+        return res.json(
+          {
+            "status": false,
+            "message":
+                e.toString().replaceAll("Exception:", "").trim().toString(),
+          },
+          status: 500,
+        );
       } catch (e, stack) {
         print('[Flint] Unhandled error: $e\n$stack');
         return res.json(
-          {"status": false, "message": e.toString()},
+          {
+            "status": false,
+            "message": e.toString(),
+          },
           status: 500,
         );
       }

@@ -1,8 +1,10 @@
+import 'dart:convert';
+
 import 'package:flint_dart/schema.dart';
-import 'package:mysql_dart/mysql_dart.dart';
+import 'package:flint_dart/src/database/db.dart';
 
 extension ColumnSQL on Column {
-  String sqlType() {
+  String mysqlType() {
     switch (type) {
       case ColumnType.string:
         return 'VARCHAR($length)';
@@ -20,44 +22,39 @@ extension ColumnSQL on Column {
         return 'TIMESTAMP';
     }
   }
+
+  String pgSqlType() {
+    switch (type) {
+      case ColumnType.string:
+        return 'VARCHAR($length)';
+      case ColumnType.text:
+        return 'TEXT';
+      case ColumnType.integer:
+        return 'INTEGER';
+      case ColumnType.double:
+        return 'DOUBLE PRECISION';
+      case ColumnType.boolean:
+        return 'BOOLEAN';
+      case ColumnType.datetime:
+        return 'TIMESTAMP'; // no DATETIME in PG
+      case ColumnType.timestamp:
+        return 'TIMESTAMP WITH TIME ZONE';
+    }
+  }
 }
 
 extension TableSQL on Table {
-  String toSQL() {
-    final buffer = StringBuffer();
-    buffer.write('CREATE TABLE `$name` (\n');
-
-    for (int i = 0; i < columns.length; i++) {
-      final col = columns[i];
-      buffer.write('  `${col.name}` ${_columnTypeToSQL(col)}');
-
-      if (!col.isNullable) buffer.write(' NOT NULL');
-      if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
-      if (col.defaultValue != null) {
-        buffer.write(' DEFAULT ${_formatDefaultValue(col.defaultValue)}');
-      }
-      if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
-
-      if (i < columns.length - 1 || foreignKeys.isNotEmpty) buffer.write(',');
-      buffer.write('\n');
+  String? compareWith(Table updated) {
+    switch (DB.driver) {
+      case DBDriver.mysql:
+        return _compareWithMySQL(updated);
+      case DBDriver.postgres:
+        return _compareWithPostgres(updated);
     }
-
-    for (int i = 0; i < foreignKeys.length; i++) {
-      final fk = foreignKeys[i];
-      buffer.write(
-          '  FOREIGN KEY (`${fk.column}`) REFERENCES `${fk.referenceTable}`(`${fk.referenceColumn}`)');
-      buffer.write(' ON DELETE ${fk.onDelete}');
-      buffer.write(' ON UPDATE ${fk.onUpdate}');
-
-      if (i < foreignKeys.length - 1) buffer.write(',');
-      buffer.write('\n');
-    }
-
-    buffer.write(');');
-    return buffer.toString();
   }
 
-  String? compareWith(Table updated) {
+  // --- MYSQL ---
+  String? _compareWithMySQL(Table updated) {
     final oldCols = {for (var c in columns) c.name: c};
     final newCols = {for (var c in updated.columns) c.name: c};
     final changes = <String>[];
@@ -88,7 +85,7 @@ extension TableSQL on Table {
 
   String _buildAddColumnSQL(Column col) {
     final buffer = StringBuffer();
-    buffer.write('ADD COLUMN `${col.name}` ${col.sqlType()}');
+    buffer.write('ADD COLUMN `${col.name}` ${col.sqlTypeMySQL()}');
 
     if (!col.isNullable) buffer.write(' NOT NULL');
     if (col.defaultValue != null) {
@@ -101,7 +98,7 @@ extension TableSQL on Table {
 
   String _buildModifyColumnSQL(Column col) {
     final buffer = StringBuffer();
-    buffer.write('MODIFY COLUMN `${col.name}` ${col.sqlType()}');
+    buffer.write('MODIFY COLUMN `${col.name}` ${col.sqlTypeMySQL()}');
 
     if (!col.isNullable) buffer.write(' NOT NULL');
     if (col.defaultValue != null) {
@@ -112,85 +109,219 @@ extension TableSQL on Table {
     return buffer.toString();
   }
 
-  String _formatDefault(dynamic value) {
-    if (value is String) return "'$value'";
-    if (value == null) return 'NULL';
-    return value.toString();
-  }
+  // --- POSTGRES ---
+  String? _compareWithPostgres(Table updated) {
+    final oldCols = {for (var c in columns) c.name: c};
+    final newCols = {for (var c in updated.columns) c.name: c};
+    final changes = <String>[];
 
-  static Table fromMySQL(String tableName, List<ResultSetRow> rows) {
-    final List<Column> columns = [];
-
-    for (final row in rows) {
-      final data = row.assoc(); // ✅ Safely extract fields
-      final String colName = data['Field'] as String;
-      final String typeStr = data['Type'] as String;
-      final String nullStr = data['Null'] as String;
-      final String key = data['Key'] as String;
-      final dynamic defaultValue = data['Default'];
-      final String extra = data['Extra'] as String? ?? '';
-
-      columns.add(Column(
-        name: colName,
-        type: _inferColumnType(typeStr),
-        length: _extractLength(typeStr),
-        isPrimaryKey: key == 'PRI',
-        isAutoIncrement: extra.contains('auto_increment'),
-        isNullable: nullStr.toUpperCase() == 'YES',
-        defaultValue: defaultValue,
-      ));
+    for (var name in newCols.keys) {
+      final newCol = newCols[name]!;
+      if (!oldCols.containsKey(name)) {
+        changes.add(_buildAddColumnPostgres(newCol));
+      } else {
+        final oldCol = oldCols[name]!;
+        if (oldCol != newCol) {
+          changes
+              .addAll(_buildAlterColumnPostgres(updated.name, oldCol, newCol));
+        }
+      }
     }
 
-    return Table(
-      name: tableName,
-      columns: columns,
-    );
+    for (var name in oldCols.keys) {
+      if (!newCols.containsKey(name)) {
+        changes.add('DROP COLUMN "$name"');
+      }
+    }
+
+    if (changes.isEmpty) return null;
+    return 'ALTER TABLE "${this.name}"\n  ${changes.join(",\n  ")};';
+  }
+}
+
+// --- MYSQL HELPERS ---
+String _buildAddColumnMySQL(Column col, {bool checkIfExists = false}) {
+  // Validate that NOT NULL columns have defaults (unless auto-increment)
+  if (!col.isNullable && col.defaultValue == null && !col.isAutoIncrement) {
+    throw ArgumentError(
+        'Column ${col.name} is NOT NULL but has no default value. '
+        'Either make it nullable or provide a default value.');
   }
 
-  static String _columnTypeToSQL(Column col) {
-    switch (col.type) {
-      case ColumnType.integer:
-        return 'INT';
-      case ColumnType.string:
-        return 'VARCHAR(${col.length})';
-      case ColumnType.text:
-        return 'TEXT';
-      case ColumnType.boolean:
-        return 'BOOLEAN';
-      case ColumnType.double:
-        return 'DOUBLE';
-      case ColumnType.datetime:
-        return 'DATETIME';
-      case ColumnType.timestamp:
-        return 'TIMESTAMP';
+  final buffer = StringBuffer();
+
+  if (checkIfExists) {
+    buffer.write('ADD COLUMN IF NOT EXISTS ');
+  } else {
+    buffer.write('ADD COLUMN ');
+  }
+
+  buffer.write('`${col.name}` ${col.mysqlType()}');
+
+  if (!col.isNullable) buffer.write(' NOT NULL');
+
+  if (col.defaultValue != null) {
+    buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+  }
+
+  if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+  if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
+  if (col.isUnique) buffer.write(' UNIQUE');
+
+  return buffer.toString();
+}
+
+String _buildModifyColumnMySQL(Column col) {
+  final buffer = StringBuffer();
+  buffer.write('MODIFY COLUMN `${col.name}` ${col.mysqlType()}');
+
+  if (!col.isNullable) buffer.write(' NOT NULL');
+  if (col.defaultValue != null) {
+    buffer.write(
+        ' DEFAULT ${_formatDefault(col.defaultValue, dialect: "mysql")}');
+  }
+  if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+
+  return buffer.toString();
+}
+
+// --- POSTGRES HELPERS ---
+String _buildAddColumnPostgres(Column col) {
+  final buffer = StringBuffer('ADD COLUMN "${col.name}" ');
+
+  // Handle primary auto-increment column
+  if (col.isPrimaryKey && col.isAutoIncrement) {
+    buffer.write('SERIAL PRIMARY KEY');
+    return buffer.toString();
+  }
+
+  // Otherwise normal column
+  buffer.write(col.pgSqlType());
+  if (!col.isNullable) buffer.write(' NOT NULL');
+  if (col.defaultValue != null) {
+    buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+  }
+
+  return buffer.toString();
+}
+
+List<String> _buildAlterColumnPostgres(
+    String tableName, Column oldCol, Column newCol) {
+  final changes = <String>[];
+
+  // Type change
+  if (oldCol.type != newCol.type) {
+    if (newCol.isPrimaryKey && newCol.isAutoIncrement) {
+      // Upgrade SERIAL → BIGSERIAL or similar
+      changes.add(
+          'ALTER COLUMN "${newCol.name}" TYPE ${newCol.pgSqlType()} USING "${newCol.name}"::${newCol.pgSqlType()}');
+    } else {
+      changes.add('ALTER COLUMN "${newCol.name}" TYPE ${newCol.pgSqlType()}');
     }
   }
 
-  static String _formatDefaultValue(dynamic value) {
-    if (value is String) return "'$value'";
-    if (value is bool) return value ? 'TRUE' : 'FALSE';
-    return value.toString();
+  // Nullability change
+  if (oldCol.isNullable != newCol.isNullable) {
+    changes.add(newCol.isNullable
+        ? 'ALTER COLUMN "${newCol.name}" DROP NOT NULL'
+        : 'ALTER COLUMN "${newCol.name}" SET NOT NULL');
   }
 
-  static ColumnType _inferColumnType(String typeStr) {
-    final lower = typeStr.toLowerCase();
-    if (lower.startsWith('int')) return ColumnType.integer;
-    if (lower.startsWith('varchar') || lower.startsWith('char')) {
-      return ColumnType.string;
+  // Default value change (autoIncrement handled separately)
+  if (oldCol.defaultValue != newCol.defaultValue &&
+      !(newCol.isPrimaryKey && newCol.isAutoIncrement)) {
+    if (newCol.defaultValue == null) {
+      changes.add('ALTER COLUMN "${newCol.name}" DROP DEFAULT');
+    } else {
+      changes.add(
+          'ALTER COLUMN "${newCol.name}" SET DEFAULT ${_formatDefault(newCol.defaultValue)}');
     }
-    if (lower.startsWith('text')) return ColumnType.text;
-    if (lower.startsWith('bool')) return ColumnType.boolean;
-    if (lower.startsWith('double') || lower.startsWith('float')) {
-      return ColumnType.double;
-    }
-    if (lower.contains('datetime')) return ColumnType.datetime;
-    if (lower.contains('timestamp')) return ColumnType.timestamp;
-    return ColumnType.string;
   }
 
-  static int _extractLength(String typeStr) {
-    final regExp = RegExp(r'\((\d+)\)');
-    final match = regExp.firstMatch(typeStr);
-    return match != null ? int.parse(match.group(1)!) : 255;
+  // Primary key change
+  if (oldCol.isPrimaryKey != newCol.isPrimaryKey) {
+    if (newCol.isPrimaryKey) {
+      changes.add('ADD PRIMARY KEY ("${newCol.name}")');
+    } else {
+      changes.add('DROP CONSTRAINT "${tableName}_pkey"');
+    }
+  }
+
+  return changes;
+}
+
+// --- UTILITIES ---
+String _formatDefault(dynamic value, {String dialect = 'postgres'}) {
+  // Handle null
+  if (value == null) return 'NULL';
+
+  // Handle strings
+  if (value is String) {
+    if (_isSqlFunction(value)) {
+      return value; // Return SQL functions as-is
+    }
+    return "'$value'";
+  }
+
+  // Handle booleans
+  if (value is bool) return value ? 'TRUE' : 'FALSE';
+
+  // Handle DateTime
+  if (value is DateTime) {
+    final formatted = value.toIso8601String().replaceFirst('T', ' ');
+    return "'$formatted'";
+  }
+
+  // Handle numbers
+  if (value is num) return value.toString();
+
+  // Handle SQL function calls
+  if (value is Function) {
+    final result = value();
+    return _formatDefault(result, dialect: dialect);
+  }
+
+  // Handle enums
+  if (value is Enum) return "'${value.name}'";
+
+  // Handle lists (for array types)
+  if (value is List) {
+    return _formatArray(value, dialect: dialect);
+  }
+
+  // Handle maps (for JSON types)
+  if (value is Map) {
+    return "'${jsonEncode(value)}'";
+  }
+
+  // Fallback: quote other types
+  return "'${value.toString()}'";
+}
+
+// --- HELPER FUNCTIONS ---
+bool _isSqlFunction(String value) {
+  final functions = [
+    'CURRENT_TIMESTAMP',
+    'CURRENT_DATE',
+    'CURRENT_TIME',
+    'NOW()',
+    'UUID()',
+    'GEN_RANDOM_UUID()',
+    'CURRENT_USER',
+    'SESSION_USER',
+    'VERSION()'
+  ];
+
+  return functions.any((func) => value.toUpperCase().contains(func));
+}
+
+String _formatArray(List<dynamic> array, {String dialect = 'postgres'}) {
+  final formattedItems =
+      array.map((item) => _formatDefault(item, dialect: dialect)).toList();
+
+  if (dialect == 'postgres') {
+    return 'ARRAY[${formattedItems.join(', ')}]';
+  } else {
+    return "'${jsonEncode(array)}'"; // JSON array for other dialects
   }
 }

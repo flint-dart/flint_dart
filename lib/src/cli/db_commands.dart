@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:isolate';
 import 'package:flint_dart/src/cli/commands.dart';
-import 'package:flint_dart/src/database/connection.dart';
+import 'package:flint_dart/src/database/db.dart';
 
 List<String> _registeredSqlStrings = [];
 
@@ -22,8 +22,13 @@ class DBMigrateCommand extends FlintCommand {
       }
 
       print('Found ${_registeredSqlStrings.length} tables. Migrating...');
-      for (final sql in _registeredSqlStrings) {
-        print('📄 Executing:\n$sql\n');
+      for (var sql in _registeredSqlStrings) {
+        // print('📄 Executing:\n$sql\n');
+        if (DB.driver == DBDriver.postgres) {
+          print("progres");
+          sql = normalizeSqlForPostgres(sql);
+        }
+
         await DB.execute(sql);
       }
 
@@ -57,4 +62,25 @@ class DBMigrateCommand extends FlintCommand {
     final sqlList = await receivePort.first as List<String>;
     _registeredSqlStrings = sqlList;
   }
+}
+
+String normalizeSqlForPostgres(String sql) {
+  var normalized = sql;
+
+  // Replace MySQL backticks with double quotes
+  normalized = normalized.replaceAll('`', '"');
+
+  // Replace DATETIME with TIMESTAMP
+  normalized = normalized.replaceAll('DATETIME', 'TIMESTAMP');
+
+  // Replace MODIFY COLUMN with ALTER COLUMN
+  normalized = normalized.replaceAll('MODIFY COLUMN', 'ALTER COLUMN');
+
+  // Handle AUTO_INCREMENT
+  if (normalized.contains('AUTO_INCREMENT')) {
+    normalized =
+        normalized.replaceAll('AUTO_INCREMENT', 'GENERATED ALWAYS AS IDENTITY');
+  }
+
+  return normalized;
 }

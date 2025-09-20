@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 /// Represents a database table schema, including its columns, indexes, and foreign keys.
 class Table {
   /// The name of the table.
@@ -43,6 +45,7 @@ class Column {
 
   /// The default value for the column, if any.
   final dynamic defaultValue;
+  final bool isUnique;
 
   /// Creates a new [Column] definition.
   Column({
@@ -51,6 +54,7 @@ class Column {
     this.isPrimaryKey = false,
     this.isAutoIncrement = false,
     this.isNullable = false,
+    this.isUnique = false,
     this.length = 255,
     this.defaultValue,
   });
@@ -63,17 +67,18 @@ class Column {
     bool? isPrimaryKey,
     bool? isAutoIncrement,
     bool? isNullable,
+    bool? isUnique,
     dynamic defaultValue,
   }) {
     return Column(
-      name: name ?? this.name,
-      type: type ?? this.type,
-      length: length ?? this.length,
-      isPrimaryKey: isPrimaryKey ?? this.isPrimaryKey,
-      isAutoIncrement: isAutoIncrement ?? this.isAutoIncrement,
-      isNullable: isNullable ?? this.isNullable,
-      defaultValue: defaultValue ?? this.defaultValue,
-    );
+        name: name ?? this.name,
+        type: type ?? this.type,
+        length: length ?? this.length,
+        isPrimaryKey: isPrimaryKey ?? this.isPrimaryKey,
+        isAutoIncrement: isAutoIncrement ?? this.isAutoIncrement,
+        isNullable: isNullable ?? this.isNullable,
+        defaultValue: defaultValue ?? this.defaultValue,
+        isUnique: isUnique ?? this.isUnique);
   }
 }
 
@@ -99,6 +104,9 @@ enum ColumnType {
 
   /// Timestamp (e.g., TIMESTAMP)
   timestamp,
+
+  ///
+  // json
 }
 
 /// Represents an index on one or more columns in a table.
@@ -145,4 +153,38 @@ class ForeignKey {
     this.onDelete = 'RESTRICT',
     this.onUpdate = 'RESTRICT',
   });
+}
+
+// --- COMMON SQL DEFAULTS ---
+class Default {
+  // Current timestamp functions
+  static DateTime now() => DateTime.now();
+  static String currentTimestamp() => 'CURRENT_TIMESTAMP';
+  static String currentDate() => 'CURRENT_DATE';
+  static String currentTime() => 'CURRENT_TIME';
+
+  // UUID functions
+  static String uuid() => 'gen_random_uuid()'; // PostgreSQL
+  static String uuid4() => 'UUID()'; // MySQL
+
+  // Math constants
+  static double pi() => math.pi;
+  static double e() => math.e;
+
+  // String defaults
+  static String emptyString() => '';
+  static String space() => ' ';
+
+  // JSON defaults
+  static Map<String, dynamic> emptyJson() => {};
+  static List<dynamic> emptyArray() => [];
+
+  // User context (useful for audit columns)
+  static String currentUser() => 'CURRENT_USER';
+  static String sessionUser() => 'SESSION_USER';
+
+  // Versioning
+  static int version1() => 1;
+  static int zero() => 0;
+  static int one() => 1;
 }

@@ -13,4 +13,5 @@ abstract class DBWrapper {
   });
 
   Future<void> close();
+  bool get isConnected;
 }

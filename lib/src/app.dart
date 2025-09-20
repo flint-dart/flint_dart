@@ -1,8 +1,6 @@
 import 'dart:io';
-
-import 'package:flint_dart/src/database/connection.dart';
+import 'package:flint_dart/src/database/db.dart';
 import 'package:mime/mime.dart';
-
 import 'middleware.dart';
 import 'request.dart';
 import 'response.dart';

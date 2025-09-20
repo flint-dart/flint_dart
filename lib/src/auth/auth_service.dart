@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flint_dart/db.dart';
 import 'package:flint_dart/security.dart';
 import 'package:flint_dart/src/auth/auth_config.dart';
+import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/validation/validator.dart';
 

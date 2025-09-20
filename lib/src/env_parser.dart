@@ -1,50 +1,72 @@
 import 'dart:io';
 
-/// A lightweight environment variable parser for loading `.env` files
-/// into memory for configuration purposes.
+/// A lightweight environment variable loader for Dart applications.
 ///
-/// This class reads key-value pairs from a `.env` file and stores them
-/// in a static in-memory map. Values can then be accessed using various
-/// typed getters like [get], [getInt], and [getBool].
+/// `FlintEnv` provides a simple way to read configuration values
+/// from a `.env` file and access them as `String`, `int`, or `bool`.
+///
+/// The `.env` file should contain key-value pairs in the format:
+/// ```env
+/// DB_HOST=localhost
+/// DB_PORT=3306
+/// PRODUCTION=true
+/// ```
+///
+/// Lines starting with `#` are ignored as comments. Values can also be
+/// wrapped in single `'` or double `"` quotes.
+///
+/// Example usage:
+/// ```dart
+/// final host = FlintEnv.get('DB_HOST', '127.0.0.1');
+/// final port = FlintEnv.getInt('DB_PORT', 3306);
+/// final isProd = FlintEnv.getBool('PRODUCTION', false);
+/// ```
 class FlintEnv {
-  /// Internal in-memory store for loaded environment variables.
+  /// Internal in-memory store for environment variables.
   static final Map<String, String> _env = {};
 
-  /// Returns the value for the given [key] from the environment.
+  /// Tracks whether the `.env` file has been loaded already.
+  static bool _isLoaded = false;
+
+  /// Returns the value for the given [key].
   ///
   /// If the key is not found, returns the [defaultValue] (defaults to `''`).
   ///
   /// Example:
   /// ```dart
-  /// String dbHost = FlintEnv.get('DB_HOST', 'localhost');
+  /// final apiKey = FlintEnv.get('API_KEY', 'default-key');
   /// ```
   static String get(String key, [String defaultValue = '']) {
+    _ensureLoaded();
     return _env[key] ?? defaultValue;
   }
 
-  /// Returns the integer value for the given [key] from the environment.
+  /// Returns the integer value for the given [key].
   ///
   /// If the key is not found or cannot be parsed as an integer,
   /// returns the [defaultValue] (defaults to `0`).
   ///
   /// Example:
   /// ```dart
-  /// int port = FlintEnv.getInt('DB_PORT', 3306);
+  /// final port = FlintEnv.getInt('DB_PORT', 3306);
   /// ```
   static int getInt(String key, [int defaultValue = 0]) {
+    _ensureLoaded();
     return int.tryParse(_env[key] ?? '') ?? defaultValue;
   }
 
-  /// Returns the boolean value for the given [key] from the environment.
+  /// Returns the boolean value for the given [key].
   ///
-  /// Accepts `'true'`, `'1'` as `true`, and `'false'`, `'0'` as `false`.
+  /// Accepted values for `true`: `'true'`, `'1'`
+  /// Accepted values for `false`: `'false'`, `'0'`
   /// If the key is not found or cannot be interpreted, returns [defaultValue] (defaults to `false`).
   ///
   /// Example:
   /// ```dart
-  /// bool isProduction = FlintEnv.getBool('PRODUCTION', false);
+  /// final isProd = FlintEnv.getBool('PRODUCTION', false);
   /// ```
   static bool getBool(String key, [bool defaultValue = false]) {
+    _ensureLoaded();
     final val = _env[key]?.toLowerCase();
     return val == 'true' || val == '1'
         ? true
@@ -53,33 +75,25 @@ class FlintEnv {
             : defaultValue;
   }
 
-  /// Loads environment variables from the given [path] (default is `.env`).
+  /// Ensures the `.env` file is loaded into memory.
   ///
-  /// Each line should follow the `KEY=VALUE` format. Lines beginning with
-  /// `#` are ignored. Quoted values (single or double quotes) are handled.
-  ///
-  /// Example:
-  /// ```env
-  /// DB_HOST=localhost
-  /// DB_PORT=3306
-  /// ```
-  ///
-  /// Call this once before using [get], [getInt], or [getBool].
-  ///
-  /// ```dart
-  /// await FlintEnv.load();
-  /// ```
-  static Future<void> load([String path = '.env']) async {
-    final file = File(path);
-    if (!await file.exists()) return;
-
-    final lines = await file.readAsLines();
-    _env.addAll(_parseLines(lines));
+  /// This is called automatically on first access of any getter.
+  static void _ensureLoaded() {
+    if (!_isLoaded) {
+      final file = File('.env');
+      if (file.existsSync()) {
+        final lines = file.readAsLinesSync();
+        _env.addAll(_parseLines(lines));
+      }
+      _isLoaded = true;
+    }
   }
 
-  /// Parses a list of lines into a map of environment variables.
+  /// Parses lines of text into key-value pairs.
   ///
-  /// Expects lines in `KEY=VALUE` format, ignoring empty lines and comments.
+  /// Each line should be in the form `KEY=VALUE`.
+  /// - Empty lines and lines starting with `#` are ignored.
+  /// - Values surrounded by quotes (`'` or `"`) will have quotes removed.
   static Map<String, String> _parseLines(List<String> lines) {
     final result = <String, String>{};
     final regex = RegExp(r'^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$');

@@ -1,0 +1,10 @@
+name: sample
+description: A FlintDart application
+version: 1.0.0
+publish_to: none
+environment:
+  sdk: ^3.0.0
+dependencies:
+  flint_dart: 
+    path: ../../flint_dart
+  

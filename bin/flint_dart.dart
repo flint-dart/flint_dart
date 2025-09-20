@@ -12,6 +12,7 @@ import 'package:flint_dart/src/cli/make_model_command.dart';
 final Map<String, FlintCommand> commands = {
   'create': CreateProjectCommand(),
   'start': RunServerCommand(),
+  'run': RunServerCommand(),
   'migrate': DBMigrateCommand(),
   'make:model': MakeModelCommand(), // ✅ Add this
   'make:controller': MakeControllerCommand(), // ✅ Add this

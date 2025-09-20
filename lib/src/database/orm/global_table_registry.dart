@@ -55,6 +55,8 @@ void runTableRegistry(
 
   try {
     for (final table in tables) {
+      // diffs.add(await table.toCreateSQL());
+
       final existingTable = await getTableSchema(table.name);
 
       if (existingTable == null) {
@@ -70,6 +72,8 @@ void runTableRegistry(
     print("⚠️ Error in table registry: $e\n$st");
   }
 
-  // ✅ Always send result back, even if empty
+  print(diffs);
+
+  // // ✅ Always send result back, even if empty
   sendPort.send(diffs);
 }
