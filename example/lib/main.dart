@@ -4,7 +4,10 @@ import 'package:sample/src/routes/auth_routes.dart';
 import 'package:sample/src/routes/user_routes.dart';
 
 void main() {
-  final app = Flint(withDefaultMiddleware: true, enableSwaggerDocs: true ,autoConnectDb: true);
+  final app = Flint(
+      withDefaultMiddleware: true,
+      enableSwaggerDocs: true,
+      autoConnectDb: true);
 
   app.get('/', (req, res) async {
     return res.send('Hello from FlintDart!');
@@ -13,13 +16,9 @@ void main() {
     "/users",
     registerUserRoutes,
   );
-
-  app
-      .get("/lov", (req, res) async {
-        return res.respond({"msg": "Ademola ibuku"});
-      })
-      .useMiddleware(AuthMiddleware())
-      .useMiddleware(AuthMiddleware());
+  app.get('/profile', (req, res) async {
+    return res.json({'msg': 'This is a protected route'});
+  }).useMiddleware(AuthMiddleware());
 
   app.mount("/auth", authRoutes);
   app.listen(4000);
