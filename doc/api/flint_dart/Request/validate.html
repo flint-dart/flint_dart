@@ -62,6 +62,42 @@
 
     </section>
     
+<section class="desc markdown">
+  <p>Validate the request body against a set of rules.</p>
+<p>This method parses the incoming request JSON body and applies
+validation rules to ensure the data meets your requirements.</p>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><code>rules</code>: A <code>Map&lt;String, String&gt;</code> defining validation rules for each field.
+<ul>
+<li>Keys → field names expected in the request body.</li>
+<li>Values → validation rules (comma-separated), similar to Laravel's syntax.</li>
+</ul>
+</li>
+</ul>
+<h3 id="returns">Returns</h3>
+<ul>
+<li>A <code>Future&lt;Map&lt;String, dynamic&gt;&gt;</code> containing the validated request body.
+If validation passes, the body is returned as a parsed map.</li>
+</ul>
+<h3 id="throws">Throws</h3>
+<ul>
+<li><code>ValidationException</code> if one or more fields fail validation.</li>
+</ul>
+<h3 id="example">Example</h3>
+<pre class="language-dart"><code class="language-dart">final data = await req.validate({
+  "email": "required|email",
+  "password": "required|min:8"
+});
+
+// Access validated data
+final email = data["email"];
+final password = data["password"];
+</code></pre>
+<p>In this example, the request body must include an <code>email</code> field that is
+both required and a valid email address, and a <code>password</code> field that is
+required and at least 8 characters long.</p>
+</section>
 
 
     
@@ -99,7 +135,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+4
+      1.0.0+5
   </span>
   
 </footer>

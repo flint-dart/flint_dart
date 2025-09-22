@@ -207,6 +207,38 @@ class Request {
     }));
   }
 
+  /// Validate the request body against a set of rules.
+  ///
+  /// This method parses the incoming request JSON body and applies
+  /// validation rules to ensure the data meets your requirements.
+  ///
+  /// ### Parameters
+  /// - [rules]: A `Map<String, String>` defining validation rules for each field.
+  ///   - Keys → field names expected in the request body.
+  ///   - Values → validation rules (comma-separated), similar to Laravel's syntax.
+  ///
+  /// ### Returns
+  /// - A `Future<Map<String, dynamic>>` containing the validated request body.
+  ///   If validation passes, the body is returned as a parsed map.
+  ///
+  /// ### Throws
+  /// - `ValidationException` if one or more fields fail validation.
+  ///
+  /// ### Example
+  /// ```dart
+  /// final data = await req.validate({
+  ///   "email": "required|email",
+  ///   "password": "required|min:8"
+  /// });
+  ///
+  /// // Access validated data
+  /// final email = data["email"];
+  /// final password = data["password"];
+  /// ```
+  ///
+  /// In this example, the request body must include an `email` field that is
+  /// both required and a valid email address, and a `password` field that is
+  /// required and at least 8 characters long.
   Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
     final body = await json();
     await Validator.validate(body, rules); // use passed rules, not hardcoded

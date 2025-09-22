@@ -6,6 +6,56 @@ import 'dart:io';
 
 import 'package:flint_dart/src/cli/commands.dart';
 
+/// 📖 Flint Swagger Docs Generator
+
+/// Flint comes with a built-in CLI command to generate Swagger/OpenAPI documentation from your annotated routes.
+
+/// 1. Add Documentation Annotations
+
+/// Inside your route files (e.g., lib/src/routes/user_routes.dart), you can use special /// annotations:
+
+/// /// @summary Get all users
+/// /// @auth bearer
+/// /// @response 200 Successful response
+/// /// @response 401 Unauthorized
+/// /// @param id path string required User ID
+/// app.get("/users/:id", (req, res) async {
+///   return res.respond({"id": req.params['id'], "name": "Ademola"});
+/// }).useMiddleware(AuthMiddleware());
+
+/// Available Annotations
+
+/// @summary → Short description of the endpoint
+
+/// @auth → Security (default: bearer)
+
+/// @response → HTTP response code + description
+
+/// @param name in type required/optional description
+
+/// Example: @param id path string required The user ID
+
+/// @body { "field": "type", "field2": "type" }
+
+/// Example: @body {"email":"string","password":"string"}
+
+/// @prefix /api/v1 → Add a prefix to following routes
+
+/// @server http://localhost:3000 → Add server to Swagger
+
+/// 2. Generate Swagger JSON
+
+/// Run the command:
+
+/// dart run flint docs:generate
+
+/// ✅ Output:
+
+/// Swagger docs generated at docs/swagger.json
+
+/// 3. Serve Swagger UI in Flint
+
+/// Add a simple docs route to your main.dart:
 class GenerateDocsCommand extends FlintCommand {
   GenerateDocsCommand()
       : super('docs:generate', 'Generate Swagger docs from routes');

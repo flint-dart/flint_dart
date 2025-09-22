@@ -77,9 +77,10 @@
     if (route.path.endsWith(&#39;&#47;*&#39;)) {
       final prefix = route.path.substring(0, route.path.length - 1);
       if (pathToMatch.startsWith(prefix)) {
-        return route.handler;
+        return _wrapWithMiddlewares(route.handler, route.middlewares);
       }
     }
+
     final routeParts = route.path.split(&#39;&#47;&#39;);
     final pathParts = pathToMatch.split(&#39;&#47;&#39;);
 
@@ -103,7 +104,7 @@
 
     if (matched) {
       paramsOut.addAll(params);
-      return route.handler;
+      return _wrapWithMiddlewares(route.handler, route.middlewares);
     }
   }
 
@@ -136,7 +137,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+4
+      1.0.0+5
   </span>
   
 </footer>

@@ -1,3 +1,109 @@
+## 1.0.0+5
+
+### Middleware
+- Added `.withMiddleware()` API for attaching middleware directly to routes, making route-level middleware usage cleaner and more expressive.  
+  Example:  
+  ```dart
+  app.get('/profile', controller.show).withMiddleware(AuthMiddleware());
+Fixed bugs in middleware chaining to ensure multiple middlewares execute in the correct order.
+
+Database
+Minor internal bug fixes in query builder (stability improvements).
+
+Response API
+No changes.
+
+Static Files
+No changes.
+
+Error Handling
+Stability improvements when using custom middlewares with ExceptionMiddleware.
+
+📄 Swagger Documentation
+Flint Dart ships with best-in-class API documentation out of the box. Using Swagger-style annotations, you can describe your routes directly in code and automatically generate OpenAPI specifications with an interactive Swagger UI.
+
+Annotating Routes
+Add /// comments above each route to document summary, request body, responses, and security requirements.
+
+dart
+Copy code
+import 'package:flint_dart/flint_dart.dart';
+import 'package:sample/src/middlewares/auth_middleware.dart';
+import '../controllers/user_controller.dart';
+
+void registerUserRoutes(Flint app) {
+  final controller = UserController();
+
+  /// @summary List all users
+  /// @server http://localhost:3000
+  /// @server https://api.mydomain.com
+  /// @prefix /users
+  app.get("/", controller.index);
+
+  /// @summary Get a user by ID
+  /// @prefix /users
+  app.get("/:id", controller.show);
+
+  /// @prefix /users
+  /// @summary Create a new user
+  /// @response 200 User registered successfully
+  /// @response 404 User not found
+  /// @body {"email": "string", "password": "string"}
+  app.post('/', controller.create);
+
+  /// @prefix /users
+  app.put('/:id', AuthMiddleware().handle(controller.update));
+
+  /// @prefix /users
+  /// @auth basicAuth
+  app.delete('/:id', AuthMiddleware().handle(controller.delete));
+}
+Supported Annotations
+@summary → Short description of the endpoint.
+
+@server → Define server base URLs.
+
+@prefix → Path prefix for grouped routes.
+
+@response [code] [description] → Document response codes.
+
+@body {} → Example request body JSON.
+
+@auth [scheme] → Specify authentication (e.g., basicAuth, bearerAuth).
+
+Generating Swagger UI
+Flint Dart parses these annotations and serves Swagger docs at /docs or /swagger.
+Developers can explore and test endpoints directly from the browser.
+
+
+void main() {
+  // Enable swagger docs
+  final app = Flint(enableSwaggerDocs: true);
+
+  // Register routes
+  app.mount("/users", registerUserRoutes);
+
+  app.listen(3000);
+}
+CLI Commands
+Flint Dart also includes CLI tools to manage and export your API documentation.
+This keeps docs in sync with your routes and is useful for CI/CD pipelines.
+
+# Generate Swagger JSON from your routes
+flint docs:generate
+Example Swagger UI
+After running your app, visit:
+👉 http://localhost:3000/docs
+to view the interactive API documentation generated from your annotations.
+
+Docs
+Updated middleware documentation with new .withMiddleware usage examples.
+
+Added notes on bug fixes for route-level middleware chaining.
+
+Added new section for Swagger docs integration with setup guide and usage examples.
+
+
 ## 1.0.0+4
 ### Database
 - Added `whereIn` query builder method for filtering by a list of values.  

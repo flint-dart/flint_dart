@@ -46,6 +46,61 @@
   <h1 id="flint-dart-">Flint Dart 🔥</h1>
 <p><strong>Flint Dart</strong> is a minimal, expressive, and extensible server-side framework built with Dart. Inspired by the simplicity of Express.js and Laravel, Flint provides an elegant developer experience for building RESTful APIs and backend services with Dart.</p>
 <p>Developed and maintained by <strong><a href="https://flintdart.eulogia.net">Eulogia Technologies</a></strong>.</p>
+<h2 id="-table-of-contents">📚 Table of Contents</h2>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/getting-started">🚀 Getting Started</a></td>
+<td>Set up Flint in your project</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/routing">🛣️ Routing</a></td>
+<td>Define routes for your Flint Dart app</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/middleware">🛡 Middleware</a></td>
+<td>Protect and modify requests with middleware</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/orm">🗄 ORM &amp; Models</a></td>
+<td>Work with databases using Flint Dart ORM</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/database">💾 Database &amp; Migrations</a></td>
+<td>Manage your database schema and migrations</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/auth">🔑 Authentication</a></td>
+<td>Built-in authentication and Google Auth support</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/validation">✅ Validation</a></td>
+<td>Validate input like Laravel</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/hot-reload">♻️ Hot Reload</a></td>
+<td>Instant feedback while developing</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/storage">💾 Storage</a></td>
+<td>Storage Flint Dart to production</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/deployment">🚢 Deployment</a></td>
+<td>Deploy Flint Dart to production</td>
+</tr>
+<tr>
+<td><a href="https://www.flintdart.eulogia.net/docs/swagger-docs">📖 API Docs</a></td>
+<td>Best-in-class API documentation with Swagger UI</td>
+</tr>
+</tbody>
+</table>
 <hr>
 <h2 id="-features">✨ Features</h2>
 <ul>
@@ -56,6 +111,8 @@
 <li>♻️ Hot reload support for rapid development</li>
 <li>🧪 Modular structure for scalable projects</li>
 <li>💡 Clean API design inspired by Flutter's widget philosophy</li>
+<li>ORM for MySQL/Postgres</li>
+<li>CLI for migrations, models, etc.</li>
 </ul>
 <hr>
 <h2 id="-getting-started">🚀 Getting Started</h2>
@@ -78,7 +135,7 @@ void main() {
   final app = Flint();
 
   app.get('/', (req, res) async {
-    res.send('Welcome to Flint Dart!');
+  return  res.send('Welcome to Flint Dart!');
   });
 
   app.listen(3000);
@@ -88,7 +145,7 @@ void main() {
 <pre class="language-bash"><code class="language-bash">
 
 app.get('/hello', (req, res) async {
-  res.json({'message': 'Hello, world!'});
+  return res.json({'message': 'Hello, world!'});
 });
 
 </code></pre>
@@ -102,10 +159,9 @@ class AuthMiddleware extends Middleware {
     return (Request req, Response res) async {
       final token = req.bearerToken;
       if (token == null || token != "expected_token") {
-        res.status(401).send("Unauthorized");
-        return;
+      return  res.status(401).send("Unauthorized");
       }
-      await next(req, res);
+   return await next(req, res);
     };
   }
 </code></pre>
@@ -233,7 +289,7 @@ dart pub get
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+4
+      1.0.0+5
   </span>
   
 </footer>

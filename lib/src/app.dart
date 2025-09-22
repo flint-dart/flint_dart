@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flint_dart/src/database/db.dart';
+import 'package:flint_dart/src/route_builder.dart';
 import 'package:mime/mime.dart';
 import 'middleware.dart';
 import 'request.dart';
@@ -199,26 +200,46 @@ class Flint {
   // ===== HTTP ROUTES =====
 
   /// Registers a GET route.
-  void get(String path, Handler handler) => _router.add('GET', path, handler);
+  RouteBuilder get(String path, Handler handler) {
+    final rb = RouteBuilder(_router, 'GET', path, handler);
+    rb.register();
+    return rb;
+  }
 
   /// Registers a POST route.
-  void post(String path, Handler handler) => _router.add('POST', path, handler);
+  RouteBuilder post(String path, Handler handler) {
+    final rb = RouteBuilder(_router, 'POST', path, handler);
+    rb.register();
+    return rb;
+  }
 
   /// Registers a PUT route.
-  void put(String path, Handler handler) => _router.add('PUT', path, handler);
-
-  /// Registers a PATCH route.
-  void patch(String path, Handler handler) =>
-      _router.add('PATCH', path, handler);
+  RouteBuilder put(String path, Handler handler) {
+    final rb = RouteBuilder(_router, 'PUT', path, handler);
+    rb.register();
+    return rb;
+  }
 
   /// Registers a DELETE route.
-  void delete(String path, Handler handler) =>
-      _router.add('DELETE', path, handler);
+  RouteBuilder delete(String path, Handler handler) {
+    final rb = RouteBuilder(_router, 'DELETE', path, handler);
+    rb.register();
+    return rb;
+  }
+
+  /// Registers a PATCH route.
+  RouteBuilder patch(String path, Handler handler) {
+    final rb = RouteBuilder(_router, 'PUT', path, handler);
+    rb.register();
+    return rb;
+  }
 
   /// Registers a route for a custom HTTP method.
-  void route(String method, String path, Handler handler) =>
-      _router.add(method.toUpperCase(), path, handler);
-
+  RouteBuilder route(String method, String path, Handler handler) {
+    final rb = RouteBuilder(_router, method, path, handler);
+    rb.register();
+    return rb;
+  }
   // ===== WEBSOCKET ROUTES =====
 
   final List<WsRoute> _wsRoutes = [];
@@ -285,7 +306,9 @@ class Flint {
     callback(subApp);
 
     for (final route in subApp._router.routes) {
-      final handlerWithMiddlewares = middlewares.fold<Handler>(
+      var allMiddleware = [...middlewares, ...route.middlewares];
+
+      var handlerWithMiddlewares = allMiddleware.fold<Handler>(
         route.handler,
         (prev, middleware) => middleware.handle(prev),
       );

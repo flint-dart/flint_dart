@@ -81,7 +81,9 @@ You can also pass specific <code>middlewares</code> for the mounted app.</p>
   callback(subApp);
 
   for (final route in subApp._router.routes) {
-    final handlerWithMiddlewares = middlewares.fold&lt;Handler&gt;(
+    var allMiddleware = [...middlewares, ...route.middlewares];
+
+    var handlerWithMiddlewares = allMiddleware.fold&lt;Handler&gt;(
       route.handler,
       (prev, middleware) =&gt; middleware.handle(prev),
     );
@@ -125,7 +127,7 @@ You can also pass specific <code>middlewares</code> for the mounted app.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+4
+      1.0.0+5
   </span>
   
 </footer>

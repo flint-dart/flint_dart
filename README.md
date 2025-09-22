@@ -4,6 +4,23 @@
 
 Developed and maintained by **[Eulogia Technologies](https://flintdart.eulogia.net)**.
 
+
+
+## 📚 Table of Contents
+
+| Topic | Description |
+|-------|-------------|
+| [🚀 Getting Started](https://www.flintdart.eulogia.net/docs/getting-started) | Set up Flint in your project |
+| [🛣️ Routing](https://www.flintdart.eulogia.net/docs/routing) | Define routes for your Flint Dart app |
+| [🛡 Middleware](https://www.flintdart.eulogia.net/docs/middleware) | Protect and modify requests with middleware |
+| [🗄 ORM & Models](https://www.flintdart.eulogia.net/docs/orm) | Work with databases using Flint Dart ORM |
+| [💾 Database & Migrations](https://www.flintdart.eulogia.net/docs/database) | Manage your database schema and migrations |
+| [🔑 Authentication](https://www.flintdart.eulogia.net/docs/auth) | Built-in authentication and Google Auth support |
+| [✅ Validation](https://www.flintdart.eulogia.net/docs/validation) | Validate input like Laravel |
+| [♻️ Hot Reload](https://www.flintdart.eulogia.net/docs/hot-reload) | Instant feedback while developing |
+| [💾 Storage](https://www.flintdart.eulogia.net/docs/storage) | Storage Flint Dart to production |
+| [🚢 Deployment](https://www.flintdart.eulogia.net/docs/deployment) | Deploy Flint Dart to production |
+| [📖 API Docs](https://www.flintdart.eulogia.net/docs/swagger-docs) | Best-in-class API documentation with Swagger UI |
 ---
 
 ## ✨ Features
@@ -15,7 +32,8 @@ Developed and maintained by **[Eulogia Technologies](https://flintdart.eulogia.n
 - ♻️ Hot reload support for rapid development
 - 🧪 Modular structure for scalable projects
 - 💡 Clean API design inspired by Flutter's widget philosophy
-
+- ORM for MySQL/Postgres  
+- CLI for migrations, models, etc.  
 ---
 
 ## 🚀 Getting Started
@@ -53,7 +71,7 @@ void main() {
   final app = Flint();
 
   app.get('/', (req, res) async {
-    res.send('Welcome to Flint Dart!');
+  return  res.send('Welcome to Flint Dart!');
   });
 
   app.listen(3000);
@@ -64,7 +82,7 @@ void main() {
 
 
 app.get('/hello', (req, res) async {
-  res.json({'message': 'Hello, world!'});
+  return res.json({'message': 'Hello, world!'});
 });
 
 ```
@@ -81,10 +99,9 @@ class AuthMiddleware extends Middleware {
     return (Request req, Response res) async {
       final token = req.bearerToken;
       if (token == null || token != "expected_token") {
-        res.status(401).send("Unauthorized");
-        return;
+      return  res.status(401).send("Unauthorized");
       }
-      await next(req, res);
+   return await next(req, res);
     };
   }
 ```
