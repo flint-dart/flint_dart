@@ -79,6 +79,14 @@ class FlintWebSocket {
     }, onDone: _handleDisconnect, onError: (_) => _handleDisconnect());
   }
 
+  /// Register a callback when socket is closed
+  void onClose(void Function() handler) {
+    _socket.done.then((_) {
+      handler();
+      _handleDisconnect();
+    });
+  }
+
   /// Join a room
   void join(String room) {
     rooms.add(room);

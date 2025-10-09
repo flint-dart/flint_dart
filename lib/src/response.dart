@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/src/template_engine/template.dart';
+import 'package:path/path.dart' as p;
+
+import '../flint_dart.dart';
 
 /// Supported response types for automatic content handling.
 enum RespondType {
@@ -174,34 +177,43 @@ class Response {
   ///
   /// [filePath] can be absolute or relative to your project's `views` directory.
   /// Optionally, you can pass [data] for simple variable replacement in the template.
-  Future<void> view(String filePath, {Map<String, dynamic>? data}) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
+  Future<Response> view(String filePath, {Map<String, dynamic>? data}) async {
+    // Resolve possible view file paths
+    final base = p.join(Flint.viewPath, filePath);
+
+    final flintPath = base.endsWith('.flint.html') ? base : '$base.flint.html';
+    final htmlPath = base.endsWith('.html') ? base : '$base.html';
+
+    File? file;
+
+    if (await File(flintPath).exists()) {
+      file = File(flintPath);
+    } else if (await File(htmlPath).exists()) {
+      file = File(htmlPath);
+    }
+
+    if (file == null) {
       raw.statusCode = 404;
-      raw.write('❌ View not found: $filePath');
+      raw.write('❌ View not found: $flintPath');
       await raw.close();
-      return;
+      return this;
     }
 
     String content;
 
-    if (filePath.endsWith('.flint.html')) {
-      // Use the template engine
-      content = await TemplateEngine().render(filePath, data: data);
-    } else if (filePath.endsWith('.html')) {
-      // Serve plain HTML directly
-      content = await file.readAsString();
+    // Render based on file extension
+    if (file.path.endsWith('.flint.html')) {
+      content = await TemplateEngine().render(file.path, data: data);
     } else {
-      raw.statusCode = 400;
-      raw.write('❌ Unsupported file type: $filePath');
-      await raw.close();
-      return;
+      content = await file.readAsString();
     }
 
     raw.statusCode = 200;
     raw.headers.contentType = ContentType.html;
     raw.write(content);
     await raw.close();
+
+    return this;
   }
 }
 

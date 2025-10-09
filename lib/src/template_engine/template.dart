@@ -6,7 +6,7 @@ class TemplateEngine {
   TemplateEngine({this.viewsPath = 'views'});
 
   Future<String> render(String template, {Map<String, dynamic>? data}) async {
-    final file = File('$viewsPath/$template');
+    final file = File(template);
     if (!await file.exists()) throw Exception('Template not found: $template');
 
     // Raw HTML for non-.flint.html

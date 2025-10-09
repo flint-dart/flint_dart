@@ -94,6 +94,7 @@ Future<String> _getFlintDartLibPath() async {
 class Flint {
   /// The root path of your Flint project (defaults to `"lib"`).
   final String rootPath;
+  static String viewPath = ""; // 👈 default
 
   /// Whether to automatically connect to the database when [listen] is called.
   ///
@@ -118,6 +119,7 @@ class Flint {
   /// and mounted sub-apps.
   Flint(
       {this.rootPath = "lib",
+      String? viewPath,
       this.autoConnectDb = true,
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false}) {
@@ -126,6 +128,10 @@ class Flint {
     }
     if (enableSwaggerDocs) {
       _registerSwaggerDocs();
+    }
+
+    if (viewPath != null) {
+      Flint.viewPath = viewPath;
     }
   }
 
@@ -340,12 +346,11 @@ class Flint {
     // Hot reload parent process
     if (Platform.environment['FLINT_HOT'] != '1') {
       print('[FLINT] Starting with hot reload...');
-      final child = await Process.start(
-        'dart',
-        ['--enable-vm-service', 'run', 'flint_dart:hot_reload', rootPath],
-        environment: {'FLINT_HOT': '1'},
-        mode: ProcessStartMode.inheritStdio,
-      );
+      final child = await Process.start('dart',
+          ['--enable-vm-service', 'run', 'flint_dart:hot_reload', rootPath],
+          environment: {'FLINT_HOT': '1'},
+          mode: ProcessStartMode.inheritStdio,
+          runInShell: true);
 
       ProcessSignal.sigint.watch().listen((_) async {
         print('\n[FLINT] Shutting down...');

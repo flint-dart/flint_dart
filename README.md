@@ -1,8 +1,16 @@
 # Flint Dart 🔥
 
-**Flint Dart** is a minimal, expressive, and extensible server-side framework built with Dart. Inspired by the simplicity of Express.js and Laravel, Flint provides an elegant developer experience for building RESTful APIs and backend services with Dart.
+### 🚀 **Flint Dart**
+
+**Flint Dart** is a high-performance, expressive, and extensible server-side framework built entirely with Dart.
+Designed for developers who demand speed and simplicity, it delivers everything you need to build RESTful APIs, authentication systems, and scalable backend services — all with clean, modern syntax and hot-reload precision.
+
+> ⚡ **Build fast. Scale effortlessly.**
+> Flint Dart gives you the freedom to create powerful applications without the limits of rigid frameworks.
 
 Developed and maintained by **[Eulogia Technologies](https://flintdart.eulogia.net)**.
+
+---
 
 
 
@@ -34,6 +42,7 @@ Developed and maintained by **[Eulogia Technologies](https://flintdart.eulogia.n
 - 💡 Clean API design inspired by Flutter's widget philosophy
 - ORM for MySQL/Postgres  
 - CLI for migrations, models, etc.  
+- Swagger docs
 ---
 
 ## 🚀 Getting Started
@@ -71,7 +80,7 @@ void main() {
   final app = Flint();
 
   app.get('/', (req, res) async {
-  return  res.send('Welcome to Flint Dart!');
+    return res.send('Welcome to Flint Dart!');
   });
 
   app.listen(3000);

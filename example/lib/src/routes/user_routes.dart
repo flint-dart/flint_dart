@@ -9,11 +9,14 @@ void registerUserRoutes(Flint app) {
   /// @server http://localhost:3000
   /// @server https://api.mydomain.com
   /// @prefix /users
-  app.get("/", controller.index);
+  app.get("/", controller.index).useMiddleware(AuthMiddleware());
 
   /// @summary Get a user by ID
   /// @prefix /users
-  app.get("/:id", controller.show);
+  app
+      .get("/:id", controller.show)
+      .useMiddleware(AuthMiddleware())
+      .useMiddleware(LoggerMiddleware());
 
   /// @prefix /users
   /// @summary Create a new user

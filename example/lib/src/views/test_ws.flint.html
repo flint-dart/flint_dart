@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Flint WS Chat Test</title>
+</head>
+
+<body>
+    <h2>Flint WebSocket Chat Test</h2>
+    <div id="messages"></div>
+    <input id="msg" type="text" placeholder="Type a message..." />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        const socket = new WebSocket("ws://localhost:3000/chat");
+
+        socket.addEventListener("open", () => {
+            console.log("✅ Connected to Flint WS server");
+            document.getElementById("messages").innerHTML += "<p><em>Connected</em></p>";
+        });
+
+        socket.addEventListener("message", (event) => {
+            console.log("📩 Message from server:", event.data);
+            document.getElementById("messages").innerHTML += `<p>${event.data}</p>`;
+        });
+
+        socket.addEventListener("close", () => {
+            document.getElementById("messages").innerHTML += "<p><em>Disconnected</em></p>";
+        });
+
+        function sendMessage() {
+            const msg = document.getElementById("msg").value;
+            if (msg.trim() !== "") {
+                socket.send(msg);
+                document.getElementById("msg").value = "";
+            }
+        }
+    </script>
+</body>
+
+</html>
