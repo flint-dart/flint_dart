@@ -1,4 +1,4 @@
-import 'package:flint_dart/src/websocket.dart';
+import 'package:flint_dart/src/websocket/ws_helper.dart';
 
 // typedef WsHandler = void Function(
 //     FlintWebSocket client, Map<String, String> params);

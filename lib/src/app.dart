@@ -1,13 +1,15 @@
 import 'dart:io';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/route_builder.dart';
+import 'package:flint_dart/src/websocket/websocket_manager.dart';
+import 'package:flint_dart/src/websocket/ws_helper.dart';
 import 'package:mime/mime.dart';
 import 'middleware.dart';
 import 'request.dart';
 import 'response.dart';
 import 'router.dart';
-import 'websocket.dart'; // FlintWebSocket and wsManager
-import 'ws_router.dart'; // _WsRoute, WsHandler, WsAuthMiddleware typedefs
+import 'websocket/websocket.dart'; // FlintWebSocket and wsManager
+import 'websocket/ws_router.dart'; // _WsRoute, WsHandler, WsAuthMiddleware typedefs
 import 'package:path/path.dart' as path;
 import 'package:package_config/package_config.dart';
 
