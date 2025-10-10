@@ -13,3 +13,4 @@ export 'src/response.dart';
 export 'model.dart';
 export 'schema.dart';
 export 'src/validation/validator.dart';
+export 'src/extensions/oauth_extension.dart';

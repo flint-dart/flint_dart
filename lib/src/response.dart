@@ -161,6 +161,32 @@ class Response {
     await raw.addStream(file.openRead());
   }
 
+  /// Redirects the client to a different [location] (URL or path).
+  ///
+  /// [status] defaults to `302` (Found). You can use:
+  /// - `301` → Permanent Redirect
+  /// - `302` → Temporary Redirect
+  ///
+  /// Example:
+  /// ```dart
+  /// res.redirect('/login');
+  /// res.redirect('https://example.com', status: 301);
+  /// ```
+  Response redirect(String location, {int status = HttpStatus.found}) {
+    try {
+      raw.statusCode = status;
+      raw.headers.set(HttpHeaders.locationHeader, location);
+      raw.write(
+          '<html><body><a href="$location">Redirecting to $location...</a></body></html>');
+    } catch (e) {
+      raw.statusCode = 500;
+      raw.write('❌ Redirect failed: ${e.runtimeType}');
+      print('[Flint] Redirect Error: $e');
+    }
+    close();
+    return this;
+  }
+
   /// Sends a predefined HTTP status message and closes the response.
   ///
   /// Example:

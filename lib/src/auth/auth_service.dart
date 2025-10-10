@@ -1,277 +1,270 @@
-// auth.dart
+// auth_service.dart
 import 'dart:convert';
-import 'dart:io';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
+import 'package:flint_dart/src/auth/auth.dart';
+import 'package:flint_dart/src/error/auth_exception.dart';
 
-import 'package:flint_dart/db.dart';
-import 'package:flint_dart/security.dart';
-import 'package:flint_dart/src/auth/auth_config.dart';
-import 'package:flint_dart/src/database/db.dart';
-import 'package:flint_dart/src/env_parser.dart';
-import 'package:flint_dart/src/validation/validator.dart';
+class AuthService {
+  static const String _charset =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
 
-class Auth {
-  static final AuthConfig _config = _loadConfig();
+  // In-memory stores (replace with your session/database in production)
+  static final Map<String, String> _codeVerifierStore = {};
+  static final Map<String, String> _callbackStore = {};
 
-  static AuthConfig get config => _config;
-
-  static AuthConfig _loadConfig() {
-    final table = FlintEnv.get('AUTH_TABLE', '');
-    final emailColumn = FlintEnv.get('AUTH_EMAIL_COLUMN', '');
-    final passwordColumn = FlintEnv.get('AUTH_PASSWORD_COLUMN', '');
-    final googleClientId = FlintEnv.get('GOOGLE_CLIENT_ID', '');
-    final googleClientSecret = FlintEnv.get('GOOGLE_CLIENT_SECRET', '');
-    final redirectBase = FlintEnv.get('REDIRECT_BASE', 'http://localhost:3000');
-
-    if (table.isEmpty || emailColumn.isEmpty || passwordColumn.isEmpty) {
-      throw Exception(
-          'Missing auth configuration. Ensure AUTH_TABLE, AUTH_EMAIL_COLUMN, and AUTH_PASSWORD_COLUMN are set.');
+  /// Generate Google OAuth URL
+  static String getGoogleAuthUrl({required String callbackUrl}) {
+    final clientId = Auth.config.googleClientId;
+    if (clientId == null || clientId.isEmpty) {
+      throw AuthException(
+          'Google OAuth is not configured. Set GOOGLE_CLIENT_ID.');
     }
 
-    return AuthConfig(
-      table: table,
-      emailColumn: emailColumn,
-      passwordColumn: passwordColumn,
-      googleClientId: googleClientId,
-      googleClientSecret: googleClientSecret,
-      redirectBase: redirectBase,
-    );
-  }
+    final state = _generateState(callbackUrl);
+    final codeVerifier = _generateCodeVerifier();
+    final codeChallenge = _generateCodeChallenge(codeVerifier);
 
-  /// Email/password login
-  static Future<String> login(String email, String password) async {
-    final db = DB.instance;
+    _storeAuthData(state, codeVerifier, callbackUrl);
 
-    final rows = await db.query(
-      'SELECT * FROM `${config.table}` WHERE `${config.emailColumn}` = ? LIMIT 1',
-      positionalParams: [email],
-    );
-
-    if (rows.isEmpty) {
-      throw ValidationException({
-        'password': ['Invalid email or password.']
-      });
-    }
-
-    final user = rows.first;
-    final hashedPassword = user[config.passwordColumn] as String;
-    final isMatch = Hashing().verify(password, hashedPassword);
-
-    if (!isMatch) {
-      throw ValidationException({
-        'password': ['Invalid email or password.']
-      });
-    }
-
-    final token = FlintJwt("sdf").generateToken({
-      'id': user['id'],
-      'email': user[config.emailColumn],
-    });
-
-    return token;
-  }
-
-  /// Google OAuth login
-  static Future<Map<String, dynamic>> loginWithGoogle({
-    String? idToken,
-    String? code,
-    String? callbackPath,
-  }) async {
-    if (idToken == null && code == null) {
-      throw ArgumentError('Either idToken or code must be provided.');
-    }
-
-    final googleClientId = config.googleClientId;
-    final googleClientSecret = config.googleClientSecret;
-    final redirectBase = config.redirectBase;
-
-    if (googleClientId == null || googleClientSecret!.isEmpty) {
-      throw Exception(
-          'Google Auth is not configured. Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set.');
-    }
-
-    Map<String, dynamic> profile;
-
-    if (idToken != null) {
-      profile = await _verifyGoogleIdToken(idToken);
-    } else {
-      if (callbackPath == null) {
-        throw ArgumentError('callbackPath is required when exchanging code.');
-      }
-      final tokenResp = await _exchangeCodeForToken(
-        code!,
-        googleClientId,
-        googleClientSecret,
-        '$redirectBase$callbackPath',
-      );
-      final accessToken = tokenResp['access_token'] as String?;
-      final idTokenFromGoogle = tokenResp['id_token'] as String?;
-      if (idTokenFromGoogle != null) {
-        profile = await _verifyGoogleIdToken(idTokenFromGoogle);
-      } else if (accessToken != null) {
-        profile = await _fetchGoogleProfile(accessToken);
-      } else {
-        throw Exception(
-            'Could not obtain access_token or id_token from Google.');
-      }
-    }
-
-    await _ensureProviderColumns();
-
-    final provider = 'google';
-    final providerId = profile['sub']?.toString() ?? profile['id']?.toString();
-    final email = profile['email']?.toString();
-    final name =
-        profile['name']?.toString() ?? profile['given_name']?.toString();
-
-    if (providerId == null) {
-      throw Exception('Could not determine Google provider id from profile.');
-    }
-
-    final db = DB.instance;
-    final cfg = config;
-
-    // 1) Find by provider + providerId
-    var rows = await db.query(
-      'SELECT * FROM `${cfg.table}` WHERE `${cfg.providerColumn}` = ? AND `${cfg.providerIdColumn}` = ? LIMIT 1',
-      positionalParams: [provider, providerId],
-    );
-
-    int userId;
-    Map<String, dynamic> userRow;
-
-    if (rows.isNotEmpty) {
-      userRow = rows.first;
-      userId = userRow['id'] as int;
-      await db.execute(
-        'UPDATE `${cfg.table}` SET `${cfg.nameColumn}` = ?, `${cfg.emailColumn}` = ? WHERE id = ?',
-        positionalParams: [name, email, userId],
-      );
-    } else if (email != null) {
-      // 2) Find by email
-      rows = await db.query(
-        'SELECT * FROM `${cfg.table}` WHERE `${cfg.emailColumn}` = ? LIMIT 1',
-        positionalParams: [email],
-      );
-      if (rows.isNotEmpty) {
-        userRow = rows.first;
-        userId = userRow['id'] as int;
-        await db.execute(
-          'UPDATE `${cfg.table}` SET `${cfg.providerColumn}` = ?, `${cfg.providerIdColumn}` = ? WHERE id = ?',
-          positionalParams: [provider, providerId, userId],
-        );
-      } else {
-        // 3) Create new user
-        var inserted = await db.query(
-          'INSERT INTO `${cfg.table}` (`${cfg.emailColumn}`, `${cfg.nameColumn}`, `${cfg.providerColumn}`, `${cfg.providerIdColumn}`, created_at) VALUES (?, ?, ?, ?, NOW())',
-          positionalParams: [email, name, provider, providerId],
-        );
-        userId = await inserted.firstOrNull?['id'];
-        rows = await db.query(
-          'SELECT * FROM `${cfg.table}` WHERE id = ? LIMIT 1',
-          positionalParams: [userId],
-        );
-        userRow = rows.first;
-      }
-    } else {
-      // No email: create user with provider only
-      var user = await db.query(
-        'INSERT INTO `${cfg.table}` (`${cfg.nameColumn}`, `${cfg.providerColumn}`, `${cfg.providerIdColumn}`, created_at) VALUES (?, ?, ?, NOW())',
-        positionalParams: [name, provider, providerId],
-      );
-      userId = user.single['id'];
-      rows = await db.query(
-        'SELECT * FROM `${cfg.table}` WHERE id = ? LIMIT 1',
-        positionalParams: [userId],
-      );
-      userRow = rows.first;
-    }
-
-    final token = FlintJwt("sdf").generateToken({
-      'id': userRow['id'],
-      'email': userRow[cfg.emailColumn],
-      'provider': provider,
-    });
-
-    return {'token': token, 'user': userRow};
-  }
-
-  static Future<void> _ensureProviderColumns() async {
-    // final db = DB.instance;
-    // final cfg = config;
-    // if (cfg.providerColumn != null && !columns.contains(cfg.providerColumn)) {
-    //   await db.execute(
-    //       'ALTER TABLE ${cfg.table} ADD COLUMN ${cfg.providerColumn} VARCHAR(50) NULL');
-    // }
-
-    // if (cfg.providerIdColumn != null &&
-    //     !columns.contains(cfg.providerIdColumn)) {
-    //   await db.execute(
-    //       'ALTER TABLE ${cfg.table} ADD COLUMN ${cfg.providerIdColumn} VARCHAR(255) NULL');
-    // }
-  }
-
-  // ---------- Google helpers ----------
-
-  static Future<Map<String, dynamic>> _verifyGoogleIdToken(
-      String idToken) async {
-    final uri =
-        Uri.https('oauth2.googleapis.com', '/tokeninfo', {'id_token': idToken});
-    final client = HttpClient();
-    final req = await client.getUrl(uri);
-    final resp = await req.close();
-    final body = await resp.transform(utf8.decoder).join();
-    client.close();
-
-    if (resp.statusCode != 200) {
-      throw Exception('Invalid Google id_token: ${resp.statusCode} $body');
-    }
-    return jsonDecode(body) as Map<String, dynamic>;
-  }
-
-  static Future<Map<String, dynamic>> _exchangeCodeForToken(
-    String code,
-    String clientId,
-    String clientSecret,
-    String redirectUri,
-  ) async {
-    final uri = Uri.https('oauth2.googleapis.com', '/token');
-    final client = HttpClient();
-    final req = await client.postUrl(uri);
-    req.headers.contentType =
-        ContentType('application', 'x-www-form-urlencoded');
-
-    final body = {
-      'code': code,
+    final params = {
       'client_id': clientId,
-      'client_secret': clientSecret,
-      'redirect_uri': redirectUri,
-      'grant_type': 'authorization_code',
+      'redirect_uri': callbackUrl,
+      'response_type': 'code',
+      'scope': 'email profile openid',
+      'access_type': 'offline',
+      'prompt': 'consent',
+      'state': state,
+      'code_challenge': codeChallenge,
+      'code_challenge_method': 'S256',
     };
-    req.write(Uri(queryParameters: body).query);
 
-    final resp = await req.close();
-    final s = await resp.transform(utf8.decoder).join();
-    client.close();
-
-    if (resp.statusCode != 200) {
-      throw Exception('Failed to exchange code: ${resp.statusCode} $s');
-    }
-    return jsonDecode(s) as Map<String, dynamic>;
+    return _buildUrl('https://accounts.google.com/o/oauth2/v2/auth', params);
   }
 
-  static Future<Map<String, dynamic>> _fetchGoogleProfile(
-      String accessToken) async {
-    final uri = Uri.https('www.googleapis.com', '/oauth2/v2/userinfo');
-    final client = HttpClient();
-    final req = await client.getUrl(uri);
-    req.headers.set(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
-    final resp = await req.close();
-    final s = await resp.transform(utf8.decoder).join();
-    client.close();
-
-    if (resp.statusCode != 200) {
-      throw Exception('Failed to fetch Google profile: ${resp.statusCode} $s');
+  /// Generate GitHub OAuth URL
+  static String getGitHubAuthUrl({required String callbackUrl}) {
+    final clientId = Auth.config.githubClientId;
+    if (clientId == null || clientId.isEmpty) {
+      throw AuthException(
+          'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID.');
     }
-    return jsonDecode(s) as Map<String, dynamic>;
+
+    final state = _generateState(callbackUrl);
+
+    _storeAuthData(state, '', callbackUrl);
+
+    final params = {
+      'client_id': clientId,
+      'redirect_uri': callbackUrl,
+      'scope': 'user:email',
+      'state': state,
+      'allow_signup': 'true',
+    };
+
+    return _buildUrl('https://github.com/login/oauth/authorize', params);
+  }
+
+  /// Generate Facebook OAuth URL
+  static String getFacebookAuthUrl({required String callbackUrl}) {
+    final clientId = Auth.config.facebookClientId;
+    if (clientId == null || clientId.isEmpty) {
+      throw AuthException(
+          'Facebook OAuth is not configured. Set FACEBOOK_CLIENT_ID.');
+    }
+
+    final state = _generateState(callbackUrl);
+
+    _storeAuthData(state, '', callbackUrl);
+
+    final params = {
+      'client_id': clientId,
+      'redirect_uri': callbackUrl,
+      'scope': 'email,public_profile',
+      'state': state,
+      'auth_type': 'rerequest',
+      'display': 'popup',
+    };
+
+    return _buildUrl('https://www.facebook.com/v19.0/dialog/oauth', params);
+  }
+
+  /// Generate Apple OAuth URL
+  static String getAppleAuthUrl({required String callbackUrl}) {
+    final clientId = Auth.config.appleClientId;
+    if (clientId == null || clientId.isEmpty) {
+      throw AuthException(
+          'Apple Sign In is not configured. Set APPLE_CLIENT_ID.');
+    }
+
+    final state = _generateState(callbackUrl);
+    final nonce = _generateNonce();
+
+    _storeAuthData(state, nonce, callbackUrl);
+
+    final params = {
+      'client_id': clientId,
+      'redirect_uri': callbackUrl,
+      'response_type': 'code id_token',
+      'scope': 'name email',
+      'state': state,
+      'nonce': nonce,
+      'response_mode': 'form_post',
+    };
+
+    return _buildUrl('https://appleid.apple.com/auth/authorize', params);
+  }
+
+  /// Get callback URL from state parameter
+  static String? getCallbackUrl(String state) {
+    return _callbackStore[state];
+  }
+
+  /// Verify and get code verifier for PKCE
+  static String? getCodeVerifier(String state) {
+    return _codeVerifierStore[state];
+  }
+
+  /// Clean up stored verification data
+  static void cleanupAuthData(String state) {
+    _codeVerifierStore.remove(state);
+    _callbackStore.remove(state);
+  }
+
+  /// Get all available OAuth providers
+  static Map<String, dynamic> getAvailableProviders() {
+    final providers = <String, bool>{};
+    final config = Auth.config;
+
+    providers['google'] = config.isGoogleConfigured;
+    providers['github'] = config.isGitHubConfigured;
+    providers['facebook'] = config.isFacebookConfigured;
+    providers['apple'] = config.isAppleConfigured;
+
+    return {
+      'available': providers,
+      'redirectBase': config.redirectBase,
+    };
+  }
+
+  /// Validate OAuth configuration
+  static Map<String, dynamic> validateConfig() {
+    final errors = <String>[];
+    final warnings = <String>[];
+    final config = Auth.config;
+
+    if (!config.isGoogleConfigured) {
+      warnings.add(
+          'Google OAuth not configured (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET required)');
+    }
+    if (!config.isGitHubConfigured) {
+      warnings.add(
+          'GitHub OAuth not configured (GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET required)');
+    }
+    if (!config.isFacebookConfigured) {
+      warnings.add(
+          'Facebook OAuth not configured (FACEBOOK_CLIENT_ID and FACEBOOK_CLIENT_SECRET required)');
+    }
+    if (!config.isAppleConfigured) {
+      warnings.add(
+          'Apple Sign In not configured (APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY required)');
+    }
+
+    return {
+      'valid': errors.isEmpty,
+      'errors': errors,
+      'warnings': warnings,
+      'redirectBase': config.redirectBase,
+    };
+  }
+
+  /// Generate OAuth URLs for all configured providers
+  static Map<String, String> getAllAuthUrls({required String callbackUrl}) {
+    final urls = <String, String>{};
+
+    try {
+      if (Auth.config.isGoogleConfigured) {
+        urls['google'] = getGoogleAuthUrl(callbackUrl: callbackUrl);
+      }
+    } catch (e) {
+      print('Error generating Google auth URL: $e');
+    }
+
+    try {
+      if (Auth.config.isGitHubConfigured) {
+        urls['github'] = getGitHubAuthUrl(callbackUrl: callbackUrl);
+      }
+    } catch (e) {
+      print('Error generating GitHub auth URL: $e');
+    }
+
+    try {
+      if (Auth.config.isFacebookConfigured) {
+        urls['facebook'] = getFacebookAuthUrl(callbackUrl: callbackUrl);
+      }
+    } catch (e) {
+      print('Error generating Facebook auth URL: $e');
+    }
+
+    try {
+      if (Auth.config.isAppleConfigured) {
+        urls['apple'] = getAppleAuthUrl(callbackUrl: callbackUrl);
+      }
+    } catch (e) {
+      print('Error generating Apple auth URL: $e');
+    }
+
+    return urls;
+  }
+
+  // ---------- Private Helper Methods ----------
+
+  static String _buildUrl(String baseUrl, Map<String, String> params) {
+    final queryString = params.entries
+        .map((e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
+    return '$baseUrl?$queryString';
+  }
+
+  static String _generateState(String callbackUrl) {
+    final random = _generateRandomString(32);
+    return '${Uri.encodeComponent(random)}|${Uri.encodeComponent(callbackUrl)}';
+  }
+
+  static String _generateCodeVerifier() {
+    return _generateRandomString(128);
+  }
+
+  static String _generateCodeChallenge(String codeVerifier) {
+    final bytes = utf8.encode(codeVerifier);
+    final digest = sha256.convert(bytes);
+    return base64Url.encode(digest.bytes).replaceAll('=', '');
+  }
+
+  static String _generateNonce() {
+    return _generateRandomString(32);
+  }
+
+  static String _generateRandomString(int length) {
+    final random = Random.secure();
+    return String.fromCharCodes(
+      List.generate(length,
+          (index) => _charset.codeUnitAt(random.nextInt(_charset.length))),
+    );
+  }
+
+  static void _storeAuthData(
+      String state, String codeVerifier, String callbackUrl) {
+    if (codeVerifier.isNotEmpty) {
+      _codeVerifierStore[state] = codeVerifier;
+    }
+    _callbackStore[state] = callbackUrl;
+
+    // Auto-cleanup after 10 minutes
+    Future.delayed(Duration(minutes: 10), () {
+      _codeVerifierStore.remove(state);
+      _callbackStore.remove(state);
+    });
   }
 }

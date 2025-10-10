@@ -6,7 +6,7 @@ void authRoutes(Flint app) {
 
   app.post("/register", authController.register);
 
-  app.post("/login", authController.login);
+  // app.post("/login", authController.login);
 
   app.post("/login-with-google", authController.login);
 }

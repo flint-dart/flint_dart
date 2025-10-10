@@ -15,6 +15,9 @@ void main() {
     return res.view("test_ws");
   });
 
+  app.get('/login', (req, res) async {
+    return res.oAuthRedirect("google", callback: "/api/auth/google/callback");
+  });
   app.mount("/users", registerUserRoutes);
 
   app.get('/profile', (req, res) async {
@@ -76,6 +79,6 @@ void main() {
     });
   });
 
-  app.mount("/auth", authRoutes);
+  // app.mount("/auth", authRoutes);
   app.listen(3000);
 }
