@@ -140,7 +140,7 @@ extension TableSQL on Table {
     }
 
     if (changes.isEmpty) return null;
-    return 'ALTER TABLE "${this.name}"\n  ${changes.join(",\n  ")};';
+    return 'ALTER TABLE "$name"\n  ${changes.join(",\n  ")};';
   }
 }
 

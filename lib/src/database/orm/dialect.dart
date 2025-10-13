@@ -76,7 +76,6 @@ class MySQLDialect implements SQLDialect {
         final isAutoIncrement =
             (row['EXTRA'] as String?)?.contains('auto_increment') ?? false;
         final maxLength = parseInt(row["CHARACTER_MAXIMUM_LENGTH"]);
-        ;
 
         final columnType = _mysqlTypeToColumnType(dataType, maxLength);
 
@@ -104,10 +103,12 @@ class MySQLDialect implements SQLDialect {
   ColumnType _mysqlTypeToColumnType(String mysqlType, int? maxLength) {
     final type = mysqlType.toLowerCase();
     if (type.contains('int')) return ColumnType.integer;
-    if (type.contains('varchar') || type.contains('text'))
+    if (type.contains('varchar') || type.contains('text')) {
       return ColumnType.string;
-    if (type.contains('bool') || type == 'tinyint(1)')
+    }
+    if (type.contains('bool') || type == 'tinyint(1)') {
       return ColumnType.boolean;
+    }
     if (type.contains('double') ||
         type.contains('float') ||
         type.contains('decimal')) {
@@ -243,8 +244,9 @@ class PostgresDialect implements SQLDialect {
   ColumnType _postgresTypeToColumnType(String pgType, int? maxLength) {
     final type = pgType.toLowerCase();
     if (type.contains('int')) return ColumnType.integer;
-    if (type.contains('char') || type.contains('text'))
+    if (type.contains('char') || type.contains('text')) {
       return ColumnType.string;
+    }
     if (type.contains('bool')) return ColumnType.boolean;
     if (type.contains('double') ||
         type.contains('numeric') ||
@@ -252,8 +254,9 @@ class PostgresDialect implements SQLDialect {
       return ColumnType.double;
     }
     if (type.contains('timestamp')) return ColumnType.timestamp;
-    if (type.contains('date') || type.contains('time'))
+    if (type.contains('date') || type.contains('time')) {
       return ColumnType.datetime;
+    }
     return ColumnType.string;
   }
 

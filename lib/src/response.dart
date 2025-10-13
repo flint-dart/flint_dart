@@ -225,14 +225,9 @@ class Response {
       return this;
     }
 
-    String content;
-
     // Render based on file extension
-    if (file.path.endsWith('.flint.html')) {
-      content = await TemplateEngine().render(file.path, data: data);
-    } else {
-      content = await file.readAsString();
-    }
+
+    String content = await FlintTemplateEngine().render(file.path, data: data);
 
     raw.statusCode = 200;
     raw.headers.contentType = ContentType.html;

@@ -13,7 +13,7 @@ extension OAuthResponse on Response {
         callbackUrl = callback;
       } else if (callback.startsWith('/')) {
         // Path provided - construct full URL
-        callbackUrl = '${Auth.config.redirectBase}${callback}';
+        callbackUrl = '${Auth.config.redirectBase}$callback';
       } else {
         // Relative path without leading slash
         callbackUrl = '${Auth.config.redirectBase}/$callback';
@@ -39,6 +39,6 @@ extension OAuthResponse on Response {
       default:
         throw AuthException('Unsupported OAuth provider: $provider');
     }
-    return this.redirect(authUrl);
+    return redirect(authUrl);
   }
 }

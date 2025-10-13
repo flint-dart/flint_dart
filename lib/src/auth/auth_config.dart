@@ -117,18 +117,22 @@ class AuthConfig {
     if (passwordColumn.isEmpty) errors.add('AUTH_PASSWORD_COLUMN is required');
 
     // Provider configuration warnings
-    if (!isGoogleConfigured)
+    if (!isGoogleConfigured) {
       warnings.add(
           'Google OAuth not configured (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET required)');
-    if (!isGitHubConfigured)
+    }
+    if (!isGitHubConfigured) {
       warnings.add(
           'GitHub OAuth not configured (GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET required)');
-    if (!isFacebookConfigured)
+    }
+    if (!isFacebookConfigured) {
       warnings.add(
           'Facebook OAuth not configured (FACEBOOK_CLIENT_ID and FACEBOOK_CLIENT_SECRET required)');
-    if (!isAppleConfigured)
+    }
+    if (!isAppleConfigured) {
       warnings.add(
           'Apple Sign In not configured (APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, and APPLE_PRIVATE_KEY required)');
+    }
 
     // JWT security warning
     if (jwtSecret == null ||

@@ -3,39 +3,372 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Flint WS Chat Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flint Template Engine Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .test-title {
+            color: #333;
+            border-bottom: 2px solid #007cba;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .code-block {
+            background: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+
+        .result {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .error {
+            background: #ffebee;
+            border: 1px solid #f44336;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .user-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        .admin-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 
 <body>
-    <h2>Flint WebSocket Chat Test</h2>
-    <div id="messages"></div>
-    <input id="msg" type="text" placeholder="Type a message..." />
-    <button onclick="sendMessage()">Send</button>
+    <h1>Flint Template Engine Comprehensive Test</h1>
+
+    <!-- Test Data Section -->
+    <div class="test-section">
+        <h2 class="test-title">Test Data Structure</h2>
+        <div class="code-block">
+            // Sample data structure used in tests
+            {
+            "title": "Flint Template Test",
+            "users": [
+            {
+            "name": "John Doe",
+            "email": "john@example.com",
+            "age": 25,
+            "isActive": true,
+            "profile": {
+            "role": "user",
+            "department": "Engineering"
+            }
+            },
+            {
+            "name": "Jane Smith",
+            "email": "jane@example.com",
+            "age": 30,
+            "isActive": false,
+            "profile": {
+            "role": "admin",
+            "department": "Marketing"
+            }
+            },
+            {
+            "name": "Bob Johnson",
+            "email": "bob@example.com",
+            "age": 35,
+            "isActive": true,
+            "profile": {
+            "role": "user",
+            "department": "Sales"
+            }
+            }
+            ],
+            "showAdminPanel": true,
+            "emptyList": [],
+            "zeroValue": 0,
+            "emptyString": "",
+            "nullValue": null
+            }
+        </div>
+    </div>
+
+    <!-- Simple Variables Test -->
+    <div class="test-section">
+        <h2 class="test-title">1. Simple Variables</h2>
+        <div class="code-block">
+            Template:
+            &lt;h1&gt;{{ title }}&lt;/h1&gt;
+            &lt;p&gt;Welcome to our application&lt;/p&gt;
+
+            Expected: &lt;h1&gt;Flint Template Test&lt;/h1&gt;
+        </div>
+    </div>
+
+    <!-- Nested Object Properties Test -->
+    <div class="test-section">
+        <h2 class="test-title">2. Nested Object Properties</h2>
+        <div class="code-block">
+            Template:
+            &lt;div class="user-info"&gt;
+            &lt;h3&gt;{{ users.0.name }}&lt;/h3&gt;
+            &lt;p&gt;Email: {{ users.0.email }}&lt;/p&gt;
+            &lt;p&gt;Role: {{ users.0.profile.role }}&lt;/p&gt;
+            &lt;p&gt;Department: {{ users.0.profile.department }}&lt;/p&gt;
+            &lt;/div&gt;
+
+            Expected: First user's nested properties displayed
+        </div>
+    </div>
+
+    <!-- Loop Test -->
+    <div class="test-section">
+        <h2 class="test-title">3. Loops</h2>
+        <div class="code-block">
+            Template:
+            {{ for user in users }}
+            &lt;div class="user-card"&gt;
+            &lt;h4&gt;{{ user.name }}&lt;/h4&gt;
+            &lt;p&gt;Email: {{ user.email }}&lt;/p&gt;
+            &lt;p&gt;Age: {{ user.age }}&lt;/p&gt;
+            &lt;p&gt;Active: {{ user.isActive }}&lt;/p&gt;
+            &lt;p&gt;Role: {{ user.profile.role }}&lt;/p&gt;
+            &lt;/div&gt;
+            {{ endfor }}
+
+            Expected: Three user cards rendered
+        </div>
+    </div>
+
+    <!-- If Condition Test -->
+    <div class="test-section">
+        <h2 class="test-title">4. If Conditions</h2>
+        <div class="code-block">
+            Template:
+            {{ if showAdminPanel }}
+            &lt;div class="admin-section"&gt;
+            &lt;h3&gt;Admin Panel&lt;/h3&gt;
+            &lt;p&gt;This is only visible to admins&lt;/p&gt;
+            &lt;/div&gt;
+            {{ endif }}
+
+            {{ if emptyList }}
+            &lt;p&gt;This list has items&lt;/p&gt;
+            {{ else }}
+            &lt;p&gt;This list is empty&lt;/p&gt;
+            {{ endif }}
+
+            Expected: Admin panel shown and "This list is empty" message
+        </div>
+    </div>
+
+    <!-- Nested If in Loop Test -->
+    <div class="test-section">
+        <h2 class="test-title">5. Nested Conditions in Loops</h2>
+        <div class="code-block">
+            Template:
+            {{ for user in users }}
+            &lt;div class="user-card"&gt;
+            &lt;h4&gt;{{ user.name }}&lt;/h4&gt;
+            {{ if user.isActive }}
+            &lt;span style="color: green;"&gt;✓ Active&lt;/span&gt;
+            {{ else }}
+            &lt;span style="color: red;"&gt;✗ Inactive&lt;/span&gt;
+            {{ endif }}
+
+            {{ if user.profile.role == 'admin' }}
+            &lt;strong&gt;ADMIN USER&lt;/strong&gt;
+            {{ endif }}
+            &lt;/div&gt;
+            {{ endfor }}
+
+            Expected: Users with active status and admin role indicators
+        </div>
+    </div>
+
+    <!-- Empty/Null Value Handling -->
+    <div class="test-section">
+        <h2 class="test-title">6. Empty/Null Value Handling</h2>
+        <div class="code-block">
+            Template:
+            &lt;p&gt;Zero value: {{ zeroValue }}&lt;/p&gt;
+            &lt;p&gt;Empty string: "{{ emptyString }}"&lt;/p&gt;
+            &lt;p&gt;Null value: {{ nullValue }}&lt;/p&gt;
+            &lt;p&gt;Undefined variable: {{ undefinedVar }}&lt;/p&gt;
+
+            Expected: Proper handling of zero, empty, null, and undefined values
+        </div>
+    </div>
+
+    <!-- Comments Test -->
+    <div class="test-section">
+        <h2 class="test-title">7. Comments</h2>
+        <div class="code-block">
+            Template:
+            &lt;div&gt;
+            &lt;h2&gt;Visible Content&lt;/h2&gt;
+            {{-- This is a comment that won't appear in output --}}
+            &lt;p&gt;This paragraph is visible&lt;/p&gt;
+            {{--
+            This is a multi-line comment
+            that spans multiple lines
+            and won't be rendered
+            --}}
+            &lt;/div&gt;
+
+            Expected: Only the visible content without comments
+        </div>
+    </div>
+
+    <!-- Complex Nested Structure -->
+    <div class="test-section">
+        <h2 class="test-title">8. Complex Nested Structure</h2>
+        <div class="code-block">
+            Template:
+            &lt;div class="dashboard"&gt;
+            &lt;h1&gt;{{ title }}&lt;/h1&gt;
+
+            {{ if showAdminPanel }}
+            &lt;div class="admin-stats"&gt;
+            &lt;h2&gt;User Statistics&lt;/h2&gt;
+            &lt;p&gt;Total Users: {{ users.length }}&lt;/p&gt;
+
+            {{ for user in users }}
+            {{ if user.isActive }}
+            &lt;div class="active-user"&gt;
+            &lt;h3&gt;{{ user.name }}&lt;/h3&gt;
+            {{ if user.profile.role == 'admin' }}
+            &lt;p class="admin-badge"&gt;Administrator&lt;/p&gt;
+            {{ endif }}
+            &lt;/div&gt;
+            {{ endif }}
+            {{ endfor }}
+            &lt;/div&gt;
+            {{ endif }}
+            &lt;/div&gt;
+
+            Expected: Complex nested structure with conditions and loops
+        </div>
+    </div>
+
+    <!-- Edge Cases -->
+    <div class="test-section">
+        <h2 class="test-title">9. Edge Cases</h2>
+        <div class="code-block">
+            Template:
+            &lt;div&gt;
+            &lt;p&gt;Empty loop:&lt;/p&gt;
+            {{ for item in emptyList }}
+            &lt;p&gt;This should not appear&lt;/p&gt;
+            {{ endfor }}
+
+            &lt;p&gt;Nested object with missing property: {{ users.0.profile.nonexistent }}&lt;/p&gt;
+            &lt;p&gt;Malformed variable: {{ malformed { } }&lt;/p&gt;
+            &lt;/div&gt;
+
+            Expected: Graceful handling of edge cases
+        </div>
+    </div>
+
+    <!-- Include Test (Note: This requires actual template files) -->
+    <div class="test-section">
+        <h2 class="test-title">10. Include Directive (Conceptual)</h2>
+        <div class="code-block">
+            Template:
+            &lt;div class="layout"&gt;
+            &lt;header&gt;
+            {{ include "header.html" }}
+            &lt;/header&gt;
+            &lt;main&gt;
+            &lt;h1&gt;{{ title }}&lt;/h1&gt;
+            {{ include "user_list.html" }}
+            &lt;/main&gt;
+            &lt;footer&gt;
+            {{ include "footer.html" }}
+            &lt;/footer&gt;
+            &lt;/div&gt;
+
+            Note: Include functionality requires actual template files to test
+        </div>
+    </div>
+
+    <!-- Test Results Display Area -->
+    <div class="test-section">
+        <h2 class="test-title">Test Results</h2>
+        <div id="testResults">
+            <p>Run the Dart test to see actual results here...</p>
+        </div>
+    </div>
 
     <script>
-        const socket = new WebSocket("ws://localhost:3000/chat");
+        // This would be replaced with actual Dart test output
+        function displayTestResults(results) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '';
 
-        socket.addEventListener("open", () => {
-            console.log("✅ Connected to Flint WS server");
-            document.getElementById("messages").innerHTML += "<p><em>Connected</em></p>";
-        });
-
-        socket.addEventListener("message", (event) => {
-            console.log("📩 Message from server:", event.data);
-            document.getElementById("messages").innerHTML += `<p>${event.data}</p>`;
-        });
-
-        socket.addEventListener("close", () => {
-            document.getElementById("messages").innerHTML += "<p><em>Disconnected</em></p>";
-        });
-
-        function sendMessage() {
-            const msg = document.getElementById("msg").value;
-            if (msg.trim() !== "") {
-                socket.send(msg);
-                document.getElementById("msg").value = "";
-            }
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = result.success ? 'result' : 'error';
+                div.innerHTML = `
+                    <h3>${result.test}</h3>
+                    <p><strong>Status:</strong> ${result.success ? 'PASS' : 'FAIL'}</p>
+                    <p><strong>Expected:</strong> ${result.expected}</p>
+                    <p><strong>Actual:</strong> ${result.actual}</p>
+                    ${result.error ? `<p><strong>Error:</strong> ${result.error}</p>` : ''}
+                `;
+                resultsDiv.appendChild(div);
+            });
         }
+
+        // Example of what test results might look like
+        const exampleResults = [
+            {
+                test: "Simple Variables",
+                success: true,
+                expected: "&lt;h1&gt;Flint Template Test&lt;/h1&gt;",
+                actual: "&lt;h1&gt;Flint Template Test&lt;/h1&gt;"
+            },
+            {
+                test: "Loops",
+                success: true,
+                expected: "Three user cards rendered",
+                actual: "Three user cards successfully rendered"
+            }
+        ];
+
+        // Uncomment to see example results
+        displayTestResults(exampleResults);
     </script>
 </body>
 

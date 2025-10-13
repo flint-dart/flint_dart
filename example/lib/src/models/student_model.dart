@@ -2,6 +2,7 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
 
 class StudentModel extends Model<StudentModel> {
+  @override
   int? id;
 
   // Define your fields here

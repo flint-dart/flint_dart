@@ -2,6 +2,7 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
 
 class PostModel extends Model<PostModel> {
+  @override
   int? id;
   String? title;
   String? subTitle;

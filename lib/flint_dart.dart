@@ -14,3 +14,5 @@ export 'model.dart';
 export 'schema.dart';
 export 'src/validation/validator.dart';
 export 'src/extensions/oauth_extension.dart';
+export "src/websocket/websocket.dart";
+export 'src/websocket/websocket_manager.dart';

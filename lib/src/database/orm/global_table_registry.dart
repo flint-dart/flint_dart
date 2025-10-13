@@ -13,6 +13,7 @@ import 'package:flint_dart/src/extensions/table_extension.dart';
 /// - [tables] (`List<Table>`):
 ///   A list of [`Table`](package:flint_dart/schema.dart) objects representing
 ///   the desired schema for each database table.
+// ignore: no_wildcard_variable_uses
 /// - [_] (`dynamic`, optional):
 ///   An unused positional parameter (reserved for isolate call compatibility).
 /// - [sendPort] (`SendPort?`, optional):
