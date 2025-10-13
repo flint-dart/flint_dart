@@ -89,27 +89,30 @@ extension TableSQL on Table {
           'Column ${col.name} is NOT NULL but has no default value. '
           'Either make it nullable or provide a default value.');
     }
+
     final buffer = StringBuffer();
-    buffer.write('ADD COLUMN `${col.name}` ${col.sqlTypeMySQL()}');
+    buffer.write('ADD COLUMN `${col.name}` ${col.mysqlType()}');
 
     if (!col.isNullable) buffer.write(' NOT NULL');
     if (col.defaultValue != null) {
       buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
     }
     if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+    if (col.isUnique) buffer.write(' UNIQUE');
 
     return buffer.toString();
   }
 
   String _buildModifyColumnSQL(Column col) {
     final buffer = StringBuffer();
-    buffer.write('MODIFY COLUMN `${col.name}` ${col.sqlTypeMySQL()}');
+    buffer.write('MODIFY COLUMN `${col.name}` ${col.mysqlType()}');
 
     if (!col.isNullable) buffer.write(' NOT NULL');
     if (col.defaultValue != null) {
       buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
     }
     if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
+    if (col.isUnique) buffer.write(' UNIQUE');
 
     return buffer.toString();
   }
@@ -144,68 +147,21 @@ extension TableSQL on Table {
   }
 }
 
-// --- MYSQL HELPERS ---
-// String _buildAddColumnMySQL(Column col, {bool checkIfExists = false}) {
-//   // Validate that NOT NULL columns have defaults (unless auto-increment)
-//   if (!col.isNullable && col.defaultValue == null && !col.isAutoIncrement) {
-//     throw ArgumentError(
-//         'Column ${col.name} is NOT NULL but has no default value. '
-//         'Either make it nullable or provide a default value.');
-//   }
-
-//   final buffer = StringBuffer();
-
-//   if (checkIfExists) {
-//     buffer.write('ADD COLUMN IF NOT EXISTS ');
-//   } else {
-//     buffer.write('ADD COLUMN ');
-//   }
-
-//   buffer.write('`${col.name}` ${col.mysqlType()}');
-
-//   if (!col.isNullable) buffer.write(' NOT NULL');
-
-//   if (col.defaultValue != null) {
-//     buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
-//   }
-
-//   if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
-//   if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
-//   if (col.isUnique) buffer.write(' UNIQUE');
-
-//   return buffer.toString();
-// }
-
-// String _buildModifyColumnMySQL(Column col) {
-//   final buffer = StringBuffer();
-//   buffer.write('MODIFY COLUMN `${col.name}` ${col.mysqlType()}');
-
-//   if (!col.isNullable) buffer.write(' NOT NULL');
-//   if (col.defaultValue != null) {
-//     buffer.write(
-//         ' DEFAULT ${_formatDefault(col.defaultValue, dialect: "mysql")}');
-//   }
-//   if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
-
-//   return buffer.toString();
-// }
-
 // --- POSTGRES HELPERS ---
 String _buildAddColumnPostgres(Column col) {
   final buffer = StringBuffer('ADD COLUMN "${col.name}" ');
 
-  // Handle primary auto-increment column
   if (col.isPrimaryKey && col.isAutoIncrement) {
     buffer.write('SERIAL PRIMARY KEY');
     return buffer.toString();
   }
 
-  // Otherwise normal column
   buffer.write(col.pgSqlType());
   if (!col.isNullable) buffer.write(' NOT NULL');
   if (col.defaultValue != null) {
     buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
   }
+  if (col.isUnique) buffer.write(' UNIQUE');
 
   return buffer.toString();
 }
@@ -214,7 +170,7 @@ List<String> _buildAlterColumnPostgres(
     String tableName, Column oldCol, Column newCol) {
   final changes = <String>[];
 
-  // Type change
+  // --- Type change ---
   if (oldCol.type != newCol.type) {
     if (newCol.isPrimaryKey && newCol.isAutoIncrement) {
       // Upgrade SERIAL → BIGSERIAL or similar
@@ -225,14 +181,14 @@ List<String> _buildAlterColumnPostgres(
     }
   }
 
-  // Nullability change
+  // --- Nullability change ---
   if (oldCol.isNullable != newCol.isNullable) {
     changes.add(newCol.isNullable
         ? 'ALTER COLUMN "${newCol.name}" DROP NOT NULL'
         : 'ALTER COLUMN "${newCol.name}" SET NOT NULL');
   }
 
-  // Default value change (autoIncrement handled separately)
+  // --- Default change ---
   if (oldCol.defaultValue != newCol.defaultValue &&
       !(newCol.isPrimaryKey && newCol.isAutoIncrement)) {
     if (newCol.defaultValue == null) {
@@ -243,12 +199,22 @@ List<String> _buildAlterColumnPostgres(
     }
   }
 
-  // Primary key change
+  // --- Primary key change ---
   if (oldCol.isPrimaryKey != newCol.isPrimaryKey) {
     if (newCol.isPrimaryKey) {
       changes.add('ADD PRIMARY KEY ("${newCol.name}")');
     } else {
       changes.add('DROP CONSTRAINT "${tableName}_pkey"');
+    }
+  }
+
+  // --- Unique constraint change (always check) ---
+  if (oldCol.isUnique != newCol.isUnique) {
+    if (newCol.isUnique) {
+      changes.add(
+          'ADD CONSTRAINT "${newCol.name}_unique" UNIQUE ("${newCol.name}")');
+    } else {
+      changes.add('DROP CONSTRAINT IF EXISTS "${newCol.name}_unique"');
     }
   }
 

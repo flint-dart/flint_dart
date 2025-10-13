@@ -143,15 +143,18 @@ class PostgresDialect implements SQLDialect {
       buffer.write('  "${col.name}" ');
 
       if (col.isPrimaryKey && col.isAutoIncrement) {
-        // Use IDENTITY (modern) instead of SERIAL
         buffer.write('SERIAL PRIMARY KEY');
       } else {
         buffer.write(col.sqlTypePostgres());
 
         if (!col.isNullable) buffer.write(' NOT NULL');
+
         if (col.defaultValue != null) {
-          buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
+          buffer.write(
+              ' DEFAULT ${_formatDefault(col.defaultValue, col.sqlTypePostgres())}');
         }
+
+        if (col.isUnique) buffer.write(' UNIQUE');
         if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
       }
 
@@ -260,10 +263,49 @@ class PostgresDialect implements SQLDialect {
     return ColumnType.string;
   }
 
-  String _formatDefault(dynamic value) {
-    if (value is String) return "'$value'";
-    if (value is bool) return value ? 'true' : 'false';
-    if (value is DateTime) return "'${value.toIso8601String()}'";
+  String _formatDefault(dynamic value, String sqlType) {
+    if (value == null) return '';
+
+    final type = sqlType.toLowerCase();
+
+    // Handle function references from Default class
+    if (value is String Function()) {
+      value = value(); // call it once to get the literal
+    }
+
+    if (value is num || value is bool) {
+      return value.toString();
+    }
+
+    if (value is String) {
+      final upper = value.toUpperCase().trim();
+
+      final isDateOrTime = type.contains('timestamp') ||
+          type.contains('date') ||
+          type.contains('time');
+      final isUuid = type.contains('uuid');
+
+      // ✅ Handle PostgreSQL function defaults (no quotes)
+      if ((isDateOrTime &&
+              (upper == 'CURRENT_TIMESTAMP' ||
+                  upper == 'CURRENT_DATE' ||
+                  upper == 'CURRENT_TIME' ||
+                  upper == 'NOW()')) ||
+          (isUuid && upper.contains('GEN_RANDOM_UUID')) ||
+          upper == 'CURRENT_USER' ||
+          upper == 'SESSION_USER') {
+        return value; // leave as-is (function, not string)
+      }
+
+      // ✅ Normal string defaults
+      return "'$value'";
+    }
+
+    // ✅ Handle collections (store as JSON text)
+    if (value is Map || value is List) {
+      return "'${value.toString()}'";
+    }
+
     return value.toString();
   }
 }

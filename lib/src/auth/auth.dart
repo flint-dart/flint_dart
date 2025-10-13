@@ -1,12 +1,12 @@
 // auth.dart
-import 'package:flint_dart/db.dart';
+import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flint_dart/security.dart';
 import 'package:flint_dart/src/auth/auth_config.dart';
 import 'package:flint_dart/src/auth/providers/google_provider.dart';
 import 'package:flint_dart/src/auth/providers/github_provider.dart';
 import 'package:flint_dart/src/auth/providers/facebook_provider.dart';
 import 'package:flint_dart/src/auth/providers/apple_provider.dart';
-import 'package:flint_dart/src/database/db.dart';
+import 'package:flint_dart/src/database/orm/query_builder.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 
@@ -23,7 +23,10 @@ class Auth {
     final providerColumn = FlintEnv.get('AUTH_PROVIDER_COLUMN', 'provider');
     final providerIdColumn =
         FlintEnv.get('AUTH_PROVIDER_ID_COLUMN', 'provider_id');
-
+    final requireEmailVerification =
+        FlintEnv.getBool("REQUIRE_EMAIL_VERIFICATION", false);
+    final passwordMinLength = FlintEnv.getInt('PASSWORD_MIN_LENGTH', 6);
+    final jwtExpiryHours = FlintEnv.getInt('JWT_EXPIRY_HOURS', 24);
     final googleClientId = FlintEnv.get('GOOGLE_CLIENT_ID', '');
     final googleClientSecret = FlintEnv.get('GOOGLE_CLIENT_SECRET', '');
     final githubClientId = FlintEnv.get('GITHUB_CLIENT_ID', '');
@@ -40,50 +43,67 @@ class Auth {
         'JWT_SECRET', 'your-default-jwt-secret-change-in-production');
 
     return AuthConfig(
-      table: table,
-      emailColumn: emailColumn,
-      passwordColumn: passwordColumn,
-      nameColumn: nameColumn,
-      providerColumn: providerColumn,
-      providerIdColumn: providerIdColumn,
-      googleClientId: googleClientId,
-      googleClientSecret: googleClientSecret,
-      githubClientId: githubClientId,
-      githubClientSecret: githubClientSecret,
-      facebookClientId: facebookClientId,
-      facebookClientSecret: facebookClientSecret,
-      appleClientId: appleClientId,
-      appleTeamId: appleTeamId,
-      appleKeyId: appleKeyId,
-      applePrivateKey: applePrivateKey,
-      redirectBase: redirectBase,
-      jwtSecret: jwtSecret,
-    );
+        table: table,
+        emailColumn: emailColumn,
+        passwordColumn: passwordColumn,
+        nameColumn: nameColumn,
+        providerColumn: providerColumn,
+        providerIdColumn: providerIdColumn,
+        googleClientId: googleClientId,
+        googleClientSecret: googleClientSecret,
+        githubClientId: githubClientId,
+        githubClientSecret: githubClientSecret,
+        facebookClientId: facebookClientId,
+        facebookClientSecret: facebookClientSecret,
+        appleClientId: appleClientId,
+        appleTeamId: appleTeamId,
+        appleKeyId: appleKeyId,
+        applePrivateKey: applePrivateKey,
+        redirectBase: redirectBase,
+        jwtSecret: jwtSecret,
+        jwtExpiryHours: jwtExpiryHours,
+        passwordMinLength: passwordMinLength,
+        requireEmailVerification: requireEmailVerification);
   }
 
-  /// Email/password login - returns user data
   static Future<Map<String, dynamic>> login(
       String email, String password) async {
-    final db = DB.instance;
+    final qb = QueryBuilder(table: _config.table);
+    final user =
+        await qb.where(_config.emailColumn, '=', email).limit(1).first();
 
-    final rows = await db.query(
-      'SELECT * FROM `${config.table}` WHERE `${config.emailColumn}` = ? LIMIT 1',
-      positionalParams: [email],
-    );
-
-    if (rows.isEmpty) {
+    if (user == null) {
       throw AuthException('Invalid email or password');
     }
 
-    final user = rows.first;
-    final hashedPassword = user[config.passwordColumn] as String;
+    final hashedPassword = user[_config.passwordColumn] as String;
     final isMatch = Hashing().verify(password, hashedPassword);
 
     if (!isMatch) {
       throw AuthException('Invalid email or password');
     }
 
-    return _sanitizeUserData(user);
+    if (_config.requireEmailVerification && user['email_verified_at'] == null) {
+      throw AuthException('Email verification required.');
+    }
+
+    final cleanUser = _sanitizeUserData(user);
+
+    // ✅ Create JWT token with expiry
+    final jwt = JWT({
+      'id': cleanUser['id'],
+      'email': cleanUser[_config.emailColumn],
+    });
+
+    final token = jwt.sign(
+      SecretKey(_config.jwtSecret!),
+      expiresIn: Duration(hours: _config.jwtExpiryHours),
+    );
+
+    return {
+      'user': cleanUser,
+      'token': token,
+    };
   }
 
   /// Register new user - returns user data
@@ -93,18 +113,20 @@ class Auth {
     String? name,
     Map<String, dynamic>? additionalData,
   }) async {
-    final db = DB.instance;
+    final qb = QueryBuilder(table: config.table);
 
     // Check if user exists
-    final existing = await db.query(
-      'SELECT id FROM `${config.table}` WHERE `${config.emailColumn}` = ?',
-      positionalParams: [email],
-    );
+    final existing = await qb.where(config.emailColumn, '=', email).first();
 
-    if (existing.isNotEmpty) {
+    if (existing != null) {
       throw AuthException('User already exists with this email');
     }
 
+    if (password.length < _config.passwordMinLength) {
+      throw AuthException(
+        'Password must be at least ${_config.passwordMinLength} characters long.',
+      );
+    }
     // Hash password
     final hashedPassword = Hashing().hash(password);
 
@@ -118,23 +140,18 @@ class Auth {
     };
 
     // Insert user
-    final columns = data.keys.join(', ');
-    final placeholders = List.filled(data.length, '?').join(', ');
-    final values = data.values.toList();
-
-    final result = await db.query(
-      'INSERT INTO `${config.table}` ($columns) VALUES ($placeholders)',
-      positionalParams: values,
-    );
+    await QueryBuilder(table: config.table).insert(data);
 
     // Get created user
-    final userId = result.first["id"];
-    final userRows = await db.query(
-      'SELECT * FROM `${config.table}` WHERE id = ?',
-      positionalParams: [userId],
-    );
+    final user = await QueryBuilder(table: config.table)
+        .where(config.emailColumn, '=', email)
+        .first();
 
-    return _sanitizeUserData(userRows.first);
+    if (user == null) {
+      throw AuthException('User could not be retrieved after registration.');
+    }
+
+    return _sanitizeUserData(user);
   }
 
   /// Google OAuth - returns user data without saving
@@ -213,45 +230,36 @@ class Auth {
     required Map<String, dynamic> providerUserData,
     Map<String, dynamic>? additionalData,
   }) async {
-    final db = DB.instance;
+    final table = config.table;
     final provider = providerUserData['provider'];
     final providerId = providerUserData['providerId'];
     final email = providerUserData['email'];
     final name = providerUserData['name'];
 
     // Check if user exists by provider
-    var rows = await db.query(
-      'SELECT * FROM `${config.table}` WHERE `${config.providerColumn}` = ? AND `${config.providerIdColumn}` = ?',
-      positionalParams: [provider, providerId],
-    );
+    var user = await QueryBuilder(table: table)
+        .where(config.providerColumn ?? "provider", '=', provider)
+        .where(config.providerIdColumn ?? "provider_id", '=', providerId)
+        .first();
 
-    Map<String, dynamic> user;
-
-    if (rows.isNotEmpty) {
+    if (user != null) {
       // Update existing user
-      user = rows.first;
-      final userId = user['id'];
-
-      await db.execute(
-        'UPDATE `${config.table}` SET `${config.emailColumn}` = ?, `${config.nameColumn}` = ? WHERE id = ?',
-        positionalParams: [email, name, userId],
-      );
+      await QueryBuilder(table: table).where('id', '=', user['id']).update({
+        config.emailColumn: email,
+        config.nameColumn!: name,
+      });
     } else {
       // Check by email
-      rows = await db.query(
-        'SELECT * FROM `${config.table}` WHERE `${config.emailColumn}` = ?',
-        positionalParams: [email],
-      );
+      user = await QueryBuilder(table: table)
+          .where(config.emailColumn, '=', email)
+          .first();
 
-      if (rows.isNotEmpty) {
+      if (user != null) {
         // Update existing user with provider info
-        user = rows.first;
-        final userId = user['id'];
-
-        await db.execute(
-          'UPDATE `${config.table}` SET `${config.providerColumn}` = ?, `${config.providerIdColumn}` = ? WHERE id = ?',
-          positionalParams: [provider, providerId, userId],
-        );
+        await QueryBuilder(table: table).where('id', '=', user['id']).update({
+          config.providerColumn!: provider,
+          config.providerIdColumn!: providerId,
+        });
       } else {
         // Create new user
         final data = {
@@ -263,25 +271,15 @@ class Auth {
           if (additionalData != null) ...additionalData,
         };
 
-        final columns = data.keys.join(', ');
-        final placeholders = List.filled(data.length, '?').join(', ');
-        final values = data.values.toList();
+        await QueryBuilder(table: table).insert(data);
 
-        final result = await db.query(
-          'INSERT INTO `${config.table}` ($columns) VALUES ($placeholders)',
-          positionalParams: values,
-        );
-
-        final userId = result.first["id"];
-        rows = await db.query(
-          'SELECT * FROM `${config.table}` WHERE id = ?',
-          positionalParams: [userId],
-        );
-        user = rows.first;
+        user = await QueryBuilder(table: table)
+            .where(config.emailColumn, '=', email)
+            .first();
       }
     }
 
-    return _sanitizeUserData(user);
+    return _sanitizeUserData(user!);
   }
 
   /// Generate JWT token from user data
@@ -292,7 +290,9 @@ class Auth {
       'name': userData[config.nameColumn],
       'provider': userData[config.providerColumn],
       'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'exp': DateTime.now().add(Duration(hours: 24)).millisecondsSinceEpoch ~/
+      'exp': DateTime.now()
+              .add(const Duration(hours: 24))
+              .millisecondsSinceEpoch ~/
           1000,
     };
 

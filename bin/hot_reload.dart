@@ -62,7 +62,8 @@ Future<void> main(List<String> args) async {
   // Watch for changes in lib/
   final watcher = Directory('lib').watch(recursive: true);
   await for (final event in watcher) {
-    if (event.type == FileSystemEvent.modify && event.path.endsWith('.dart')) {
+    if (event.type == FileSystemEvent.modify && event.path.endsWith('.dart') ||
+        event.path.endsWith('.env') | event.path.endsWith('.flint.html')) {
       print('\n[HotReload] Change detected in ${event.path}');
       await restartServer();
     }

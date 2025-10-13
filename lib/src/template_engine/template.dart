@@ -18,8 +18,8 @@ class FlintTemplateEngine {
     content = await _processLoops(content, context, templatePath);
     content = await _processIfs(content, context, templatePath);
     content = _processVariables(content, context);
-    content = _escapeHtml(content);
-    content = _escapeJson(content);
+    // content = _escapeHtml(content);
+    // content = _escapeJson(content);
 
     return content;
   }
@@ -162,21 +162,21 @@ class FlintTemplateEngine {
   }
 
   // Additional utility methods
-  String _escapeHtml(String text) {
-    return text
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-  }
+  // String _escapeHtml(String text) {
+  //   return text
+  //       .replaceAll('&', '&amp;')
+  //       .replaceAll('<', '&lt;')
+  //       .replaceAll('>', '&gt;')
+  //       .replaceAll('"', '&quot;')
+  //       .replaceAll("'", '&#39;');
+  // }
 
-  String _escapeJson(String text) {
-    return text
-        .replaceAll('\\', '\\\\')
-        .replaceAll('"', '\\"')
-        .replaceAll('\n', '\\n')
-        .replaceAll('\r', '\\r')
-        .replaceAll('\t', '\\t');
-  }
+  // String _escapeJson(String text) {
+  //   return text
+  //       .replaceAll('\\', '\\\\')
+  //       .replaceAll('"', '\\"')
+  //       .replaceAll('\n', '\\n')
+  //       .replaceAll('\r', '\\r')
+  //       .replaceAll('\t', '\\t');
+  // }
 }

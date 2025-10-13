@@ -207,41 +207,59 @@ class Request {
     }));
   }
 
-  /// Validate the request body against a set of rules.
+  /// 📘 **Validate Request Body**
   ///
-  /// This method parses the incoming request JSON body and applies
-  /// validation rules to ensure the data meets your requirements.
+  /// This method parses and validates the incoming JSON request body
+  /// against the specified validation [rules].
   ///
-  /// ### Parameters
-  /// - [rules]: A `Map<String, String>` defining validation rules for each field.
-  ///   - Keys → field names expected in the request body.
-  ///   - Values → validation rules (comma-separated), similar to Laravel's syntax.
+  /// ---
+  /// ### ✅ **Usage Example**
   ///
-  /// ### Returns
-  /// - A `Future<Map<String, dynamic>>` containing the validated request body.
-  ///   If validation passes, the body is returned as a parsed map.
-  ///
-  /// ### Throws
-  /// - `ValidationException` if one or more fields fail validation.
-  ///
-  /// ### Example
   /// ```dart
-  /// final data = await req.validate({
-  ///   "email": "required|email",
-  ///   "password": "required|min:8"
-  /// });
+  /// // Inside a controller method
+  /// Future<Response> register(Request req) async {
+  ///   final data = await req.validate({
+  ///     'name': 'required|string',
+  ///     'email': 'required|string|email',
+  ///     'password': 'required|string|confirmed|min:6',
+  ///   });
   ///
-  /// // Access validated data
-  /// final email = data["email"];
-  /// final password = data["password"];
+  ///   // Safe to use: all fields are validated
+  ///   return Response.json({'user': data});
+  /// }
   /// ```
   ///
-  /// In this example, the request body must include an `email` field that is
-  /// both required and a valid email address, and a `password` field that is
-  /// required and at least 8 characters long.
+  /// ---
+  /// ### 🧠 **Behavior**
+  /// - Reads the request body as JSON.
+  /// - Validates all keys using the [Validator.validate] method.
+  /// - Throws a `ValidationException` if any rule fails.
+  /// - Returns the parsed request body (`Map<String, dynamic>`) if validation passes.
+  ///
+  /// ---
+  /// ### ⚙️ **Supported Validation Rules**
+  /// - `required` — Field must not be null or empty.
+  /// - `string` — Must be a string.
+  /// - `email` — Must be a valid email format.
+  /// - `numeric` — Must be a number.
+  /// - `min:<n>` — Minimum string length or numeric value.
+  /// - `max:<n>` — Maximum string length or numeric value.
+  /// - `confirmed` — Field must have a matching confirmation field (`confirm_field` or `field_confirmation`).
+  /// - `boolean` — Must be `true` or `false`.
+  /// - `date` — Must be a valid date string or `DateTime`.
+  /// - `in:<a,b,c>` — Value must be one of the listed items.
+  ///
+  /// ---
+  /// ### ⚠️ **Throws**
+  /// - `ValidationException` — when one or more rules fail.
+  ///
+  /// ---
+  /// ### 📤 **Returns**
+  /// - A `Map<String, dynamic>` representing the validated request body.
+  ///
   Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
     final body = await json();
-    await Validator.validate(body, rules); // use passed rules, not hardcoded
+    await Validator.validate(body, rules);
     return body;
   }
 }

@@ -74,13 +74,15 @@ class Validator {
 
     // 🔹 1. Check for unknown fields
     for (final key in data.keys) {
+      // Skip confirmation fields like "password_confirmation" or "confirm_password"
+      if (key.endsWith('_confirmation') || key.startsWith('confirm_')) continue;
+
       if (!rules.containsKey(key)) {
         errors
             .putIfAbsent(key, () => [])
             .add('The field "$key" is not allowed.');
       }
     }
-
     bool isInt(num? value) => value is int;
     bool isString(dynamic value) => value is String;
     bool isList(dynamic value) => value is List;
@@ -181,6 +183,24 @@ class Validator {
         } else if (part.startsWith('max:')) {
           final val = int.tryParse(part.substring(4));
           if (val != null) maxLength = val;
+        } else if (part == 'confirmed') {
+          // Support both "password_confirmation" and "confirm_password"
+          final confirmField = data.containsKey('${field}_confirmation')
+              ? '${field}_confirmation'
+              : 'confirm_$field';
+
+          // When confirmation field does not exist
+          if (!data.containsKey(confirmField)) {
+            errors
+                .putIfAbsent(field, () => [])
+                .add('The $confirmField field is required for confirmation.');
+          }
+          // When it exists but doesn’t match
+          else if (data[confirmField] != value) {
+            errors
+                .putIfAbsent(field, () => [])
+                .add('The $field confirmation does not match.');
+          }
         }
       }
 

@@ -8,7 +8,7 @@ class QueryBuilder {
   final List<String> _wheres = [];
   final Map<String, dynamic> _bindings = {};
   int? _limit;
-  int _paramIndex = 1; // for @p1, @p2, ... bindings
+  int _paramIndex = 1;
 
   QueryBuilder({required this.table});
 
@@ -23,7 +23,13 @@ class QueryBuilder {
   /// WHERE clause
   QueryBuilder where(String field, String operator, dynamic value) {
     final paramName = 'p${_paramIndex++}';
-    _wheres.add('$field $operator @$paramName');
+
+    if (DB.driver == DBDriver.postgres) {
+      _wheres.add('$field $operator :$paramName');
+    } else {
+      _wheres.add('$field $operator ?');
+    }
+
     _bindings[paramName] = value;
     return this;
   }
@@ -42,12 +48,30 @@ class QueryBuilder {
     return 'SELECT $select FROM $table$whereClause$limitClause';
   }
 
+  /// Internal query executor
+  Future<List<Map<String, dynamic>>> _executeSelect(String sql) async {
+    final result = await DB.query(
+      sql,
+      namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
+      positionalParams:
+          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+    );
+
+    // Normalize maps and convert DateTime to ISO string
+    return result.map((row) {
+      return row.map((key, value) {
+        if (value is DateTime) {
+          return MapEntry(key.toString(), value.toIso8601String());
+        }
+        return MapEntry(key.toString(), value);
+      });
+    }).toList();
+  }
+
   /// Fetch all rows
   Future<List<Map<String, dynamic>>> get() async {
-    final conn = DB.instance;
     final sql = _buildSelectQuery();
-    final result = await conn.query(sql, namedParams: _bindings);
-    return result;
+    return await _executeSelect(sql);
   }
 
   /// Fetch first row
@@ -59,20 +83,18 @@ class QueryBuilder {
 
   /// INSERT
   Future<void> insert(Map<String, dynamic> data) async {
-    final conn = DB.instance;
     final fields = data.keys.join(', ');
-    final params = <String>[];
-    final bindings = <String, dynamic>{};
+    final placeholders = DB.driver == DBDriver.postgres
+        ? data.keys.map((k) => ':$k').join(', ')
+        : List.generate(data.length, (_) => '?').join(', ');
 
-    var i = 1;
-    data.forEach((k, v) {
-      final param = 'p${i++}';
-      params.add('@$param');
-      bindings[param] = v;
-    });
-
-    final sql = 'INSERT INTO $table ($fields) VALUES (${params.join(', ')})';
-    await conn.query(sql, namedParams: bindings);
+    final sql = 'INSERT INTO $table ($fields) VALUES ($placeholders)';
+    await DB.query(
+      sql,
+      namedParams: DB.driver == DBDriver.postgres ? data : null,
+      positionalParams:
+          DB.driver == DBDriver.mysql ? data.values.toList() : null,
+    );
   }
 
   /// UPDATE
@@ -81,20 +103,29 @@ class QueryBuilder {
       throw Exception('Update requires a where clause.');
     }
 
-    final conn = DB.instance;
     final setClauses = <String>[];
     final bindings = {..._bindings};
-    var i = bindings.length + 1;
 
-    data.forEach((k, v) {
-      final param = 'p${i++}';
-      setClauses.add('$k = @$param');
-      bindings[param] = v;
-    });
+    if (DB.driver == DBDriver.postgres) {
+      data.forEach((k, v) {
+        setClauses.add('$k = :$k');
+        bindings[k] = v;
+      });
+    } else {
+      data.forEach((k, v) {
+        setClauses.add('$k = ?');
+        bindings[k] = v;
+      });
+    }
 
     final sql =
         'UPDATE $table SET ${setClauses.join(', ')} WHERE ${_wheres.join(' AND ')}';
-    await conn.query(sql, namedParams: bindings);
+    await DB.query(
+      sql,
+      namedParams: DB.driver == DBDriver.postgres ? bindings : null,
+      positionalParams:
+          DB.driver == DBDriver.mysql ? bindings.values.toList() : null,
+    );
   }
 
   /// DELETE
@@ -104,6 +135,11 @@ class QueryBuilder {
     }
 
     final sql = 'DELETE FROM $table WHERE ${_wheres.join(' AND ')}';
-    await DB.query(sql, namedParams: _bindings);
+    await DB.query(
+      sql,
+      namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
+      positionalParams:
+          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+    );
   }
 }
