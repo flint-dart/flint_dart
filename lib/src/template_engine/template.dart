@@ -18,7 +18,8 @@ class FlintTemplateEngine {
     content = await _processLoops(content, context, templatePath);
     content = await _processIfs(content, context, templatePath);
     content = _processVariables(content, context);
-    content = _processComments(content);
+    content = _escapeHtml(content);
+    content = _escapeJson(content);
 
     return content;
   }
@@ -32,6 +33,7 @@ class FlintTemplateEngine {
     content = await _processLoops(content, context, '');
     content = await _processIfs(content, context, '');
     content = _processVariables(content, context);
+    content = _processComments(content);
     content = _processComments(content);
 
     return content;
