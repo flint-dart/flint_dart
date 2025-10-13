@@ -105,7 +105,35 @@ runTableRegistry([
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">void runTableRegistry(
+  <pre class="language-dart"><code class="language-dart">&#47;&#47; ignore: no_wildcard_variable_uses
+&#47;&#47;&#47; - [_] (`dynamic`, optional):
+&#47;&#47;&#47;   An unused positional parameter (reserved for isolate call compatibility).
+&#47;&#47;&#47; - [sendPort] (`SendPort?`, optional):
+&#47;&#47;&#47;   A [`SendPort`](dart:isolate) used to send the computed schema differences
+&#47;&#47;&#47;   back to the main isolate. If `null`, the function will print an error
+&#47;&#47;&#47;   and exit.
+&#47;&#47;&#47;
+&#47;&#47;&#47; ### Behavior
+&#47;&#47;&#47; - If a table does not exist in the database, its `CREATE TABLE` SQL is added
+&#47;&#47;&#47;   to the diff list.
+&#47;&#47;&#47; - If a table exists, the `compareWith` method is used to generate the
+&#47;&#47;&#47;   necessary `ALTER TABLE` statements.
+&#47;&#47;&#47; - All differences are sent back to the main isolate via [sendPort].
+&#47;&#47;&#47;
+&#47;&#47;&#47; ### Example
+&#47;&#47;&#47; ```dart
+&#47;&#47;&#47; &#47;&#47; Inside table_registry.dart
+&#47;&#47;&#47; runTableRegistry([
+&#47;&#47;&#47;   usersTable,
+&#47;&#47;&#47;   postsTable,
+&#47;&#47;&#47; ], null, sendPort);
+&#47;&#47;&#47; ```
+&#47;&#47;&#47;
+&#47;&#47;&#47; Throws no exceptions directly — errors are logged and an empty list may be sent.
+&#47;&#47;&#47;
+&#47;&#47;&#47; Used internally by the Flint Dart CLI.
+&#47;&#47;&#47;
+void runTableRegistry(
   List&lt;Table&gt; tables, [
   dynamic _,
   SendPort? sendPort,
@@ -168,7 +196,7 @@ runTableRegistry([
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+5
+      1.0.0+6
   </span>
   
 </footer>

@@ -44,8 +44,15 @@
       
 <section class="desc markdown">
   <h1 id="flint-dart-">Flint Dart 🔥</h1>
-<p><strong>Flint Dart</strong> is a minimal, expressive, and extensible server-side framework built with Dart. Inspired by the simplicity of Express.js and Laravel, Flint provides an elegant developer experience for building RESTful APIs and backend services with Dart.</p>
+<h3 id="-flint-dart">🚀 <strong>Flint Dart</strong></h3>
+<p><strong>Flint Dart</strong> is a high-performance, expressive, and extensible server-side framework built entirely with Dart.
+Designed for developers who demand speed and simplicity, it delivers everything you need to build RESTful APIs, authentication systems, and scalable backend services — all with clean, modern syntax and hot-reload precision.</p>
+<blockquote>
+<p>⚡ <strong>Build fast. Scale effortlessly.</strong>
+Flint Dart gives you the freedom to create powerful applications without the limits of rigid frameworks.</p>
+</blockquote>
 <p>Developed and maintained by <strong><a href="https://flintdart.eulogia.net">Eulogia Technologies</a></strong>.</p>
+<hr>
 <h2 id="-table-of-contents">📚 Table of Contents</h2>
 <table>
 <thead>
@@ -113,6 +120,7 @@
 <li>💡 Clean API design inspired by Flutter's widget philosophy</li>
 <li>ORM for MySQL/Postgres</li>
 <li>CLI for migrations, models, etc.</li>
+<li>Swagger docs</li>
 </ul>
 <hr>
 <h2 id="-getting-started">🚀 Getting Started</h2>
@@ -135,7 +143,7 @@ void main() {
   final app = Flint();
 
   app.get('/', (req, res) async {
-  return  res.send('Welcome to Flint Dart!');
+    return res.send('Welcome to Flint Dart!');
   });
 
   app.listen(3000);
@@ -289,7 +297,7 @@ dart pub get
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+5
+      1.0.0+6
   </span>
   
 </footer>

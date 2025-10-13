@@ -16,3 +16,6 @@ export 'src/validation/validator.dart';
 export 'src/extensions/oauth_extension.dart';
 export "src/websocket/websocket.dart";
 export 'src/websocket/websocket_manager.dart';
+export "src/mail/mail.dart";
+export 'src/mail/mail_config.dart';
+export 'src/mail/template_engine.dart';

@@ -79,15 +79,15 @@
   if (autoConnectDb) {
     _connectDatabaseInBackground();
   }
+  MailConfig.load();
   &#47;&#47; Hot reload parent process
   if (Platform.environment[&#39;FLINT_HOT&#39;] != &#39;1&#39;) {
     print(&#39;[FLINT] Starting with hot reload...&#39;);
-    final child = await Process.start(
-      &#39;dart&#39;,
-      [&#39;--enable-vm-service&#39;, &#39;run&#39;, &#39;flint_dart:hot_reload&#39;, rootPath],
-      environment: {&#39;FLINT_HOT&#39;: &#39;1&#39;},
-      mode: ProcessStartMode.inheritStdio,
-    );
+    final child = await Process.start(&#39;dart&#39;,
+        [&#39;--enable-vm-service&#39;, &#39;run&#39;, &#39;flint_dart:hot_reload&#39;, rootPath],
+        environment: {&#39;FLINT_HOT&#39;: &#39;1&#39;},
+        mode: ProcessStartMode.inheritStdio,
+        runInShell: true);
 
     ProcessSignal.sigint.watch().listen((_) async {
       print(&#39;\n[FLINT] Shutting down...&#39;);
@@ -211,7 +211,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+5
+      1.0.0+6
   </span>
   
 </footer>

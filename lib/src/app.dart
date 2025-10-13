@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flint_dart/src/database/db.dart';
+import 'package:flint_dart/src/mail/mail_config.dart';
 import 'package:flint_dart/src/route_builder.dart';
 import 'package:flint_dart/src/websocket/websocket_manager.dart';
 import 'package:flint_dart/src/websocket/ws_helper.dart';
@@ -345,6 +346,7 @@ class Flint {
     if (autoConnectDb) {
       _connectDatabaseInBackground();
     }
+    MailConfig.load();
     // Hot reload parent process
     if (Platform.environment['FLINT_HOT'] != '1') {
       print('[FLINT] Starting with hot reload...');

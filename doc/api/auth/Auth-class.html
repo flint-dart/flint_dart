@@ -162,7 +162,7 @@
     <dl class="properties">
         <dt id="config" class="property">
   <span class="name"><a href="../auth/Auth/config.html">config</a></span>
-  <span class="signature">&#8594; AuthConfig</span>
+  <span class="signature">&#8594; <a href="../auth/AuthConfig-class.html">AuthConfig</a></span>
   
 
 </dt>
@@ -178,15 +178,67 @@
   <section class="summary offset-anchor" id="static-methods">
     <h2>Static Methods</h2>
     <dl class="callables">
-        <dt id="login" class="callable">
-  <span class="name"><a href="../auth/Auth/login.html">login</a></span><span class="signature">(<wbr><span class="parameter" id="login-param-email"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">email</span>, </span><span class="parameter" id="login-param-password"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">password</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>&gt;</span></span>
+        <dt id="generateToken" class="callable">
+  <span class="name"><a href="../auth/Auth/generateToken.html">generateToken</a></span><span class="signature">(<wbr><span class="parameter" id="generateToken-param-userData"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">userData</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>
   </span>
   
 
 </dt>
 <dd>
-  Email/password login
+  Generate JWT token from user data
+  
+
+</dd>
+
+        <dt id="login" class="callable">
+  <span class="name"><a href="../auth/Auth/login.html">login</a></span><span class="signature">(<wbr><span class="parameter" id="login-param-email"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">email</span>, </span><span class="parameter" id="login-param-password"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">password</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Email/password login - returns user data
+  
+
+</dd>
+
+        <dt id="loginWithApple" class="callable">
+  <span class="name"><a href="../auth/Auth/loginWithApple.html">loginWithApple</a></span><span class="signature">(<wbr>{<span class="parameter" id="loginWithApple-param-identityToken"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">identityToken</span>, </span><span class="parameter" id="loginWithApple-param-authorizationCode"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">authorizationCode</span>, </span><span class="parameter" id="loginWithApple-param-userData"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">userData</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Apple Sign In - returns user data without saving
+  
+
+</dd>
+
+        <dt id="loginWithFacebook" class="callable">
+  <span class="name"><a href="../auth/Auth/loginWithFacebook.html">loginWithFacebook</a></span><span class="signature">(<wbr>{<span class="parameter" id="loginWithFacebook-param-accessToken"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">accessToken</span>, </span><span class="parameter" id="loginWithFacebook-param-code"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">code</span>, </span><span class="parameter" id="loginWithFacebook-param-callbackPath"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">callbackPath</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Facebook OAuth - returns user data without saving
+  
+
+</dd>
+
+        <dt id="loginWithGitHub" class="callable">
+  <span class="name"><a href="../auth/Auth/loginWithGitHub.html">loginWithGitHub</a></span><span class="signature">(<wbr>{<span class="parameter" id="loginWithGitHub-param-code"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">code</span>, </span><span class="parameter" id="loginWithGitHub-param-callbackPath"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">callbackPath</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  GitHub OAuth - returns user data without saving
   
 
 </dd>
@@ -199,7 +251,59 @@
 
 </dt>
 <dd>
-  Google OAuth login
+  Google OAuth - returns user data without saving
+  
+
+</dd>
+
+        <dt id="register" class="callable">
+  <span class="name"><a href="../auth/Auth/register.html">register</a></span><span class="signature">(<wbr>{<span class="parameter" id="register-param-email"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">email</span>, </span><span class="parameter" id="register-param-password"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">password</span>, </span><span class="parameter" id="register-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">name</span>, </span><span class="parameter" id="register-param-additionalData"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">additionalData</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Register new user - returns user data
+  
+
+</dd>
+
+        <dt id="saveProviderUser" class="callable">
+  <span class="name"><a href="../auth/Auth/saveProviderUser.html">saveProviderUser</a></span><span class="signature">(<wbr>{<span class="parameter" id="saveProviderUser-param-providerUserData"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">providerUserData</span>, </span><span class="parameter" id="saveProviderUser-param-additionalData"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">additionalData</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Save provider user to database (optional) - returns saved user data
+  
+
+</dd>
+
+        <dt id="verifyGoogleToken" class="callable">
+  <span class="name"><a href="../auth/Auth/verifyGoogleToken.html">verifyGoogleToken</a></span><span class="signature">(<wbr><span class="parameter" id="verifyGoogleToken-param-idToken"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">idToken</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Verify Google token - returns user data
+  
+
+</dd>
+
+        <dt id="verifyToken" class="callable">
+  <span class="name"><a href="../auth/Auth/verifyToken.html">verifyToken</a></span><span class="signature">(<wbr><span class="parameter" id="verifyToken-param-token"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span> <span class="parameter-name">token</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Verify JWT token
   
 
 </dd>
@@ -231,7 +335,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+5
+      1.0.0+6
   </span>
   
 </footer>

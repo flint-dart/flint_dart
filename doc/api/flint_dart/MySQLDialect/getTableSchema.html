@@ -98,7 +98,6 @@ Future&lt;Table?&gt; getTableSchema(String tableName) async {
       final isAutoIncrement =
           (row[&#39;EXTRA&#39;] as String?)?.contains(&#39;auto_increment&#39;) ?? false;
       final maxLength = parseInt(row[&quot;CHARACTER_MAXIMUM_LENGTH&quot;]);
-      ;
 
       final columnType = _mysqlTypeToColumnType(dataType, maxLength);
 
@@ -149,7 +148,7 @@ Future&lt;Table?&gt; getTableSchema(String tableName) async {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+5
+      1.0.0+6
   </span>
   
 </footer>
