@@ -70,7 +70,11 @@
   <pre class="language-dart"><code class="language-dart">Map&lt;String, dynamic&gt;? verifyToken(String token) {
   try {
     final jwt = JWT.verify(token, SecretKey(secretKey));
-    return jwt.payload;
+    if (jwt.payload is Map) {
+      return jwt.payload as Map&lt;String, dynamic&gt;;
+    } else {
+      return null;
+    }
   } catch (e) {
     return null;
   }
@@ -102,7 +106,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+6
+      1.0.0+7
   </span>
   
 </footer>

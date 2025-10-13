@@ -184,9 +184,44 @@ final payload = JwtUtil.verifyToken(token);
 <h3 id="password-hashing">Password Hashing</h3>
 <pre class="language-bash"><code class="language-bash">final hash = Hashing.hashPassword('mySecret');
 final isValid = Hashing.verifyPassword('mySecret', hash);
+
+
+
+
+## 🧩 WebSocket System (Major Upgrade)
+
+### 🔁 Socket.IO–like API
+Flint now ships with an easy-to-use WebSocket engine with event-based communication:
+
+```dart
+app.ws('/chat', (socket, params) {
+  socket.on('message', (data) {
+    print('💬 ${socket.id} says: $data');
+    socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
+  });
+});
 </code></pre>
-<h3 id="-project-structure">📁 Project Structure</h3>
-<pre class="language-bash"><code class="language-bash">lib/
+<p>Client-side:</p>
+<pre class="language-dart"><code class="language-dart">final ws = FlintWebSocketClient("wss://api.example.com/chat");
+ws.on('message', (data) =&gt; print("📩 $data"));
+ws.emit('message', {'text': 'Hello World'});
+</code></pre>
+<hr>
+<h3 id="-core-features">💬 Core Features</h3>
+<ul>
+<li><strong><code>.emit(event, data)</code></strong> → Send named events easily</li>
+<li><strong><code>.on(event, callback)</code></strong> → Listen for specific events</li>
+<li><strong><code>.onMessage()</code></strong> and <strong><code>.onJsonMessage()</code></strong> remain supported for backward compatibility</li>
+<li><strong><code>.join(room)</code></strong> and <strong><code>.leave(room)</code></strong> for group messaging</li>
+<li><strong><code>.broadcast()</code></strong> and <strong><code>.broadcastToRoom()</code></strong> for real-time updates</li>
+<li><strong>Auto Reconnect</strong> on the client when connection drops</li>
+<li><strong>JWT Support</strong> using the same middleware chain as HTTP routes</li>
+<li><strong>Auth Middleware</strong> can now</li>
+</ul>
+<pre class="language-dart"><code>  ### 📁 Project Structure
+
+```bash
+lib/
 ├── main.dart
 ├── src/
 │   ├── app.dart
@@ -297,7 +332,7 @@ dart pub get
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+6
+      1.0.0+7
   </span>
   
 </footer>

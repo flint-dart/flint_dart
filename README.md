@@ -130,6 +130,44 @@ final payload = JwtUtil.verifyToken(token);
 ```bash
 final hash = Hashing.hashPassword('mySecret');
 final isValid = Hashing.verifyPassword('mySecret', hash);
+
+
+
+
+## 🧩 WebSocket System (Major Upgrade)
+
+### 🔁 Socket.IO–like API
+Flint now ships with an easy-to-use WebSocket engine with event-based communication:
+
+```dart
+app.ws('/chat', (socket, params) {
+  socket.on('message', (data) {
+    print('💬 ${socket.id} says: $data');
+    socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
+  });
+});
+````
+
+Client-side:
+
+```dart
+final ws = FlintWebSocketClient("wss://api.example.com/chat");
+ws.on('message', (data) => print("📩 $data"));
+ws.emit('message', {'text': 'Hello World'});
+```
+
+---
+
+### 💬 Core Features
+
+* **`.emit(event, data)`** → Send named events easily
+* **`.on(event, callback)`** → Listen for specific events
+* **`.onMessage()`** and **`.onJsonMessage()`** remain supported for backward compatibility
+* **`.join(room)`** and **`.leave(room)`** for group messaging
+* **`.broadcast()`** and **`.broadcastToRoom()`** for real-time updates
+* **Auto Reconnect** on the client when connection drops
+* **JWT Support** using the same middleware chain as HTTP routes
+* **Auth Middleware** can now 
 ```
   ### 📁 Project Structure
 
