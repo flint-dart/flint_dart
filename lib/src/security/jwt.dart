@@ -16,7 +16,11 @@ class FlintJwt {
   Map<String, dynamic>? verifyToken(String token) {
     try {
       final jwt = JWT.verify(token, SecretKey(secretKey));
-      return jwt.payload;
+      if (jwt.payload is Map) {
+        return jwt.payload as Map<String, dynamic>;
+      } else {
+        return null;
+      }
     } catch (e) {
       return null;
     }

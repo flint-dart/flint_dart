@@ -1,5 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/src/mail/mail.dart'; // hypothetical Flint env helper
 
 class MailConfig {
   static void load() {
