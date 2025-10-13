@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flint_dart/flint_dart.dart';
 import 'package:sample/src/middlewares/auth_middleware.dart';
+import 'package:sample/src/routes/auth_routes.dart';
 import 'package:sample/src/routes/user_routes.dart';
 
 void main() {
@@ -11,6 +12,8 @@ void main() {
     autoConnectDb: true,
     viewPath: 'lib/src/views',
   );
+
+  app.use(LoggerMiddleware());
 
   app.get('/', (req, res) async {
     return res.view("test_ws", data: {"name": "ademola", "age": 12});
@@ -199,7 +202,7 @@ void main() {
     });
   });
 
-  // app.mount("/auth", authRoutes);
+  app.mount("/auth", authRoutes);
   app.listen(3000);
 }
 

@@ -47,7 +47,7 @@ class User extends Model<User> {
           Column(
               name: 'created_at',
               type: ColumnType.datetime,
-              defaultValue: Default.currentTimestamp()),
+              defaultValue: Default.currentDate()),
           Column(
               name: 'updated_at',
               type: ColumnType.datetime,
