@@ -6,6 +6,7 @@ import 'package:flint_dart/src/cli/create_project_command.dart';
 import 'package:flint_dart/src/cli/db_commands.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/cli/make_controller_command.dart';
+import 'package:flint_dart/src/cli/make_mail_command.dart';
 import 'package:flint_dart/src/cli/make_middleware_command.dart';
 import 'package:flint_dart/src/cli/make_model_command.dart';
 
@@ -18,6 +19,7 @@ final Map<String, FlintCommand> commands = {
   'make:controller': MakeControllerCommand(), // ✅ Add this
   'make:middleware': MakeMiddlewareCommand(), // ✅ Add this
   'docs:generate': GenerateDocsCommand(), // ✅ Add this
+  'make:mail': MakeMailCommand(), // ✅ Add this line
 };
 void main(List<String> args) async {
   if (args.isEmpty || !commands.containsKey(args[0])) {
