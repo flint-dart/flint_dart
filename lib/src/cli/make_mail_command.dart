@@ -23,7 +23,7 @@ class MakeMailCommand extends FlintCommand {
     }
 
     final name = _toSnakeCase(rawName);
-    final className = _toPascalCase(rawName) + 'Mail';
+    final className = '${_toPascalCase(rawName)}Mail';
 
     try {
       await _createMailFiles(name, className);
@@ -163,7 +163,7 @@ class $className extends Mailable {
     if (input.isEmpty) return input;
 
     final regex = RegExp(r'(?<=[a-z])[A-Z]');
-    return input.replaceAllMapped(regex, (m) => ' ${m} ').toLowerCase();
+    return input.replaceAllMapped(regex, (m) => ' $m ').toLowerCase();
   }
 
   String _toPascalCase(String input) {

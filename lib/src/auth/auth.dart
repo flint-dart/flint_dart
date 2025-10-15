@@ -237,8 +237,8 @@ class Auth {
     }
 
     // Generate verification token
-    final token = Hashing().hash(
-        DateTime.now().millisecondsSinceEpoch.toString() + email + 'verify');
+    final token = Hashing()
+        .hash('${DateTime.now().millisecondsSinceEpoch}${email}verify');
     final tokenHash = Hashing().hash(token);
 
     // Store token in database with expiry (24 hours)

@@ -75,11 +75,6 @@ class AuthController {
   // Private email methods
   Future<void> _sendWelcomeEmail(user) async {
     try {
-      // await WelcomeMail(
-      //   recipientName: user["name"],
-      //   recipientEmail: user["email"],
-      // ).send();
-
       Mail().to(user["email"]).subject("Welcome").text("testing").sendMail();
 
       print('✅ Welcome email sent to ${user['email']}');
