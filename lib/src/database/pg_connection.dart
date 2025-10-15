@@ -54,9 +54,9 @@ class PgConnectionWrapper implements DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   }) async {
-    if (!isConnected) {
-      throw Exception("PostgreSQL not connected. Last error: $_lastError");
-    }
+    // if (!isConnected) {
+    //   throw Exception("PostgreSQL not connected. Last error: $_lastError");
+    // }
 
     try {
       // Convert named parameters to positional parameters if provided

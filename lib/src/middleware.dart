@@ -47,6 +47,12 @@ class ExceptionMiddleware extends Middleware {
           status: 500,
         );
       } on PgException catch (e) {
+        final msg = e.message.toLowerCase();
+        if (msg.contains('does not exist') || msg.contains('42703')) {
+          // Ignore silent internal checks
+          print('ℹ️ Ignoring internal column check error: $msg');
+          return await next(req, res);
+        }
         return res.json(
           {
             "status": false,
@@ -55,6 +61,14 @@ class ExceptionMiddleware extends Middleware {
           status: 500,
         );
       } on MySQLClientException catch (e) {
+        final msg = e.message.toLowerCase();
+        if (msg.contains('unknown column') ||
+            msg.contains('does not exist') ||
+            msg.contains('42703')) {
+          // Ignore silent internal checks
+          print('ℹ️ Ignoring internal column check error: $msg');
+          return await next(req, res);
+        }
         return res.json(
           {
             "status": false,
@@ -63,6 +77,14 @@ class ExceptionMiddleware extends Middleware {
           status: 500,
         );
       } on MySQLException catch (e) {
+        final msg = e.message.toLowerCase();
+        if (msg.contains('unknown column') ||
+            msg.contains('does not exist') ||
+            msg.contains('42703')) {
+          // Ignore silent internal checks
+          print('ℹ️ Ignoring internal column check error: $msg');
+          return await next(req, res);
+        }
         return res.json(
           {
             "status": false,
@@ -79,6 +101,14 @@ class ExceptionMiddleware extends Middleware {
           status: 500,
         );
       } on Exception catch (e) {
+        final msg = e.toString().toLowerCase();
+        if (msg.contains('unknown column') ||
+            msg.contains('does not exist') ||
+            msg.contains('42703')) {
+          // Ignore silent internal checks
+          print('ℹ️ Ignoring internal column check error: $msg');
+          return await next(req, res);
+        }
         return res.json(
           {
             "status": false,

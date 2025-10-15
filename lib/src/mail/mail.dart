@@ -4,6 +4,7 @@ import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
 class Mail {
+  // ---- Static SMTP config ----
   static SmtpServer? _server;
   static String? _from;
 
@@ -16,7 +17,7 @@ class Mail {
 
   Mail();
 
-  // ---- Static configuration ----
+  // ---- Setup once ----
   static void setup({
     required String host,
     required int port,
@@ -34,6 +35,7 @@ class Mail {
       allowInsecure: false,
     );
     _from = username;
+    print('📧 Mail server configured for $_from@$host');
   }
 
   // ---- Chainable API ----
@@ -42,7 +44,6 @@ class Mail {
     return this;
   }
 
-  /// Add multiple recipients at once
   Mail toMany(List<String> emails) {
     _to.addAll(emails);
     return this;
@@ -83,29 +84,42 @@ class Mail {
     return this;
   }
 
-  // ---- Fallback logic ----
+  // ---- Message builder ----
   Message _buildMessage() {
-    final message = Message()
-      ..from = Address(_from ?? '')
+    if (_to.isEmpty && _cc.isEmpty && _bcc.isEmpty) {
+      throw Exception('No recipients specified.');
+    }
+
+    if (_subject == null && _text == null && _html == null) {
+      throw Exception('Message has no content.');
+    }
+
+    if (_from == null || _from!.isEmpty) {
+      throw Exception('From address not set. Call Mail.setup() first.');
+    }
+
+    print('📧 Building message from $_from to $_to');
+
+    final msg = Message()
+      ..from = Address(_from!, 'Flint Dart')
       ..recipients.addAll(_to)
       ..ccRecipients.addAll(_cc)
       ..bccRecipients.addAll(_bcc)
       ..subject = _subject ?? '';
 
-    // Fallback: if only HTML is provided, extract plain text automatically
     if (_html != null && _text == null) {
       final plain = _html!
-          .replaceAll(RegExp(r'<[^>]*>'), '') // strip tags
+          .replaceAll(RegExp(r'<[^>]*>'), '')
           .replaceAll('&nbsp;', ' ')
           .trim();
-      message.text = plain;
+      msg.text = plain;
     } else if (_text != null) {
-      message.text = _text;
+      msg.text = _text;
     }
 
-    if (_html != null) message.html = _html;
+    if (_html != null) msg.html = _html;
 
-    return message;
+    return msg;
   }
 
   // ---- Send immediately ----
@@ -114,25 +128,32 @@ class Mail {
       throw Exception('Mail not configured. Call Mail.setup() first.');
     }
 
-    final message = _buildMessage();
-
     try {
-      await send(message, _server!);
-      print('✅ Mail sent to: ${_to.join(", ")}'
-          '${_cc.isNotEmpty ? ", cc: ${_cc.join(", ")}" : ""}'
-          '${_bcc.isNotEmpty ? ", bcc: ${_bcc.join(", ")}" : ""}');
+      final msg = _buildMessage();
+      await send(msg, _server!);
+      print('✅ Mail sent to: ${_to.join(", ")}');
+    } on MailerException catch (e) {
+      print('❌ MailerException: ${e.problems.map((p) => p.code).join(", ")}');
     } catch (e) {
       print('❌ Failed to send mail: $e');
     }
   }
 
-  // ---- Send asynchronously (queue) ----
+  // ---- Send asynchronously (background isolate) ----
   Future<void> queue() async {
     if (_server == null) {
       throw Exception('Mail not configured. Call Mail.setup() first.');
     }
 
-    final message = _buildMessage();
+    final mailData = {
+      'from': _from,
+      'to': _to,
+      'cc': _cc,
+      'bcc': _bcc,
+      'subject': _subject,
+      'text': _text,
+      'html': _html,
+    };
 
     final serverData = {
       'host': _server!.host,
@@ -143,15 +164,25 @@ class Mail {
     };
 
     await Isolate.spawn(_sendInBackground, {
-      'message': message,
+      'message': mailData,
       'server': serverData,
     });
   }
 
-  // ---- Isolate worker ----
+  // ---- Background worker ----
   static Future<void> _sendInBackground(Map data) async {
-    final msg = data['message'] as Message;
-    final serverData = data['server'] as Map;
+    final msgData = Map<String, dynamic>.from(data['message']);
+    final serverData = Map<String, dynamic>.from(data['server']);
+
+    final msg = Message()
+      ..from = Address(msgData['from'] ?? 'noreply@domain.com')
+      ..recipients.addAll(List<String>.from(msgData['to'] ?? []))
+      ..ccRecipients.addAll(List<String>.from(msgData['cc'] ?? []))
+      ..bccRecipients.addAll(List<String>.from(msgData['bcc'] ?? []))
+      ..subject = msgData['subject'] ?? ''
+      ..text = msgData['text']
+      ..html = msgData['html'];
+
     final server = SmtpServer(
       serverData['host'],
       port: serverData['port'],
@@ -162,7 +193,7 @@ class Mail {
 
     try {
       await send(msg, server);
-      print('📬 [Queued] Mail sent to: ${msg.recipients}');
+      print('📬 [Queued] Mail sent to: ${msg.recipients.join(", ")}');
     } catch (e) {
       print('⚠️ [Queued] Failed to send mail: $e');
     }

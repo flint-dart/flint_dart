@@ -511,37 +511,22 @@ class Auth {
 
   static Future<bool> _columnExists(String tableName, String columnName) async {
     try {
-      // Method 1: Try to select the column with a simple condition that should work
-      // Use a condition that's always true but uses the column
-      await QueryBuilder(table: tableName)
-          .select([columnName])
-          .where(
-              columnName, '=', columnName) // This will use the column in WHERE
-          .limit(1)
-          .first();
+      await DB.execute('SELECT $columnName FROM $tableName LIMIT 0');
       return true;
     } catch (e) {
-      // Method 2: If that fails, try a raw query approach
-      try {
-        // Use a more direct approach with raw SQL
-        await DB.execute('''
-          SELECT $columnName FROM $tableName LIMIT 1
-        ''');
-        return true;
-      } catch (e2) {
-        // Check if it's a "column not found" error
-        final errorString = e2.toString().toLowerCase();
-        if (errorString.contains('column') &&
-            (errorString.contains('not found') ||
-                errorString.contains('does not exist') ||
-                errorString.contains('no such column'))) {
-          return false;
-        }
+      final err = e.toString().toLowerCase();
 
-        // For other errors, log and assume the column doesn't exist to be safe
-        print('⚠️ Could not determine if column $columnName exists: $e2');
+      // MySQL and PostgreSQL error patterns
+      if (err.contains('does not exist') ||
+          err.contains('no such column') ||
+          err.contains('unknown column') || // ✅ MySQL version
+          err.contains('42703')) {
+        // ✅ PostgreSQL error code
         return false;
       }
+
+      print('⚠️ Could not determine if column $columnName exists: $e');
+      return false;
     }
   }
 
@@ -708,4 +693,6 @@ class Auth {
 
     print('✅ Framework auth tables created successfully');
   }
+
+  static Future<void> ensureMigrationsRun() async {}
 }
