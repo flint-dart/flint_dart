@@ -8,7 +8,8 @@ class MailConfig {
     final username = FlintEnv.get('MAIL_USERNAME', '');
     final password = FlintEnv.get('MAIL_PASSWORD', '');
     final encryption = FlintEnv.get('MAIL_ENCRYPTION', 'tls');
-
+    final fromEmail = FlintEnv.get('MAIL_FROM_ADDRESS', 'tls');
+    final fromName = FlintEnv.get("MAIL_FROM_NAME", "Flint dart");
     final useSSL = encryption.toLowerCase() == 'ssl';
     final useTLS = encryption.toLowerCase() == 'tls';
 
@@ -19,6 +20,8 @@ class MailConfig {
             port: port,
             username: username,
             password: password,
+            fromAddress: fromEmail,
+            fromName: fromName,
             useSSL: useSSL,
             useTLS: useTLS);
         break;
@@ -29,6 +32,8 @@ class MailConfig {
             username: username,
             password: password,
             useSSL: useSSL,
+            fromAddress: fromEmail,
+            fromName: fromName,
             useTLS: useTLS);
         break;
       case 'zoho':
@@ -37,6 +42,8 @@ class MailConfig {
             port: port,
             username: username,
             password: password,
+            fromAddress: fromEmail,
+            fromName: fromName,
             useSSL: useSSL,
             useTLS: useTLS);
         break;
@@ -46,6 +53,8 @@ class MailConfig {
             port: port,
             username: username,
             password: password,
+            fromAddress: fromEmail,
+            fromName: fromName,
             useSSL: useSSL,
             useTLS: useTLS);
         break;
@@ -55,6 +64,8 @@ class MailConfig {
             port: port,
             username: username,
             password: password,
+            fromAddress: fromEmail,
+            fromName: fromName,
             useSSL: useSSL,
             useTLS: useTLS);
         break;
@@ -64,6 +75,8 @@ class MailConfig {
             port: port,
             username: username,
             password: password,
+            fromAddress: fromEmail,
+            fromName: fromName,
             useSSL: useSSL,
             useTLS: useTLS);
     }

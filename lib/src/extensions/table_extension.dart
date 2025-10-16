@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/db.dart';
 
+import '../env_parser.dart';
+
 extension ColumnSQL on Column {
   String mysqlType() {
     switch (type) {
@@ -74,6 +76,20 @@ extension TableSQL on Table {
 
     for (var name in oldCols.keys) {
       if (!newCols.containsKey(name)) {
+        final authTable = FlintEnv.get('AUTH_TABLE', "users");
+        final providerCol = FlintEnv.get('AUTH_PROVIDER_COLUMN', "provider");
+        final providerIdCol =
+            FlintEnv.get('AUTH_PROVIDER_ID_COLUMN', 'provider_id');
+
+        if (name == 'created_at' || name == 'updated_at') continue;
+
+        if (authTable == updated.name && name == providerIdCol ||
+            name == providerCol ||
+            name == 'email_verified_at' ||
+            name == 'is_verified') {
+          continue;
+        }
+
         changes.add('DROP COLUMN `$name`');
       }
     }
@@ -137,6 +153,21 @@ extension TableSQL on Table {
     }
 
     for (var name in oldCols.keys) {
+      if (name == 'created_at' || name == 'updated_at') continue;
+      final authTable = FlintEnv.get('AUTH_TABLE', "users");
+      final providerCol = FlintEnv.get('AUTH_PROVIDER_COLUMN', "provider");
+      final providerIdCol =
+          FlintEnv.get('AUTH_PROVIDER_ID_COLUMN', 'provider_id');
+
+      if (name == 'created_at' || name == 'updated_at') continue;
+
+      if (authTable == updated.name && name == providerIdCol ||
+          name == providerCol ||
+          name == 'email_verified_at' ||
+          name == 'is_verified') {
+        continue;
+      }
+
       if (!newCols.containsKey(name)) {
         changes.add('DROP COLUMN "$name"');
       }

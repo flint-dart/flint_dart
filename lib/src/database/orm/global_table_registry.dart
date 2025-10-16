@@ -49,19 +49,18 @@ void runTableRegistry(
   if (sendPort == null) {
     print(
         "❌ Error: runTableRegistry must be called via the Flint CLI isolate.");
-    return;
+    Isolate.exit(); // ← Add this
+    // return;
   }
 
   final List<String> diffs = [];
 
   try {
     for (final table in tables) {
-      // diffs.add(await table.toCreateSQL());
-
       final existingTable = await getTableSchema(table.name);
 
       if (existingTable == null) {
-        // Table doesn’t exist → create it
+        // Table doesn't exist → create it
         diffs.add(table.toCreateSQL());
       } else {
         // Table exists → diff it
@@ -75,6 +74,9 @@ void runTableRegistry(
 
   print(diffs);
 
-  // // ✅ Always send result back, even if empty
+  // ✅ Always send result back, even if empty
   sendPort.send(diffs);
+
+  // ✅ CRITICAL: Exit the isolate to stop the CLI process
+  Isolate.exit();
 }

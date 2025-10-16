@@ -458,8 +458,6 @@ class Flint {
       _dbInitialized = true;
       print('[FLINT] Database auto-connected via .env');
     } catch (e) {
-      print('[FLINT] ⚠️ Could not auto-connect to database: $e');
-      // retry later if you want
       Future.delayed(const Duration(seconds: 10), _connectDatabaseInBackground);
     }
   }

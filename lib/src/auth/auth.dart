@@ -553,16 +553,6 @@ class Auth {
     }
 
     // Only include created_at if the column exists
-    final createdAtExists = await _columnExists(config.table, 'created_at');
-    if (createdAtExists) {
-      data['created_at'] = DateTime.now().toIso8601String();
-    }
-
-    // Only include updated_at if the column exists
-    final updatedAtExists = await _columnExists(config.table, 'updated_at');
-    if (updatedAtExists) {
-      data['updated_at'] = DateTime.now().toIso8601String();
-    }
 
     // Only include provider columns if they exist and are provided in additionalData
     if (config.providerColumn != null) {
@@ -625,7 +615,6 @@ class Auth {
 
       _frameworkTablesEnsured = true;
     } catch (e) {
-      print('⚠️ Failed to ensure framework auth tables exist: $e');
       throw AuthException('Framework table setup failed: $e');
     }
   }

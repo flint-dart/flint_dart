@@ -85,7 +85,6 @@ class DB {
           throw Exception(
               "❌ Could not connect to DB after $retries attempts: $e");
         }
-        print("⏳ DB retry $i/$retries in ${delaySeconds}s...");
         await Future.delayed(Duration(seconds: delaySeconds));
       }
     }
@@ -241,24 +240,41 @@ class DB {
     await _ensureConnected();
 
     try {
+      final String sql;
+      final Map<String, dynamic> params = {'table': tableName};
+
       if (_driver == DBDriver.postgres) {
-        final result = await query(
-          "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = :table)",
-          namedParams: {'table': tableName},
-        );
-        return result.first['exists'] as bool;
+        sql = '''
+        SELECT COUNT(*) > 0 AS exists
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = :table
+      ''';
       } else {
-        final result = await query(
-          "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
-          positionalParams: [tableName],
-        );
-        final count = result.first['count'];
-        if (count is String) return int.parse(count) > 0;
-        if (count is int) return count > 0;
-        if (count is BigInt) return count > BigInt.zero;
-        return (count as num) > 0;
+        sql = '''
+        SELECT COUNT(*) > 0 AS exists
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+        AND table_name = ?
+      ''';
       }
-    } catch (_) {
+
+      final result = await query(
+        sql,
+        positionalParams: _driver == DBDriver.mysql ? [tableName] : null,
+        namedParams: _driver == DBDriver.postgres ? params : null,
+      );
+
+      final exists = result.first['exists'];
+      if (exists is bool) return exists;
+      if (exists is int) return exists > 0;
+      if (exists is BigInt) return exists > BigInt.zero;
+      if (exists is String) {
+        return exists == '1' || exists.toLowerCase() == 'true';
+      }
+      return false;
+    } catch (e) {
+      print('⚠️ tableExists() failed: $e');
       return false;
     }
   }

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flint_dart/flint_ui.dart';
+import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:path/path.dart' as p;
 
@@ -16,6 +18,7 @@ enum RespondType {
 
   /// Plain text (text/plain)
   plain,
+  flint,
 }
 
 /// A wrapper around [HttpResponse] for sending HTTP responses in Flint Dart.
@@ -99,12 +102,13 @@ class Response {
   ///
   /// - If [type] is provided, it is used directly.
   /// - If not, the type is inferred from [data] (Map/List → JSON, HTML tags → HTML, otherwise plain text).
-  Response respond(
-    dynamic data, {
-    int? status,
-    RespondType? type,
-  }) {
+  Response respond(dynamic data,
+      {int? status, RespondType? type, bool? includePreview, String? title}) {
     try {
+      // Auto-detect FlintWidget
+      if (data is FlintWidget && type == null) {
+        type = RespondType.flint;
+      }
       type ??= _inferRespondType(data);
 
       switch (type) {
@@ -116,6 +120,18 @@ class Response {
           break;
         case RespondType.plain:
           send(data.toString(), status: status, contentType: 'text/plain');
+        case RespondType.flint:
+          if (data is FlintWidget) {
+            render(
+              data,
+              title: title,
+              status: status,
+              includePreview: includePreview == true,
+            );
+          } else {
+            throw ArgumentError('Data must be a FlintWidget for flint type');
+          }
+          break;
       }
     } catch (e) {
       raw.statusCode = 500;
@@ -127,13 +143,69 @@ class Response {
     return this; // ✅ return Response
   }
 
+  Response render(
+    FlintWidget widget, {
+    String? title,
+    int? status,
+    bool includePreview = false,
+  }) {
+    try {
+      raw.statusCode = status ?? raw.statusCode;
+      raw.headers.contentType = ContentType.html;
+
+      final html = includePreview
+          ? _generatePreviewHtml(widget, title ?? 'Flint Render')
+          : widget.toHtml();
+
+      raw.write(html);
+    } catch (e) {
+      raw.statusCode = 500;
+      raw.headers.contentType = ContentType.text;
+      raw.write('❌ Failed to render FlintWidget: ${e.runtimeType}');
+      print('[Flint] Render Error: $e');
+    }
+    close();
+    return this;
+  }
+
+  /// Renders a Mailable email template to HTML preview.
+  ///
+  /// [mailable] is the Mailable instance to render.
+  /// [includePreview] wraps the content in email preview interface if true.
+  Response renderEmail(
+    Mailable mailable, {
+    bool includePreview = true,
+  }) {
+    try {
+      raw.statusCode = 200;
+      raw.headers.contentType = ContentType.html;
+
+      final content = mailable.build();
+      final html = includePreview
+          ? _generatePreviewHtml(content, mailable.subject)
+          : content.toHtml();
+
+      raw.write(html);
+    } catch (e) {
+      raw.statusCode = 500;
+      raw.headers.contentType = ContentType.text;
+      raw.write('❌ Failed to render email: ${e.runtimeType}');
+      print('[Flint] Render Email Error: $e');
+    }
+    close();
+    return this;
+  }
+
   /// Attempts to guess the best [RespondType] based on [data].
   ///
   /// - Map/List → JSON
   /// - HTML-like string → HTML
   /// - Otherwise → Plain text
+  /// Now includes FlintWidget detection
   RespondType _inferRespondType(dynamic data) {
-    if (data is Map || data is List) {
+    if (data is FlintWidget) {
+      return RespondType.flint;
+    } else if (data is Map || data is List) {
       return RespondType.json;
     } else if (data is String &&
         (data.contains('<html') || data.contains('<!DOCTYPE html'))) {
@@ -235,6 +307,180 @@ class Response {
     await raw.close();
 
     return this;
+  }
+
+  /// Generates a preview HTML wrapper for FlintWidget content
+  String _generatePreviewHtml(FlintWidget content, String title) {
+    return '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview: $title</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .preview-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .preview-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: 0;
+        }
+        
+        .preview-header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .device-preview {
+            background: white;
+            border-radius: 0 0 12px 12px;
+            padding: 40px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .preview-controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .preview-controls button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+        }
+        
+        .preview-controls button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-1px);
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007cba;
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid #007cba;
+            border-radius: 6px;
+        }
+        
+        .back-link:hover {
+            background: #007cba;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .preview-controls {
+                flex-direction: column;
+            }
+            
+            .device-preview {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <div class="preview-header">
+            <h1>📧 $title</h1>
+            <p>Flint Widget Preview</p>
+            <div class="preview-controls">
+                <button onclick="copyHtml()">Copy HTML</button>
+                <button onclick="showHtml()">Show HTML Source</button>
+                <button onclick="showText()">Show Text Version</button>
+                <button onclick="showJson()">Show JSON</button>
+                <button onclick="downloadHtml()">Download HTML</button>
+            </div>
+        </div>
+        
+        <div class="device-preview">
+            ${content.toHtml()}
+        </div>
+        
+        <a href="javascript:history.back()" class="back-link">← Back</a>
+    </div>
+
+    <script>
+        const htmlContent = \`${content.toHtml().replaceAll('`', '\\`')}\`;
+        const textContent = \`${content.toText().replaceAll('`', '\\`')}\`;
+        const jsonContent = ${jsonEncode(content.toJson())};
+        
+        function copyHtml() {
+            navigator.clipboard.writeText(htmlContent).then(() => {
+                alert('✅ HTML copied to clipboard!');
+            }).catch(err => {
+                alert('❌ Failed to copy: ' + err);
+            });
+        }
+        
+        function showHtml() {
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(
+                '<!DOCTYPE html><html><head><title>HTML Source</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
+                htmlContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
+                '</body></html>'
+            );
+        }
+        
+        function showText() {
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(
+                '<!DOCTYPE html><html><head><title>Text Version</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
+                textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
+                '</body></html>'
+            );
+        }
+        
+        function showJson() {
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(
+                '<!DOCTYPE html><html><head><title>JSON Data</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
+                JSON.stringify(jsonContent, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
+                '</body></html>'
+            );
+        }
+        
+        function downloadHtml() {
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'flint-widget-${DateTime.now().millisecondsSinceEpoch}.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
+''';
   }
 }
 

@@ -6,7 +6,8 @@ import 'package:mailer/smtp_server.dart';
 class Mail {
   // ---- Static SMTP config ----
   static SmtpServer? _server;
-  static String? _from;
+  static String? _fromAddress;
+  static String? _fromName;
 
   final List<String> _to = [];
   final List<String> _cc = [];
@@ -23,6 +24,8 @@ class Mail {
     required int port,
     required String username,
     required String password,
+    required String fromAddress,
+    String fromName = 'Flint Dart',
     bool useSSL = false,
     bool useTLS = true,
   }) {
@@ -34,8 +37,9 @@ class Mail {
       ssl: useSSL,
       allowInsecure: false,
     );
-    _from = username;
-    print('📧 Mail server configured for $_from@$host');
+    _fromAddress = fromAddress;
+    _fromName = fromName;
+    print('📧 Mail server configured for $_fromName <$_fromAddress>@$host');
   }
 
   // ---- Chainable API ----
@@ -94,14 +98,14 @@ class Mail {
       throw Exception('Message has no content.');
     }
 
-    if (_from == null || _from!.isEmpty) {
+    if (_fromAddress == null || _fromAddress!.isEmpty) {
       throw Exception('From address not set. Call Mail.setup() first.');
     }
 
-    print('📧 Building message from $_from to $_to');
+    print('📧 Building message from $_fromName <$_fromAddress> to $_to');
 
     final msg = Message()
-      ..from = Address(_from!, 'Flint Dart')
+      ..from = Address(_fromAddress!, _fromName ?? 'Flint Dart')
       ..recipients.addAll(_to)
       ..ccRecipients.addAll(_cc)
       ..bccRecipients.addAll(_bcc)
@@ -133,9 +137,16 @@ class Mail {
       await send(msg, _server!);
       print('✅ Mail sent to: ${_to.join(", ")}');
     } on MailerException catch (e) {
-      print('❌ MailerException: ${e.problems.map((p) => p.code).join(", ")}');
+      print('❌ MailerException: $e');
+      if (e.problems.isNotEmpty) {
+        for (final problem in e.problems) {
+          print('  - ${problem.code}: ${problem.msg}');
+        }
+      }
+      rethrow;
     } catch (e) {
       print('❌ Failed to send mail: $e');
+      rethrow;
     }
   }
 
@@ -146,7 +157,8 @@ class Mail {
     }
 
     final mailData = {
-      'from': _from,
+      'fromAddress': _fromAddress,
+      'fromName': _fromName,
       'to': _to,
       'cc': _cc,
       'bcc': _bcc,
@@ -175,7 +187,10 @@ class Mail {
     final serverData = Map<String, dynamic>.from(data['server']);
 
     final msg = Message()
-      ..from = Address(msgData['from'] ?? 'noreply@domain.com')
+      ..from = Address(
+        msgData['fromAddress'] ?? 'noreply@domain.com',
+        msgData['fromName'] ?? 'Flint Dart',
+      )
       ..recipients.addAll(List<String>.from(msgData['to'] ?? []))
       ..ccRecipients.addAll(List<String>.from(msgData['cc'] ?? []))
       ..bccRecipients.addAll(List<String>.from(msgData['bcc'] ?? []))
