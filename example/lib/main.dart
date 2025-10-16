@@ -1,6 +1,10 @@
 import 'dart:convert';
 
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/mail.dart';
+import 'package:sample/mail/templates/order_confirmation_template.dart';
+import 'package:sample/mail/welcome_mail.dart'
+    show OrderConfirmationMail, PasswordResetMail, WelcomeMail;
 import 'package:sample/src/middlewares/auth_middleware.dart';
 import 'package:sample/src/routes/auth_routes.dart';
 import 'package:sample/src/routes/user_routes.dart';
@@ -18,7 +22,49 @@ void main() {
   app.get('/', (req, res) async {
     return res.view("test_ws", data: {"name": "ademola", "age": 12});
   });
+// In your preview server routes
+  app.get('/preview/email/:type', (req, res) async {
+    final type = req.params['type'];
 
+    Mailable mail;
+
+    switch (type) {
+      case 'welcome':
+        mail = WelcomeMail(
+          recipientName: 'Preview User',
+          recipientEmail: 'preview@example.com',
+          verificationUrl: 'https://example.com/verify/preview',
+          loginUrl: 'https://example.com/login',
+        );
+        break;
+
+      case 'password-reset':
+        mail = PasswordResetMail(
+          recipientName: 'Preview User',
+          recipientEmail: 'preview@example.com',
+          resetUrl: 'https://example.com/reset/preview',
+        );
+        break;
+
+      case 'order-confirmation':
+        mail = OrderConfirmationMail(
+          recipientName: 'Preview User',
+          recipientEmail: 'preview@example.com',
+          orderNumber: 'PREVIEW-123',
+          orderDate: DateTime.now(),
+          orderTotal: 99.99,
+          items: [
+            OrderItem(name: 'Preview Product', quantity: 1, price: 99.99),
+          ],
+        );
+        break;
+
+      default:
+        return res.status(404).json({'error': 'Template not found'});
+    }
+
+    return res.renderEmail(mail);
+  });
   app.get('/login', (req, res) async {
     return res.oAuthRedirect("google", callback: "/api/auth/google/callback");
   });

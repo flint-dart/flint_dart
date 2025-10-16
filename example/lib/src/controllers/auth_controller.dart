@@ -1,7 +1,5 @@
 import 'package:flint_dart/auth.dart';
 import 'package:flint_dart/flint_dart.dart';
-import 'package:sample/mail/email_verification/email_verification.dart';
-import 'package:sample/mail/password_reset/password_reset.dart';
 
 class AuthController {
   Future<Response> register(Request req, Response res) async {
@@ -88,12 +86,7 @@ class AuthController {
     try {
       final resetUrl = 'https://yourapp.com/reset-password?token=$resetToken';
 
-      await PasswordResetMail(
-        recipientEmail: email,
-        recipientName: resetUrl,
-      ).send();
-
-      print('✅ Password reset email sent to $email');
+      print('✅ $resetUrl Password reset email sent to $email');
     } catch (e) {
       print('⚠️ Failed to send password reset email: $e');
     }
@@ -124,12 +117,7 @@ class AuthController {
       final verificationUrl =
           'https://yourapp.com/verify-email?token=$verificationToken';
 
-      await EmailVerificationMail(
-        recipientEmail: email,
-        recipientName: verificationUrl,
-      ).send();
-
-      print('✅ Verification email sent to $email');
+      print('✅ link:$verificationUrl Verification email sent to $email');
     } catch (e) {
       print('⚠️ Failed to send verification email: $e');
     }

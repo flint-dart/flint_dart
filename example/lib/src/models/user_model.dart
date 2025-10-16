@@ -44,14 +44,6 @@ class User extends Model<User> {
             name: 'password',
             type: ColumnType.string,
           ),
-          Column(
-              name: 'created_at',
-              type: ColumnType.datetime,
-              defaultValue: Default.currentDate()),
-          Column(
-              name: 'updated_at',
-              type: ColumnType.datetime,
-              defaultValue: Default.currentTimestamp()),
         ],
       );
 }
