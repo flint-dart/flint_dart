@@ -1,5 +1,7 @@
 // lib/mail/templates/newsletter_template.dart
 
+import 'package:flint_dart/flint_ui.dart';
+
 class NewsletterTemplate extends FlintEmailTemplate {
   final String title;
   final String content;
@@ -83,7 +85,7 @@ class NewsletterTemplate extends FlintEmailTemplate {
           style: TextStyle(
             fontSize: 14,
             color: '#666666',
-            lineHeight: 1.6,
+            // lineHeight: 1.6,
           ),
           align: TextAlign.center,
         ),

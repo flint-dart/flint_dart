@@ -1,5 +1,7 @@
 // lib/mail/templates/order_confirmation_template.dart
 
+import 'package:flint_dart/flint_ui.dart';
+
 class OrderConfirmationTemplate extends FlintEmailTemplate {
   final String orderNumber;
   final DateTime orderDate;
@@ -361,7 +363,7 @@ class OrderConfirmationTemplate extends FlintEmailTemplate {
               style: TextStyle(
                 fontSize: 14,
                 color: '#666666',
-                lineHeight: 1.6,
+                // lineHeight: 1.6,
               ),
             ),
           ],
