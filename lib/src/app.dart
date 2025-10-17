@@ -343,10 +343,6 @@ class Flint {
   /// - Runs with hot reload during development unless `FLINT_HOT` is set.
   /// - Handles both HTTP and WebSocket upgrade requests.
   Future<void> listen(int port) async {
-    if (autoConnectDb) {
-      _connectDatabaseInBackground();
-    }
-    MailConfig.load();
     // Hot reload parent process
     if (Platform.environment['FLINT_HOT'] != '1') {
       print('[FLINT] Starting with hot reload...');
@@ -371,6 +367,10 @@ class Flint {
     try {
       server = await HttpServer.bind(InternetAddress.anyIPv4, port);
       print('Server running on http://localhost:$port');
+      if (autoConnectDb) {
+        _connectDatabaseInBackground();
+      }
+      MailConfig.load();
     } on SocketException catch (e) {
       print('[FLINT] ❌ ERROR: Could not bind to port $port. Is it in use?');
       print('[FLINT] 🔎 Details: ${e.message}');
@@ -454,7 +454,7 @@ class Flint {
 
   void _connectDatabaseInBackground() async {
     try {
-      await DB.autoConnect();
+      DB.autoConnect();
       _dbInitialized = true;
       print('[FLINT] Database auto-connected via .env');
     } catch (e) {

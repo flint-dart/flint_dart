@@ -2,10 +2,10 @@
 
 import 'package:flint_dart/flint_ui.dart';
 import 'package:flint_dart/mail.dart';
-import 'package:sample/mail/templates/newsletter_template.dart';
-import 'package:sample/mail/templates/order_confirmation_template.dart';
-import 'package:sample/mail/templates/password_reset_template.dart';
-import 'package:sample/mail/templates/welcome_mail_template.dart';
+import 'package:sample/src/mail/templates/newsletter_template.dart';
+import 'package:sample/src/mail/templates/order_confirmation_template.dart';
+import 'package:sample/src/mail/templates/password_reset_template.dart';
+import 'package:sample/src/mail/templates/welcome_mail_template.dart';
 
 class WelcomeMail extends TransactionalMailable {
   final String verificationUrl;

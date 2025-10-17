@@ -1,5 +1,6 @@
 import 'package:flint_dart/auth.dart';
 import 'package:flint_dart/flint_dart.dart';
+import 'package:sample/src/mail/welcome_mail.dart';
 
 class AuthController {
   Future<Response> register(Request req, Response res) async {
@@ -16,7 +17,15 @@ class AuthController {
     // );
 
     // Send welcome email
-    await _sendWelcomeEmail(data);
+    // await _sendWelcomeEmail(data);
+    var mail = WelcomeMail(
+      recipientName: 'Preview User',
+      recipientEmail: 'preview@example.com',
+      verificationUrl: 'https://example.com/verify/preview',
+      loginUrl: 'https://example.com/login',
+    );
+
+    await mail.send();
 
     return res.respond({"msg": "User created successfully", "data": data});
   }
@@ -71,16 +80,16 @@ class AuthController {
   }
 
   // Private email methods
-  Future<void> _sendWelcomeEmail(user) async {
-    try {
-      Mail().to(user["email"]).subject("Welcome").text("testing").sendMail();
+  // Future<void> _sendWelcomeEmail(user) async {
+  //   try {
+  //     Mail().to(user["email"]).subject("Welcome").text("testing").sendMail();
 
-      print('✅ Welcome email sent to ${user['email']}');
-    } catch (e) {
-      print('⚠️ Failed to send welcome email: $e');
-      // Don't throw - email failure shouldn't break registration
-    }
-  }
+  //     print('✅ Welcome email sent to ${user['email']}');
+  //   } catch (e) {
+  //     print('⚠️ Failed to send welcome email: $e');
+  //     // Don't throw - email failure shouldn't break registration
+  //   }
+  // }
 
   Future<void> _sendPasswordResetEmail(String email, String resetToken) async {
     try {

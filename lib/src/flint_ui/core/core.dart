@@ -8,3 +8,5 @@ export 'spacing.dart';
 export 'style.dart';
 export 'base_templates.dart';
 export 'image_style.dart';
+export 'colors.dart';
+export 'color_extensions.dart';

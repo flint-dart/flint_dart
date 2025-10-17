@@ -9,6 +9,7 @@ class TextStyle {
   final TextDecoration? decoration;
   final double? letterSpacing;
   final double? wordSpacing;
+  final double? lineHeight;
 
   const TextStyle({
     this.fontSize,
@@ -19,6 +20,7 @@ class TextStyle {
     this.decoration,
     this.letterSpacing,
     this.wordSpacing,
+    this.lineHeight,
   });
 
   TextStyle copyWith({
@@ -30,6 +32,7 @@ class TextStyle {
     TextDecoration? decoration,
     double? letterSpacing,
     double? wordSpacing,
+    double? lineHeight,
   }) {
     return TextStyle(
       fontSize: fontSize ?? this.fontSize,
@@ -40,6 +43,7 @@ class TextStyle {
       decoration: decoration ?? this.decoration,
       letterSpacing: letterSpacing ?? this.letterSpacing,
       wordSpacing: wordSpacing ?? this.wordSpacing,
+      lineHeight: lineHeight ?? this.lineHeight,
     );
   }
 
@@ -52,6 +56,7 @@ class TextStyle {
         if (decoration != null) 'decoration': decoration!.name,
         if (letterSpacing != null) 'letterSpacing': letterSpacing,
         if (wordSpacing != null) 'wordSpacing': wordSpacing,
+        if (lineHeight != null) 'lineHeight': lineHeight,
       };
 }
 

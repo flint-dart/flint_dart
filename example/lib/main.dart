@@ -2,12 +2,13 @@ import 'dart:convert';
 
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/mail.dart';
-import 'package:sample/mail/templates/order_confirmation_template.dart';
-import 'package:sample/mail/welcome_mail.dart'
-    show OrderConfirmationMail, PasswordResetMail, WelcomeMail;
+import 'package:sample/src/mail/templates/order_confirmation_template.dart';
+import 'package:sample/src/mail/welcome_mail.dart';
+
 import 'package:sample/src/middlewares/auth_middleware.dart';
 import 'package:sample/src/routes/auth_routes.dart';
 import 'package:sample/src/routes/user_routes.dart';
+import 'package:sample/src/views/welcome.dart';
 
 void main() {
   final app = Flint(
@@ -20,7 +21,7 @@ void main() {
   app.use(LoggerMiddleware());
 
   app.get('/', (req, res) async {
-    return res.view("test_ws", data: {"name": "ademola", "age": 12});
+    return res.render(Welcome());
   });
 // In your preview server routes
   app.get('/preview/email/:type', (req, res) async {

@@ -138,10 +138,10 @@ class WelcomeMailTemplate extends FlintEmailTemplate {
               style: ButtonStyle.primary().copyWith(
                 backgroundColor: theme.primaryColor,
                 textStyle: TextStyle(
-                  color: '#ffffff',
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
+                    color: '#ffffff',
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    backgroundColor: "#4eca78"),
               ),
               padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
               borderRadius: BorderRadius.circular(8),

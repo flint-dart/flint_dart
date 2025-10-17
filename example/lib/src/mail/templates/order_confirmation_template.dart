@@ -87,7 +87,12 @@ class OrderConfirmationTemplate extends FlintEmailTemplate {
         FlintRow(
           columnWidths: [50, 50],
           children: [
-            FlintBox(
+            FlintColumn(
+              backgroundColor: "#4eca78",
+              borderRadius: BorderRadius.circular(15),
+              border: BoxBorder(),
+              alignment: Alignment.center,
+              gap: 1,
               children: [
                 FlintText(
                   'Order Number',
@@ -97,18 +102,13 @@ class OrderConfirmationTemplate extends FlintEmailTemplate {
                     color: '#666666',
                   ),
                 ),
-                FlintBox(
-                  margin: EdgeInsets.only(top: 4),
-                  children: [
-                    FlintText(
-                      orderNumber,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: '#1a1a1a',
-                      ),
-                    ),
-                  ],
+                FlintText(
+                  orderNumber,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: '#1a1a1a',
+                  ),
                 ),
               ],
             ),
