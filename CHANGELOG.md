@@ -1,4 +1,128 @@
 
+# 🚀 Flint Dart — Version 1.0.0+9
+## 🧩 Database Enhancements
+
+### 🕓 Auto–Managed Timestamp Columns
+Flint now **automatically injects** `created_at` and `updated_at` columns into every table migration (if they don’t already exist).  
+
+No manual setup required — simply run your migrations, and Flint will ensure timestamp tracking is available on all models.
+
+✅ Works seamlessly for both **MySQL** and **PostgreSQL**.  
+
+Example result:
+
+```sql
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255),
+  email VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+🔐 Auth Table Enhancements
+
+When the table name matches your .env AUTH_TABLE (e.g. users), Flint automatically injects:
+
+provider → VARCHAR(100)
+
+provider_id → VARCHAR(255)
+
+This supports flexible login systems (Google, GitHub, Apple, etc.) out of the box.
+
+Env configuration:
+
+AUTH_TABLE=users
+AUTH_PROVIDER_COLUMN=provider
+AUTH_PROVIDER_ID_COLUMN=provider_id
+
+
+💡 If the table is not the auth table, these columns are skipped automatically.
+
+📫 Mail System Upgrade
+🧠 Smarter Configuration via .env
+
+Flint’s Mail system now automatically reads all SMTP credentials and settings directly from .env — no more hardcoding!
+
+MAIL_PROVIDER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=youremail@gmail.com
+MAIL_PASSWORD=yourpassword
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=youremail@gmail.com
+MAIL_FROM_NAME=Eulogia Technologies
+
+
+Supports Gmail, Outlook, Zoho, Mailgun, and SendGrid providers.
+
+⚙️ Automatic Mail Setup
+
+Mail configuration is auto-initialized using:
+
+MailConfig.load();
+
+
+This method:
+
+Detects provider from .env
+
+Sets up SMTP credentials
+
+Applies SSL/TLS automatically
+
+Prints configuration logs
+
+Example:
+
+📧 Mail configured for provider: gmail (youremail@gmail.com)
+
+🧰 Mail API Enhancements
+
+Added .from() support for custom senders via .env
+
+Better error handling for MailerException
+
+Background mail sending via .queue() using isolates
+
+Unified configuration across all major providers
+
+Automatic plain text fallback if HTML-only message
+
+await Mail()
+  .to("user@example.com")
+  .subject("Welcome to Flint Dart!")
+  .html("<h1>Hello!</h1>")
+  .sendMail();
+
+🪶 Internal Improvements
+
+Added default MAIL_FROM_ADDRESS fallback to username.
+
+Added MAIL_ENCRYPTION support (ssl / tls).
+
+Better debug messages for failed deliveries.
+
+Consistent initialization via MailConfig.load().
+
+📚 Documentation
+
+Added new Database Schema Enhancements section.
+
+Added Mail Setup Guide for all SMTP providers.
+
+Added .env examples for mail and auth settings.
+
+
+
+
+
+
+
+
+
+
 # 🚀 Flint Dart — Version 1.0.0+8
 # 🚀 Flint Dart — Version 1.0.0+7
 
@@ -7,6 +131,9 @@ Flint Dart continues to evolve into a complete backend framework for Dart  moder
 # 🚀 Flint Dart — Version 1.0.0+6
 
 Flint Dart continues to evolve into a complete backend framework for Dart developers — with Laravel-style syntax, modern tooling, and now a powerful real-time WebSocket system.
+
+
+
 
 ---
 
