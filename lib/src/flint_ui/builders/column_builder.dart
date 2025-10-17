@@ -2,10 +2,6 @@
 
 import 'package:flint_dart/flint_ui.dart';
 
-import '../core/core.dart';
-import '../widgets/flint_box.dart';
-import '../widgets/simple_column.dart';
-
 class FlintColumnBuilder {
   /// Create a basic column with consistent spacing
   static FlintSimpleColumn basic({

@@ -98,7 +98,8 @@ class BorderRadius {
 
   static const BorderRadius zero = BorderRadius.all(0);
 
-  String toCss() => '${topLeft}px $topRight\px $bottomRight\px $bottomLeft\px';
+  String toCss() =>
+      '${topLeft}px ${topRight}px ${bottomRight}px ${bottomLeft}px';
 
   Map<String, dynamic> toJson() => {
         'topLeft': topLeft,
@@ -126,7 +127,7 @@ class BoxShadow {
   });
 
   String toCss() =>
-      '${offsetX}px $offsetY\px $blurRadius\px $spreadRadius\px $color';
+      '${offsetX}px ${offsetY}px ${blurRadius}px ${spreadRadius}px $color';
 
   Map<String, dynamic> toJson() => {
         'offsetX': offsetX,

@@ -184,8 +184,8 @@ String _injectTimestamps(String sql) {
 
   // --- Add provider/provider_id if missing and is auth table ---
   if (isAuthTable) {
-    if (!hasProvider) additions.add('${q}$providerCol$q VARCHAR(100)');
-    if (!hasProviderId) additions.add('${q}$providerIdCol$q VARCHAR(255)');
+    if (!hasProvider) additions.add('$q$providerCol$q VARCHAR(100)');
+    if (!hasProviderId) additions.add('$q$providerIdCol$q VARCHAR(255)');
     if (!hasEmailVerifiedAt) {
       additions.add(isPostgres
           ? '${q}email_verified_at$q TIMESTAMP NULL DEFAULT NULL'

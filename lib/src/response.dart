@@ -427,8 +427,8 @@ class Response {
     </div>
 
     <script>
-        const htmlContent = \`${content.toHtml().replaceAll('`', '\\`')}\`;
-        const textContent = \`${content.toText().replaceAll('`', '\\`')}\`;
+        const htmlContent = `${content.toHtml().replaceAll('`', '\\`')}`;
+        const textContent = `${content.toText().replaceAll('`', '\\`')}`;
         const jsonContent = ${jsonEncode(content.toJson())};
         
         function copyHtml() {

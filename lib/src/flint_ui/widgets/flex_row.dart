@@ -96,7 +96,7 @@ class FlintFlexRow extends FlintWidget {
       final childHtml = children[i].toHtml();
 
       final columnStyle = [
-        'flex: 1 1 ${width}%;',
+        'flex: 1 1 $width%;',
         'min-width: 0;', // Prevent overflow
         if (mobileStack)
           '''
