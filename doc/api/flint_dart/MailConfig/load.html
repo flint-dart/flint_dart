@@ -73,7 +73,8 @@
   final username = FlintEnv.get(&#39;MAIL_USERNAME&#39;, &#39;&#39;);
   final password = FlintEnv.get(&#39;MAIL_PASSWORD&#39;, &#39;&#39;);
   final encryption = FlintEnv.get(&#39;MAIL_ENCRYPTION&#39;, &#39;tls&#39;);
-
+  final fromEmail = FlintEnv.get(&#39;MAIL_FROM_ADDRESS&#39;, &#39;tls&#39;);
+  final fromName = FlintEnv.get(&quot;MAIL_FROM_NAME&quot;, &quot;Flint dart&quot;);
   final useSSL = encryption.toLowerCase() == &#39;ssl&#39;;
   final useTLS = encryption.toLowerCase() == &#39;tls&#39;;
 
@@ -84,6 +85,8 @@
           port: port,
           username: username,
           password: password,
+          fromAddress: fromEmail,
+          fromName: fromName,
           useSSL: useSSL,
           useTLS: useTLS);
       break;
@@ -94,6 +97,8 @@
           username: username,
           password: password,
           useSSL: useSSL,
+          fromAddress: fromEmail,
+          fromName: fromName,
           useTLS: useTLS);
       break;
     case &#39;zoho&#39;:
@@ -102,6 +107,8 @@
           port: port,
           username: username,
           password: password,
+          fromAddress: fromEmail,
+          fromName: fromName,
           useSSL: useSSL,
           useTLS: useTLS);
       break;
@@ -111,6 +118,8 @@
           port: port,
           username: username,
           password: password,
+          fromAddress: fromEmail,
+          fromName: fromName,
           useSSL: useSSL,
           useTLS: useTLS);
       break;
@@ -120,6 +129,8 @@
           port: port,
           username: username,
           password: password,
+          fromAddress: fromEmail,
+          fromName: fromName,
           useSSL: useSSL,
           useTLS: useTLS);
       break;
@@ -129,6 +140,8 @@
           port: port,
           username: username,
           password: password,
+          fromAddress: fromEmail,
+          fromName: fromName,
           useSSL: useSSL,
           useTLS: useTLS);
   }
@@ -162,7 +175,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

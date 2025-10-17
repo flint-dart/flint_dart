@@ -83,13 +83,15 @@ and the value is a pipe-separated list of validation rules.</p>
 
   &#47;&#47; 🔹 1. Check for unknown fields
   for (final key in data.keys) {
+    &#47;&#47; Skip confirmation fields like &quot;password_confirmation&quot; or &quot;confirm_password&quot;
+    if (key.endsWith(&#39;_confirmation&#39;) || key.startsWith(&#39;confirm_&#39;)) continue;
+
     if (!rules.containsKey(key)) {
       errors
           .putIfAbsent(key, () =&gt; [])
           .add(&#39;The field &quot;$key&quot; is not allowed.&#39;);
     }
   }
-
   bool isInt(num? value) =&gt; value is int;
   bool isString(dynamic value) =&gt; value is String;
   bool isList(dynamic value) =&gt; value is List;
@@ -190,6 +192,24 @@ and the value is a pipe-separated list of validation rules.</p>
       } else if (part.startsWith(&#39;max:&#39;)) {
         final val = int.tryParse(part.substring(4));
         if (val != null) maxLength = val;
+      } else if (part == &#39;confirmed&#39;) {
+        &#47;&#47; Support both &quot;password_confirmation&quot; and &quot;confirm_password&quot;
+        final confirmField = data.containsKey(&#39;${field}_confirmation&#39;)
+            ? &#39;${field}_confirmation&#39;
+            : &#39;confirm_$field&#39;;
+
+        &#47;&#47; When confirmation field does not exist
+        if (!data.containsKey(confirmField)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $confirmField field is required for confirmation.&#39;);
+        }
+        &#47;&#47; When it exists but doesn’t match
+        else if (data[confirmField] != value) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field confirmation does not match.&#39;);
+        }
       }
     }
 
@@ -262,7 +282,7 @@ and the value is a pipe-separated list of validation rules.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

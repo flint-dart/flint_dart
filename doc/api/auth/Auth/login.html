@@ -63,9 +63,6 @@
 
     </section>
     
-<section class="desc markdown">
-  <p>Email/password login - returns user data</p>
-</section>
 
 
     
@@ -73,26 +70,42 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static Future&lt;Map&lt;String, dynamic&gt;&gt; login(
     String email, String password) async {
-  final db = DB.instance;
+  final qb = QueryBuilder(table: _config.table);
+  final user =
+      await qb.where(_config.emailColumn, &#39;=&#39;, email).limit(1).first();
 
-  final rows = await db.query(
-    &#39;SELECT * FROM `${config.table}` WHERE `${config.emailColumn}` = ? LIMIT 1&#39;,
-    positionalParams: [email],
-  );
-
-  if (rows.isEmpty) {
+  if (user == null) {
     throw AuthException(&#39;Invalid email or password&#39;);
   }
 
-  final user = rows.first;
-  final hashedPassword = user[config.passwordColumn] as String;
+  final hashedPassword = user[_config.passwordColumn] as String;
   final isMatch = Hashing().verify(password, hashedPassword);
 
   if (!isMatch) {
     throw AuthException(&#39;Invalid email or password&#39;);
   }
 
-  return _sanitizeUserData(user);
+  if (_config.requireEmailVerification &amp;&amp; user[&#39;email_verified_at&#39;] == null) {
+    throw AuthException(&#39;Email verification required.&#39;);
+  }
+
+  final cleanUser = _sanitizeUserData(user);
+
+  &#47;&#47; ✅ Create JWT token with expiry
+  final jwt = JWT({
+    &#39;id&#39;: cleanUser[&#39;id&#39;],
+    &#39;email&#39;: cleanUser[_config.emailColumn],
+  });
+
+  final token = jwt.sign(
+    SecretKey(_config.jwtSecret!),
+    expiresIn: Duration(hours: _config.jwtExpiryHours),
+  );
+
+  return {
+    &#39;user&#39;: cleanUser,
+    &#39;token&#39;: token,
+  };
 }</code></pre>
 </section>
 
@@ -121,7 +134,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

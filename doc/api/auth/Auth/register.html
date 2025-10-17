@@ -79,48 +79,43 @@
   String? name,
   Map&lt;String, dynamic&gt;? additionalData,
 }) async {
-  final db = DB.instance;
+  final qb = QueryBuilder(table: config.table);
 
   &#47;&#47; Check if user exists
-  final existing = await db.query(
-    &#39;SELECT id FROM `${config.table}` WHERE `${config.emailColumn}` = ?&#39;,
-    positionalParams: [email],
-  );
+  final existing = await qb.where(config.emailColumn, &#39;=&#39;, email).first();
 
-  if (existing.isNotEmpty) {
+  if (existing != null) {
     throw AuthException(&#39;User already exists with this email&#39;);
   }
 
+  if (password.length &lt; _config.passwordMinLength) {
+    throw AuthException(
+      &#39;Password must be at least ${_config.passwordMinLength} characters long.&#39;,
+    );
+  }
   &#47;&#47; Hash password
   final hashedPassword = Hashing().hash(password);
 
-  &#47;&#47; Prepare data
-  final data = {
-    config.emailColumn: email,
-    config.passwordColumn: hashedPassword,
-    if (name != null &amp;&amp; config.nameColumn != null) config.nameColumn!: name,
-    &#39;created_at&#39;: DateTime.now().toIso8601String(),
-    if (additionalData != null) ...additionalData,
-  };
-
-  &#47;&#47; Insert user
-  final columns = data.keys.join(&#39;, &#39;);
-  final placeholders = List.filled(data.length, &#39;?&#39;).join(&#39;, &#39;);
-  final values = data.values.toList();
-
-  final result = await db.query(
-    &#39;INSERT INTO `${config.table}` ($columns) VALUES ($placeholders)&#39;,
-    positionalParams: values,
+  &#47;&#47; Build data safely - only include columns that exist
+  final data = await _buildSafeUserData(
+    email: email,
+    hashedPassword: hashedPassword,
+    name: name,
+    additionalData: additionalData,
   );
+  &#47;&#47; Insert user
+  await QueryBuilder(table: config.table).insert(data);
 
   &#47;&#47; Get created user
-  final userId = result.first[&quot;id&quot;];
-  final userRows = await db.query(
-    &#39;SELECT * FROM `${config.table}` WHERE id = ?&#39;,
-    positionalParams: [userId],
-  );
+  final user = await QueryBuilder(table: config.table)
+      .where(config.emailColumn, &#39;=&#39;, email)
+      .first();
 
-  return _sanitizeUserData(userRows.first);
+  if (user == null) {
+    throw AuthException(&#39;User could not be retrieved after registration.&#39;);
+  }
+
+  return _sanitizeUserData(user);
 }</code></pre>
 </section>
 
@@ -149,7 +144,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

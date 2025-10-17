@@ -104,6 +104,12 @@ Handler handle(Handler next) {
         status: 500,
       );
     } on PgException catch (e) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains(&#39;does not exist&#39;) || msg.contains(&#39;42703&#39;)) {
+        &#47;&#47; Ignore silent internal checks
+        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        return await next(req, res);
+      }
       return res.json(
         {
           &quot;status&quot;: false,
@@ -112,6 +118,14 @@ Handler handle(Handler next) {
         status: 500,
       );
     } on MySQLClientException catch (e) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains(&#39;unknown column&#39;) ||
+          msg.contains(&#39;does not exist&#39;) ||
+          msg.contains(&#39;42703&#39;)) {
+        &#47;&#47; Ignore silent internal checks
+        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        return await next(req, res);
+      }
       return res.json(
         {
           &quot;status&quot;: false,
@@ -120,6 +134,14 @@ Handler handle(Handler next) {
         status: 500,
       );
     } on MySQLException catch (e) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains(&#39;unknown column&#39;) ||
+          msg.contains(&#39;does not exist&#39;) ||
+          msg.contains(&#39;42703&#39;)) {
+        &#47;&#47; Ignore silent internal checks
+        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        return await next(req, res);
+      }
       return res.json(
         {
           &quot;status&quot;: false,
@@ -136,6 +158,14 @@ Handler handle(Handler next) {
         status: 500,
       );
     } on Exception catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains(&#39;unknown column&#39;) ||
+          msg.contains(&#39;does not exist&#39;) ||
+          msg.contains(&#39;42703&#39;)) {
+        &#47;&#47; Ignore silent internal checks
+        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        return await next(req, res);
+      }
       return res.json(
         {
           &quot;status&quot;: false,
@@ -183,7 +213,7 @@ Handler handle(Handler next) {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

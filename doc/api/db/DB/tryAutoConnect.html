@@ -82,7 +82,6 @@
         throw Exception(
             &quot;❌ Could not connect to DB after $retries attempts: $e&quot;);
       }
-      print(&quot;⏳ DB retry $i&#47;$retries in ${delaySeconds}s...&quot;);
       await Future.delayed(Duration(seconds: delaySeconds));
     }
   }
@@ -114,7 +113,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

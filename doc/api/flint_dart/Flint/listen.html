@@ -76,10 +76,6 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; listen(int port) async {
-  if (autoConnectDb) {
-    _connectDatabaseInBackground();
-  }
-  MailConfig.load();
   &#47;&#47; Hot reload parent process
   if (Platform.environment[&#39;FLINT_HOT&#39;] != &#39;1&#39;) {
     print(&#39;[FLINT] Starting with hot reload...&#39;);
@@ -104,6 +100,10 @@
   try {
     server = await HttpServer.bind(InternetAddress.anyIPv4, port);
     print(&#39;Server running on http:&#47;&#47;localhost:$port&#39;);
+    if (autoConnectDb) {
+      _connectDatabaseInBackground();
+    }
+    MailConfig.load();
   } on SocketException catch (e) {
     print(&#39;[FLINT] ❌ ERROR: Could not bind to port $port. Is it in use?&#39;);
     print(&#39;[FLINT] 🔎 Details: ${e.message}&#39;);
@@ -211,7 +211,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

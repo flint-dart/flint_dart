@@ -71,7 +71,16 @@
     throw Exception(&#39;Mail not configured. Call Mail.setup() first.&#39;);
   }
 
-  final message = _buildMessage();
+  final mailData = {
+    &#39;fromAddress&#39;: _fromAddress,
+    &#39;fromName&#39;: _fromName,
+    &#39;to&#39;: _to,
+    &#39;cc&#39;: _cc,
+    &#39;bcc&#39;: _bcc,
+    &#39;subject&#39;: _subject,
+    &#39;text&#39;: _text,
+    &#39;html&#39;: _html,
+  };
 
   final serverData = {
     &#39;host&#39;: _server!.host,
@@ -82,7 +91,7 @@
   };
 
   await Isolate.spawn(_sendInBackground, {
-    &#39;message&#39;: message,
+    &#39;message&#39;: mailData,
     &#39;server&#39;: serverData,
   });
 }</code></pre>
@@ -113,7 +122,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

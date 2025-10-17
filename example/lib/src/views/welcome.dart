@@ -78,7 +78,7 @@ class Welcome extends FlintTemplate {
                 ),
                 FlintButton(
                   text: 'View Documentation',
-                  url: 'https://flint-dart.dev/docs',
+                  url: 'https://flintdart.eulogia.net',
                   style: ButtonStyle.outline().copyWith(
                     textStyle: TextStyle(
                       color: FlintColors.white,
@@ -289,7 +289,7 @@ class Welcome extends FlintTemplate {
           children: [
             FlintButton(
               text: 'Read Full Documentation',
-              url: 'https://flint-dart.dev/docs',
+              url: 'https://flintdart.eulogia.net',
               style: ButtonStyle.primary().copyWith(
                 backgroundColor: FlintColors.primary,
                 textStyle: TextStyle(
@@ -430,7 +430,7 @@ class Welcome extends FlintTemplate {
                 _buildCommunityLink(
                   icon: '📚',
                   platform: 'Documentation',
-                  url: 'https://flint-dart.dev/docs',
+                  url: 'https://flintdart.eulogia.net',
                 ),
                 _buildCommunityLink(
                   icon: '🐦',
@@ -527,7 +527,7 @@ class Welcome extends FlintTemplate {
                     FlintTextSpan(
                       'Privacy',
                       style: TextStyle(color: FlintColors.gray400),
-                      onTap: 'https://flint-dart.dev/privacy',
+                      onTap: 'https://flintdart.eulogia.net/privacy',
                     ),
                   ],
                 ),

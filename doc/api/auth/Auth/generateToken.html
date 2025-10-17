@@ -77,7 +77,9 @@
     &#39;name&#39;: userData[config.nameColumn],
     &#39;provider&#39;: userData[config.providerColumn],
     &#39;iat&#39;: DateTime.now().millisecondsSinceEpoch ~&#47; 1000,
-    &#39;exp&#39;: DateTime.now().add(Duration(hours: 24)).millisecondsSinceEpoch ~&#47;
+    &#39;exp&#39;: DateTime.now()
+            .add(const Duration(hours: 24))
+            .millisecondsSinceEpoch ~&#47;
         1000,
   };
 
@@ -110,7 +112,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

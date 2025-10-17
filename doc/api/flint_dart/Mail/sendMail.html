@@ -71,15 +71,21 @@
     throw Exception(&#39;Mail not configured. Call Mail.setup() first.&#39;);
   }
 
-  final message = _buildMessage();
-
   try {
-    await send(message, _server!);
-    print(&#39;✅ Mail sent to: ${_to.join(&quot;, &quot;)}&#39;
-        &#39;${_cc.isNotEmpty ? &quot;, cc: ${_cc.join(&quot;, &quot;)}&quot; : &quot;&quot;}&#39;
-        &#39;${_bcc.isNotEmpty ? &quot;, bcc: ${_bcc.join(&quot;, &quot;)}&quot; : &quot;&quot;}&#39;);
+    final msg = _buildMessage();
+    await send(msg, _server!);
+    print(&#39;✅ Mail sent to: ${_to.join(&quot;, &quot;)}&#39;);
+  } on MailerException catch (e) {
+    print(&#39;❌ MailerException: $e&#39;);
+    if (e.problems.isNotEmpty) {
+      for (final problem in e.problems) {
+        print(&#39;  - ${problem.code}: ${problem.msg}&#39;);
+      }
+    }
+    rethrow;
   } catch (e) {
     print(&#39;❌ Failed to send mail: $e&#39;);
+    rethrow;
   }
 }</code></pre>
 </section>
@@ -109,7 +115,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>

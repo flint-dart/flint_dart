@@ -74,24 +74,41 @@
   await _ensureConnected();
 
   try {
+    final String sql;
+    final Map&lt;String, dynamic&gt; params = {&#39;table&#39;: tableName};
+
     if (_driver == DBDriver.postgres) {
-      final result = await query(
-        &quot;SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = :table)&quot;,
-        namedParams: {&#39;table&#39;: tableName},
-      );
-      return result.first[&#39;exists&#39;] as bool;
+      sql = &#39;&#39;&#39;
+      SELECT COUNT(*) &gt; 0 AS exists
+      FROM information_schema.tables
+      WHERE table_schema = &#39;public&#39;
+      AND table_name = :table
+    &#39;&#39;&#39;;
     } else {
-      final result = await query(
-        &quot;SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?&quot;,
-        positionalParams: [tableName],
-      );
-      final count = result.first[&#39;count&#39;];
-      if (count is String) return int.parse(count) &gt; 0;
-      if (count is int) return count &gt; 0;
-      if (count is BigInt) return count &gt; BigInt.zero;
-      return (count as num) &gt; 0;
+      sql = &#39;&#39;&#39;
+      SELECT COUNT(*) &gt; 0 AS exists
+      FROM information_schema.tables
+      WHERE table_schema = DATABASE()
+      AND table_name = ?
+    &#39;&#39;&#39;;
     }
-  } catch (_) {
+
+    final result = await query(
+      sql,
+      positionalParams: _driver == DBDriver.mysql ? [tableName] : null,
+      namedParams: _driver == DBDriver.postgres ? params : null,
+    );
+
+    final exists = result.first[&#39;exists&#39;];
+    if (exists is bool) return exists;
+    if (exists is int) return exists &gt; 0;
+    if (exists is BigInt) return exists &gt; BigInt.zero;
+    if (exists is String) {
+      return exists == &#39;1&#39; || exists.toLowerCase() == &#39;true&#39;;
+    }
+    return false;
+  } catch (e) {
+    print(&#39;⚠️ tableExists() failed: $e&#39;);
     return false;
   }
 }</code></pre>
@@ -122,7 +139,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+7
+      1.0.0+8
   </span>
   
 </footer>
