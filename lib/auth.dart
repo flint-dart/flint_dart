@@ -5,3 +5,4 @@ export 'src/auth/providers/apple_provider.dart';
 export 'src/auth/providers/facebook_provider.dart';
 export 'src/auth/providers/github_provider.dart';
 export 'src/auth/providers/google_provider.dart';
+export "src/extensions/auth_verify.dart";

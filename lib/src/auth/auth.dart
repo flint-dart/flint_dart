@@ -1,4 +1,6 @@
 // auth.dart
+import 'dart:math';
+
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flint_dart/db.dart';
 import 'package:flint_dart/security.dart';
@@ -273,7 +275,7 @@ class Auth {
 
     // Only update email_verified_at if the column exists
     final emailVerifiedAtExists =
-        await _columnExists(config.table, 'email_verified_at');
+        await columnExists(config.table, 'email_verified_at');
     if (emailVerifiedAtExists) {
       await QueryBuilder(table: config.table)
           .where(config.emailColumn, '=', email)
@@ -389,21 +391,21 @@ class Auth {
       final updateData = <String, dynamic>{};
 
       // Only update email if the column exists
-      final emailColumnExists = await _columnExists(table, config.emailColumn);
+      final emailColumnExists = await columnExists(table, config.emailColumn);
       if (emailColumnExists) {
         updateData[config.emailColumn] = email;
       }
 
       // Only update name if the column exists and name is provided
       if (name != null && config.nameColumn != null) {
-        final nameColumnExists = await _columnExists(table, config.nameColumn!);
+        final nameColumnExists = await columnExists(table, config.nameColumn!);
         if (nameColumnExists) {
           updateData[config.nameColumn!] = name;
         }
       }
 
       // Only update updated_at if the column exists
-      final updatedAtExists = await _columnExists(table, 'updated_at');
+      final updatedAtExists = await columnExists(table, 'updated_at');
       if (updatedAtExists) {
         updateData['updated_at'] = DateTime.now().toIso8601String();
       }
@@ -426,7 +428,7 @@ class Auth {
         // Only update provider columns if they exist
         if (config.providerColumn != null) {
           final providerColumnExists =
-              await _columnExists(table, config.providerColumn!);
+              await columnExists(table, config.providerColumn!);
           if (providerColumnExists) {
             updateData[config.providerColumn!] = provider;
           }
@@ -434,14 +436,14 @@ class Auth {
 
         if (config.providerIdColumn != null) {
           final providerIdColumnExists =
-              await _columnExists(table, config.providerIdColumn!);
+              await columnExists(table, config.providerIdColumn!);
           if (providerIdColumnExists) {
             updateData[config.providerIdColumn!] = providerId;
           }
         }
 
         // Only update updated_at if the column exists
-        final updatedAtExists = await _columnExists(table, 'updated_at');
+        final updatedAtExists = await columnExists(table, 'updated_at');
         if (updatedAtExists) {
           updateData['updated_at'] = DateTime.now().toIso8601String();
         }
@@ -509,7 +511,7 @@ class Auth {
     return sanitized;
   }
 
-  static Future<bool> _columnExists(String tableName, String columnName) async {
+  static Future<bool> columnExists(String tableName, String columnName) async {
     try {
       await DB.execute('SELECT $columnName FROM $tableName LIMIT 0');
       return true;
@@ -546,7 +548,7 @@ class Auth {
     // Only include name if the column exists and name is provided
     if (name != null && config.nameColumn != null) {
       final nameColumnExists =
-          await _columnExists(config.table, config.nameColumn!);
+          await columnExists(config.table, config.nameColumn!);
       if (nameColumnExists) {
         data[config.nameColumn!] = name;
       }
@@ -557,7 +559,7 @@ class Auth {
     // Only include provider columns if they exist and are provided in additionalData
     if (config.providerColumn != null) {
       final providerColumnExists =
-          await _columnExists(config.table, config.providerColumn!);
+          await columnExists(config.table, config.providerColumn!);
       if (providerColumnExists &&
           additionalData?[config.providerColumn!] != null) {
         data[config.providerColumn!] = additionalData![config.providerColumn!];
@@ -566,7 +568,7 @@ class Auth {
 
     if (config.providerIdColumn != null) {
       final providerIdColumnExists =
-          await _columnExists(config.table, config.providerIdColumn!);
+          await columnExists(config.table, config.providerIdColumn!);
       if (providerIdColumnExists &&
           additionalData?[config.providerIdColumn!] != null) {
         data[config.providerIdColumn!] =
@@ -576,7 +578,7 @@ class Auth {
 
     // Only include email_verified_at if the column exists
     final emailVerifiedAtExists =
-        await _columnExists(config.table, 'email_verified_at');
+        await columnExists(config.table, 'email_verified_at');
     if (emailVerifiedAtExists && additionalData?['email_verified_at'] != null) {
       data['email_verified_at'] = additionalData!['email_verified_at'];
     }
@@ -587,8 +589,8 @@ class Auth {
         if (entry.key != config.providerColumn &&
             entry.key != config.providerIdColumn &&
             entry.key != 'email_verified_at') {
-          final columnExists = await _columnExists(config.table, entry.key);
-          if (columnExists) {
+          final columnExist = await columnExists(config.table, entry.key);
+          if (columnExist) {
             data[entry.key] = entry.value;
           }
         }
@@ -605,8 +607,9 @@ class Auth {
 
     try {
       // Only check/create the framework-specific tables
-      final passwordResetExists = await _tableExists('password_reset_tokens');
-      final emailVerifyExists = await _tableExists('email_verification_tokens');
+      final passwordResetExists = await DB.tableExists('password_reset_tokens');
+      final emailVerifyExists =
+          await DB.tableExists('email_verification_tokens');
 
       if (!passwordResetExists || !emailVerifyExists) {
         print('🔄 Creating framework auth tables...');
@@ -619,41 +622,47 @@ class Auth {
     }
   }
 
-  static Future<bool> _tableExists(String tableName) async {
-    try {
-      await QueryBuilder(table: tableName).limit(1).first();
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   static Future<void> _createFrameworkTables() async {
-    // Only create the framework-specific tables
-    final frameworkTables = [
-      // Password reset tokens table (framework internal)
-      '''
-      CREATE TABLE IF NOT EXISTS password_reset_tokens (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT NOT NULL,
-        token TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )
-      ''',
+    final dbType =
+        DB.driver; // e.g. DBDriver.mysql, DBDriver.postgres, DBDriver.sqlite
 
-      // Email verification tokens table (framework internal)
+    String idColumn;
+    String textType;
+
+    // Define ID and text column types based on DB driver
+    if (dbType == DBDriver.mysql) {
+      idColumn = 'id INT PRIMARY KEY AUTO_INCREMENT';
+      textType = 'VARCHAR(255)';
+    } else if (dbType == DBDriver.postgres) {
+      idColumn = 'id SERIAL PRIMARY KEY';
+      textType = 'TEXT';
+    } else {
+      idColumn = 'id INTEGER PRIMARY KEY AUTOINCREMENT';
+      textType = 'TEXT';
+    }
+
+    final frameworkTables = [
       '''
-      CREATE TABLE IF NOT EXISTS email_verification_tokens (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT NOT NULL,
-        token TEXT NOT NULL,
-        expires_at TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )
-      ''',
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      $idColumn,
+      email $textType NOT NULL,
+      token $textType NOT NULL,
+      expires_at $textType NOT NULL,
+      created_at $textType NOT NULL
+    )
+    ''',
+      '''
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      $idColumn,
+      email $textType NOT NULL,
+      token $textType NOT NULL,
+      expires_at $textType NOT NULL,
+      created_at $textType NOT NULL
+    )
+    '''
     ];
 
+    // Create tables
     for (final sql in frameworkTables) {
       try {
         await DB.execute(sql);
@@ -663,18 +672,32 @@ class Auth {
       }
     }
 
-    // Create indexes for framework tables
-    final frameworkIndexes = [
-      'CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON password_reset_tokens(token)',
-      'CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_email ON password_reset_tokens(email)',
-      'CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires ON password_reset_tokens(expires_at)',
-      'CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_token ON email_verification_tokens(token)',
-      'CREATE INDEX IF NOT EXISTS idx_email_verification_tokens_email ON email_verification_tokens(email)',
+    // Create indexes
+    final indexes = [
+      ('password_reset_tokens', 'token'),
+      ('password_reset_tokens', 'email'),
+      ('password_reset_tokens', 'expires_at'),
+      ('email_verification_tokens', 'token'),
+      ('email_verification_tokens', 'email'),
     ];
 
-    for (final sql in frameworkIndexes) {
+    for (final (table, column) in indexes) {
+      final indexName = 'idx_${table}_$column';
+
       try {
-        await DB.execute(sql);
+        if (dbType == DBDriver.postgres) {
+          await DB.execute(
+              'CREATE INDEX IF NOT EXISTS $indexName ON $table($column)');
+        } else if (dbType == DBDriver.mysql) {
+          // MySQL requires manual check and key length
+          final check = await DB.query(
+            "SHOW INDEX FROM $table WHERE Key_name = '$indexName'",
+          );
+          if (check.isEmpty) {
+            await DB.execute(
+                'CREATE INDEX $indexName ON $table($column(255))'); // note the (255)
+          }
+        }
       } catch (e) {
         print('⚠️ Failed to create framework index: $e');
       }
@@ -684,4 +707,193 @@ class Auth {
   }
 
   static Future<void> ensureMigrationsRun() async {}
+
+  /// Generate numeric verification code (like OTP)
+  static Future<String> generateNumericVerificationCode(
+    String email, {
+    int length = 6,
+  }) async {
+    await Auth.ensureFrameworkTablesExist();
+
+    // Check if the user exists
+    final user = await QueryBuilder(table: Auth.config.table)
+        .where(Auth.config.emailColumn, '=', email)
+        .first();
+    if (user == null) {
+      throw AuthException('No account found for this email.');
+    }
+
+    // Generate numeric code
+    final rng = Random();
+    final code = List.generate(length, (_) => rng.nextInt(10)).join('');
+
+    // Hash code before storing
+    final codeHash = Hashing().hash(code);
+
+    // Expire after 10 minutes
+    final expiresAt =
+        DateTime.now().add(Duration(minutes: 10)).toIso8601String();
+
+    // 🧹 Delete any previous unused codes for this email
+    await QueryBuilder(table: 'email_verification_tokens')
+        .where('email', '=', email)
+        .delete();
+
+    // Store new verification code
+    await QueryBuilder(table: 'email_verification_tokens').insert({
+      'email': email,
+      'token': codeHash,
+      'expires_at': expiresAt,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+
+    print('📨 Verification code generated for $email');
+
+    return code; // ⚠️ Return plain code to send via mail or SMS
+  }
+
+  /// Verify numeric verification code
+  static Future<bool> verifyNumericCode(String email, String code) async {
+    await Auth.ensureFrameworkTablesExist();
+
+    final codeHash = Hashing().hash(code);
+
+    // Find matching valid record
+    final record = await QueryBuilder(table: 'email_verification_tokens')
+        .where('email', '=', email)
+        .where('token', '=', codeHash)
+        .where('expires_at', '>', DateTime.now().toIso8601String())
+        .first();
+
+    if (record == null) {
+      print('❌ Invalid or expired verification code for $email');
+      return false;
+    }
+
+    // Mark email as verified
+    final emailVerifiedAtExists =
+        await Auth.columnExists(Auth.config.table, 'email_verified_at');
+    if (emailVerifiedAtExists) {
+      await QueryBuilder(table: Auth.config.table)
+          .where(Auth.config.emailColumn, '=', email)
+          .update({
+        'email_verified_at': DateTime.now().toIso8601String(),
+      });
+    }
+
+    // 🧹 Delete used code
+    await QueryBuilder(table: 'email_verification_tokens')
+        .where('email', '=', email)
+        .delete();
+
+    print('✅ Email verified successfully: $email');
+    return true;
+  }
+
+  /// Optional helper: resend new OTP after deleting the old one
+  static Future<String> resendVerificationCode(String email) async {
+    await QueryBuilder(table: 'email_verification_tokens')
+        .where('email', '=', email)
+        .delete();
+    return generateNumericVerificationCode(email);
+  }
+
+  /// Generate numeric password reset code (OTP-style)
+  static Future<String> generatePasswordResetCode(
+    String email, {
+    int length = 6,
+  }) async {
+    await Auth.ensureFrameworkTablesExist();
+
+    // Check if user exists
+    final user = await QueryBuilder(table: Auth.config.table)
+        .where(Auth.config.emailColumn, '=', email)
+        .first();
+    if (user == null) {
+      throw AuthException('No account found for this email.');
+    }
+
+    // Generate numeric OTP code
+    final rng = Random();
+    final code = List.generate(length, (_) => rng.nextInt(10)).join('');
+
+    // Hash OTP before storing
+    final codeHash = Hashing().hash(code);
+
+    // Expire after 15 minutes
+    final expiresAt =
+        DateTime.now().add(Duration(minutes: 15)).toIso8601String();
+
+    // 🧹 Remove any previous codes for this email
+    await QueryBuilder(table: 'password_reset_tokens')
+        .where('email', '=', email)
+        .delete();
+
+    // Store the new code
+    await QueryBuilder(table: 'password_reset_tokens').insert({
+      'email': email,
+      'token': codeHash,
+      'expires_at': expiresAt,
+      'created_at': DateTime.now().toIso8601String(),
+    });
+
+    print('📨 Password reset code generated for $email');
+
+    return code; // ⚠️ Return plain code to send via email/SMS
+  }
+
+  /// Verify reset code and change password
+  static Future<bool> resetPasswordWithCode({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    await Auth.ensureFrameworkTablesExist();
+
+    if (newPassword.length < Auth.config.passwordMinLength) {
+      throw AuthException(
+          'Password must be at least ${Auth.config.passwordMinLength} characters.');
+    }
+
+    final codeHash = Hashing().hash(code);
+
+    // Look for valid code
+    final record = await QueryBuilder(table: 'password_reset_tokens')
+        .where('email', '=', email)
+        .where('token', '=', codeHash)
+        .where('expires_at', '>', DateTime.now().toIso8601String())
+        .first();
+
+    if (record == null) {
+      print('❌ Invalid or expired password reset code for $email');
+      throw AuthException('Invalid or expired reset code.');
+    }
+
+    // Hash new password
+    final newHashedPassword = Hashing().hash(newPassword);
+
+    // Update user password
+    await QueryBuilder(table: Auth.config.table)
+        .where(Auth.config.emailColumn, '=', email)
+        .update({
+      Auth.config.passwordColumn: newHashedPassword,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+
+    // 🧹 Remove used reset token
+    await QueryBuilder(table: 'password_reset_tokens')
+        .where('email', '=', email)
+        .delete();
+
+    print('✅ Password successfully reset for $email');
+    return true;
+  }
+
+  /// Optional: resend password reset code
+  static Future<String> resendPasswordResetCode(String email) async {
+    await QueryBuilder(table: 'password_reset_tokens')
+        .where('email', '=', email)
+        .delete();
+    return generatePasswordResetCode(email);
+  }
 }

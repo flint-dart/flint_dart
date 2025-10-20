@@ -236,6 +236,7 @@ class DB {
   }
 
   /// Check if a table exists.
+  /// Check if a table exists.
   static Future<bool> tableExists(String tableName) async {
     await _ensureConnected();
 
@@ -252,7 +253,7 @@ class DB {
       ''';
       } else {
         sql = '''
-        SELECT COUNT(*) > 0 AS exists
+        SELECT COUNT(*) > 0 AS `exists_flag`
         FROM information_schema.tables
         WHERE table_schema = DATABASE()
         AND table_name = ?
@@ -265,7 +266,7 @@ class DB {
         namedParams: _driver == DBDriver.postgres ? params : null,
       );
 
-      final exists = result.first['exists'];
+      final exists = result.first['exists'] ?? result.first['exists_flag'];
       if (exists is bool) return exists;
       if (exists is int) return exists > 0;
       if (exists is BigInt) return exists > BigInt.zero;

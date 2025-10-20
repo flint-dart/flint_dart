@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import '../../helpers/str_helper.dart';
+
 /// Represents a database table schema, including its columns, indexes, and foreign keys.
 class Table {
   /// The name of the table.
@@ -17,10 +19,28 @@ class Table {
   /// Creates a new [Table] definition.
   Table({
     required this.name,
-    required this.columns,
+    required List<Column> columns,
     this.indexes = const [],
     this.foreignKeys = const [],
-  });
+  }) : columns = _ensureIdColumn(columns);
+
+  /// Ensures every table has an `id` column by default (UUID-based).
+  static List<Column> _ensureIdColumn(List<Column> columns) {
+    final hasPrimary = columns.any((c) => c.isPrimaryKey);
+    if (!hasPrimary) {
+      return [
+        Column(
+          name: 'id',
+          type: ColumnType.string,
+          isPrimaryKey: true,
+          isNullable: false,
+          defaultValue: Str.uuid(), // Generate automatically if needed
+        ),
+        ...columns,
+      ];
+    }
+    return columns;
+  }
 }
 
 /// Describes a column in a database table.

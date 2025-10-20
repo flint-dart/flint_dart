@@ -2,22 +2,80 @@
 
 import 'package:flint_dart/src/flint_ui/core/core.dart';
 
+/// {@template flint_image}
+/// A versatile image widget in **Flint UI**, designed for rendering images
+/// in multiple formats including HTML (for emails and web) and plain text.
+///
+/// The [FlintImage] class provides flexible styling options such as
+/// margins, padding, borders, shadows, captions, and lazy-loading support.
+///
+/// It can optionally wrap the image inside a link or display a caption below
+/// it, using semantic HTML elements like `<a>` and `<figure>`.
+///
+/// Example:
+/// ```dart
+/// FlintImage(
+///   src: 'https://flintdart.dev/logo.png',
+///   alt: 'Flint Dart Logo',
+///   width: 120,
+///   caption: 'Powered by Flint Dart',
+///   lazyLoading: true,
+/// )
+/// ```
+///
+/// This will render as an HTML image with a caption underneath and lazy loading enabled.
+/// {@endtemplate}
 class FlintImage extends FlintWidget {
+  /// The source URL or path of the image.
   final String src;
+
+  /// The alternative text for the image, used for accessibility
+  /// and when the image fails to load.
   final String? alt;
+
+  /// The explicit width of the image in pixels.
   final double? width;
+
+  /// The explicit height of the image in pixels.
   final double? height;
+
+  /// The margin applied outside the image container.
   final EdgeInsets? margin;
+
+  /// The padding applied inside the image container.
   final EdgeInsets? padding;
+
+  /// The image alignment, represented as a string (e.g., `"left"`, `"center"`, `"right"`).
   final String? alignment;
+
+  /// The border style of the image, defined using [BoxBorder].
   final BoxBorder? border;
+
+  /// The radius of the image corners.
   final BorderRadius? borderRadius;
+
+  /// The shadow applied to the image.
   final BoxShadow? shadow;
+
+  /// Additional visual options for the image, defined via [ImageStyle].
   final ImageStyle style;
+
+  /// A text caption displayed below the image.
   final String? caption;
+
+  /// Whether to enable native browser lazy-loading for the image.
+  ///
+  /// When true, the image will only be loaded when it enters the viewport.
   final bool lazyLoading;
+
+  /// An optional hyperlink URL that wraps the image.
+  ///
+  /// When set, the image becomes clickable, rendered inside an `<a>` tag.
   final String? linkUrl;
 
+  /// Creates a [FlintImage] widget.
+  ///
+  /// Most parameters are optional except [src].
   FlintImage({
     required this.src,
     this.alt,
@@ -35,6 +93,11 @@ class FlintImage extends FlintWidget {
     this.linkUrl,
   });
 
+  /// Converts this image into an HTML representation.
+  ///
+  /// - Wraps the `<img>` tag with a `<figure>` if a caption is provided.
+  /// - Wraps it with an `<a>` tag if [linkUrl] is set.
+  /// - Otherwise, wraps it in a `<div>` container to apply styles.
   @override
   String toHtml() {
     final imageHtml = _buildImageHtml();
@@ -50,6 +113,13 @@ class FlintImage extends FlintWidget {
     return _wrapWithContainer(imageHtml);
   }
 
+  /// Converts this image into a plain-text description.
+  ///
+  /// The output includes the alt text, optional caption, and link URL if provided.
+  /// Example:
+  /// ```
+  /// [Image: Flint Dart Logo - Powered by Flint Dart] (https://flintdart.dev)
+  /// ```
   @override
   String toText() {
     final altText = alt ?? 'Image';
@@ -59,6 +129,9 @@ class FlintImage extends FlintWidget {
     return '[Image: $altText$captionText]$linkText';
   }
 
+  /// Serializes this image into a JSON-compatible map.
+  ///
+  /// Useful for UI serialization or exporting configurations.
   @override
   Map<String, dynamic> toJson() {
     return {
@@ -80,12 +153,14 @@ class FlintImage extends FlintWidget {
     };
   }
 
+  /// {@macro flint_widget.buildTemplate}
+  ///
+  /// Since [FlintImage] is a leaf widget (it cannot contain child widgets),
+  /// this method simply returns itself.
   @override
-  FlintWidget buildTemplate() {
-    // For images, we return self since we're a leaf widget
-    return this;
-  }
+  FlintWidget buildTemplate() => this;
 
+  /// Builds the core `<img>` HTML tag and its inline styles.
   String _buildImageHtml() {
     final styles = <String>[
       if (width != null) 'width: ${width}px;',
@@ -113,6 +188,7 @@ class FlintImage extends FlintWidget {
     return '<img ${attributes.join(' ')} />';
   }
 
+  /// Wraps the image with a clickable `<a>` tag when [linkUrl] is provided.
   String _buildImageWithLink(String imageHtml) {
     final linkStyles = <String>[
       'display: inline-block;',
@@ -128,6 +204,7 @@ class FlintImage extends FlintWidget {
 ''';
   }
 
+  /// Wraps the image in a `<figure>` element and adds a `<figcaption>` for captions.
   String _buildImageWithCaption(String imageHtml) {
     final captionStyles = <String>[
       'font-size: 14px;',
@@ -147,6 +224,7 @@ class FlintImage extends FlintWidget {
 ''';
   }
 
+  /// Wraps the image in a container `<div>` to apply margin, padding, and alignment styles.
   String _wrapWithContainer(String content) {
     final containerStyles = <String>[
       'display: inline-block;',
@@ -167,6 +245,7 @@ class FlintImage extends FlintWidget {
 ''';
   }
 
+  /// Escapes special characters for safe HTML rendering.
   String _escapeHtml(String text) {
     return text
         .replaceAll('&', '&amp;')
@@ -176,7 +255,9 @@ class FlintImage extends FlintWidget {
         .replaceAll("'", '&#39;');
   }
 
-  /// Creates a copy with updated properties
+  /// Creates a copy of this image with updated properties.
+  ///
+  /// This allows you to modify certain fields without recreating the entire widget.
   FlintImage copyWith({
     String? src,
     String? alt,

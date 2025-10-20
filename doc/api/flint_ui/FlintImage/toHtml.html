@@ -67,7 +67,12 @@
     </section>
     
 <section class="desc markdown">
-  <p>Render to HTML (for emails, web)</p>
+  <p>Converts this image into an HTML representation.</p>
+<ul>
+<li>Wraps the <code>&lt;img&gt;</code> tag with a <code>&lt;figure&gt;</code> if a caption is provided.</li>
+<li>Wraps it with an <code>&lt;a&gt;</code> tag if <a href="../../flint_ui/FlintImage/linkUrl.html">linkUrl</a> is set.</li>
+<li>Otherwise, wraps it in a <code>&lt;div&gt;</code> container to apply styles.</li>
+</ul>
 </section>
 
 
@@ -115,7 +120,7 @@ String toHtml() {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

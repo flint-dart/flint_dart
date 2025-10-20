@@ -71,8 +71,9 @@
 
   try {
     &#47;&#47; Only check&#47;create the framework-specific tables
-    final passwordResetExists = await _tableExists(&#39;password_reset_tokens&#39;);
-    final emailVerifyExists = await _tableExists(&#39;email_verification_tokens&#39;);
+    final passwordResetExists = await DB.tableExists(&#39;password_reset_tokens&#39;);
+    final emailVerifyExists =
+        await DB.tableExists(&#39;email_verification_tokens&#39;);
 
     if (!passwordResetExists || !emailVerifyExists) {
       print(&#39;🔄 Creating framework auth tables...&#39;);
@@ -111,7 +112,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

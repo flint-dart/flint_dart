@@ -68,6 +68,11 @@
 </ol>})
     </section>
     
+<section class="desc markdown">
+  <p>Creates a new <a href="../../flint_ui/FlintButton-class.html">FlintButton</a>.</p>
+<p>All parameters are optional except <code>text</code> and <code>url</code>.
+Use <code>state</code> to disable the button, preventing user interaction.</p>
+</section>
 
 
     
@@ -79,8 +84,11 @@
   this.style,
   this.padding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
   this.borderRadius = const BorderRadius.circular(6.0),
-  this.shadow =
-      const BoxShadow(offsetY: 2, blurRadius: 4, color: &#39;rgba(0, 0, 0, 0.1)&#39;),
+  this.shadow = const BoxShadow(
+    offsetY: 2,
+    blurRadius: 4,
+    color: &#39;rgba(0, 0, 0, 0.1)&#39;,
+  ),
   this.state = ButtonState.enabled,
   this.semanticLabel,
   this.fullWidth = false,
@@ -114,7 +122,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

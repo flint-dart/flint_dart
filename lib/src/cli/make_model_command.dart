@@ -46,7 +46,8 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
 
 class $className extends Model<$className> {
-  int? id;
+  @override
+  String? id;
 
   // Define your fields here
   String? name;
@@ -55,7 +56,6 @@ class $className extends Model<$className> {
   Table get table => Table(
     name: '${fileName.split('.').first}s',
     columns: [
-      Column(name: 'id', type: ColumnType.integer, isPrimaryKey: true, isAutoIncrement: true),
       Column(name: 'name', type: ColumnType.string),
     ],
   );

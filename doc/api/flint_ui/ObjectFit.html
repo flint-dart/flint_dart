@@ -58,6 +58,12 @@
     </div>
 
     
+<section class="desc markdown">
+  <p>Describes how an image should be resized to fit its container.</p>
+<p>Mirrors the CSS <code>object-fit</code> property.</p>
+<p>Commonly used in <a href="../flint_ui/ImageStyle-class.html">ImageStyle</a> to ensure consistent rendering
+in both HTML and email output contexts.</p>
+</section>
 
 
       <section>
@@ -95,7 +101,7 @@
 
 </dt>
 <dd>
-  
+  <p>The image is stretched to fill the element’s content box.</p>
   
 
     <div>
@@ -110,7 +116,8 @@
 
 </dt>
 <dd>
-  
+  <p>The image is scaled to maintain its aspect ratio while fitting
+completely inside the container.</p>
   
 
     <div>
@@ -125,7 +132,8 @@
 
 </dt>
 <dd>
-  
+  <p>The image is scaled to maintain its aspect ratio while covering
+the entire container.</p>
   
 
     <div>
@@ -140,7 +148,7 @@
 
 </dt>
 <dd>
-  
+  <p>The image is not resized.</p>
   
 
     <div>
@@ -155,7 +163,8 @@
 
 </dt>
 <dd>
-  
+  <p>The image is scaled down to fit within the container if larger,
+otherwise rendered at its original size.</p>
   
 
     <div>
@@ -179,7 +188,7 @@
 
 </dt>
 <dd>
-  
+  The CSS-compatible value of this fit mode.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -266,7 +275,7 @@
 
 </dt>
 <dd>
-  
+  Converts this value to its CSS representation.
   
 
 </dd>
@@ -351,7 +360,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

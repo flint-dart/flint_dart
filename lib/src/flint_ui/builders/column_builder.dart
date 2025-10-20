@@ -4,12 +4,12 @@ import 'package:flint_dart/flint_ui.dart';
 
 class FlintColumnBuilder {
   /// Create a basic column with consistent spacing
-  static FlintSimpleColumn basic({
+  static FlintColumn basic({
     required List<FlintWidget> children,
     double gap = 16.0,
-    String alignment = 'left',
+    Alignment alignment = Alignment.left,
   }) {
-    return FlintSimpleColumn(
+    return FlintColumn(
       children: children,
       gap: gap,
       alignment: alignment,
@@ -17,11 +17,11 @@ class FlintColumnBuilder {
   }
 
   /// Create a centered column
-  static FlintSimpleColumn centered({
+  static FlintColumn centered({
     required List<FlintWidget> children,
     double gap = 16.0,
   }) {
-    return FlintSimpleColumn(
+    return FlintColumn(
       children: children,
       gap: gap,
       alignment: 'center',
@@ -29,13 +29,13 @@ class FlintColumnBuilder {
   }
 
   /// Create a card-like column with background and padding
-  static FlintSimpleColumn card({
+  static FlintColumn card({
     required List<FlintWidget> children,
     double gap = 16.0,
     String backgroundColor = '#ffffff',
     double borderRadius = 8.0,
   }) {
-    return FlintSimpleColumn(
+    return FlintColumn(
       children: children,
       gap: gap,
       padding: EdgeInsets.all(20),
@@ -46,11 +46,11 @@ class FlintColumnBuilder {
   }
 
   /// Create a column for form fields
-  static FlintSimpleColumn form({
+  static FlintColumn form({
     required List<FlintWidget> children,
     double gap = 12.0,
   }) {
-    return FlintSimpleColumn(
+    return FlintColumn(
       children: children,
       gap: gap,
       alignment: 'left',
@@ -58,7 +58,7 @@ class FlintColumnBuilder {
   }
 
   /// Create a column for a list of items
-  static FlintSimpleColumn list({
+  static FlintColumn list({
     required List<ListItem> items,
     double gap = 8.0,
     String bullet = '•',
@@ -73,14 +73,14 @@ class FlintColumnBuilder {
       );
     }).toList();
 
-    return FlintSimpleColumn(
+    return FlintColumn(
       children: children,
       gap: gap,
     );
   }
 
   /// Create a column with alternating background colors
-  static FlintSimpleColumn striped({
+  static FlintColumn striped({
     required List<FlintWidget> children,
     String oddColor = '#ffffff',
     String evenColor = '#f8f9fa',
@@ -109,7 +109,7 @@ class FlintColumnBuilder {
       }
     }
 
-    return FlintSimpleColumn(
+    return FlintColumn(
       children: styledChildren,
       gap: gap,
     );

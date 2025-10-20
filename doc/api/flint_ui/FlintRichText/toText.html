@@ -67,7 +67,9 @@
     </section>
     
 <section class="desc markdown">
-  <p>Render to plain text (fallback, CLI, etc.)</p>
+  <p>Converts the rich text to a plain text version for environments that
+do not support HTML (e.g., console output or text-only emails).</p>
+<p>Links are appended in parentheses.</p>
 </section>
 
 
@@ -103,7 +105,7 @@ String toText() =&gt; children.map((span) =&gt; span.toText()).join();</code></p
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

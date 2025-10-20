@@ -3,3 +3,4 @@ export 'src/mail/mail_config.dart';
 export 'src/mail/template_engine.dart';
 export 'src/mail/mailable.dart';
 export 'src/mail/base_mailables.dart';
+export 'src/mail/view_mailable.dart';

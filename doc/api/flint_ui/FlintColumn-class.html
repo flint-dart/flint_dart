@@ -53,6 +53,26 @@
 </h1></div>
 
     
+<section class="desc markdown">
+  <p>A layout widget that arranges its <a href="../flint_ui/FlintColumn/children.html">children</a> vertically,
+similar to Flutter's <code>Column</code> widget.</p>
+<p>The <a href="../flint_ui/FlintColumn-class.html">FlintColumn</a> is part of the Flint UI framework and is designed
+to render flexible vertical layouts for HTML emails, web views,
+or text-based rendering.</p>
+<p>It supports visual spacing (<a href="../flint_ui/FlintColumn/gap.html">gap</a>), layout padding and margin,
+background styling, border customization, and child alignment.</p>
+<p>Example usage:</p>
+<pre class="language-dart"><code class="language-dart">FlintColumn(
+  padding: EdgeInsets.all(12),
+  backgroundColor: '#f5f5f5',
+  alignment: Alignment.center,
+  children: [
+    FlintText('Welcome to Flint!'),
+    FlintButton(label: 'Get Started'),
+  ],
+)
+</code></pre>
+</section>
 
 
     <section>
@@ -86,7 +106,7 @@
           <span class="name"><a href="../flint_ui/FlintColumn/FlintColumn.html">FlintColumn.new</a></span><span class="signature">({<span class="parameter" id="-param-children"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_ui/FlintWidget-class.html">FlintWidget</a></span>&gt;</span></span> <span class="parameter-name">children</span>, </span><span class="parameter" id="-param-gap"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/double-class.html">double</a></span> <span class="parameter-name">gap</span> = <span class="default-value">8.0</span>, </span><span class="parameter" id="-param-padding"><span class="type-annotation"><a href="../flint_ui/EdgeInsets-class.html">EdgeInsets</a>?</span> <span class="parameter-name">padding</span>, </span><span class="parameter" id="-param-margin"><span class="type-annotation"><a href="../flint_ui/EdgeInsets-class.html">EdgeInsets</a>?</span> <span class="parameter-name">margin</span>, </span><span class="parameter" id="-param-backgroundColor"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">backgroundColor</span>, </span><span class="parameter" id="-param-border"><span class="type-annotation"><a href="../flint_ui/BoxBorder-class.html">BoxBorder</a>?</span> <span class="parameter-name">border</span>, </span><span class="parameter" id="-param-borderRadius"><span class="type-annotation"><a href="../flint_ui/BorderRadius-class.html">BorderRadius</a>?</span> <span class="parameter-name">borderRadius</span>, </span><span class="parameter" id="-param-alignment"><span class="type-annotation"><a href="../flint_ui/Alignment.html">Alignment</a></span> <span class="parameter-name">alignment</span> = <span class="default-value">Alignment.left</span>, </span><span class="parameter" id="-param-reverse"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">reverse</span> = <span class="default-value">false</span></span>})</span>
         </dt>
         <dd>
-          
+          Creates a new <a href="../flint_ui/FlintColumn-class.html">FlintColumn</a> widget.
         </dd>
     </dl>
   </section>
@@ -103,7 +123,7 @@
 
 </dt>
 <dd>
-  
+  The horizontal alignment of the children within the column.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -115,7 +135,7 @@
 
 </dt>
 <dd>
-  
+  The background color of the column, represented as a CSS color string.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -127,7 +147,7 @@
 
 </dt>
 <dd>
-  
+  The border of the column container.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -139,7 +159,7 @@
 
 </dt>
 <dd>
-  
+  The border radius (corner roundness) of the column container.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -151,7 +171,7 @@
 
 </dt>
 <dd>
-  
+  The widgets arranged vertically inside this column.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -163,7 +183,7 @@
 
 </dt>
 <dd>
-  
+  The vertical space (in pixels) between child widgets.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -187,7 +207,7 @@
 
 </dt>
 <dd>
-  
+  The external margin of the column container.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -199,7 +219,7 @@
 
 </dt>
 <dd>
-  
+  The internal padding of the column container.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -211,7 +231,7 @@
 
 </dt>
 <dd>
-  
+  Whether to render the children in reverse order.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -245,7 +265,7 @@
 
 </dt>
 <dd>
-  Build the widget template - MUST be implemented by subclasses
+  Returns this column widget as the final build result.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -271,7 +291,7 @@
 
 </dt>
 <dd>
-  Render to HTML (for emails, web)
+  Renders the column and its children as an HTML <code>&lt;div&gt;</code> element.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -284,7 +304,7 @@
 
 </dt>
 <dd>
-  Render to intermediate JSON (for APIs, mobile apps, etc.)
+  Serializes this widget to a JSON representation.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -310,7 +330,7 @@
 
 </dt>
 <dd>
-  Render to plain text (fallback, CLI, etc.)
+  Renders the column and its children as plain text.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -365,7 +385,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

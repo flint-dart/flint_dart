@@ -67,7 +67,10 @@
     </section>
     
 <section class="desc markdown">
-  <p>Render to HTML (for emails, web)</p>
+  <p>Converts the rich text and all its spans into an HTML representation.</p>
+<p>Each <a href="../../flint_ui/FlintTextSpan-class.html">FlintTextSpan</a> is rendered as a <code>&lt;span&gt;</code> or <code>&lt;a&gt;</code> tag depending
+on whether it has a link (<code>onTap</code> property). The alignment is applied
+via inline CSS.</p>
 </section>
 
 
@@ -76,7 +79,8 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
 String toHtml() {
-  final style = &#39;text-align: ${align.toCss()}; line-height: 1.6;&#39;;
+  final style =
+      &#39;text-align: ${align.toCss()}; line-height: 1.6; display: block;&#39;;
   return &#39;&#39;&#39;
 &lt;div style=&quot;$style&quot;&gt;
 ${children.map((span) =&gt; span.toHtml()).join()}
@@ -110,7 +114,7 @@ ${children.map((span) =&gt; span.toHtml()).join()}
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

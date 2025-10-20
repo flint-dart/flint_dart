@@ -53,6 +53,13 @@
 </h1></div>
 
     
+<section class="desc markdown">
+  <p>A widget that allows rendering of rich, styled inline text spans.</p>
+<p>Similar to Flutter's <code>RichText</code>, but built for Flint UI’s multi-render system
+(HTML, text, and JSON). This widget is useful for composing formatted
+text blocks with mixed styles, links, or emphasis in email templates,
+web components, and text-based outputs.</p>
+</section>
 
 
     <section>
@@ -86,7 +93,7 @@
           <span class="name"><a href="../flint_ui/FlintRichText/FlintRichText.html">FlintRichText.new</a></span><span class="signature">({<span class="parameter" id="-param-children"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_ui/FlintTextSpan-class.html">FlintTextSpan</a></span>&gt;</span></span> <span class="parameter-name">children</span>, </span><span class="parameter" id="-param-align"><span class="type-annotation"><a href="../flint_ui/TextAlign.html">TextAlign</a></span> <span class="parameter-name">align</span> = <span class="default-value">TextAlign.left</span></span>})</span>
         </dt>
         <dd>
-          
+          Creates a rich text widget with one or more <a href="../flint_ui/FlintTextSpan-class.html">FlintTextSpan</a>s.
         </dd>
     </dl>
   </section>
@@ -103,7 +110,7 @@
 
 </dt>
 <dd>
-  
+  The horizontal alignment of the entire text block.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -115,7 +122,7 @@
 
 </dt>
 <dd>
-  
+  A list of text spans that define the formatted content.
   <div class="features"><span class="feature">final</span></div>
 
 </dd>
@@ -161,7 +168,7 @@
 
 </dt>
 <dd>
-  Build the widget template - MUST be implemented by subclasses
+  For rich text, returns the current widget since it's a leaf renderer.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -187,7 +194,7 @@
 
 </dt>
 <dd>
-  Render to HTML (for emails, web)
+  Converts the rich text and all its spans into an HTML representation.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -200,7 +207,8 @@
 
 </dt>
 <dd>
-  Render to intermediate JSON (for APIs, mobile apps, etc.)
+  Serializes the rich text widget into a JSON-compatible map, useful
+for dynamic rendering or API output.
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -226,7 +234,8 @@
 
 </dt>
 <dd>
-  Render to plain text (fallback, CLI, etc.)
+  Converts the rich text to a plain text version for environments that
+do not support HTML (e.g., console output or text-only emails).
   <div class="features"><span class="feature">override</span></div>
 
 </dd>
@@ -281,7 +290,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

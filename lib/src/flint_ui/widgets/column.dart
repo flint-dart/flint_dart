@@ -2,17 +2,77 @@
 
 import '../core/core.dart';
 
+/// A layout widget that arranges its [children] vertically,
+/// similar to Flutter's `Column` widget.
+///
+/// The [FlintColumn] is part of the Flint UI framework and is designed
+/// to render flexible vertical layouts for HTML emails, web views,
+/// or text-based rendering.
+///
+/// It supports visual spacing ([gap]), layout padding and margin,
+/// background styling, border customization, and child alignment.
+///
+/// Example usage:
+/// ```dart
+/// FlintColumn(
+///   padding: EdgeInsets.all(12),
+///   backgroundColor: '#f5f5f5',
+///   alignment: Alignment.center,
+///   children: [
+///     FlintText('Welcome to Flint!'),
+///     FlintButton(label: 'Get Started'),
+///   ],
+/// )
+/// ```
 class FlintColumn extends FlintWidget {
+  /// The widgets arranged vertically inside this column.
   final List<FlintWidget> children;
+
+  /// The vertical space (in pixels) between child widgets.
+  ///
+  /// Defaults to `8.0`.
   final double gap;
+
+  /// The internal padding of the column container.
+  ///
+  /// This adds space between the container's border and its content.
   final EdgeInsets? padding;
+
+  /// The external margin of the column container.
+  ///
+  /// This adds space outside the container relative to neighboring elements.
   final EdgeInsets? margin;
+
+  /// The background color of the column, represented as a CSS color string.
+  ///
+  /// Example: `'#ffffff'`, `'red'`, or `'rgba(0,0,0,0.1)'`.
   final String? backgroundColor;
+
+  /// The border of the column container.
+  ///
+  /// Use [BoxBorder] to define border width, color, and style.
   final BoxBorder? border;
+
+  /// The border radius (corner roundness) of the column container.
   final BorderRadius? borderRadius;
+
+  /// The horizontal alignment of the children within the column.
+  ///
+  /// Maps to CSS `align-items`:
+  /// - [Alignment.left] → `flex-start`
+  /// - [Alignment.right] → `flex-end`
+  /// - [Alignment.center] → `center`
+  /// - [Alignment.stretch] → `stretch`
   final Alignment alignment;
+
+  /// Whether to render the children in reverse order.
+  ///
+  /// When `true`, the last child appears first.
   final bool reverse;
 
+  /// Creates a new [FlintColumn] widget.
+  ///
+  /// The [children] parameter must not be null.
   FlintColumn({
     required this.children,
     this.gap = 8.0,
@@ -25,6 +85,13 @@ class FlintColumn extends FlintWidget {
     this.reverse = false,
   });
 
+  // ---------------------------------------------------------------------------
+  // Rendering
+  // ---------------------------------------------------------------------------
+
+  /// Renders the column and its children as an HTML `<div>` element.
+  ///
+  /// Styles are applied inline using CSS flexbox layout.
   @override
   String toHtml() {
     final columnStyle = _buildColumnStyle();
@@ -37,6 +104,9 @@ class FlintColumn extends FlintWidget {
 ''';
   }
 
+  /// Renders the column and its children as plain text.
+  ///
+  /// Each child is separated by two newlines (`\n\n`).
   @override
   String toText() {
     final childrenText = children.map((child) => child.toText()).toList();
@@ -46,6 +116,9 @@ class FlintColumn extends FlintWidget {
     return childrenText.join('\n\n');
   }
 
+  /// Serializes this widget to a JSON representation.
+  ///
+  /// Useful for saving templates or transmitting layout definitions.
   @override
   Map<String, dynamic> toJson() {
     return {
@@ -57,17 +130,22 @@ class FlintColumn extends FlintWidget {
       'backgroundColor': backgroundColor,
       'border': border?.toJson(),
       'borderRadius': borderRadius?.toJson(),
-      'alignment':
-          alignment.name, // Convert to string name instead of enum instance
+      'alignment': alignment.name,
       'reverse': reverse,
     };
   }
 
+  /// Returns this column widget as the final build result.
+  ///
+  /// Since [FlintColumn] has no dynamic build logic, this simply returns `this`.
   @override
-  FlintWidget buildTemplate() {
-    return this;
-  }
+  FlintWidget buildTemplate() => this;
 
+  // ---------------------------------------------------------------------------
+  // Internal helpers
+  // ---------------------------------------------------------------------------
+
+  /// Builds the inline CSS style for the column container.
   String _buildColumnStyle() {
     final styles = <String>[
       'display: flex;',
@@ -78,28 +156,41 @@ class FlintColumn extends FlintWidget {
       if (backgroundColor != null) 'background-color: $backgroundColor;',
       if (border != null) 'border: ${border!.toCss()};',
       if (borderRadius != null) 'border-radius: ${borderRadius!.toCss()};',
-      'align-items: ${alignment.cssValue};', // Use the cssValue directly
+      'align-items: ${alignment.cssValue};',
     ];
-
     return styles.join(' ');
   }
 
+  /// Builds the combined HTML output for all children.
   String _buildChildrenHtml() {
     final items = reverse ? children.reversed.toList() : children;
     return items.map((child) => child.toHtml()).join('');
   }
 }
 
+/// Defines how child elements are horizontally aligned
+/// within a [FlintColumn].
+///
+/// Maps directly to CSS `align-items`.
 enum Alignment {
+  /// Aligns children to the left (CSS: `flex-start`).
   left('flex-start'),
+
+  /// Aligns children to the right (CSS: `flex-end`).
   right('flex-end'),
+
+  /// Centers children horizontally (CSS: `center`).
   center('center'),
+
+  /// Stretches children to fill available horizontal space (CSS: `stretch`).
   stretch('stretch');
 
+  /// The corresponding CSS value for this alignment.
   final String cssValue;
+
   const Alignment(this.cssValue);
 
-  // Add name property for JSON serialization
+  /// The string name used for JSON serialization.
   String get name {
     switch (this) {
       case Alignment.left:

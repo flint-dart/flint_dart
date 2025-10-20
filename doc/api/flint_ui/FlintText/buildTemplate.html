@@ -67,7 +67,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Build the widget template - MUST be implemented by subclasses</p>
+  <p>Returns this instance since <a href="../../flint_ui/FlintText-class.html">FlintText</a> is a leaf widget.</p>
 </section>
 
 
@@ -75,10 +75,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-FlintWidget buildTemplate() {
-  &#47;&#47; For images, we return self since we&#39;re a leaf widget
-  return this;
-}</code></pre>
+FlintWidget buildTemplate() =&gt; this;</code></pre>
 </section>
 
 
@@ -106,7 +103,7 @@ FlintWidget buildTemplate() {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

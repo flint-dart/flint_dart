@@ -6,4 +6,3 @@ export 'image.dart';
 export 'row.dart';
 export 'flex_row.dart';
 export 'column.dart';
-export 'simple_column.dart';

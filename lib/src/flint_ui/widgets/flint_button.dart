@@ -1,32 +1,78 @@
-// lib/flint_ui/widgets/button.dart
-
-import 'package:flint_dart/src/flint_ui/core/box_style.dart';
-import 'package:flint_dart/src/flint_ui/core/button_style.dart';
-import 'package:flint_dart/src/flint_ui/core/edge_insets.dart';
+import 'package:flint_dart/src/flint_ui/core/core.dart';
 import 'package:flint_dart/src/flint_ui/core/framework.dart';
-import 'package:flint_dart/src/flint_ui/core/style.dart';
 
+/// {@template flint_button}
+/// A customizable and responsive button widget for **Flint UI**, designed to be
+/// rendered as both HTML (for web/emails) and text (for CLI or plain text outputs).
+///
+/// The [FlintButton] class provides a consistent styling system through the
+/// [ButtonStyle], [EdgeInsets], [BorderRadius], and [BoxShadow] classes.
+/// It supports icons, semantic labels for accessibility, and multiple button states.
+///
+/// Example usage:
+/// ```dart
+/// FlintButton(
+///   text: 'Get Started',
+///   url: 'https://flintdart.dev',
+///   style: ButtonStyle.primary(),
+///   icon: '🚀',
+/// )
+/// ```
+///
+/// This button will render as an HTML `<a>` tag (or `<span>` if disabled)
+/// with full inline CSS styling for compatibility across browsers and email clients.
+/// {@endtemplate}
 class FlintButton extends FlintWidget {
+  /// The text displayed inside the button.
   final String text;
+
+  /// The URL or target destination the button links to.
+  /// When the button is disabled, this attribute is ignored.
   final String url;
+
+  /// The button's visual appearance, defined by a [ButtonStyle].
   final ButtonStyle? style;
+
+  /// The internal padding around the button content.
   final EdgeInsets padding;
+
+  /// The border radius that determines the button's corner roundness.
   final BorderRadius borderRadius;
+
+  /// The shadow applied to the button for depth and elevation.
   final BoxShadow shadow;
+
+  /// The interactive state of the button, such as enabled or disabled.
   final ButtonState state;
+
+  /// An accessibility label that describes the button's action or purpose.
+  /// This will be rendered as an `aria-label` attribute in HTML.
   final String? semanticLabel;
+
+  /// Whether the button should take the full width of its container.
   final bool fullWidth;
+
+  /// The general size variant of the button (e.g., small, medium, large).
   final ButtonSize size;
+
+  /// An optional icon or emoji to display before the button text.
   final String? icon;
 
+  /// Creates a new [FlintButton].
+  ///
+  /// All parameters are optional except [text] and [url].
+  /// Use [state] to disable the button, preventing user interaction.
   FlintButton({
     required this.text,
     required this.url,
     this.style,
     this.padding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
     this.borderRadius = const BorderRadius.circular(6.0),
-    this.shadow =
-        const BoxShadow(offsetY: 2, blurRadius: 4, color: 'rgba(0, 0, 0, 0.1)'),
+    this.shadow = const BoxShadow(
+      offsetY: 2,
+      blurRadius: 4,
+      color: 'rgba(0, 0, 0, 0.1)',
+    ),
     this.state = ButtonState.enabled,
     this.semanticLabel,
     this.fullWidth = false,
@@ -34,6 +80,11 @@ class FlintButton extends FlintWidget {
     this.icon,
   });
 
+  /// Converts this button into an HTML representation.
+  ///
+  /// - Uses `<a>` tag when enabled.
+  /// - Uses `<span>` tag when disabled.
+  /// - Includes full inline CSS for consistent rendering in emails.
   @override
   String toHtml() {
     final buttonStyle = _buildButtonStyle();
@@ -55,6 +106,13 @@ class FlintButton extends FlintWidget {
 ''';
   }
 
+  /// Converts this button into a plain-text representation.
+  ///
+  /// This is useful for CLI output or fallback text-based rendering.
+  /// Example output:
+  /// ```
+  /// 🚀 Get Started: https://flintdart.dev
+  /// ```
   @override
   String toText() {
     if (state == ButtonState.disabled) {
@@ -63,6 +121,9 @@ class FlintButton extends FlintWidget {
     return icon != null ? '$icon $text: $url' : '$text: $url';
   }
 
+  /// Serializes this button into a JSON-compatible map.
+  ///
+  /// Useful for dynamic UI generation or exporting widget configurations.
   @override
   Map<String, dynamic> toJson() => {
         'type': 'button',
@@ -79,6 +140,10 @@ class FlintButton extends FlintWidget {
         'icon': icon,
       };
 
+  /// Builds the inline CSS string for this button.
+  ///
+  /// This method generates styles dynamically based on the button's
+  /// [ButtonStyle], [EdgeInsets], [BorderRadius], [BoxShadow], and [ButtonState].
   String _buildButtonStyle() {
     final currentStyle = _getStyleForState();
     final styles = <String>[
@@ -123,6 +188,10 @@ class FlintButton extends FlintWidget {
     return styles.join(' ');
   }
 
+  /// Builds the HTML attributes for the button.
+  ///
+  /// Adds accessibility (`aria-*`) attributes, role definitions,
+  /// and ensures proper behavior when the button is disabled.
   String _buildButtonAttributes() {
     final attrs = <String>[];
 
@@ -136,15 +205,15 @@ class FlintButton extends FlintWidget {
       attrs.add(' aria-disabled="true"');
     }
 
-    // Add role for accessibility
     attrs.add(' role="button"');
-
-    // Email client specific
     attrs.add(' style="text-decoration: none;"');
 
     return attrs.join();
   }
 
+  /// Builds the inner HTML content of the button.
+  ///
+  /// When [icon] is provided, it appears before the text.
   String _buildButtonContent() {
     final content = _escapeHtml(text);
     if (icon != null) {
@@ -160,6 +229,9 @@ class FlintButton extends FlintWidget {
     return content;
   }
 
+  /// Determines the appropriate [ButtonStyle] based on the current [state].
+  ///
+  /// For example, when disabled, the background and text colors are adjusted.
   ButtonStyle _getStyleForState() {
     if (state == ButtonState.disabled) {
       return style!.copyWith(
@@ -170,6 +242,7 @@ class FlintButton extends FlintWidget {
     return style!;
   }
 
+  /// Escapes HTML special characters in [text] for safe rendering.
   String _escapeHtml(String text) {
     return text
         .replaceAll('&', '&amp;')
@@ -179,7 +252,8 @@ class FlintButton extends FlintWidget {
         .replaceAll("'", '&#39;');
   }
 
-  /// Creates a copy of this button with updated properties
+  /// Returns a new [FlintButton] with updated properties while keeping
+  /// unspecified values the same.
   FlintButton copyWith({
     String? text,
     String? url,
@@ -208,9 +282,10 @@ class FlintButton extends FlintWidget {
     );
   }
 
+  /// {@macro flint_widget.buildTemplate}
+  ///
+  /// Since [FlintButton] is a leaf widget (it cannot have children),
+  /// this simply returns itself.
   @override
-  FlintWidget buildTemplate() {
-    // For images, we return self since we're a leaf widget
-    return this;
-  }
+  FlintWidget buildTemplate() => this;
 }

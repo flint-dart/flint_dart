@@ -92,21 +92,21 @@
     final updateData = &lt;String, dynamic&gt;{};
 
     &#47;&#47; Only update email if the column exists
-    final emailColumnExists = await _columnExists(table, config.emailColumn);
+    final emailColumnExists = await columnExists(table, config.emailColumn);
     if (emailColumnExists) {
       updateData[config.emailColumn] = email;
     }
 
     &#47;&#47; Only update name if the column exists and name is provided
     if (name != null &amp;&amp; config.nameColumn != null) {
-      final nameColumnExists = await _columnExists(table, config.nameColumn!);
+      final nameColumnExists = await columnExists(table, config.nameColumn!);
       if (nameColumnExists) {
         updateData[config.nameColumn!] = name;
       }
     }
 
     &#47;&#47; Only update updated_at if the column exists
-    final updatedAtExists = await _columnExists(table, &#39;updated_at&#39;);
+    final updatedAtExists = await columnExists(table, &#39;updated_at&#39;);
     if (updatedAtExists) {
       updateData[&#39;updated_at&#39;] = DateTime.now().toIso8601String();
     }
@@ -129,7 +129,7 @@
       &#47;&#47; Only update provider columns if they exist
       if (config.providerColumn != null) {
         final providerColumnExists =
-            await _columnExists(table, config.providerColumn!);
+            await columnExists(table, config.providerColumn!);
         if (providerColumnExists) {
           updateData[config.providerColumn!] = provider;
         }
@@ -137,14 +137,14 @@
 
       if (config.providerIdColumn != null) {
         final providerIdColumnExists =
-            await _columnExists(table, config.providerIdColumn!);
+            await columnExists(table, config.providerIdColumn!);
         if (providerIdColumnExists) {
           updateData[config.providerIdColumn!] = providerId;
         }
       }
 
       &#47;&#47; Only update updated_at if the column exists
-      final updatedAtExists = await _columnExists(table, &#39;updated_at&#39;);
+      final updatedAtExists = await columnExists(table, &#39;updated_at&#39;);
       if (updatedAtExists) {
         updateData[&#39;updated_at&#39;] = DateTime.now().toIso8601String();
       }
@@ -205,7 +205,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

@@ -63,7 +63,8 @@
     </section>
     
 <section class="desc markdown">
-  <p>Check if a table exists.</p>
+  <p>Check if a table exists.
+Check if a table exists.</p>
 </section>
 
 
@@ -86,7 +87,7 @@
     &#39;&#39;&#39;;
     } else {
       sql = &#39;&#39;&#39;
-      SELECT COUNT(*) &gt; 0 AS exists
+      SELECT COUNT(*) &gt; 0 AS `exists_flag`
       FROM information_schema.tables
       WHERE table_schema = DATABASE()
       AND table_name = ?
@@ -99,7 +100,7 @@
       namedParams: _driver == DBDriver.postgres ? params : null,
     );
 
-    final exists = result.first[&#39;exists&#39;];
+    final exists = result.first[&#39;exists&#39;] ?? result.first[&#39;exists_flag&#39;];
     if (exists is bool) return exists;
     if (exists is int) return exists &gt; 0;
     if (exists is BigInt) return exists &gt; BigInt.zero;
@@ -139,7 +140,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

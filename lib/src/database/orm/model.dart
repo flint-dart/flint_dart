@@ -1,3 +1,4 @@
+import 'package:flint_dart/helper.dart';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'query_builder.dart';
@@ -45,7 +46,27 @@ abstract class Model<T extends Model<T>> {
   /// Insert new record (works for both PostgreSQL and MySQL)
   Future<T?> create([Map<String, dynamic>? data]) async {
     final insertMap = data ?? toMap();
-    insertMap.remove(primaryKey);
+    final idColumn = table.columns.firstWhere((c) => c.isPrimaryKey,
+        orElse: () => Column(
+              name: 'id',
+              type: ColumnType.string,
+              isPrimaryKey: true,
+              isAutoIncrement: false,
+            ));
+
+    // --- ✅ Auto-generate UUID for string-based primary keys ---
+    if (!idColumn.isAutoIncrement &&
+        idColumn.type == ColumnType.string &&
+        (insertMap[idColumn.name] == null ||
+            insertMap[idColumn.name].toString().isEmpty)) {
+      // Use Dart-generated UUID
+      insertMap[idColumn.name] = Str.uuid();
+    }
+
+    // --- Remove auto-increment id from insert map ---
+    if (idColumn.isAutoIncrement) {
+      insertMap.remove(idColumn.name);
+    }
 
     if (insertMap.isEmpty) {
       throw Exception("No data provided for creation");
@@ -57,10 +78,10 @@ abstract class Model<T extends Model<T>> {
       // PostgreSQL - use RETURNING clause with named parameters
       final placeholders = insertMap.keys.map((k) => ':$k').join(', ');
       final sql = '''
-      INSERT INTO ${table.name} ($fields) 
-      VALUES ($placeholders) 
+      INSERT INTO ${table.name} ($fields)
+      VALUES ($placeholders)
       RETURNING *
-    ''';
+      ''';
 
       final result = await DB.query(sql, namedParams: insertMap);
       return fromMap(_convertDatabaseTypes(result.first));
@@ -69,26 +90,26 @@ abstract class Model<T extends Model<T>> {
       final placeholders =
           List.generate(insertMap.length, (_) => '?').join(', ');
       final sql = '''
-      INSERT INTO ${table.name} ($fields) 
+      INSERT INTO ${table.name} ($fields)
       VALUES ($placeholders)
-    ''';
+      ''';
 
       await DB.query(sql, positionalParams: insertMap.values.toList());
 
-      // Get the last inserted ID
-      final lastId = await DB.getLastInsertId(table.name, primaryKey);
-
-      // Fetch the complete record
-      if (DB.driver == DBDriver.mysql) {
+      if (idColumn.isAutoIncrement) {
+        // Fetch using last inserted ID
+        final lastId = await DB.getLastInsertId(table.name, idColumn.name);
         final result = await DB.query(
-          'SELECT * FROM ${table.name} WHERE $primaryKey = ?',
+          'SELECT * FROM ${table.name} WHERE ${idColumn.name} = ?',
           positionalParams: [lastId],
         );
         return fromMap(_convertDatabaseTypes(result.first));
       } else {
+        // Fetch using UUID we just inserted
+        final insertedId = insertMap[idColumn.name];
         final result = await DB.query(
-          'SELECT * FROM ${table.name} WHERE $primaryKey = :id',
-          namedParams: {'id': lastId},
+          'SELECT * FROM ${table.name} WHERE ${idColumn.name} = ?',
+          positionalParams: [insertedId],
         );
         return fromMap(_convertDatabaseTypes(result.first));
       }
@@ -309,41 +330,61 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Convert database-specific types to Dart types
+  /// Convert database-specific types to Dart types safely,
+  /// respecting the model's schema definition.
   Map<String, dynamic> _convertDatabaseTypes(Map<dynamic, dynamic> map) {
     final converted = Map<String, dynamic>.from(map);
 
-    converted.forEach((key, value) {
-      if (value is DateTime) {
-        // Already good
-      } else if (value is String && _looksLikeDateTime(value)) {
-        // Try to parse datetime strings
-        try {
-          converted[key] = DateTime.parse(value);
-        } catch (e) {
-          // Keep as string if parsing fails
-        }
-      } else if (value is BigInt) {
-        converted[key] = value.toInt();
-      } else if (value is String && _isNumeric(value)) {
-        // Convert numeric strings to numbers
-        if (value.contains('.')) {
-          converted[key] = double.parse(value);
-        } else {
-          converted[key] = int.parse(value);
-        }
-      } else if (value == null) {
-        converted[key] = null;
+    for (final column in table.columns) {
+      final key = column.name;
+      if (!converted.containsKey(key)) continue;
+
+      final value = converted[key];
+      if (value == null) continue;
+
+      switch (column.type) {
+        case ColumnType.integer:
+          // Convert to int only if it's a numeric string
+          if (value is String && int.tryParse(value) != null) {
+            converted[key] = int.parse(value);
+          } else if (value is BigInt) {
+            converted[key] = value.toInt();
+          }
+          break;
+
+        case ColumnType.double:
+          // Convert to double if possible
+          if (value is String && double.tryParse(value) != null) {
+            converted[key] = double.parse(value);
+          }
+          break;
+
+        case ColumnType.datetime:
+          // Parse DateTime strings
+          if (value is String && _looksLikeDateTime(value)) {
+            try {
+              converted[key] = DateTime.parse(value);
+            } catch (_) {
+              // keep as string if parsing fails
+            }
+          }
+          break;
+
+        case ColumnType.string:
+          // Always keep as string
+          converted[key] = value.toString();
+          break;
+
+        default:
+          // Leave unchanged for other types
+          break;
       }
-    });
+    }
 
     return converted;
   }
 
   static bool _looksLikeDateTime(String value) {
     return RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(value);
-  }
-
-  static bool _isNumeric(String value) {
-    return double.tryParse(value) != null;
   }
 }

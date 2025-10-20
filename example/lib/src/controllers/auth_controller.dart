@@ -1,6 +1,7 @@
 import 'package:flint_dart/auth.dart';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:sample/src/mail/welcome_mail.dart';
+import 'package:sample/src/models/otp_model.dart';
 
 class AuthController {
   Future<Response> register(Request req, Response res) async {
@@ -18,6 +19,9 @@ class AuthController {
 
     // Send welcome email
     // await _sendWelcomeEmail(data);
+
+    final otp = await Auth.generateNumericVerificationCode(data["email"]);
+
     var mail = WelcomeMail(
       recipientName: 'Preview User',
       recipientEmail: 'preview@example.com',
@@ -26,7 +30,11 @@ class AuthController {
     );
 
     await mail.send();
-
+    await OtpModel().create({
+      "email": data["email"],
+      "otp": otp.toString(),
+      "expired_at": DateTime.now().add(Duration(minutes: 20)).toIso8601String()
+    });
     return res.respond({"msg": "User created successfully", "data": data});
   }
 

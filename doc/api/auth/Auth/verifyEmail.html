@@ -86,7 +86,7 @@
 
   &#47;&#47; Only update email_verified_at if the column exists
   final emailVerifiedAtExists =
-      await _columnExists(config.table, &#39;email_verified_at&#39;);
+      await columnExists(config.table, &#39;email_verified_at&#39;);
   if (emailVerifiedAtExists) {
     await QueryBuilder(table: config.table)
         .where(config.emailColumn, &#39;=&#39;, email)
@@ -126,7 +126,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>

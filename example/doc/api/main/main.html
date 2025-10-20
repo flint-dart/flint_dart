@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the main function from the main library, for the Dart programming language.">
+  <title>main function - main library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">sample</a></li>
+    <li><a href="../main/">main.dart</a></li>
+    <li class="self-crumb">main function</li>
+  </ol>
+  <div class="self-name">main</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+  <div
+      id="dartdoc-main-content"
+      class="main-content"
+      data-above-sidebar="main&#47;main-library-sidebar.html"
+      data-below-sidebar="">
+      <div>
+<h1><span class="kind-function">main</span> function 
+ 
+</h1></div>
+
+    <section class="multi-line-signature">
+        
+<span class="returntype">void</span>
+<span class="name ">main</span>(<wbr>)
+
+        
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">void main() {
+  final app = Flint(
+    withDefaultMiddleware: true,
+    enableSwaggerDocs: true,
+    autoConnectDb: true,
+    viewPath: &#39;lib&#47;src&#47;views&#39;,
+  );
+
+  app.use(LoggerMiddleware());
+
+  app.get(&#39;&#47;&#39;, (req, res) async {
+    return res.render(Welcome());
+  });
+&#47;&#47; In your preview server routes
+  app.get(&#39;&#47;preview&#47;email&#47;:type&#39;, (req, res) async {
+    final type = req.params[&#39;type&#39;];
+
+    Mailable mail;
+
+    switch (type) {
+      case &#39;welcome&#39;:
+        mail = WelcomeMail(
+          recipientName: &#39;Preview User&#39;,
+          recipientEmail: &#39;preview@example.com&#39;,
+          verificationUrl: &#39;https:&#47;&#47;example.com&#47;verify&#47;preview&#39;,
+          loginUrl: &#39;https:&#47;&#47;example.com&#47;login&#39;,
+        );
+        break;
+
+      case &#39;password-reset&#39;:
+        mail = PasswordResetMail(
+          recipientName: &#39;Preview User&#39;,
+          recipientEmail: &#39;preview@example.com&#39;,
+          resetUrl: &#39;https:&#47;&#47;example.com&#47;reset&#47;preview&#39;,
+        );
+        break;
+
+      case &#39;order-confirmation&#39;:
+        mail = OrderConfirmationMail(
+          recipientName: &#39;Preview User&#39;,
+          recipientEmail: &#39;preview@example.com&#39;,
+          orderNumber: &#39;PREVIEW-123&#39;,
+          orderDate: DateTime.now(),
+          orderTotal: 99.99,
+          items: [
+            OrderItem(name: &#39;Preview Product&#39;, quantity: 1, price: 99.99),
+          ],
+        );
+        break;
+
+      default:
+        return res.status(404).json({&#39;error&#39;: &#39;Template not found&#39;});
+    }
+
+    return res.renderEmail(mail);
+  });
+  app.get(&#39;&#47;login&#39;, (req, res) async {
+    return res.oAuthRedirect(&quot;google&quot;, callback: &quot;&#47;api&#47;auth&#47;google&#47;callback&quot;);
+  });
+  app.mount(&quot;&#47;users&quot;, registerUserRoutes);
+
+  app.get(&#39;&#47;profile&#39;, (req, res) async {
+    return res.json({&#39;msg&#39;: &#39;This is a protected route&#39;});
+  }).useMiddleware(AuthMiddleware());
+
+  &#47;&#47; Store active users and rooms
+  final Map&lt;String, String&gt; userNames = {};
+  final Map&lt;String, Set&lt;String&gt;&gt; userRooms = {};
+
+  app.websocket(&#39;&#47;chat&#39;, (socket, params) {
+    print(&#39;👋 Client connected: ${socket.id}&#39;);
+
+    &#47;&#47; Assign a random username
+    final userName = &#39;User${socket.id.substring(0, 6)}&#39;;
+    userNames[socket.id] = userName;
+    userRooms[socket.id] = {&#39;general&#39;};
+
+    &#47;&#47; Send connection confirmation
+    socket.emit(&#39;connected&#39;, {
+      &#39;userId&#39;: socket.id,
+      &#39;userName&#39;: userName,
+      &#39;message&#39;: &#39;Successfully connected to chat server&#39;,
+      &#39;timestamp&#39;: DateTime.now().toIso8601String()
+    });
+
+    &#47;&#47; Join general room by default
+    socket.join(&#39;general&#39;);
+
+    &#47;&#47; Broadcast user joined to general chat
+    socket.emitToRoom(&#39;general&#39;, &#39;user_joined&#39;, {
+      &#39;userId&#39;: socket.id,
+      &#39;userName&#39;: userName,
+      &#39;timestamp&#39;: DateTime.now().toIso8601String(),
+      &#39;onlineUsers&#39;: userRooms.length
+    });
+
+    &#47;&#47; Handle incoming messages - BOTH raw text and JSON
+    socket.onMessage((data) {
+      print(&#39;📨 Received from $userName: $data (type: ${data.runtimeType})&#39;);
+
+      &#47;&#47; Try to parse as JSON first
+      if (data is String) {
+        try {
+          final parsed = json.decode(data);
+          if (parsed is Map&lt;String, dynamic&gt;) {
+            _handleJsonMessage(socket, userName, parsed);
+            return;
+          }
+        } catch (e) {
+          &#47;&#47; If not JSON, treat as raw text message
+          print(&#39;📝 Treating as raw text message&#39;);
+          _handleRawMessage(socket, userName, data);
+          return;
+        }
+      }
+
+      &#47;&#47; Handle other data types
+      _handleRawMessage(socket, userName, data.toString());
+    });
+
+    &#47;&#47; Handle typing events
+    socket.on(&#39;typing_start&#39;, (data) {
+      final room = data is Map ? data[&#39;room&#39;] ?? &#39;general&#39; : &#39;general&#39;;
+      socket.emitToRoom(room, &#39;user_typing&#39;,
+          {&#39;userId&#39;: socket.id, &#39;userName&#39;: userName, &#39;isTyping&#39;: true});
+    });
+
+    socket.on(&#39;typing_stop&#39;, (data) {
+      final room = data is Map ? data[&#39;room&#39;] ?? &#39;general&#39; : &#39;general&#39;;
+      socket.emitToRoom(room, &#39;user_typing&#39;,
+          {&#39;userId&#39;: socket.id, &#39;userName&#39;: userName, &#39;isTyping&#39;: false});
+    });
+
+    &#47;&#47; Handle joining specific rooms
+    socket.on(&#39;join_room&#39;, (data) {
+      if (data is String || (data is Map &amp;&amp; data[&#39;room&#39;] is String)) {
+        final roomName = data is String ? data : data[&#39;room&#39;] as String;
+
+        &#47;&#47; Leave previous rooms (except general)
+        socket.rooms.where((room) =&gt; room != &#39;general&#39;).forEach((room) {
+          socket.leave(room);
+          userRooms[socket.id]?.remove(room);
+        });
+
+        &#47;&#47; Join new room
+        socket.join(roomName);
+        userRooms[socket.id]?.add(roomName);
+
+        &#47;&#47; Notify user
+        socket.emit(&#39;room_joined&#39;, {
+          &#39;room&#39;: roomName,
+          &#39;message&#39;: &#39;Joined room: $roomName&#39;,
+          &#39;usersInRoom&#39;: userRooms[socket.id]?.length ?? 0
+        });
+
+        &#47;&#47; Notify room
+        socket.emitToRoom(roomName, &#39;user_joined_room&#39;, {
+          &#39;userId&#39;: socket.id,
+          &#39;userName&#39;: userName,
+          &#39;room&#39;: roomName,
+          &#39;timestamp&#39;: DateTime.now().toIso8601String()
+        });
+
+        print(&#39;🚪 $userName joined room: $roomName&#39;);
+      }
+    });
+
+    &#47;&#47; Handle user name changes
+    socket.on(&#39;update_username&#39;, (data) {
+      if (data is String || (data is Map &amp;&amp; data[&#39;username&#39;] is String)) {
+        final newName = data is String ? data : data[&#39;username&#39;] as String;
+        final oldName = userNames[socket.id];
+        userNames[socket.id] = newName;
+
+        &#47;&#47; Broadcast name change
+        socket.emitToRoom(&#39;general&#39;, &#39;username_changed&#39;, {
+          &#39;userId&#39;: socket.id,
+          &#39;oldName&#39;: oldName,
+          &#39;newName&#39;: newName,
+          &#39;timestamp&#39;: DateTime.now().toIso8601String()
+        });
+
+        socket.emit(
+            &#39;username_updated&#39;, {&#39;newName&#39;: newName, &#39;status&#39;: &#39;success&#39;});
+
+        print(&#39;📝 $oldName changed name to $newName&#39;);
+      }
+    });
+
+    &#47;&#47; Handle disconnection
+    socket.onClose(() {
+      print(&#39;❌ $userName disconnected: ${socket.id}&#39;);
+
+      &#47;&#47; Remove from tracking
+      userNames.remove(socket.id);
+      userRooms.remove(socket.id);
+
+      &#47;&#47; Broadcast user left to all rooms
+      for (var room in socket.rooms) {
+        socket.emitToRoom(room, &#39;user_left&#39;, {
+          &#39;userId&#39;: socket.id,
+          &#39;userName&#39;: userName,
+          &#39;timestamp&#39;: DateTime.now().toIso8601String(),
+          &#39;onlineUsers&#39;: userRooms.length
+        });
+      }
+    });
+
+    &#47;&#47; Handle errors
+    &#47;&#47; socket.onError((error) {
+    &#47;&#47;   print(&#39;❌ WebSocket error for $userName: $error&#39;);
+    &#47;&#47;   socket.emit(&#39;error&#39;, {
+    &#47;&#47;     &#39;message&#39;: &#39;Connection error: $error&#39;,
+    &#47;&#47;     &#39;timestamp&#39;: DateTime.now().toIso8601String()
+    &#47;&#47;   });
+    &#47;&#47; });
+
+    &#47;&#47; Send welcome event
+    socket.emit(&#39;welcome&#39;, {
+      &#39;message&#39;: &#39;Welcome to the chat!&#39;,
+      &#39;id&#39;: socket.id,
+      &#39;userName&#39;: userName
+    });
+  });
+
+  &#47;&#47; REST API for chat history (optional)
+  app.get(&#39;&#47;api&#47;chat&#47;history&#39;, (req, res) async {
+    return res.json({
+      &#39;messages&#39;: [
+        {
+          &#39;id&#39;: &#39;1&#39;,
+          &#39;userName&#39;: &#39;System&#39;,
+          &#39;message&#39;: &#39;Welcome to the chat!&#39;,
+          &#39;timestamp&#39;: DateTime.now().toIso8601String()
+        }
+      ]
+    });
+  });
+
+  app.mount(&quot;&#47;auth&quot;, authRoutes);
+  app.listen(3000);
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">sample</a></li>
+    <li><a href="../main/">main</a></li>
+    <li class="self-crumb">main function</li>
+</ol>
+
+    <h5>main library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-left-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    sample
+      1.0.0
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

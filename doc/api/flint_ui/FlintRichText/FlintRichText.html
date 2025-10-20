@@ -59,12 +59,27 @@
 </ol>})
     </section>
     
+<section class="desc markdown">
+  <p>Creates a rich text widget with one or more <a href="../../flint_ui/FlintTextSpan-class.html">FlintTextSpan</a>s.</p>
+<p>Example:</p>
+<pre class="language-dart"><code class="language-dart">FlintRichText(
+  align: TextAlign.center,
+  children: [
+    FlintTextSpan("Welcome to ", style: TextStyle(fontSize: 16)),
+    FlintTextSpan("Flint Dart", style: TextStyle(fontWeight: FontWeight.bold)),
+  ],
+)
+</code></pre>
+</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">FlintRichText({required this.children, this.align = TextAlign.left});</code></pre>
+  <pre class="language-dart"><code class="language-dart">FlintRichText({
+  required this.children,
+  this.align = TextAlign.left,
+});</code></pre>
 </section>
 
 
@@ -92,7 +107,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+8
+      1.0.0+9
   </span>
   
 </footer>
