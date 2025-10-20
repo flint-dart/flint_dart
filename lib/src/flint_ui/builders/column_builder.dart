@@ -24,7 +24,7 @@ class FlintColumnBuilder {
     return FlintColumn(
       children: children,
       gap: gap,
-      alignment: 'center',
+      alignment: Alignment.center,
     );
   }
 
@@ -53,7 +53,7 @@ class FlintColumnBuilder {
     return FlintColumn(
       children: children,
       gap: gap,
-      alignment: 'left',
+      alignment: Alignment.left,
     );
   }
 

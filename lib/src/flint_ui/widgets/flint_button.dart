@@ -1,5 +1,4 @@
 import 'package:flint_dart/src/flint_ui/core/core.dart';
-import 'package:flint_dart/src/flint_ui/core/framework.dart';
 
 /// {@template flint_button}
 /// A customizable and responsive button widget for **Flint UI**, designed to be
