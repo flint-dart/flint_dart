@@ -277,12 +277,6 @@ await Mail()
 
 ```
 
----
-
-Would you like me to format this into a **publish-ready `CHANGELOG.md` file** (with emoji section dividers and consistent heading spacing like your past releases)?  
-I can export it as a `.md` file ready to drop into your Flint Dart GitHub repo.
-```
-
 
 # 🚀 Flint Dart — Version 1.0.0+7
 
