@@ -1,6 +1,7 @@
 // lib/flint_ui/core/base_templates.dart
 
 import 'package:flint_dart/flint_ui.dart';
+import 'package:flint_dart/src/flint_ui/core/theme.dart';
 
 /// Base class for all email templates with common structure
 abstract class FlintEmailTemplate extends FlintTemplate {

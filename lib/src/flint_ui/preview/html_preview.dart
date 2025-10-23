@@ -1,6 +1,6 @@
 // lib/flint_ui/preview/html_preview.dart
 
-import 'package:flint_dart/src/flint_ui/core/framework.dart';
+import 'package:flint_dart/src/flint_ui/core/flint_widget.dart';
 
 class FlintPreview {
   /// Generate a complete HTML file for preview

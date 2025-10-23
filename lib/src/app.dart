@@ -238,7 +238,7 @@ class Flint {
 
   /// Registers a PATCH route.
   RouteBuilder patch(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'PUT', path, handler);
+    final rb = RouteBuilder(_router, 'PATCH', path, handler);
     rb.register();
     return rb;
   }

@@ -6,15 +6,28 @@ class CreateProjectCommand extends FlintCommand {
 
   @override
   Future<void> execute(List<String> args) async {
-    final projectName = args.isNotEmpty ? args[0] : 'my_flint_app';
+    String projectName;
+
+    // Ask for project name if not provided
+    if (args.isEmpty) {
+      stdout.write('👉 What is your project name? ');
+      projectName = stdin.readLineSync()?.trim() ?? '';
+      if (projectName.isEmpty) {
+        print('❌ Project name cannot be empty.');
+        return;
+      }
+    } else {
+      projectName = args[0];
+    }
+
     final dir = Directory(projectName);
 
     if (await dir.exists()) {
-      print('Error: Directory "$projectName" already exists');
+      print('❌ Error: Directory "$projectName" already exists');
       return;
     }
 
-    print('Cloning Flint Dart sample project...');
+    print('🚀 Creating project "$projectName"...');
     final cloneResult = await Process.run(
       'git',
       [
@@ -25,14 +38,14 @@ class CreateProjectCommand extends FlintCommand {
     );
 
     if (cloneResult.exitCode != 0) {
-      print('Error cloning repo: ${cloneResult.stderr}');
+      print('❌ Error creating project: ${cloneResult.stderr}');
       return;
     }
 
-    // Remove .git so it's a fresh project
+    // Remove .git folder so it’s a fresh project
     await Directory('${dir.path}/.git').delete(recursive: true);
 
-    // Change package name in pubspec.yaml
+    // Update package name in pubspec.yaml
     final pubspecFile = File('${dir.path}/pubspec.yaml');
     if (await pubspecFile.exists()) {
       String content = await pubspecFile.readAsString();
@@ -43,13 +56,26 @@ class CreateProjectCommand extends FlintCommand {
       await pubspecFile.writeAsString(content);
     }
 
-    // Update all "package:sample/" imports to new project name
+    // Update "package:sample/" imports
     await _updatePackageImports(dir.path, 'sample', projectName);
 
-    print('Project "$projectName" created successfully!');
-    print('To get started:');
+    // Run dart pub get
+    print('⚙️ Running `dart pub get`...');
+    final pubGetResult = await Process.run(
+      'dart',
+      ['pub', 'get'],
+      workingDirectory: dir.path,
+    );
+
+    if (pubGetResult.exitCode != 0) {
+      print('❌ Failed to run `dart pub get`: ${pubGetResult.stderr}');
+      return;
+    }
+
+    print(pubGetResult.stdout);
+    print('✅ Project "$projectName" created successfully!');
+    print('\nTo get started:');
     print('  cd $projectName');
-    print('  dart pub get');
     print('  flint run');
   }
 

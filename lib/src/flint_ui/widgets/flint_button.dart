@@ -1,69 +1,79 @@
+import 'dart:math';
 import 'package:flint_dart/src/flint_ui/core/core.dart';
 
 /// {@template flint_button}
-/// A customizable and responsive button widget for **Flint UI**, designed to be
-/// rendered as both HTML (for web/emails) and text (for CLI or plain text outputs).
+/// A customizable and responsive button widget for **Flint UI**, designed to
+/// render as HTML, text, or JSON — and now supports client-side actions via
+/// [FlintScript] or [FlintAction].
 ///
-/// The [FlintButton] class provides a consistent styling system through the
-/// [ButtonStyle], [EdgeInsets], [BorderRadius], and [BoxShadow] classes.
-/// It supports icons, semantic labels for accessibility, and multiple button states.
+/// Each [FlintButton] automatically generates a unique [id] that can be used
+/// for DOM updates or targeting via scripts. Developers can override the [id]
+/// manually if desired.
 ///
 /// Example usage:
 /// ```dart
 /// FlintButton(
-///   text: 'Get Started',
-///   url: 'https://flintdart.dev',
-///   style: ButtonStyle.primary(),
-///   icon: '🚀',
+///   text: 'Save',
+///   onClick: FlintAction.api('/api/user/update', {'id': 1, 'name': 'Hybiekay'}),
 /// )
 /// ```
 ///
-/// This button will render as an HTML `<a>` tag (or `<span>` if disabled)
-/// with full inline CSS styling for compatibility across browsers and email clients.
+/// Or a static inline script:
+/// ```dart
+/// FlintButton(
+///   text: 'Alert',
+///   onClick: FlintScript.custom("alert('Hello Flint!');"),
+/// )
+/// ```
 /// {@endtemplate}
 class FlintButton extends FlintWidget {
+  /// Unique identifier for this widget instance.
+  /// Automatically generated unless overridden by user.
+  @override
+  // ignore: overridden_fields
+  final String id;
+
   /// The text displayed inside the button.
   final String text;
 
-  /// The URL or target destination the button links to.
-  /// When the button is disabled, this attribute is ignored.
-  final String url;
+  /// The URL or target destination the button links to (if applicable).
+  final String? url;
 
-  /// The button's visual appearance, defined by a [ButtonStyle].
+  /// Optional visual appearance configuration.
   final ButtonStyle? style;
 
-  /// The internal padding around the button content.
+  /// Padding around content.
   final EdgeInsets padding;
 
-  /// The border radius that determines the button's corner roundness.
+  /// Border radius for rounded corners.
   final BorderRadius borderRadius;
 
-  /// The shadow applied to the button for depth and elevation.
+  /// Drop shadow for elevation effect.
   final BoxShadow shadow;
 
-  /// The interactive state of the button, such as enabled or disabled.
+  /// Whether the button is clickable or disabled.
   final ButtonState state;
 
-  /// An accessibility label that describes the button's action or purpose.
-  /// This will be rendered as an `aria-label` attribute in HTML.
+  /// Accessibility label.
   final String? semanticLabel;
 
-  /// Whether the button should take the full width of its container.
+  /// Whether the button should expand to full width.
   final bool fullWidth;
 
-  /// The general size variant of the button (e.g., small, medium, large).
+  /// Visual size variant (small, medium, large).
   final ButtonSize size;
 
-  /// An optional icon or emoji to display before the button text.
+  /// Optional icon (emoji or symbol).
   final String? icon;
 
+  /// Optional script to run when clicked.
+  final dynamic onClick; // can be FlintAction or FlintScript
+
   /// Creates a new [FlintButton].
-  ///
-  /// All parameters are optional except [text] and [url].
-  /// Use [state] to disable the button, preventing user interaction.
   FlintButton({
+    String? id,
     required this.text,
-    required this.url,
+    this.url,
     this.style,
     this.padding = const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
     this.borderRadius = const BorderRadius.circular(6.0),
@@ -77,55 +87,76 @@ class FlintButton extends FlintWidget {
     this.fullWidth = false,
     this.size = ButtonSize.medium,
     this.icon,
-  });
+    this.onClick,
+  }) : id = id ?? _generateId();
 
-  /// Converts this button into an HTML representation.
-  ///
-  /// - Uses `<a>` tag when enabled.
-  /// - Uses `<span>` tag when disabled.
-  /// - Includes full inline CSS for consistent rendering in emails.
+  /// Generates a random unique element ID like `flint-btn-7f3a9`.
+  static String _generateId() {
+    final random = Random();
+    final hex =
+        List.generate(5, (_) => random.nextInt(16).toRadixString(16)).join();
+    return 'flint-btn-$hex';
+  }
+
+  // ---------------------------------------------------------------------------
+  // 🧱 RENDER METHODS
+  // ---------------------------------------------------------------------------
+
+  @override
   @override
   String toHtml() {
     final buttonStyle = _buildButtonStyle();
     final attributes = _buildButtonAttributes();
     final content = _buildButtonContent();
 
-    if (state == ButtonState.disabled) {
-      return '''
-<span$attributes style="$buttonStyle">
-  $content
-</span>
-''';
-    }
+    final scriptHtml = _buildScriptHtml();
+
+    final tag = state == ButtonState.disabled ? 'span' : 'button';
 
     return '''
-<a$attributes style="$buttonStyle">
+<$tag$attributes style="$buttonStyle">
   $content
-</a>
+</$tag>
+$scriptHtml
 ''';
   }
 
-  /// Converts this button into a plain-text representation.
-  ///
-  /// This is useful for CLI output or fallback text-based rendering.
-  /// Example output:
-  /// ```
-  /// 🚀 Get Started: https://flintdart.dev
-  /// ```
+  String _buildScriptHtml() {
+    if (onClick == null) return '';
+
+    // Handle FlintScript directly
+    if (onClick is FlintScript) {
+      return (onClick as FlintScript).toHtml(id);
+    }
+
+    // Handle FlintAction
+    if (onClick is FlintAction) {
+      final js = (onClick as FlintAction).toJs();
+      return '''
+<script>
+document.querySelector('#$id')?.addEventListener('click', () => {
+  $js
+});
+</script>
+''';
+    }
+
+    // Unsupported type
+    return '';
+  }
+
   @override
   String toText() {
     if (state == ButtonState.disabled) {
       return icon != null ? '$icon $text' : text;
     }
-    return icon != null ? '$icon $text: $url' : '$text: $url';
+    return icon != null ? '$icon $text: ${url ?? ''}' : '$text: ${url ?? ''}';
   }
 
-  /// Serializes this button into a JSON-compatible map.
-  ///
-  /// Useful for dynamic UI generation or exporting widget configurations.
   @override
   Map<String, dynamic> toJson() => {
         'type': 'button',
+        'id': id,
         'text': text,
         'url': url,
         'style': style?.toJson(),
@@ -137,111 +168,70 @@ class FlintButton extends FlintWidget {
         'fullWidth': fullWidth,
         'size': size.name,
         'icon': icon,
+        'onClick': onClick?.toJson(),
       };
 
-  /// Builds the inline CSS string for this button.
-  ///
-  /// This method generates styles dynamically based on the button's
-  /// [ButtonStyle], [EdgeInsets], [BorderRadius], [BoxShadow], and [ButtonState].
+  // ---------------------------------------------------------------------------
+  // 🎨 STYLE + ATTRIBUTES HELPERS
+  // ---------------------------------------------------------------------------
+
   String _buildButtonStyle() {
     final currentStyle = _getStyleForState();
     final styles = <String>[
-      // Layout
       'display: ${fullWidth ? 'block' : 'inline-block'};',
       if (fullWidth) 'width: 100%;',
       'text-align: center;',
       'box-sizing: border-box;',
-
-      // Typography
-      'font-family: ${currentStyle.textStyle.fontFamily ?? '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'};',
+      'font-family: ${currentStyle.textStyle.fontFamily ?? 'inherit'};',
       'font-size: ${currentStyle.textStyle.fontSize ?? 16}px;',
-      'font-weight: ${currentStyle.textStyle.fontWeight?.value ?? FontWeight.w600.value};',
-      'color: ${currentStyle.textStyle.color ?? '#ffffff'};',
-      'text-decoration: none;',
-      'line-height: 1.5;',
-      'white-space: nowrap;',
-
-      // Background & Border
+      'font-weight: ${currentStyle.textStyle.fontWeight?.value ?? 500};',
+      'color: ${currentStyle.textStyle.color ?? '#fff'};',
       'background-color: ${currentStyle.backgroundColor};',
       if (currentStyle.border != null)
         'border: ${currentStyle.border!.toCss()};',
-
-      // Spacing
       'padding: ${padding.toCss()};',
       'border-radius: ${borderRadius.toCss()};',
-
-      // Effects
-      if (shadow.offsetX != 0 || shadow.offsetY != 0)
-        'box-shadow: ${shadow.toCss()};',
-
-      // Interactive states
-      'transition: all 0.2s ease-in-out;',
+      if (shadow.offsetY != 0) 'box-shadow: ${shadow.toCss()};',
       'cursor: ${state == ButtonState.disabled ? 'not-allowed' : 'pointer'};',
       'opacity: ${state == ButtonState.disabled ? '0.6' : '1.0'};',
-
-      // Email client specific
-      '-webkit-text-size-adjust: none;',
-      'mso-hide: all;',
+      'transition: all 0.2s ease;',
     ];
-
     return styles.join(' ');
   }
 
-  /// Builds the HTML attributes for the button.
-  ///
-  /// Adds accessibility (`aria-*`) attributes, role definitions,
-  /// and ensures proper behavior when the button is disabled.
   String _buildButtonAttributes() {
     final attrs = <String>[];
-
+    attrs.add(' id="$id"');
+    attrs.add(' role="button"');
     if (semanticLabel != null) {
       attrs.add(' aria-label="${_escapeHtml(semanticLabel!)}"');
     }
-
-    if (state != ButtonState.disabled) {
-      attrs.add(' href="$url" target="_blank"');
-    } else {
-      attrs.add(' aria-disabled="true"');
+    if (url != null && state != ButtonState.disabled) {
+      attrs.add(' data-url="$url"');
     }
-
-    attrs.add(' role="button"');
-    attrs.add(' style="text-decoration: none;"');
-
     return attrs.join();
   }
 
-  /// Builds the inner HTML content of the button.
-  ///
-  /// When [icon] is provided, it appears before the text.
   String _buildButtonContent() {
     final content = _escapeHtml(text);
     if (icon != null) {
       return '''
-<span style="display: inline-block; vertical-align: middle; margin-right: 8px; font-size: ${(style?.textStyle.fontSize ?? 16) - 2}px;">
-  $icon
-</span>
-<span style="display: inline-block; vertical-align: middle;">
-  $content
-</span>
+<span style="margin-right: 6px;">$icon</span> $content
 ''';
     }
     return content;
   }
 
-  /// Determines the appropriate [ButtonStyle] based on the current [state].
-  ///
-  /// For example, when disabled, the background and text colors are adjusted.
   ButtonStyle _getStyleForState() {
-    if (state == ButtonState.disabled) {
+    if (state == ButtonState.disabled && style != null) {
       return style!.copyWith(
-        backgroundColor: style?.disabledColor ?? '#6c757d',
-        textStyle: style!.textStyle.copyWith(color: '#ffffff'),
+        backgroundColor: style?.disabledColor ?? '#999',
+        textStyle: style!.textStyle.copyWith(color: '#fff'),
       );
     }
-    return style!;
+    return style ?? ButtonStyle.primary();
   }
 
-  /// Escapes HTML special characters in [text] for safe rendering.
   String _escapeHtml(String text) {
     return text
         .replaceAll('&', '&amp;')
@@ -251,40 +241,6 @@ class FlintButton extends FlintWidget {
         .replaceAll("'", '&#39;');
   }
 
-  /// Returns a new [FlintButton] with updated properties while keeping
-  /// unspecified values the same.
-  FlintButton copyWith({
-    String? text,
-    String? url,
-    ButtonStyle? style,
-    EdgeInsets? padding,
-    BorderRadius? borderRadius,
-    BoxShadow? shadow,
-    ButtonState? state,
-    String? semanticLabel,
-    bool? fullWidth,
-    ButtonSize? size,
-    String? icon,
-  }) {
-    return FlintButton(
-      text: text ?? this.text,
-      url: url ?? this.url,
-      style: style ?? this.style,
-      padding: padding ?? this.padding,
-      borderRadius: borderRadius ?? this.borderRadius,
-      shadow: shadow ?? this.shadow,
-      state: state ?? this.state,
-      semanticLabel: semanticLabel ?? this.semanticLabel,
-      fullWidth: fullWidth ?? this.fullWidth,
-      size: size ?? this.size,
-      icon: icon ?? this.icon,
-    );
-  }
-
-  /// {@macro flint_widget.buildTemplate}
-  ///
-  /// Since [FlintButton] is a leaf widget (it cannot have children),
-  /// this simply returns itself.
   @override
   FlintWidget buildTemplate() => this;
 }

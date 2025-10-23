@@ -1,6 +1,6 @@
 // lib/flint_ui/preview/file_preview.dart
 import 'dart:io';
-import 'package:flint_dart/src/flint_ui/core/framework.dart';
+import 'package:flint_dart/src/flint_ui/core/flint_widget.dart';
 import 'package:flint_dart/src/flint_ui/preview/html_preview.dart';
 import 'package:path/path.dart' as path;
 

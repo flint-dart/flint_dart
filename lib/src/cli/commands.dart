@@ -1,6 +1,6 @@
-// lib/src/cli/commands.dart
 import 'dart:io';
 
+/// Base class for all Flint CLI commands.
 abstract class FlintCommand {
   final String name;
   final String description;
@@ -10,6 +10,7 @@ abstract class FlintCommand {
   Future<void> execute(List<String> args);
 }
 
+/// 🔥 Runs the development server
 class RunServerCommand extends FlintCommand {
   RunServerCommand() : super('run', 'Runs the development server');
 
@@ -17,16 +18,13 @@ class RunServerCommand extends FlintCommand {
   Future<void> execute(List<String> args) async {
     final int port = args.isNotEmpty ? int.tryParse(args.first) ?? 8080 : 8080;
 
-    // Run the user's bootstrap file (lib/main.dart)
-    // This should define and configure `app` then call listen()
-    // Start the server as a child process with signal forwarding
     final child = await Process.start(
       'dart',
       ['run', 'lib/main.dart', port.toString()],
       mode: ProcessStartMode.inheritStdio,
     );
 
-    // Kill child when Ctrl+C is pressed
+    // Graceful shutdown
     ProcessSignal.sigint.watch().listen((_) async {
       print('\n[FLINT] Shutting down...');
       child.kill(ProcessSignal.sigint);
@@ -34,7 +32,66 @@ class RunServerCommand extends FlintCommand {
       exit(0);
     });
 
-    // Wait for the child process to exit
     exit(await child.exitCode);
+  }
+}
+
+/// 🔄 Updates project dependencies using `dart pub upgrade`
+class UpdateCommand extends FlintCommand {
+  UpdateCommand() : super('update', 'Updates all project dependencies');
+
+  @override
+  Future<void> execute(List<String> args) async {
+    print('🔄 Updating dependencies...');
+    final result = await Process.run('dart', ['pub', 'upgrade']);
+
+    if (result.exitCode != 0) {
+      print('❌ Failed to update dependencies: ${result.stderr}');
+      return;
+    }
+
+    print(result.stdout);
+    print('✅ Dependencies updated successfully!');
+  }
+}
+
+/// 🚀 Upgrades both Flint CLI and (if applicable) the current project
+class UpgradeCommand extends FlintCommand {
+  UpgradeCommand()
+      : super('upgrade', 'Upgrades Flint Dart CLI and project dependencies');
+
+  @override
+  Future<void> execute(List<String> args) async {
+    final pubspec = File('pubspec.yaml');
+    final insideProject = await pubspec.exists();
+
+    if (insideProject) {
+      print('📦 Project detected. Upgrading project dependencies...');
+      final upgradeResult = await Process.run('dart', ['pub', 'upgrade']);
+      if (upgradeResult.exitCode != 0) {
+        print(
+            '❌ Failed to update project dependencies: ${upgradeResult.stderr}');
+      } else {
+        print(upgradeResult.stdout);
+        print('✅ Project dependencies updated successfully!');
+      }
+    } else {
+      print('📂 No pubspec.yaml found — running CLI upgrade only.');
+    }
+
+    print('🚀 Upgrading Flint Dart CLI via pub.dev...');
+    final cliUpgrade = await Process.run(
+      'dart',
+      ['pub', 'global', 'activate', 'flint_dart'],
+    );
+
+    if (cliUpgrade.exitCode != 0) {
+      print('❌ Failed to upgrade Flint CLI: ${cliUpgrade.stderr}');
+      return;
+    }
+
+    print(cliUpgrade.stdout);
+    print(
+        '✅ Flint Dart CLI upgraded to the latest stable version from pub.dev!');
   }
 }

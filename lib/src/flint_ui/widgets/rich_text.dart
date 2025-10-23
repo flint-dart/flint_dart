@@ -1,4 +1,4 @@
-import 'package:flint_dart/src/flint_ui/core/framework.dart';
+import 'package:flint_dart/src/flint_ui/core/flint_widget.dart';
 import 'package:flint_dart/src/flint_ui/core/style.dart';
 
 /// A widget that allows rendering of rich, styled inline text spans.

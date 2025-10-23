@@ -1,7 +1,7 @@
 // lib/flint_ui/builders/row_builder.dart
 
 import '../core/edge_insets.dart';
-import '../core/framework.dart';
+import '../core/flint_widget.dart';
 import '../core/style.dart';
 import '../widgets/widget.dart';
 

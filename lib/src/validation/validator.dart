@@ -84,6 +84,7 @@ class Validator {
       }
     }
     bool isInt(num? value) => value is int;
+    bool isDouble(num? value) => value is double;
     bool isString(dynamic value) => value is String;
     bool isList(dynamic value) => value is List;
     bool isBool(dynamic value) => value is bool;
@@ -116,6 +117,12 @@ class Validator {
             errors
                 .putIfAbsent(field, () => [])
                 .add('The $field must be an integer.');
+          }
+        } else if (part == 'double') {
+          if (value != null && !isDouble(value)) {
+            errors
+                .putIfAbsent(field, () => [])
+                .add('The $field must be an double.');
           }
         } else if (part == 'bool') {
           if (value != null && !isBool(value)) {
@@ -167,6 +174,12 @@ class Validator {
                 errors
                     .putIfAbsent(field, () => [])
                     .add('All items in $field must be integers.');
+                break;
+              }
+              if (listItemType == 'double' && item is! double) {
+                errors
+                    .putIfAbsent(field, () => [])
+                    .add('All items in $field must be double.');
                 break;
               }
               if (listItemType == 'bool' && item is! bool) {

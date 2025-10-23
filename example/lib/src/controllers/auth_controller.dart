@@ -1,6 +1,5 @@
 import 'package:flint_dart/auth.dart';
 import 'package:flint_dart/flint_dart.dart';
-import 'package:sample/src/mail/welcome_mail.dart';
 import 'package:sample/src/models/otp_model.dart';
 
 class AuthController {
@@ -22,14 +21,15 @@ class AuthController {
 
     final otp = await Auth.generateNumericVerificationCode(data["email"]);
 
-    var mail = WelcomeMail(
-      recipientName: 'Preview User',
-      recipientEmail: 'preview@example.com',
-      verificationUrl: 'https://example.com/verify/preview',
-      loginUrl: 'https://example.com/login',
-    );
+    // var mail = WelcomeMail(
+    //   recipientName: 'Preview User',
+    //   recipientEmail: 'preview@example.com',
+    //   verificationUrl: 'https://example.com/verify/preview',
+    //   loginUrl: 'https://example.com/login',
+    // );
 
-    await mail.send();
+    // await mail.send();
+
     await OtpModel().create({
       "email": data["email"],
       "otp": otp.toString(),

@@ -20,6 +20,8 @@ final Map<String, FlintCommand> commands = {
   'make:middleware': MakeMiddlewareCommand(), // ✅ Add this
   'docs:generate': GenerateDocsCommand(), // ✅ Add this
   'make:mail': MakeMailCommand(), // ✅ Add this line
+  "update": UpdateCommand(),
+  "upgrade": UpgradeCommand(),
 };
 void main(List<String> args) async {
   if (args.isEmpty || !commands.containsKey(args[0])) {

@@ -2,7 +2,8 @@
 
 import 'package:flint_dart/src/flint_ui/core/box_style.dart';
 import 'package:flint_dart/src/flint_ui/core/edge_insets.dart';
-import 'package:flint_dart/src/flint_ui/core/framework.dart';
+import 'package:flint_dart/src/flint_ui/core/flint_widget.dart';
+import 'package:flint_dart/src/flint_ui/widgets/container.dart';
 
 class FlintBox extends FlintContainer {
   final BoxConstraints? constraints;

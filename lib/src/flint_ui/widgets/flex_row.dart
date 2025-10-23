@@ -2,7 +2,7 @@
 
 import 'package:flint_dart/src/flint_ui/core/box_style.dart';
 import '../core/edge_insets.dart';
-import '../core/framework.dart';
+import '../core/flint_widget.dart';
 
 /// A responsive horizontal layout widget that arranges its [children]
 /// in a flexible row using CSS Flexbox.
