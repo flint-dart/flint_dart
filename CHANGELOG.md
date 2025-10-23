@@ -1,7 +1,14 @@
 
-
 # 🚀 Flint Dart — Version 1.0.0+11
-Bug Fixed 
+
+## 🧩 Updates & Improvements
+- 🛠️ **Bug Fixes:** Resolved several minor issues across the framework for improved stability.
+- ⚙️ **Patch Enhancements:** Applied multiple patches to improve reliability and developer experience.
+- 🧰 **CLI Upgrade:** The CLI has been **updated and upgraded** with new commands and performance improvements.
+- 🔄 **Update System Added:** Introduced support for automatic update checks and smoother upgrade handling.
+
+Flint Dart continues to evolve toward a more seamless, developer-friendly backend framework for Dart.
+
 # 🚀 Flint Dart — Version 1.0.0+10
 
 Flint Dart continues to evolve into a complete **backend + UI ecosystem for Dart**, combining powerful server-side tools with a new rendering engine — **Flint UI**.

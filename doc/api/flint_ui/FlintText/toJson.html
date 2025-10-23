@@ -67,7 +67,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Serializes this widget into a JSON representation.</p>
+  <p>Render to intermediate JSON (for APIs, mobile apps, etc.)</p>
 </section>
 
 
@@ -76,6 +76,7 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
 Map&lt;String, dynamic&gt; toJson() =&gt; {
+      &#39;id&#39;: id,
       &#39;type&#39;: &#39;text&#39;,
       &#39;data&#39;: data,
       &#39;style&#39;: style?.toJson(),
@@ -110,7 +111,7 @@ Map&lt;String, dynamic&gt; toJson() =&gt; {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+9
+      1.0.0+10
   </span>
   
 </footer>

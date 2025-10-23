@@ -93,6 +93,7 @@ and the value is a pipe-separated list of validation rules.</p>
     }
   }
   bool isInt(num? value) =&gt; value is int;
+  bool isDouble(num? value) =&gt; value is double;
   bool isString(dynamic value) =&gt; value is String;
   bool isList(dynamic value) =&gt; value is List;
   bool isBool(dynamic value) =&gt; value is bool;
@@ -125,6 +126,12 @@ and the value is a pipe-separated list of validation rules.</p>
           errors
               .putIfAbsent(field, () =&gt; [])
               .add(&#39;The $field must be an integer.&#39;);
+        }
+      } else if (part == &#39;double&#39;) {
+        if (value != null &amp;&amp; !isDouble(value)) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be an double.&#39;);
         }
       } else if (part == &#39;bool&#39;) {
         if (value != null &amp;&amp; !isBool(value)) {
@@ -176,6 +183,12 @@ and the value is a pipe-separated list of validation rules.</p>
               errors
                   .putIfAbsent(field, () =&gt; [])
                   .add(&#39;All items in $field must be integers.&#39;);
+              break;
+            }
+            if (listItemType == &#39;double&#39; &amp;&amp; item is! double) {
+              errors
+                  .putIfAbsent(field, () =&gt; [])
+                  .add(&#39;All items in $field must be double.&#39;);
               break;
             }
             if (listItemType == &#39;bool&#39; &amp;&amp; item is! bool) {
@@ -282,7 +295,7 @@ and the value is a pipe-separated list of validation rules.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+9
+      1.0.0+10
   </span>
   
 </footer>

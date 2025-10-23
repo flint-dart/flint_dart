@@ -67,11 +67,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Converts this button into a plain-text representation.</p>
-<p>This is useful for CLI output or fallback text-based rendering.
-Example output:</p>
-<pre class="language-dart"><code>🚀 Get Started: https://flintdart.dev
-</code></pre>
+  <p>Render to plain text (fallback, CLI, etc.)</p>
 </section>
 
 
@@ -83,7 +79,7 @@ String toText() {
   if (state == ButtonState.disabled) {
     return icon != null ? &#39;$icon $text&#39; : text;
   }
-  return icon != null ? &#39;$icon $text: $url&#39; : &#39;$text: $url&#39;;
+  return icon != null ? &#39;$icon $text: ${url ?? &#39;&#39;}&#39; : &#39;$text: ${url ?? &#39;&#39;}&#39;;
 }</code></pre>
 </section>
 
@@ -112,7 +108,7 @@ String toText() {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+9
+      1.0.0+10
   </span>
   
 </footer>

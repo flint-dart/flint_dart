@@ -67,8 +67,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Serializes this button into a JSON-compatible map.</p>
-<p>Useful for dynamic UI generation or exporting widget configurations.</p>
+  <p>Render to intermediate JSON (for APIs, mobile apps, etc.)</p>
 </section>
 
 
@@ -78,6 +77,7 @@
   <pre class="language-dart"><code class="language-dart">@override
 Map&lt;String, dynamic&gt; toJson() =&gt; {
       &#39;type&#39;: &#39;button&#39;,
+      &#39;id&#39;: id,
       &#39;text&#39;: text,
       &#39;url&#39;: url,
       &#39;style&#39;: style?.toJson(),
@@ -89,6 +89,7 @@ Map&lt;String, dynamic&gt; toJson() =&gt; {
       &#39;fullWidth&#39;: fullWidth,
       &#39;size&#39;: size.name,
       &#39;icon&#39;: icon,
+      &#39;onClick&#39;: onClick?.toJson(),
     };</code></pre>
 </section>
 
@@ -117,7 +118,7 @@ Map&lt;String, dynamic&gt; toJson() =&gt; {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+9
+      1.0.0+10
   </span>
   
 </footer>
