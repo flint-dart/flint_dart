@@ -1,11 +1,11 @@
 
 
-````markdown
+# 🚀 Flint Dart — Version 1.0.0+11
+Bug Fixed 
 # 🚀 Flint Dart — Version 1.0.0+10
 
 Flint Dart continues to evolve into a complete **backend + UI ecosystem for Dart**, combining powerful server-side tools with a new rendering engine — **Flint UI**.
 
----
 
 ## 🎨 Flint UI — Cross-Platform Rendering System
 
@@ -28,14 +28,6 @@ This can render to:
 ```html
 <button style="background-color:#0066FF;">Click Me</button>
 ```
-
-or to plain text:
-
-```
-[Click Me]
-```
-
----
 
 ### 🧱 Widget Architecture
 
