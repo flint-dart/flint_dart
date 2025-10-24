@@ -27,7 +27,7 @@ void registerUserRoutes(Flint app) {
   app.post('/', controller.create);
 
   /// @prefix /users
-  app.put('/:id', AuthMiddleware().handle(controller.update));
+  app.put('/:id', controller.create);
 
   /// @prefix /users
   /// @auth basicAuth

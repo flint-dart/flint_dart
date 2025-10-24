@@ -21,6 +21,11 @@ class UserController {
   }
 
   Future<Response> create(Request req, Response res) async {
+    final String userId = req.params['id']!;
+    final body = await req.json();
+
+    await User().update(userId, body);
+
     return res.send('Creating user...');
   }
 

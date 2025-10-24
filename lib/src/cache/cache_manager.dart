@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 abstract class CacheStore {
   Future<void> set(String key, dynamic value, {Duration? ttl});
   Future<dynamic> get(String key);
@@ -8,7 +6,7 @@ abstract class CacheStore {
 }
 
 class MemoryCacheStore implements CacheStore {
-  final _cache = LinkedHashMap<String, Map<String, dynamic>>();
+  final _cache = <String, Map<String, dynamic>>{};
   final int maxSize;
 
   MemoryCacheStore({this.maxSize = 100});

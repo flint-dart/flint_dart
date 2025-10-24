@@ -1,13 +1,11 @@
 // lib/flint_ui/core/flint_state.dart
-import 'flint_script.dart';
 import 'flint_widget.dart';
 import 'flint_render_object.dart';
 import 'flint_element.dart';
 
 /// Base for widgets that hold mutable state. Similar to Flutter's StatefulWidget.
 abstract class FlintStatefulWidget extends FlintWidget {
-  FlintStatefulWidget({String? id, FlintScript? script})
-      : super(id: id, script: script);
+  FlintStatefulWidget({super.id, super.script});
 
   FlintState createState();
 }

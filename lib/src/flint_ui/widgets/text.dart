@@ -38,6 +38,7 @@ class FlintText extends FlintWidget {
         'overflow': overflow?.name,
       };
 
+  @override
   FlintWidget buildTemplate() => this;
 
   String _applyOverflow(String text) {
@@ -57,8 +58,9 @@ class FlintText extends FlintWidget {
     if (style != null) {
       if (style!.fontSize != null) s.add('font-size: ${style!.fontSize}px;');
       if (style!.color != null) s.add('color: ${style!.color};');
-      if (style!.fontWeight != null)
+      if (style!.fontWeight != null) {
         s.add('font-weight: ${style!.fontWeight!.value};');
+      }
     }
     s.add('text-align: ${align.toCss()}; line-height: 1.6;');
     return s.join(' ');

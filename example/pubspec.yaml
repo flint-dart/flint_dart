@@ -7,7 +7,5 @@ environment:
 dependencies:
   flint_dart: 
     path: ../../flint_dart
-  universal_html: ^2.2.4
-  universal_web: ^1.1.1+1
-  
+   
   

@@ -12,7 +12,7 @@ class FileCacheStore implements CacheStore {
   }
 
   String _filePath(String key) =>
-      path.join(cacheDir, Uri.encodeComponent(key) + '.json');
+      path.join(cacheDir, '${Uri.encodeComponent(key)}.json');
 
   @override
   Future<void> set(String key, dynamic value, {Duration? ttl}) async {

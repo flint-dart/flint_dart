@@ -78,7 +78,7 @@ class MySqlConnectionWrapper implements DBWrapper {
       throw Exception("MySQL not connected. Last error: $_lastError");
     }
 
-    if (positionalParams == null || namedParams == null) {
+    if (positionalParams == null && namedParams == null) {
       await _conn.execute(sql);
       return;
     }

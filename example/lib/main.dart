@@ -5,7 +5,6 @@ import 'package:flint_dart/flint_dart.dart';
 import 'package:sample/src/middlewares/auth_middleware.dart';
 import 'package:sample/src/routes/auth_routes.dart';
 import 'package:sample/src/routes/user_routes.dart';
-import 'package:sample/src/views/counter_example.dart';
 import 'package:sample/src/views/welcome.dart';
 
 void main() {

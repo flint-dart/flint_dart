@@ -156,23 +156,26 @@ abstract class Model<T extends Model<T>> {
     if (currentId == null) {
       throw Exception("Cannot update: $primaryKey is null");
     }
-    final updateMap = data ?? toMap();
 
-    final updateData = Map<String, dynamic>.from(updateMap);
-    updateData.remove(primaryKey);
-    if (updateMap.isEmpty) {
+    final updateMap = data ?? toMap();
+    final updateData = Map<String, dynamic>.from(updateMap)
+      ..remove(primaryKey)
+      ..removeWhere((k, v) => k.trim().isEmpty);
+
+    if (updateData.isEmpty) {
       throw Exception("No data provided for update");
     }
 
-    final setClause = updateMap.keys.map((k) => '$k = :$k').join(', ');
-    final sql = 'UPDATE ${table.name} SET $setClause WHERE $primaryKey = :id';
+    // Use backticks for column names to handle reserved words
+    final setClause = updateData.keys.map((k) => '`$k` = :$k').join(', ');
 
-    final params = {...updateMap, 'id': currentId};
+    final sql =
+        'UPDATE `${table.name}` SET $setClause WHERE `$primaryKey` = :id';
+    final params = {...updateData, 'id': currentId};
 
     await _executeQuery(sql, namedParams: params);
 
-    // Refresh from database
-    return (await refresh(currentId));
+    return await refresh(currentId);
   }
 
   /// Save model (create or update)

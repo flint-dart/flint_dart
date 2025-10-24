@@ -16,7 +16,7 @@ abstract class FlintWidget {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final randomString =
         List.generate(6, (_) => chars[_rng.nextInt(chars.length)]).join();
-    return 'flint-${randomString}';
+    return 'flint-$randomString';
   }
 
   /// Render to HTML (for emails, web)

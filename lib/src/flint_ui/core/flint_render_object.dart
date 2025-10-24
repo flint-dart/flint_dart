@@ -18,7 +18,7 @@ abstract class FlintRenderObject {
 
 /// Basic render object for stateless widgets that just wrap HTML output.
 class BasicRenderObject extends FlintRenderObject {
-  BasicRenderObject(FlintWidget widget) : super(widget);
+  BasicRenderObject(super.widget);
 
   @override
   String toHtml() => widget.toHtml();

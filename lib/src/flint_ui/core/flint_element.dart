@@ -32,7 +32,7 @@ abstract class FlintElement {
 class FlintStatelessElement extends FlintElement {
   final FlintRenderObject Function(FlintWidget widget) createRender;
 
-  FlintStatelessElement(FlintWidget widget, this.createRender) : super(widget);
+  FlintStatelessElement(super.widget, this.createRender);
 
   @override
   void mount() {
@@ -44,7 +44,7 @@ class FlintStatelessElement extends FlintElement {
 class FlintStatefulElement extends FlintElement {
   final FlintState state;
 
-  FlintStatefulElement(FlintWidget widget, this.state) : super(widget) {
+  FlintStatefulElement(super.widget, this.state) {
     state.element = this;
   }
 

@@ -147,10 +147,19 @@ class DB {
     Map<String, dynamic>? namedParams,
   ) {
     if (namedParams != null && namedParams.isNotEmpty) {
-      throw UnsupportedError(
-          "MySQL does not support named parameters in this wrapper");
+      final paramList = <dynamic>[];
+      final normalizedSql = sql.replaceAllMapped(RegExp(r':(\w+)'), (match) {
+        final paramName = match.group(1)!;
+        if (!namedParams.containsKey(paramName)) {
+          throw ArgumentError("Named parameter :$paramName not provided");
+        }
+        paramList.add(namedParams[paramName]);
+        return '?';
+      });
+      return (normalizedSql, paramList);
+    } else {
+      return (sql, positionalParams ?? []);
     }
-    return (sql, positionalParams ?? []);
   }
 
   static (String, List<dynamic>) _normalizePostgreSQL(
@@ -212,6 +221,11 @@ class DB {
       positionalParams: positionalParams,
       namedParams: namedParams,
     );
+
+    print(
+      normalizedSql,
+    );
+    print(params);
     return await instance.execute(normalizedSql, positionalParams: params);
   }
 

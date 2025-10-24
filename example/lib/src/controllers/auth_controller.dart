@@ -10,16 +10,16 @@ class AuthController {
       "password": "string|required|confirmed",
     });
 
-    // var user = await Auth.register(
-    //   email: data["email"],
-    //   password: data['password'],
-    //   name: data["name"],
-    // );
+    var user = await Auth.register(
+      email: data["email"],
+      password: data['password'],
+      name: data["name"],
+    );
 
     // Send welcome email
     // await _sendWelcomeEmail(data);
 
-    final otp = await Auth.generateNumericVerificationCode(data["email"]);
+    // final otp = await Auth.generateNumericVerificationCode(data["email"]);
 
     // var mail = WelcomeMail(
     //   recipientName: 'Preview User',
@@ -30,12 +30,12 @@ class AuthController {
 
     // await mail.send();
 
-    await OtpModel().create({
-      "email": data["email"],
-      "otp": otp.toString(),
-      "expired_at": DateTime.now().add(Duration(minutes: 20)).toIso8601String()
-    });
-    return res.respond({"msg": "User created successfully", "data": data});
+    // await OtpModel().create({
+    //   "email": data["email"],
+    //   "otp": otp.toString(),
+    //   "expired_at": DateTime.now().add(Duration(minutes: 20)).toIso8601String()
+    // });
+    return res.respond({"msg": "User created successfully", "data": user});
   }
 
   Future<Response> login(Request req, Response res) async {
