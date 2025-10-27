@@ -235,17 +235,36 @@ class Request {
   /// - Validates all keys using the [Validator.validate] method.
   /// - Throws a `ValidationException` if any rule fails.
   /// - Returns the parsed request body (`Map<String, dynamic>`) if validation passes.
+  ///  /// The rules use a pipe-separated format (e.g., `"required|string|min:3"`)
+  /// and support the following checks:
+  ///
+  /// - `required`: Field must be present and not empty.
+  /// - `string`: Value must be a string.
+  /// - `int`: Value must be an integer.
+  /// - `double`: Value must be an integer.
+  /// - `bool`: Value must be a boolean.
+  /// - `email`: Must be a valid email address.
+  /// - `regex:<pattern>`: Value must match the given regular expression.
+  /// - `list`: Value must be a list.
+  /// - `list:<type>`: All items in the list must match the given type
+  ///   (`string`, `int`, `bool`).
+  /// - `min:<n>`: Minimum length (for strings/lists) or value (for numbers).
+  /// - `max:<n>`: Maximum length (for strings/lists) or value (for numbers).
   ///
   /// ---
   /// ### ⚙️ **Supported Validation Rules**
   /// - `required` — Field must not be null or empty.
   /// - `string` — Must be a string.
   /// - `email` — Must be a valid email format.
-  /// - `numeric` — Must be a number.
+  /// - `int`: Value must be an integer.
+  /// - `double`: Value must be an integer.
+  /// - `list`: Value must be a list.
+  /// - `list:<type>`: All items in the list must match the given type
+  ///   (`string`, `int`, `bool`).
   /// - `min:<n>` — Minimum string length or numeric value.
   /// - `max:<n>` — Maximum string length or numeric value.
   /// - `confirmed` — Field must have a matching confirmation field (`confirm_field` or `field_confirmation`).
-  /// - `boolean` — Must be `true` or `false`.
+  /// - `bool` — Must be `true` or `false`.
   /// - `date` — Must be a valid date string or `DateTime`.
   /// - `in:<a,b,c>` — Value must be one of the listed items.
   ///

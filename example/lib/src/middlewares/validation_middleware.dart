@@ -10,7 +10,9 @@ class ValidationMiddleware extends Middleware {
     return (Request req, Response res) async {
       try {
         final data = await req.json();
-        await Validator.validate(data, rules);
+        await Validator.validate(data, {
+          "email": "requiread|string|confirmed",
+        });
         return await next(req, res);
       } catch (e) {
         return res.status(400).json({'error': e.toString()});

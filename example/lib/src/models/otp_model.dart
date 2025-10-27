@@ -3,38 +3,32 @@ import 'package:flint_dart/schema.dart';
 
 class OtpModel extends Model<OtpModel> {
   @override
-  int? id;
+  String? id;
 
   // Define your fields here
-  String? otp;
-  String? email;
-  DateTime? expiredAt;
+  String? field1;
+  String? field2;
+  DateTime? createdAt;
 
   @override
   Table get table => Table(
-        name: 'otp_models',
+        name: 'table_name',
         columns: [
-          Column(
-              name: 'id',
-              type: ColumnType.integer,
-              isPrimaryKey: true,
-              isAutoIncrement: true),
-          Column(name: 'otp', type: ColumnType.string),
-          Column(name: 'email', type: ColumnType.string),
-          Column(name: "expired_at", type: ColumnType.datetime)
+          Column(name: 'field1', type: ColumnType.string),
+          Column(name: 'field2', type: ColumnType.string),
         ],
       );
 
   @override
   Map<String, dynamic> toMap() =>
-      {'id': id, 'otp': otp, "email": email, "expired_at": expiredAt};
+      {'id': id, 'field1': field1, 'field2': field2, "created_at": createdAt};
 
   @override
   OtpModel fromMap(Map<String, dynamic> map) {
     return OtpModel()
       ..id = map['id']
-      ..otp = map['otp']
-      ..email = map["email"]
-      ..expiredAt = map["expired_at"];
+      ..field1 = map['field1']
+      ..field2 = map['field2']
+      ..createdAt = map["created_at"];
   }
 }

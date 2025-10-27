@@ -51,7 +51,7 @@ class AuthController {
 
   Future<Response> forgotPassword(Request req, Response res) async {
     final data = await req.validate({
-      "email": "required|string|email",
+      "email": "required|string|confirmed",
     });
 
     // Generate password reset token
@@ -110,7 +110,7 @@ class AuthController {
 
   Future<Response> resendVerification(Request req, Response res) async {
     final data = await req.validate({
-      "email": "required|string|email",
+      "email": "required|string",
     });
 
     // In a real app, you might want to check if user exists and is unverified

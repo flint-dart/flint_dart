@@ -4,6 +4,7 @@ import 'package:flint_dart/flint_dart.dart';
 
 import 'package:sample/src/middlewares/auth_middleware.dart';
 import 'package:sample/src/routes/auth_routes.dart';
+import 'package:sample/src/routes/post_routes.dart';
 import 'package:sample/src/routes/user_routes.dart';
 import 'package:sample/src/views/welcome.dart';
 
@@ -20,6 +21,7 @@ void main() {
   app.get('/', (req, res) async {
     return res.render(Welcome());
   });
+  app.mount("/post", postRoute);
 // In your preview server routes
   // app.get('/preview/email/:type', (req, res) async {
   //   final type = req.params['type'];
@@ -247,7 +249,7 @@ void main() {
   });
 
   app.mount("/auth", authRoutes);
-  app.listen(3000);
+  app.listen(3001);
 }
 
 // Handle JSON messages from Flutter app

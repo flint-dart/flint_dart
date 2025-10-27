@@ -66,6 +66,39 @@ class Validator {
   /// [data] is a `Map<String, dynamic>` containing the input data.
   /// [rules] is a `Map<String, String>` where the key is the field name
   /// and the value is a pipe-separated list of validation rules.
+  ///
+  /// A utility class for validating input data against a set of rules.
+  ///
+  /// The rules use a pipe-separated format (e.g., `"required|string|min:3"`)
+  /// and support the following checks:
+  ///
+  /// - `required`: Field must be present and not empty.
+  /// - `string`: Value must be a string.
+  /// - `int`: Value must be an integer.
+  /// - `double`: Value must be an integer.
+  /// - `bool`: Value must be a boolean.
+  /// - `email`: Must be a valid email address.
+  /// - `regex:<pattern>`: Value must match the given regular expression.
+  /// - `list`: Value must be a list.
+  /// - `list:<type>`: All items in the list must match the given type
+  ///   (`string`, `int`, `bool`).
+  /// - `confirmed` — Field must have a matching confirmation field (`confirm_field` or `field_confirmation`).
+  /// - `min:<n>`: Minimum length (for strings/lists) or value (for numbers).
+  /// - `max:<n>`: Maximum length (for strings/lists) or value (for numbers).
+  ///
+  /// Example:
+  /// ```dart
+  /// final body = {
+  ///   "email": "test@example.com",
+  ///   "name": "John Doe",
+  ///   "password": "secret123"
+  /// };
+  ///
+  /// await Validator.validate(body, {
+  ///   "email": "required|string|email|min:3",
+  ///   "name": "required|string|min:5",
+  ///   "password": "required|string|min:8"
+  /// });
   static Future<void> validate(
       Map<String, dynamic> data, Map<String, String> rules) async {
     if (rules.isEmpty) return;
@@ -83,8 +116,8 @@ class Validator {
             .add('The field "$key" is not allowed.');
       }
     }
-    bool isInt(num? value) => value is int;
-    bool isDouble(num? value) => value is double;
+    bool isInt(dynamic value) => value is int;
+    bool isDouble(dynamic value) => value is double;
     bool isString(dynamic value) => value is String;
     bool isList(dynamic value) => value is List;
     bool isBool(dynamic value) => value is bool;
@@ -213,6 +246,35 @@ class Validator {
             errors
                 .putIfAbsent(field, () => [])
                 .add('The $field confirmation does not match.');
+          }
+        } else if (part == 'date') {
+          if (value != null) {
+            if (value is! DateTime) {
+              try {
+                DateTime.parse(value.toString());
+              } catch (_) {
+                errors
+                    .putIfAbsent(field, () => [])
+                    .add('The $field must be a valid date.');
+              }
+            }
+          }
+        }
+        // ✅ NEW: in:<a,b,c>
+        else if (part.startsWith('in:')) {
+          final allowed = part.substring(3).split(',');
+          if (value != null && !allowed.contains(value.toString())) {
+            errors
+                .putIfAbsent(field, () => [])
+                .add('The $field must be one of: ${allowed.join(', ')}.');
+          }
+        } else if (rule.startsWith('not_in:')) {
+          final options = rule.split(':')[1].split(',');
+          if (options.contains(value.toString())) {
+            errors[field] = [
+              ...(errors[field] ?? []),
+              'The $field must not be one of: ${options.join(', ')}.'
+            ];
           }
         }
       }

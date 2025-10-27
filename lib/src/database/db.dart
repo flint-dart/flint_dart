@@ -222,10 +222,6 @@ class DB {
       namedParams: namedParams,
     );
 
-    print(
-      normalizedSql,
-    );
-    print(params);
     return await instance.execute(normalizedSql, positionalParams: params);
   }
 
