@@ -7,7 +7,7 @@
 /// ```dart
 /// try {
 ///   await Validator.validate(data, {
-///     "email": "required|string|email",
+///     "email": "required|email",
 ///   });
 /// } on ValidationException catch (e) {
 ///   print(e.errors); // { "email": ["The email field is required."] }
@@ -53,7 +53,7 @@ class ValidationException implements Exception {
 /// };
 ///
 /// await Validator.validate(body, {
-///   "email": "required|string|email|min:3",
+///   "email": "required|email|min:3",
 ///   "name": "required|string|min:5",
 ///   "password": "required|string|min:8"
 /// });
@@ -95,7 +95,7 @@ class Validator {
   /// };
   ///
   /// await Validator.validate(body, {
-  ///   "email": "required|string|email|min:3",
+  ///   "email": "required|email|min:3",
   ///   "name": "required|string|min:5",
   ///   "password": "required|string|min:8"
   /// });
@@ -119,6 +119,7 @@ class Validator {
     bool isInt(dynamic value) => value is int;
     bool isDouble(dynamic value) => value is double;
     bool isString(dynamic value) => value is String;
+    bool isNotString(dynamic value) => value is! String;
     bool isList(dynamic value) => value is List;
     bool isBool(dynamic value) => value is bool;
 
@@ -164,9 +165,10 @@ class Validator {
                 .add('The $field must be a boolean.');
           }
         } else if (part == 'email') {
-          if (value != null &&
-              isString(value) &&
-              !RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) {
+          if (isNotString(value) ||
+              value != null &&
+                  isString(value) &&
+                  !RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) {
             errors
                 .putIfAbsent(field, () => [])
                 .add('The $field must be a valid email address.');

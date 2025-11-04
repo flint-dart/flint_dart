@@ -19,3 +19,4 @@ export 'src/websocket/websocket_manager.dart';
 export "src/mail/mail.dart";
 export 'src/mail/mail_config.dart';
 export 'src/mail/template_engine.dart';
+export 'package:flint_client/flint_client.dart';
