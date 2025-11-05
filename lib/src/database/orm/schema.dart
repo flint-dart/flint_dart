@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
-import '../../helpers/str_helper.dart';
+import 'package:flint_dart/db.dart';
+import 'package:flint_dart/flint_dart.dart';
 
 /// Represents a database table schema, including its columns, indexes, and foreign keys.
 class Table {
@@ -34,7 +35,7 @@ class Table {
           type: ColumnType.string,
           isPrimaryKey: true,
           isNullable: false,
-          defaultValue: Str.uuid(), // Generate automatically if needed
+          defaultValue: Default.uuid(), // Generate automatically if needed
         ),
         ...columns,
       ];
@@ -184,8 +185,18 @@ class Default {
   static String currentTime() => 'CURRENT_TIME';
 
   // UUID functions
-  static String uuid() => 'gen_random_uuid()'; // PostgreSQL
-  static String uuid4() => 'UUID()'; // MySQL
+  static String uuid() {
+    var driver = DB.driver;
+    if (driver == DBDriver.mysql) {
+      return 'UUID()';
+    } else if (driver == DBDriver.postgres) {
+      return 'gen_random_uuid()';
+    } else {
+      return FlintEnv.get("DB_CONNECTION", '') == "mysql"
+          ? 'UUID()'
+          : 'gen_random_uuid()';
+    }
+  } // PostgreSQL
 
   // Math constants
   static double pi() => math.pi;
