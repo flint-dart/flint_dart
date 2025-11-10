@@ -3,7 +3,8 @@ import 'package:sample/src/models/post_model.dart';
 
 class PostController {
   Future<Response> index(Request req, Response res) async {
-    return res.json({'message': 'PostController index'});
+    return res.json(
+        {'message': 'PostController index', "data": await PostModel().all()});
   }
 
   Future<Response> show(Request req, Response res) async {
@@ -16,9 +17,9 @@ class PostController {
       'title': 'required|string|min:3',
       'subTitle': 'required|string|min:3'
     });
-    PostModel().create(body);
+    var post = await PostModel().create(body);
     return res
-        .json({'message': 'PostController created successfully', 'data': body});
+        .json({'message': 'PostController created successfully', 'data': post});
   }
 
   Future<Response> update(Request req, Response res) async {

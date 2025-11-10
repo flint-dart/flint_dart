@@ -78,6 +78,7 @@ class AuthController {
       token: data["token"],
       newPassword: data["password"],
     );
+
     if (success) {
       return res.respond({"msg": "Password reset successfully"});
     } else {

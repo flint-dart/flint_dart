@@ -13,7 +13,5 @@ export 'color_extensions.dart';
 export 'flint_template.dart';
 export 'events.dart';
 export 'flint_render_object.dart';
-export 'flint_state.dart';
-
 export 'flint_action.dart';
 export 'flint_script.dart';

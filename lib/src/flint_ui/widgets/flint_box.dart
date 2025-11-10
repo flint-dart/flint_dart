@@ -15,6 +15,7 @@ class FlintBox extends FlintContainer {
   final BoxShadow? shadow;
   final BoxAlignment alignment;
   final BoxDecoration? decoration;
+  final String? xData;
 
   FlintBox({
     required super.children,
@@ -27,6 +28,7 @@ class FlintBox extends FlintContainer {
     this.shadow,
     this.alignment = BoxAlignment.start,
     this.decoration,
+    this.xData,
   });
 
   @override

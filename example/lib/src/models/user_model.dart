@@ -8,20 +8,31 @@ class User extends Model<User> {
   String? email;
   String? password;
   String? profilePicUrl;
-
   @override
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'name': name,
-        'email': email,
-      };
+  DateTime? createdAt;
+  @override
+  DateTime? updatedAt;
 
   @override
   User fromMap(Map<dynamic, dynamic> map) => User()
     ..id = map['id']
     ..name = map['name']
     ..email = map['email']
-    ..password = map["password"];
+    ..password = map["password"]
+    ..createdAt = map["created_at"]
+    ..updatedAt = map["updated_at"];
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      "id": id,
+      "name": name,
+      "email": email,
+      "profilePicUrl": profilePicUrl,
+      "created_at": createdAt,
+      "updated_at": updatedAt
+    };
+  }
 
   @override
   Table get table => Table(

@@ -82,44 +82,95 @@ class Response {
   ///
   /// Automatically sets the `Content-Type` header to `application/json`.
   /// [status] can be provided to override the HTTP status code.
-  Response json(dynamic data, {int? status}) {
+  Future<Response> json(dynamic data, {int? status}) async {
     try {
-      final encoded = jsonEncode(data);
+      // Await top-level Future
+      if (data is Future) {
+        data = await data;
+      }
+
+      /// Recursively converts data into JSON-serializable form
+      Future<dynamic> sanitize(dynamic value) async {
+        // Await if value is Future
+        if (value is Future) value = await value;
+
+        if (value is DateTime) return value.toIso8601String();
+        if (value is Model) return sanitize(value.toMap());
+        if (value is List) {
+          // Await each item
+          final results = await Future.wait(value.map(sanitize));
+          return results;
+        }
+        if (value is Map) {
+          final entries = await Future.wait(value.entries.map((e) async {
+            final sanitizedValue = await sanitize(e.value);
+            return MapEntry(e.key, sanitizedValue);
+          }));
+          return Map.fromEntries(entries);
+        }
+
+        // For custom classes
+        try {
+          final toMapMethod = (value as dynamic).toMap;
+          if (toMapMethod is Function) return sanitize(toMapMethod());
+
+          final toJsonMethod = (value as dynamic).toJson;
+          if (toJsonMethod is Function) return sanitize(toJsonMethod());
+        } catch (_) {}
+
+        return value; // primitives or unsupported objects
+      }
+
+      final safeData = await sanitize(data);
+      final encoded = jsonEncode(safeData);
+
       raw.statusCode = status ?? raw.statusCode;
       raw.headers.contentType = ContentType.json;
       raw.write(encoded);
-    } catch (e) {
+    } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
       raw.write('❌ Failed to encode JSON response: ${e.runtimeType}');
-      print('[Flint] JSON Error: $e');
+      print('[Flint] JSON Error: $e\n$stack');
     }
-    close();
-    return this; // ✅ return Response
+
+    await close();
+    return this;
   }
 
   /// Sends a response automatically based on [RespondType] or inferred type.
   ///
   /// - If [type] is provided, it is used directly.
   /// - If not, the type is inferred from [data] (Map/List → JSON, HTML tags → HTML, otherwise plain text).
-  Response respond(dynamic data,
-      {int? status, RespondType? type, bool? includePreview, String? title}) {
+  Future<Response> respond(
+    dynamic data, {
+    int? status,
+    RespondType? type,
+    bool? includePreview,
+    String? title,
+  }) async {
     try {
-      // Auto-detect FlintWidget
-      if (data is FlintWidget && type == null) {
-        type = RespondType.flint;
+      // If data is a Future, await it first
+      if (data is Future) {
+        data = await data;
       }
-      type ??= _inferRespondType(data);
+
+      // Determine the type asynchronously
+      type ??= await _inferRespondType(data);
 
       switch (type) {
         case RespondType.json:
-          json(data, status: status);
+          await json(data, status: status);
           break;
+
         case RespondType.html:
           send(data.toString(), status: status, contentType: 'text/html');
           break;
+
         case RespondType.plain:
           send(data.toString(), status: status, contentType: 'text/plain');
+          break;
+
         case RespondType.flint:
           if (data is FlintWidget) {
             render(
@@ -133,14 +184,41 @@ class Response {
           }
           break;
       }
-    } catch (e) {
+    } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
       raw.write('❌ Failed to send response: ${e.runtimeType}');
-      print('[Flint] respond() Error: $e');
+      print('[Flint] respond() Error: $e\n$stack');
     }
-    close();
-    return this; // ✅ return Response
+
+    await close();
+    return this;
+  }
+
+  /// Attempts to guess the best [RespondType] based on [data].
+  ///
+  /// - Map/List → JSON
+  /// - HTML-like string → HTML
+  /// - Otherwise → Plain text
+  /// Now includes FlintWidget detection
+  Future<RespondType> _inferRespondType(dynamic data) async {
+    // Await if it's a Future
+    if (data is Future) {
+      data = await data;
+    }
+
+    if (data is FlintWidget) {
+      return RespondType.flint;
+    } else if (data is Map || data is List) {
+      return RespondType.json;
+    } else if (data is Model) {
+      return RespondType.json;
+    } else if (data is String &&
+        (data.contains('<html') || data.contains('<!DOCTYPE html'))) {
+      return RespondType.html;
+    } else {
+      return RespondType.plain;
+    }
   }
 
   Response render(
@@ -194,25 +272,6 @@ class Response {
     }
     close();
     return this;
-  }
-
-  /// Attempts to guess the best [RespondType] based on [data].
-  ///
-  /// - Map/List → JSON
-  /// - HTML-like string → HTML
-  /// - Otherwise → Plain text
-  /// Now includes FlintWidget detection
-  RespondType _inferRespondType(dynamic data) {
-    if (data is FlintWidget) {
-      return RespondType.flint;
-    } else if (data is Map || data is List) {
-      return RespondType.json;
-    } else if (data is String &&
-        (data.contains('<html') || data.contains('<!DOCTYPE html'))) {
-      return RespondType.html;
-    } else {
-      return RespondType.plain;
-    }
   }
 
   /// Sets the HTTP status code for the response without sending content.

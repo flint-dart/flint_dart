@@ -1,4 +1,67 @@
+## 🚀 **Flint Dart — Version 1.0.0+16**
 
+### ✨ New Features
+
+* **Automatic Model Response Handling**
+  Flint Dart can now automatically respond with a `Model`, a `List<Model>`, or even a `Future<Model>` / `Future<List<Model>>` — no manual conversion required.
+
+* **`.toMap()` / `.toJson()` Object Support**
+  Any object implementing a `.toMap()` or `.toJson()` method will automatically be serialized into JSON when passed to `res.respond()` or `res.json()`.
+
+* **`.asMaps()` Added for `List<Model>`**
+  You can now easily convert a list of models into a list of maps for flexible use in responses or logic.
+
+  ```dart
+  var allUsers = await User().all();
+  var users = allUsers.asMaps(); // ✅ Converts to List<Map<String, dynamic>>
+  return res.json(users);
+  ```
+
+### ⚙️ Improvements
+
+* Enhanced **JSON serialization** to handle:
+
+  * `Future<Model>` and `Future<List<Model>>`
+  * Nested `Future`s within lists or maps
+  * Custom classes exposing `toMap()` or `toJson()`
+* Fully **async-safe** response system:
+  `respond()` automatically awaits pending data before sending the response.
+* Smarter **RespondType inference** — now correctly detects:
+
+  * Flint widgets (`RespondType.flint`)
+  * JSON data (maps, lists, models, or futures)
+  * HTML strings (`<html>` / `<!DOCTYPE html>`)
+  * Plain text fallbacks
+
+### 🧠 Example Usage
+
+```dart
+// Single Model
+return res.respond(user);
+
+// List of Models
+return res.respond(users);
+
+// Future<List<Model>>
+return res.respond(User().all());
+
+// Object with toMap() or toJson()
+return res.respond(customObject);
+
+// Manual list-to-map conversion
+var allUsers = await User().all();
+return res.json(allUsers.asMaps());
+```
+
+### 🧩 Summary
+
+This update makes Flint Dart’s response system:
+
+* **Smarter** — understands models, lists, and async responses automatically
+* **Safer** — cleans and serializes all nested data properly
+* **Simpler** — no need for manual `.toMap()` calls in most cases
+
+# 🚀 Flint Dart — Version 1.0.0+15
 # 🚀 Flint Dart — Version 1.0.0+14
 # 🚀 Flint Dart — Version 1.0.0+13
 # 🚀 Flint Dart — Version 1.0.0+12

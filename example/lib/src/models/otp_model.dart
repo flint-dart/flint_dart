@@ -4,8 +4,6 @@ import 'package:flint_dart/schema.dart';
 class OtpModel extends Model<OtpModel> {
   @override
   String? id;
-
-  // Define your fields here
   String? field1;
   String? field2;
   DateTime? createdAt;
@@ -20,15 +18,13 @@ class OtpModel extends Model<OtpModel> {
       );
 
   @override
-  Map<String, dynamic> toMap() =>
-      {'id': id, 'field1': field1, 'field2': field2, "created_at": createdAt};
+  OtpModel fromMap(Map map) {
+    return OtpModel();
+  }
 
   @override
-  OtpModel fromMap(Map<String, dynamic> map) {
-    return OtpModel()
-      ..id = map['id']
-      ..field1 = map['field1']
-      ..field2 = map['field2']
-      ..createdAt = map["created_at"];
+  Map<String, dynamic> toMap() {
+    // TODO: implement toMap
+    throw UnimplementedError();
   }
 }

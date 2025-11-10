@@ -10,14 +10,22 @@ abstract class Model<T extends Model<T>> {
   /// Table schema definition
   Table get table;
 
-  /// Convert model to map
+  /// Concealed fields that should not appear in toMap()
+  List<String> get conceal => [];
+
+  /// Base map of model fields (user implements this)
+
+  /// Returns the safe map including concealed filter and timestamps
   Map<String, dynamic> toMap();
 
-  /// Convert map to model
-  T fromMap(Map<String, dynamic> map);
+  Map<String, dynamic> asMap() => toMap();
 
-  /// Get the current ID
+  DateTime? get createdAt => toMap()['created_at'];
+  DateTime? get updatedAt => toMap()['updated_at'];
   dynamic get id => toMap()[primaryKey];
+
+  /// Convert DB map into a model instance
+  T fromMap(Map<dynamic, dynamic> map);
 
   /// Refresh the model from DB
   Future<T?> refresh([dynamic id]) async {
@@ -48,11 +56,11 @@ abstract class Model<T extends Model<T>> {
     final insertMap = data ?? toMap();
     final idColumn = table.columns.firstWhere((c) => c.isPrimaryKey,
         orElse: () => Column(
-              name: 'id',
-              type: ColumnType.string,
-              isPrimaryKey: true,
-              isAutoIncrement: false,
-            ));
+            name: 'id',
+            type: ColumnType.string,
+            isPrimaryKey: true,
+            isAutoIncrement: false,
+            defaultValue: Default.uuid()));
 
     // --- ✅ Auto-generate UUID for string-based primary keys ---
     if (!idColumn.isAutoIncrement &&
@@ -389,5 +397,22 @@ abstract class Model<T extends Model<T>> {
 
   static bool _looksLikeDateTime(String value) {
     return RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(value);
+  }
+}
+
+// Extension for List<Model>
+extension ModelListExtension<T extends Model<T>> on List<T> {
+  /// Convert list of models to list of maps
+  List<Map<String, dynamic>> asMaps() {
+    return map((model) => model.asMap()).toList();
+  }
+}
+
+// Extension for Future<List<Model>>
+extension FutureModelListExtension<T extends Model<T>> on Future<List<T>> {
+  /// Convert Future&ltList&ltModel&rt&rt to Future&ltList&ltMap&rt&rt
+  Future<List<Map<String, dynamic>>> get asMaps async {
+    final models = await this;
+    return models.asMaps();
   }
 }
