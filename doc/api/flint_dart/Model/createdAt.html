@@ -59,21 +59,18 @@
   <section id="getter">
     <section class="multi-line-signature">
       
-      <span class="returntype"><a href="https://api.flutter.dev/flutter/dart-core/DateTime-class.html">DateTime</a>?</span>
+      <span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/DateTime-class.html">DateTime</a>?</span>
       get
       <span class="name ">createdAt</span>
       
 
     </section>
     
-<section class="desc markdown">
-  <p>Returns the creation timestamp if the model exists.</p>
-</section>
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">DateTime? get createdAt =&gt; _existsInDb ? _createdAt : null;</code></pre>
+  <pre class="language-dart"><code class="language-dart">DateTime? get createdAt =&gt; toMap()[&#39;created_at&#39;];</code></pre>
 </section>
 
   </section>
@@ -103,7 +100,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0
+      1.0.0+16
   </span>
   
 </footer>

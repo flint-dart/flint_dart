@@ -54,9 +54,9 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="../../flint_dart/Response-class.html">Response</a></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../flint_dart/Response-class.html">Response</a></span>&gt;</span></span>
 <span class="name ">json</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="json-param-data"><span class="type-annotation">dynamic</span> <span class="parameter-name">data</span>, {</span></li>
-<li><span class="parameter" id="json-param-status"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">status</span>, </span></li>
+<li><span class="parameter" id="json-param-status"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">status</span>, </span></li>
 </ol>})
 
       
@@ -64,7 +64,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Sends a JSON response with a <a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a> or <a href="https://api.dart.dev/stable/3.8.1/dart-core/List-class.html">List</a>.</p>
+  <p>Sends a JSON response with a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a> or <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a>.</p>
 <p>Automatically sets the <code>Content-Type</code> header to <code>application/json</code>.
 <code>status</code> can be provided to override the HTTP status code.</p>
 </section>
@@ -73,20 +73,60 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">Response json(dynamic data, {int? status}) {
+  <pre class="language-dart"><code class="language-dart">Future&lt;Response&gt; json(dynamic data, {int? status}) async {
   try {
-    final encoded = jsonEncode(data);
+    &#47;&#47; Await top-level Future
+    if (data is Future) {
+      data = await data;
+    }
+
+    &#47;&#47;&#47; Recursively converts data into JSON-serializable form
+    Future&lt;dynamic&gt; sanitize(dynamic value) async {
+      &#47;&#47; Await if value is Future
+      if (value is Future) value = await value;
+
+      if (value is DateTime) return value.toIso8601String();
+      if (value is Model) return sanitize(value.toMap());
+      if (value is List) {
+        &#47;&#47; Await each item
+        final results = await Future.wait(value.map(sanitize));
+        return results;
+      }
+      if (value is Map) {
+        final entries = await Future.wait(value.entries.map((e) async {
+          final sanitizedValue = await sanitize(e.value);
+          return MapEntry(e.key, sanitizedValue);
+        }));
+        return Map.fromEntries(entries);
+      }
+
+      &#47;&#47; For custom classes
+      try {
+        final toMapMethod = (value as dynamic).toMap;
+        if (toMapMethod is Function) return sanitize(toMapMethod());
+
+        final toJsonMethod = (value as dynamic).toJson;
+        if (toJsonMethod is Function) return sanitize(toJsonMethod());
+      } catch (_) {}
+
+      return value; &#47;&#47; primitives or unsupported objects
+    }
+
+    final safeData = await sanitize(data);
+    final encoded = jsonEncode(safeData);
+
     raw.statusCode = status ?? raw.statusCode;
     raw.headers.contentType = ContentType.json;
     raw.write(encoded);
-  } catch (e) {
+  } catch (e, stack) {
     raw.statusCode = 500;
     raw.headers.contentType = ContentType.text;
     raw.write(&#39;❌ Failed to encode JSON response: ${e.runtimeType}&#39;);
-    print(&#39;[Flint] JSON Error: $e&#39;);
+    print(&#39;[Flint] JSON Error: $e\n$stack&#39;);
   }
-  close();
-  return this; &#47;&#47; ✅ return Response
+
+  await close();
+  return this;
 }</code></pre>
 </section>
 
@@ -115,7 +155,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+10
+      1.0.0+16
   </span>
   
 </footer>

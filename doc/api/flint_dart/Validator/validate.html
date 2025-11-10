@@ -54,9 +54,9 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
-<span class="name ">validate</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="validate-param-data"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">data</span>, </span></li>
-<li><span class="parameter" id="validate-param-rules"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">rules</span></span></li>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="name ">validate</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="validate-param-data"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">data</span>, </span></li>
+<li><span class="parameter" id="validate-param-rules"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">rules</span></span></li>
 </ol>)
 
       
@@ -69,6 +69,37 @@
 <p><code>data</code> is a <code>Map&lt;String, dynamic&gt;</code> containing the input data.
 <code>rules</code> is a <code>Map&lt;String, String&gt;</code> where the key is the field name
 and the value is a pipe-separated list of validation rules.</p>
+<p>A utility class for validating input data against a set of rules.</p>
+<p>The rules use a pipe-separated format (e.g., <code>"required|string|min:3"</code>)
+and support the following checks:</p>
+<ul>
+<li><code>required</code>: Field must be present and not empty.</li>
+<li><code>string</code>: Value must be a string.</li>
+<li><code>int</code>: Value must be an integer.</li>
+<li><code>double</code>: Value must be an integer.</li>
+<li><code>bool</code>: Value must be a boolean.</li>
+<li><code>email</code>: Must be a valid email address.</li>
+<li><code>regex:&lt;pattern&gt;</code>: Value must match the given regular expression.</li>
+<li><code>list</code>: Value must be a list.</li>
+<li><code>list:&lt;type&gt;</code>: All items in the list must match the given type
+(<code>string</code>, <code>int</code>, <code>bool</code>).</li>
+<li><code>confirmed</code> — Field must have a matching confirmation field (<code>confirm_field</code> or <code>field_confirmation</code>).</li>
+<li><code>min:&lt;n&gt;</code>: Minimum length (for strings/lists) or value (for numbers).</li>
+<li><code>max:&lt;n&gt;</code>: Maximum length (for strings/lists) or value (for numbers).</li>
+</ul>
+<p>Example:</p>
+<pre class="language-dart"><code class="language-dart">final body = {
+  "email": "test@example.com",
+  "name": "John Doe",
+  "password": "secret123"
+};
+
+await Validator.validate(body, {
+  "email": "required|email|min:3",
+  "name": "required|string|min:5",
+  "password": "required|string|min:8"
+});
+</code></pre>
 </section>
 
 
@@ -92,9 +123,10 @@ and the value is a pipe-separated list of validation rules.</p>
           .add(&#39;The field &quot;$key&quot; is not allowed.&#39;);
     }
   }
-  bool isInt(num? value) =&gt; value is int;
-  bool isDouble(num? value) =&gt; value is double;
+  bool isInt(dynamic value) =&gt; value is int;
+  bool isDouble(dynamic value) =&gt; value is double;
   bool isString(dynamic value) =&gt; value is String;
+  bool isNotString(dynamic value) =&gt; value is! String;
   bool isList(dynamic value) =&gt; value is List;
   bool isBool(dynamic value) =&gt; value is bool;
 
@@ -140,9 +172,10 @@ and the value is a pipe-separated list of validation rules.</p>
               .add(&#39;The $field must be a boolean.&#39;);
         }
       } else if (part == &#39;email&#39;) {
-        if (value != null &amp;&amp;
-            isString(value) &amp;&amp;
-            !RegExp(r&#39;^[^@]+@[^@]+\.[^@]+$&#39;).hasMatch(value)) {
+        if (isNotString(value) ||
+            value != null &amp;&amp;
+                isString(value) &amp;&amp;
+                !RegExp(r&#39;^[^@]+@[^@]+\.[^@]+$&#39;).hasMatch(value)) {
           errors
               .putIfAbsent(field, () =&gt; [])
               .add(&#39;The $field must be a valid email address.&#39;);
@@ -223,6 +256,35 @@ and the value is a pipe-separated list of validation rules.</p>
               .putIfAbsent(field, () =&gt; [])
               .add(&#39;The $field confirmation does not match.&#39;);
         }
+      } else if (part == &#39;date&#39;) {
+        if (value != null) {
+          if (value is! DateTime) {
+            try {
+              DateTime.parse(value.toString());
+            } catch (_) {
+              errors
+                  .putIfAbsent(field, () =&gt; [])
+                  .add(&#39;The $field must be a valid date.&#39;);
+            }
+          }
+        }
+      }
+      &#47;&#47; ✅ NEW: in:&lt;a,b,c&gt;
+      else if (part.startsWith(&#39;in:&#39;)) {
+        final allowed = part.substring(3).split(&#39;,&#39;);
+        if (value != null &amp;&amp; !allowed.contains(value.toString())) {
+          errors
+              .putIfAbsent(field, () =&gt; [])
+              .add(&#39;The $field must be one of: ${allowed.join(&#39;, &#39;)}.&#39;);
+        }
+      } else if (rule.startsWith(&#39;not_in:&#39;)) {
+        final options = rule.split(&#39;:&#39;)[1].split(&#39;,&#39;);
+        if (options.contains(value.toString())) {
+          errors[field] = [
+            ...(errors[field] ?? []),
+            &#39;The $field must not be one of: ${options.join(&#39;, &#39;)}.&#39;
+          ];
+        }
       }
     }
 
@@ -295,7 +357,7 @@ and the value is a pipe-separated list of validation rules.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+10
+      1.0.0+16
   </span>
   
 </footer>
