@@ -1,5 +1,30 @@
-## 🚀 **Flint Dart — Version 1.0.0+16**
+# 🚀 Flint Dart — Version 1.0.0+17
 
+**Release Date:** 2025-11-10
+
+### 🆕 New Features
+
+* **UUID Primary Key Support:** Automatically generates UUIDs for string-based primary keys when no value is provided.
+* **Database-Aware Inserts:** Insert logic now checks column types and auto-increment settings for both MySQL and PostgreSQL.
+* **Column Info Caching:** Reduces repeated queries to `information_schema` by caching column metadata per table.
+* **Seamless Auto-Increment Handling:** Integer primary keys without values are left to DB auto-increment; no manual intervention needed.
+* **PostgreSQL & MySQL Compatible:** Insert logic and ID handling work consistently across both supported databases.
+
+### 🛠 Improvements
+
+* Enhanced debug logging for column info and UUID generation.
+* Optimized fallback for missing column info.
+* Refactored `_loadIdColumnInfo` for reliable type detection across DB drivers.
+* Improved safety when inserting rows without IDs.
+
+### ✅ Fixes
+
+* Resolved issues with inserting into tables with integer primary keys without breaking auto-increment.
+* Fixed type conversion issues in MySQL when fetching column data.
+
+---
+
+# 🚀 **Flint Dart — Version 1.0.0+16**
 ### ✨ New Features
 
 * **Automatic Model Response Handling**
@@ -60,6 +85,7 @@ This update makes Flint Dart’s response system:
 * **Smarter** — understands models, lists, and async responses automatically
 * **Safer** — cleans and serializes all nested data properly
 * **Simpler** — no need for manual `.toMap()` calls in most cases
+
 
 # 🚀 Flint Dart — Version 1.0.0+15
 # 🚀 Flint Dart — Version 1.0.0+14

@@ -56,11 +56,11 @@ abstract class Model<T extends Model<T>> {
     final insertMap = data ?? toMap();
     final idColumn = table.columns.firstWhere((c) => c.isPrimaryKey,
         orElse: () => Column(
-            name: 'id',
-            type: ColumnType.string,
-            isPrimaryKey: true,
-            isAutoIncrement: false,
-            defaultValue: Default.uuid()));
+              name: 'id',
+              type: ColumnType.string,
+              isPrimaryKey: true,
+              isAutoIncrement: false,
+            ));
 
     // --- ✅ Auto-generate UUID for string-based primary keys ---
     if (!idColumn.isAutoIncrement &&

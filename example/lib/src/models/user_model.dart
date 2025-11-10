@@ -38,12 +38,6 @@ class User extends Model<User> {
   Table get table => Table(
         name: 'users',
         columns: [
-          Column(
-              name: 'id',
-              type: ColumnType.integer,
-              isPrimaryKey: true,
-              isAutoIncrement: true,
-              isUnique: true),
           Column(name: 'name', type: ColumnType.string, length: 255),
           Column(name: 'email', type: ColumnType.string, length: 255),
           Column(

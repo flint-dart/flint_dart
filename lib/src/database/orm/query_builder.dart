@@ -1,3 +1,5 @@
+import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/helper.dart';
 import 'package:flint_dart/src/database/db.dart';
 
 /// A simple SQL query builder for MySQL/PostgreSQL in Flint Dart.
@@ -7,6 +9,8 @@ class QueryBuilder {
   final List<String> _selects = [];
   final List<String> _wheres = [];
   final Map<String, dynamic> _bindings = {};
+  static final Map<String, _ColumnInfo> _columnCache = {};
+
   int? _limit;
   int _paramIndex = 1;
 
@@ -82,19 +86,43 @@ class QueryBuilder {
   }
 
   /// INSERT
-  Future<void> insert(Map<String, dynamic> data) async {
+  Future<void> insert(Map<String, dynamic> data,
+      {String idColumn = 'id'}) async {
+    _ColumnInfo columnInfo;
+
+    if (_columnCache.containsKey(table)) {
+      columnInfo = _columnCache[table]!;
+    } else {
+      columnInfo = await _loadIdColumnInfo(idColumn);
+      _columnCache[table] = columnInfo;
+    }
+
+    // --- Step 2: Generate ID if needed ---
+    if (!columnInfo.isAutoIncrement) {
+      if (columnInfo.isString &&
+          (!data.containsKey(idColumn) ||
+              data[idColumn] == null ||
+              data[idColumn].toString().isEmpty)) {
+        data[idColumn] = Str.uuid();
+      } else if (!columnInfo.isString &&
+          (!data.containsKey(idColumn) || data[idColumn] == null)) {}
+    }
+
     final fields = data.keys.join(', ');
     final placeholders = DB.driver == DBDriver.postgres
         ? data.keys.map((k) => ':$k').join(', ')
         : List.generate(data.length, (_) => '?').join(', ');
 
     final sql = 'INSERT INTO $table ($fields) VALUES ($placeholders)';
+
     await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? data : null,
       positionalParams:
           DB.driver == DBDriver.mysql ? data.values.toList() : null,
     );
+
+    return;
   }
 
   /// UPDATE
@@ -142,4 +170,73 @@ class QueryBuilder {
           DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
   }
+
+  /// --- Load primary key info from the database ---
+
+  Future<_ColumnInfo> _loadIdColumnInfo(String idColumn) async {
+    try {
+      if (DB.driver == DBDriver.mysql) {
+        final result = await DB.query('''
+        SELECT DATA_TYPE, EXTRA
+        FROM information_schema.columns
+        WHERE TABLE_SCHEMA = :db
+          AND TABLE_NAME = :table
+          AND COLUMN_NAME = :id
+      ''', namedParams: {
+          'db': FlintEnv.get("DB_NAME", ''),
+          'table': table,
+          'id': idColumn,
+        });
+
+        if (result.isNotEmpty) {
+          final dt = result.first['DATA_TYPE'];
+          final dataType = dt is List<int>
+              ? String.fromCharCodes(dt).toLowerCase()
+              : dt.toString().toLowerCase();
+          final extra = (result.first['EXTRA'] as String).toLowerCase();
+          final isAuto = extra.contains('auto_increment');
+
+          return _ColumnInfo(
+            isAutoIncrement: isAuto,
+            isString:
+                !isAuto && (dataType.contains('char') || dataType == 'uuid'),
+          );
+        }
+      } else if (DB.driver == DBDriver.postgres) {
+        final result = await DB.query('''
+        SELECT data_type, is_identity
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = :table
+          AND column_name = :id
+      ''', namedParams: {
+          'table': table,
+          'id': idColumn,
+        });
+
+        if (result.isNotEmpty) {
+          final dataType = (result.first['data_type'] as String).toLowerCase();
+          final isIdentity =
+              (result.first['is_identity'] as String).toUpperCase() == 'YES';
+          final isSerial = dataType.contains('serial');
+
+          return _ColumnInfo(
+            isAutoIncrement: isIdentity || isSerial,
+            isString: dataType.contains('char') || dataType == 'uuid',
+          );
+        }
+      }
+    } catch (_) {}
+
+    // Fallback: assume integer if not found
+    return _ColumnInfo(isAutoIncrement: false, isString: false);
+  }
+}
+
+/// --- Helper class to cache column info ---
+class _ColumnInfo {
+  final bool isAutoIncrement;
+  final bool isString;
+
+  _ColumnInfo({required this.isAutoIncrement, required this.isString});
 }

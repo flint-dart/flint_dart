@@ -35,7 +35,6 @@ class Table {
           type: ColumnType.string,
           isPrimaryKey: true,
           isNullable: false,
-          defaultValue: Default.uuid(), // Generate automatically if needed
         ),
         ...columns,
       ];
