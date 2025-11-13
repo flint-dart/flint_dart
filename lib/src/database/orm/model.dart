@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flint_dart/helper.dart';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/db.dart';
@@ -79,7 +81,14 @@ abstract class Model<T extends Model<T>> {
     if (insertMap.isEmpty) {
       throw Exception("No data provided for creation");
     }
-
+    // --- ✅ Convert bool → 1/0 for MySQL ---
+    insertMap.updateAll((key, value) {
+      if (value is bool) {
+        return value ? 1 : 0;
+      }
+      if (value is Enum) return value = value.name; // enum → string
+      return value;
+    });
     final fields = insertMap.keys.join(', ');
 
     if (DB.driver == DBDriver.postgres) {
@@ -173,6 +182,14 @@ abstract class Model<T extends Model<T>> {
     if (updateData.isEmpty) {
       throw Exception("No data provided for update");
     }
+    // --- ✅ Convert bool → 1/0 for MySQL ---
+    if (DB.driver == DBDriver.mysql) {
+      updateData.updateAll((key, value) {
+        if (value is bool) return value ? 1 : 0;
+        if (value is Enum) return value = value.name; // enum → string
+        return value;
+      });
+    }
 
     // Use backticks for column names to handle reserved words
     final setClause = updateData.keys.map((k) => '`$k` = :$k').join(', ');
@@ -253,6 +270,12 @@ abstract class Model<T extends Model<T>> {
 
   /// Where clause
   Future<List<T>> where(String field, dynamic value) async {
+    // --- ✅ Convert bool → 1/0 for MySQL ---
+    if (DB.driver == DBDriver.mysql) {
+      if (value is bool) value = value ? 1 : 0; // bool → 1/0
+      if (value is Enum) value = value.name; // enum → string
+    }
+
     if (DB.driver == DBDriver.mysql) {
       // For MySQL, use positional parameters
       final result = await DB.query(
@@ -271,11 +294,21 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Find records with custom conditions
+  /// Find records with custom conditions
   Future<List<T>> whereIn(String field, List<dynamic> values) async {
     if (values.isEmpty) return [];
 
+    // --- ✅ Normalize values for MySQL ---
     if (DB.driver == DBDriver.mysql) {
-      // For MySQL, use positional parameters
+      values = values.map((v) {
+        if (v is bool) return v ? 1 : 0; // MySQL stores bool as tinyint
+        if (v is Enum) return v.name; // Store enum as string name
+        return v;
+      }).toList();
+    }
+
+    if (DB.driver == DBDriver.mysql) {
+      // --- MySQL: use positional parameters ---
       final placeholders = List.generate(values.length, (_) => '?').join(', ');
       final result = await DB.query(
         'SELECT * FROM ${table.name} WHERE $field IN ($placeholders)',
@@ -283,11 +316,12 @@ abstract class Model<T extends Model<T>> {
       );
       return result.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
     } else {
-      // For PostgreSQL, use named parameters
+      // --- PostgreSQL: use named parameters ---
       final placeholders =
           List.generate(values.length, (i) => ':value$i').join(', ');
       final params = {
-        for (var i = 0; i < values.length; i++) 'value$i': values[i]
+        for (var i = 0; i < values.length; i++)
+          'value$i': values[i] is Enum ? values[i].name : values[i],
       };
 
       final result = await DB.query(
@@ -314,6 +348,12 @@ abstract class Model<T extends Model<T>> {
 
   /// Count records with condition
   Future<int> countWhere(String field, dynamic value) async {
+    // --- ✅ Normalize value for MySQL ---
+    if (DB.driver == DBDriver.mysql) {
+      if (value is bool) value = value ? 1 : 0; // bool → 1/0
+      if (value is Enum) value = value.name; // enum → string
+    }
+
     final result = await DB.query(
       'SELECT COUNT(*) as count FROM ${table.name} WHERE $field = :value',
       namedParams: {'value': value},
@@ -355,7 +395,6 @@ abstract class Model<T extends Model<T>> {
 
       switch (column.type) {
         case ColumnType.integer:
-          // Convert to int only if it's a numeric string
           if (value is String && int.tryParse(value) != null) {
             converted[key] = int.parse(value);
           } else if (value is BigInt) {
@@ -364,30 +403,81 @@ abstract class Model<T extends Model<T>> {
           break;
 
         case ColumnType.double:
-          // Convert to double if possible
           if (value is String && double.tryParse(value) != null) {
             converted[key] = double.parse(value);
           }
           break;
 
+        case ColumnType.boolean:
+          if (value is bool) {
+            converted[key] = value;
+          } else if (value is num) {
+            converted[key] = value == 1;
+          } else if (value is String) {
+            final v = value.toLowerCase();
+            converted[key] = (v == 'true' || v == '1' || v == 'yes');
+          } else {
+            converted[key] = false;
+          }
+          break;
+
         case ColumnType.datetime:
-          // Parse DateTime strings
+        case ColumnType.timestamp:
           if (value is String && _looksLikeDateTime(value)) {
             try {
               converted[key] = DateTime.parse(value);
-            } catch (_) {
-              // keep as string if parsing fails
-            }
+            } catch (_) {}
           }
           break;
 
         case ColumnType.string:
-          // Always keep as string
-          converted[key] = value.toString();
+        case ColumnType.text:
+          // 🔥 Handle both normal string and byte array text
+          if (value is String) {
+            converted[key] = value;
+          } else if (value is List<int>) {
+            try {
+              converted[key] = utf8.decode(value);
+            } catch (_) {
+              // fallback if UTF8 fails
+              converted[key] = String.fromCharCodes(value);
+            }
+          } else {
+            converted[key] = value.toString();
+          }
           break;
 
-        default:
-          // Leave unchanged for other types
+        case ColumnType.enumeration:
+          // Enums are stored as strings in SQL
+          if (value is String) {
+            converted[key] = value;
+          } else if (value is List<int>) {
+            try {
+              converted[key] = utf8.decode(value);
+            } catch (_) {
+              converted[key] = String.fromCharCodes(value);
+            }
+          } else {
+            converted[key] = value.toString();
+          }
+          break;
+
+        case ColumnType.json:
+          if (value is String) {
+            try {
+              converted[key] = jsonDecode(value);
+            } catch (_) {
+              converted[key] = value;
+            }
+          } else if (value is List<int>) {
+            try {
+              final decoded = utf8.decode(value);
+              converted[key] = jsonDecode(decoded);
+            } catch (_) {
+              // fallback to string if not valid json
+              converted[key] = String.fromCharCodes(value);
+            }
+          }
           break;
       }
     }

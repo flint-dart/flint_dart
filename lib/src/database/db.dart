@@ -153,12 +153,17 @@ class DB {
         if (!namedParams.containsKey(paramName)) {
           throw ArgumentError("Named parameter :$paramName not provided");
         }
-        paramList.add(namedParams[paramName]);
+        paramList
+            .add(_normalizeValueForDb(namedParams[paramName])); // ✅ normalize
         return '?';
       });
       return (normalizedSql, paramList);
     } else {
-      return (sql, positionalParams ?? []);
+      final params = (positionalParams ?? [])
+          .map(_normalizeValueForDb)
+          .toList(); // ✅ normalize
+
+      return (sql, params);
     }
   }
 
@@ -177,7 +182,8 @@ class DB {
         if (!namedParams.containsKey(paramName)) {
           throw ArgumentError("Named parameter :$paramName not provided");
         }
-        paramList.add(namedParams[paramName]);
+        paramList
+            .add(_normalizeValueForDb(namedParams[paramName])); // ✅ normalize
         return '\$${paramIndex++}';
       });
 
@@ -187,7 +193,9 @@ class DB {
       var paramIndex = 1;
       final normalizedSql =
           sql.replaceAllMapped(RegExp(r'\?'), (_) => '\$${paramIndex++}');
-      return (normalizedSql, positionalParams ?? []);
+      final params =
+          (positionalParams ?? []).map(_normalizeValueForDb).toList(); // ✅ norm
+      return (normalizedSql, params);
     }
   }
 
@@ -307,5 +315,18 @@ class DB {
     _isConnected = false;
     _mysql = null;
     _pg = null;
+  }
+
+  /// Convert Dart types to DB-compatible types
+  static dynamic _normalizeValueForDb(dynamic value) {
+    if (_driver == DBDriver.mysql) {
+      if (value is bool) return value ? 1 : 0; // bool → 1/0
+      if (value is Enum) return value.name; // enum → string
+    } else {
+      if (value is Enum) {
+        return value.name; // PostgreSQL also stores enums as string
+      }
+    }
+    return value;
   }
 }

@@ -348,6 +348,16 @@ extension ColumnSQL on Column {
         return 'DATETIME';
       case ColumnType.timestamp:
         return 'TIMESTAMP';
+      case ColumnType.enumeration:
+        // For MySQL ENUM, you can store allowed values in `options` (if supported)
+        // Example: ENUM('draft', 'published')
+        if (options != null && options!.isNotEmpty) {
+          final values = options!.map((v) => "'$v'").join(', ');
+          return 'ENUM($values)';
+        }
+        return 'VARCHAR(50)'; // fallback if no options provided
+      case ColumnType.json:
+        return 'JSON';
     }
   }
 
@@ -367,6 +377,11 @@ extension ColumnSQL on Column {
         return 'TIMESTAMP';
       case ColumnType.timestamp:
         return 'TIMESTAMPTZ';
+      case ColumnType.enumeration:
+        // Postgres doesn’t have built-in ENUM literals unless pre-declared, so fallback to TEXT
+        return 'TEXT';
+      case ColumnType.json:
+        return 'JSONB';
     }
   }
 }

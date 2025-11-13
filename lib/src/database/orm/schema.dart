@@ -65,7 +65,12 @@ class Column {
 
   /// The default value for the column, if any.
   final dynamic defaultValue;
+
+  /// Indicates whether the column must be unique.
   final bool isUnique;
+
+  /// A list of allowed values (used for ENUM columns).
+  final List<String>? options;
 
   /// Creates a new [Column] definition.
   Column({
@@ -77,6 +82,7 @@ class Column {
     this.isUnique = false,
     this.length = 255,
     this.defaultValue,
+    this.options,
   });
 
   /// Returns a new [Column] with updated values while keeping immutability.
@@ -89,19 +95,23 @@ class Column {
     bool? isNullable,
     bool? isUnique,
     dynamic defaultValue,
+    List<String>? options,
   }) {
     return Column(
-        name: name ?? this.name,
-        type: type ?? this.type,
-        length: length ?? this.length,
-        isPrimaryKey: isPrimaryKey ?? this.isPrimaryKey,
-        isAutoIncrement: isAutoIncrement ?? this.isAutoIncrement,
-        isNullable: isNullable ?? this.isNullable,
-        defaultValue: defaultValue ?? this.defaultValue,
-        isUnique: isUnique ?? this.isUnique);
+      name: name ?? this.name,
+      type: type ?? this.type,
+      length: length ?? this.length,
+      isPrimaryKey: isPrimaryKey ?? this.isPrimaryKey,
+      isAutoIncrement: isAutoIncrement ?? this.isAutoIncrement,
+      isNullable: isNullable ?? this.isNullable,
+      isUnique: isUnique ?? this.isUnique,
+      defaultValue: defaultValue ?? this.defaultValue,
+      options: options ?? this.options,
+    );
   }
 }
 
+/// Enum representing supported column types for a table schema.
 /// Enum representing supported column types for a table schema.
 enum ColumnType {
   /// Integer type (e.g., INT)
@@ -113,7 +123,7 @@ enum ColumnType {
   /// Long text type (e.g., TEXT)
   text,
 
-  /// Boolean type (e.g., TRUE/FALSE)
+  /// Boolean type (e.g., TRUE/FALSE, 1/0)
   boolean,
 
   /// Double/float type (e.g., FLOAT/DOUBLE)
@@ -125,8 +135,11 @@ enum ColumnType {
   /// Timestamp (e.g., TIMESTAMP)
   timestamp,
 
-  ///
-  // json
+  /// Enum type (e.g., ENUM('draft', 'published'))
+  enumeration,
+
+  /// JSON type (e.g., JSON)
+  json,
 }
 
 /// Represents an index on one or more columns in a table.
