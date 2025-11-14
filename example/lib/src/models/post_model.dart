@@ -4,7 +4,9 @@ import 'package:flint_dart/schema.dart';
 class PostModel extends Model<PostModel> {
   String? title;
   String? subTitle;
+  @override
   DateTime? createdAt;
+  @override
   DateTime? updatedAt;
   @override
   PostModel fromMap(Map<dynamic, dynamic> map) => PostModel()

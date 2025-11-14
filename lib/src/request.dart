@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
-import 'package:flint_dart/src/validation/validator.dart';
+import 'package:flint_dart/flint_dart.dart';
 import 'package:mime/mime.dart';
 
-/// Represents a single uploaded file.
+/// In-memory session storage (in production, use a persistent store)
+final Map<String, Map<String, dynamic>> _sessionStore = {};
+
+/// Represents a single uploaded file with metadata and content stream.
 class UploadedFile {
   final String fieldName;
   final String filename;
@@ -17,10 +20,20 @@ class UploadedFile {
     this.contentType,
     required this.content,
   });
+
+  /// Saves the uploaded file to the specified path
+  Future<void> saveTo(String path) async {
+    final file = File(path);
+    final sink = file.openWrite();
+    await content.pipe(sink);
+    await sink.close();
+  }
 }
 
-/// Represents an HTTP request with convenient accessors for
-/// method, headers, parameters, body, and other common features.
+/// Enhanced HTTP request wrapper with comprehensive parsing, validation, and session management.
+///
+/// This class provides a convenient interface for handling HTTP requests in a Flint Dart server,
+/// including body parsing, file uploads, authentication, session management, and validation.
 class Request {
   /// The original [HttpRequest] from Dart's `dart:io` server.
   final HttpRequest raw;
@@ -28,20 +41,27 @@ class Request {
   /// Route parameters matched by the router (e.g. `/user/:id`).
   final Map<String, String> params;
 
-  /// A cache for the parsed body content.
+  /// Internal storage for request-scoped data
+  final Map<String, dynamic> _storage = {};
+
+  /// Cache for parsed body content to avoid multiple parsing
   dynamic _bodyCache;
 
   /// Constructs a [Request] with the raw [HttpRequest] and optional route [params].
   Request(this.raw, {Map<String, String>? params}) : params = params ?? {};
 
-  /// The HTTP method (e.g. GET, POST, PUT).
+  // ==================== BASIC REQUEST PROPERTIES ====================
+
+  /// The HTTP method (e.g. GET, POST, PUT, DELETE)
   String get method => raw.method;
 
-  /// The full request path (e.g. `/api/users/1`).
+  /// The full request path (e.g. `/api/users/1`)
   String get path => raw.uri.path;
 
-  /// All request headers as a [Map<String, String>].
-  /// If a header has multiple values, they are joined with commas.
+  /// The request URI
+  Uri get uri => raw.uri;
+
+  /// All request headers as a case-insensitive map
   Map<String, String> get headers {
     final Map<String, String> result = {};
     raw.headers.forEach((name, values) {
@@ -50,10 +70,125 @@ class Request {
     return result;
   }
 
-  /// Query parameters from the URL as a [Map<String, String>].
+  /// Query parameters from the URL
   Map<String, String> get query => raw.uri.queryParameters;
 
-  /// Parses the request body and caches the result.
+  /// Client IP address
+  String get ipAddress =>
+      raw.connectionInfo?.remoteAddress.address ?? 'unknown';
+
+  // ==================== REQUEST STORAGE ====================
+
+  /// Stores a value in request-scoped storage
+  void set(String key, dynamic value) => _storage[key] = value;
+
+  /// Retrieves a value from request-scoped storage
+  dynamic get(String key) => _storage[key];
+
+  // ==================== AUTHENTICATION & JWT ====================
+
+  /// Extract Bearer token from Authorization header
+  String? get bearerToken {
+    final header = headers['authorization'] ?? headers['Authorization'];
+    if (header != null && header.startsWith('Bearer ')) {
+      return header.substring(7);
+    }
+    return null;
+  }
+
+  /// JWT utility instance for token operations
+  FlintJwt get jwt => FlintJwt(FlintEnv.get('JWT_SECRET'));
+
+  /// Returns the authenticated user payload from JWT
+  Map<String, dynamic>? get user => get('user');
+
+  /// Returns true if the request has a valid authenticated user
+  bool get isAuthenticated => user != null;
+
+  /// Throws an exception if no user is authenticated
+  Map<String, dynamic> requireUser() {
+    final user = this.user;
+    if (user == null) {
+      throw Exception('Authentication required');
+    }
+    return user;
+  }
+
+  // ==================== SESSION MANAGEMENT ====================
+
+  /// Session ID from FLINTSESSID cookie
+  String? get sessionId => cookies['FLINTSESSID'];
+
+  /// Returns current session data if exists
+  Map<String, dynamic>? get session {
+    final id = sessionId;
+    return id != null ? _sessionStore[id] : null;
+  }
+
+  /// Creates a new session with the provided data
+  Future<void> startSession(Map<String, dynamic> data) async {
+    final newId = _generateSessionId();
+    raw.response.cookies.add(
+      Cookie('FLINTSESSID', newId)
+        ..path = '/'
+        ..httpOnly = true
+        ..secure = true, // Use secure cookies in production
+    );
+
+    _sessionStore[newId] = Map<String, dynamic>.from(data);
+  }
+
+  /// Updates the current session data
+  void updateSession(Map<String, dynamic> updates) {
+    final id = sessionId;
+    if (id != null && _sessionStore.containsKey(id)) {
+      _sessionStore[id]!.addAll(updates);
+    }
+  }
+
+  /// Destroys the current session
+  void destroySession() {
+    final id = sessionId;
+    if (id != null) {
+      _sessionStore.remove(id);
+      // Clear the session cookie
+      raw.response.cookies.add(
+        Cookie('FLINTSESSID', '')
+          ..path = '/'
+          ..maxAge = 0,
+      );
+    }
+  }
+
+  /// Generates a cryptographically secure session ID
+  String _generateSessionId() {
+    // Improved session ID generation
+    final random = List<int>.generate(
+        32, (_) => DateTime.now().millisecondsSinceEpoch % 256);
+    return base64Url.encode(random) +
+        DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
+  // ==================== COOKIE MANAGEMENT ====================
+
+  /// Parsed cookies from the Cookie header
+  Map<String, String> get cookies {
+    final cookieHeader = raw.headers.value(HttpHeaders.cookieHeader);
+    if (cookieHeader == null) return {};
+
+    return Map.fromEntries(cookieHeader.split(';').map((cookie) {
+      final trimmed = cookie.trim();
+      final parts = trimmed.split('=');
+      if (parts.length == 2) {
+        return MapEntry(parts[0], parts[1]);
+      }
+      return MapEntry(trimmed, '');
+    }));
+  }
+
+  // ==================== BODY PARSING ====================
+
+  /// Internal body parsing method that handles different content types
   Future<void> _parseBody() async {
     if (_bodyCache != null) return;
 
@@ -65,51 +200,104 @@ class Request {
 
     final mimeType = contentTypeHeader.mimeType;
 
-    if (mimeType == 'multipart/form-data') {
-      final boundary = contentTypeHeader.parameters['boundary'];
-      if (boundary == null) {
-        throw FormatException('Missing multipart boundary.');
-      }
-      final parts = await MimeMultipartTransformer(boundary).bind(raw).toList();
-      final files = <String, UploadedFile>{};
-      final fields = <String, String>{};
-
-      for (var part in parts) {
-        final contentDisposition = part.headers['content-disposition'];
-        if (contentDisposition != null) {
-          final isFile = contentDisposition.contains('filename=');
-          final fieldName = contentDisposition
-              .split('name=')[1]
-              .split(';')[0]
-              .replaceAll('"', '');
-
-          if (isFile) {
-            final filename =
-                contentDisposition.split('filename=')[1].replaceAll('"', '');
-            final contentType = part.headers['content-type']?.split(';')[0];
-            final file = UploadedFile(
-              fieldName: fieldName,
-              filename: filename,
-              contentType: contentType,
-              content: part,
-            );
-            files[fieldName] = file;
-          } else {
-            fields[fieldName] = await utf8.decodeStream(part);
-          }
-        }
-      }
-      _bodyCache = {'files': files, 'fields': fields};
-    } else if (mimeType == 'application/x-www-form-urlencoded') {
-      final content = await utf8.decodeStream(raw);
-      _bodyCache = Uri.splitQueryString(content);
-    } else {
-      _bodyCache = await utf8.decodeStream(raw);
+    switch (mimeType) {
+      case 'multipart/form-data':
+        await _parseMultipartFormData(contentTypeHeader);
+        break;
+      case 'application/x-www-form-urlencoded':
+        await _parseUrlEncodedFormData();
+        break;
+      case 'application/json':
+        await _parseJsonBody();
+        break;
+      default:
+        _bodyCache = await utf8.decodeStream(raw);
     }
   }
 
-  /// Reads and returns the raw request body as a [String].
-  /// Note: This will not work for `multipart/form-data` requests.
+  /// Parses multipart/form-data requests (file uploads + form fields)
+  Future<void> _parseMultipartFormData(ContentType contentTypeHeader) async {
+    final boundary = contentTypeHeader.parameters['boundary'];
+    if (boundary == null) {
+      throw FormatException(
+          'Missing multipart boundary in Content-Type header');
+    }
+
+    final parts = await MimeMultipartTransformer(boundary).bind(raw).toList();
+    final files = <String, UploadedFile>{};
+    final fields = <String, String>{};
+
+    for (var part in parts) {
+      final contentDisposition = part.headers['content-disposition'];
+      if (contentDisposition != null) {
+        await _processMultipartPart(part, contentDisposition, files, fields);
+      }
+    }
+
+    _bodyCache = {'files': files, 'fields': fields};
+  }
+
+  /// Processes individual parts in a multipart request
+  Future<void> _processMultipartPart(
+    MimeMultipart part,
+    String contentDisposition,
+    Map<String, UploadedFile> files,
+    Map<String, String> fields,
+  ) async {
+    final fieldName = _extractFieldName(contentDisposition);
+    if (fieldName == null) return;
+
+    if (contentDisposition.contains('filename=')) {
+      // This is a file part
+      final filename = _extractFilename(contentDisposition);
+      final contentType = part.headers['content-type']?.split(';')[0];
+
+      files[fieldName] = UploadedFile(
+        fieldName: fieldName,
+        filename: filename,
+        contentType: contentType,
+        content: part,
+      );
+    } else {
+      // This is a regular form field
+      fields[fieldName] = await utf8.decodeStream(part);
+    }
+  }
+
+  /// Extracts field name from Content-Disposition header
+  String? _extractFieldName(String contentDisposition) {
+    final nameMatch = RegExp(r'name="([^"]*)"').firstMatch(contentDisposition);
+    return nameMatch?.group(1);
+  }
+
+  /// Extracts filename from Content-Disposition header
+  String _extractFilename(String contentDisposition) {
+    final filenameMatch =
+        RegExp(r'filename="([^"]*)"').firstMatch(contentDisposition);
+    return filenameMatch?.group(1) ?? 'unknown';
+  }
+
+  /// Parses application/x-www-form-urlencoded data
+  Future<void> _parseUrlEncodedFormData() async {
+    final content = await utf8.decodeStream(raw);
+    _bodyCache = Uri.splitQueryString(content);
+  }
+
+  /// Parses application/json data
+  Future<void> _parseJsonBody() async {
+    final content = await utf8.decodeStream(raw);
+    if (content.isEmpty) {
+      _bodyCache = <String, dynamic>{};
+    } else {
+      _bodyCache = jsonDecode(content);
+    }
+  }
+
+  // ==================== BODY ACCESS METHODS ====================
+
+  /// Reads and returns the raw request body as a string
+  ///
+  /// Note: For multipart/form-data requests, use [form()] or [files()] instead
   Future<String> body() async {
     await _parseBody();
     if (_bodyCache is String) {
@@ -118,167 +306,98 @@ class Request {
     return '';
   }
 
-  /// Parses the body as JSON and returns a [Map<String, dynamic>].
-  /// Throws if the body is not valid JSON.
+  /// Parses the body as JSON and returns a Map
+  ///
+  /// @throws FormatException if body is not valid JSON
   Future<Map<String, dynamic>> json() async {
-    final content = await body();
-    final decoded = jsonDecode(content);
-    if (decoded is Map<String, dynamic>) {
-      return decoded;
+    await _parseBody();
+
+    if (_bodyCache is Map<String, dynamic>) {
+      return _bodyCache;
     }
-    throw FormatException('Expected a JSON object');
+
+    if (_bodyCache is String && (_bodyCache as String).isEmpty) {
+      return <String, dynamic>{};
+    }
+
+    throw FormatException('Expected a JSON object in request body');
   }
 
-  /// Parses the request body and returns a [Map] of form fields.
-  ///
-  /// This method handles two types of form data:
-  /// 1. `application/x-www-form-urlencoded`: Returns the key-value pairs directly.
-  /// 2. `multipart/form-data`: Extracts and returns the non-file fields.
-  ///
-  /// Use this method to access form data, especially when handling file uploads
-  /// where the other fields (e.g., user name, file description) are sent
-  /// alongside the file.
-  ///
-  /// @returns A [Future] that completes with a [Map<String, String>] of the form fields.
+  /// Parses form data from application/x-www-form-urlencoded or multipart/form-data
   Future<Map<String, String>> form() async {
     await _parseBody();
+
     if (_bodyCache is Map<String, String>) {
       return _bodyCache;
     }
+
     if (_bodyCache is Map && _bodyCache.containsKey('fields')) {
-      return _bodyCache['fields'] as Map<String, String>;
+      return Map<String, String>.from(_bodyCache['fields']);
     }
+
     return {};
   }
 
-  /// Checks if a file with the given name exists in the request.
-  /// @param name The name of the file field.
-  /// Returns `true` if a file is uploaded with the given `field`.
-  /// Returns `false` otherwise.
-  Future<bool> hasFile(String name) async {
+  /// Checks if a file with the given field name exists in the request
+  Future<bool> hasFile(String fieldName) async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {
       final files = _bodyCache['files'] as Map<String, UploadedFile>;
-      return files.containsKey(name);
+      return files.containsKey(fieldName);
     }
     return false;
   }
 
-  /// Retrieves a single uploaded file by its field name.
-  /// @param name The name of the file field.
-  /// @returns An [UploadedFile] object or `null` if not found.
-  Future<UploadedFile?> file(String name) async {
+  /// Retrieves a single uploaded file by field name
+  Future<UploadedFile?> file(String fieldName) async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {
       final files = _bodyCache['files'] as Map<String, UploadedFile>;
-      return files[name];
+      return files[fieldName];
     }
     return null;
   }
 
-  /// Retrieves all uploaded files from the request.
-  /// @returns A [Map] of all uploaded files, keyed by field name.
+  /// Retrieves all uploaded files from the request
   Future<Map<String, UploadedFile>> files() async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {
-      return _bodyCache['files'] as Map<String, UploadedFile>;
+      return Map<String, UploadedFile>.from(_bodyCache['files']);
     }
     return {};
   }
 
-  // --- Other existing methods ---
+  // ==================== VALIDATION ====================
 
-  /// Returns the bearer token from the `Authorization` header if present.
-  String? get bearerToken {
-    final auth = headers['authorization'];
-    if (auth != null && auth.startsWith('Bearer ')) {
-      return auth.substring(7);
-    }
-    return null;
-  }
-
-  /// Parses cookies from the `Cookie` header into a [Map<String, String>].
-  Map<String, String> get cookies {
-    final cookieHeader = raw.headers.value(HttpHeaders.cookieHeader);
-    if (cookieHeader == null) return {};
-    return Map.fromEntries(cookieHeader.split(';').map((cookie) {
-      final parts = cookie.trim().split('=');
-      return MapEntry(parts[0], parts[1]);
-    }));
-  }
-
-  /// 📘 **Validate Request Body**
+  /// Validates the request body against specified validation rules
   ///
-  /// This method parses and validates the incoming JSON request body
-  /// against the specified validation [rules].
+  /// This method automatically parses the JSON body and validates it
+  /// using the Flint validation system.
   ///
-  /// ---
-  /// ### ✅ **Usage Example**
-  ///
+  /// Example:
   /// ```dart
-  /// // Inside a controller method
-  /// Future<Response> register(Request req) async {
-  ///   final data = await req.validate({
-  ///     'name': 'required|string',
-  ///     'email': 'required|string|email',
-  ///     'password': 'required|string|confirmed|min:6',
-  ///   });
-  ///
-  ///   // Safe to use: all fields are validated
-  ///   return Response.json({'user': data});
-  /// }
+  /// final data = await request.validate({
+  ///   'email': 'required|email',
+  ///   'password': 'required|min:6',
+  ///   'age': 'optional|integer|min:18'
+  /// });
   /// ```
   ///
-  /// ---
-  /// ### 🧠 **Behavior**
-  /// - Reads the request body as JSON.
-  /// - Validates all keys using the [Validator.validate] method.
-  /// - Throws a `ValidationException` if any rule fails.
-  /// - Returns the parsed request body (`Map<String, dynamic>`) if validation passes.
-  ///  /// The rules use a pipe-separated format (e.g., `"required|string|min:3"`)
-  /// and support the following checks:
-  ///
-  /// - `required`: Field must be present and not empty.
-  /// - `string`: Value must be a string.
-  /// - `int`: Value must be an integer.
-  /// - `double`: Value must be an integer.
-  /// - `bool`: Value must be a boolean.
-  /// - `email`: Must be a valid email address.
-  /// - `regex:<pattern>`: Value must match the given regular expression.
-  /// - `list`: Value must be a list.
-  /// - `list:<type>`: All items in the list must match the given type
-  ///   (`string`, `int`, `bool`).
-  /// - `min:<n>`: Minimum length (for strings/lists) or value (for numbers).
-  /// - `max:<n>`: Maximum length (for strings/lists) or value (for numbers).
-  ///
-  /// ---
-  /// ### ⚙️ **Supported Validation Rules**
-  /// - `required` — Field must not be null or empty.
-  /// - `string` — Must be a string.
-  /// - `email` — Must be a valid email format.
-  /// - `int`: Value must be an integer.
-  /// - `double`: Value must be an integer.
-  /// - `list`: Value must be a list.
-  /// - `list:<type>`: All items in the list must match the given type
-  ///   (`string`, `int`, `bool`).
-  /// - `min:<n>` — Minimum string length or numeric value.
-  /// - `max:<n>` — Maximum string length or numeric value.
-  /// - `confirmed` — Field must have a matching confirmation field (`confirm_field` or `field_confirmation`).
-  /// - `bool` — Must be `true` or `false`.
-  /// - `date` — Must be a valid date string or `DateTime`.
-  /// - `in:<a,b,c>` — Value must be one of the listed items.
-  ///
-  /// ---
-  /// ### ⚠️ **Throws**
-  /// - `ValidationException` — when one or more rules fail.
-  ///
-  /// ---
-  /// ### 📤 **Returns**
-  /// - A `Map<String, dynamic>` representing the validated request body.
-  ///
+  /// @param rules Validation rules in pipe-separated format
+  /// @returns Validated and parsed request body
+  /// @throws ValidationException if validation fails
   Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
     final body = await json();
     await Validator.validate(body, rules);
     return body;
+  }
+
+  /// Validates form data against specified rules
+  ///
+  /// Useful for traditional form submissions
+  Future<Map<String, String>> validateForm(Map<String, String> rules) async {
+    final formData = await form();
+    await Validator.validate(formData, rules);
+    return formData;
   }
 }

@@ -29,6 +29,172 @@ abstract class Model<T extends Model<T>> {
   /// Convert DB map into a model instance
   T fromMap(Map<dynamic, dynamic> map);
 
+  /// Internal query builder instance for chaining
+  QueryBuilder? _queryBuilder;
+
+  /// Get or create query builder
+  QueryBuilder get _qb {
+    _queryBuilder ??= QueryBuilder(table: table.name);
+    return _queryBuilder!;
+  }
+
+  /// Reset query builder
+  T _resetQuery() {
+    _queryBuilder = null;
+    return this as T;
+  }
+
+  // ========== CHAINABLE QUERY METHODS ==========
+
+  /// Custom query builder - starts a new chain
+  QueryBuilder query() {
+    _queryBuilder = QueryBuilder(table: table.name);
+    return _queryBuilder!;
+  }
+
+  /// WHERE clause - chainable
+  T where(String field, dynamic value) {
+    _qb.where(field, '=', value);
+    return this as T;
+  }
+
+  /// WHERE with custom operator - chainable
+  T whereOperator(String field, String operator, dynamic value) {
+    _qb.where(field, operator, value);
+    return this as T;
+  }
+
+  /// WHERE IN clause - chainable
+  T whereIn(String field, List<dynamic> values) {
+    _qb.whereIn(field, values);
+    return this as T;
+  }
+
+  /// WHERE NOT IN clause - chainable
+  T whereNotIn(String field, List<dynamic> values) {
+    _qb.whereNotIn(field, values);
+    return this as T;
+  }
+
+  /// OR WHERE clause - chainable
+  T orWhere(String field, dynamic value) {
+    _qb.orWhere(field, '=', value);
+    return this as T;
+  }
+
+  /// WHERE NULL clause - chainable
+  T whereNull(String field) {
+    _qb.whereNull(field);
+    return this as T;
+  }
+
+  /// WHERE NOT NULL clause - chainable
+  T whereNotNull(String field) {
+    _qb.whereNotNull(field);
+    return this as T;
+  }
+
+  /// ORDER BY clause - chainable
+  T orderBy(String field, [String direction = 'ASC']) {
+    _qb.orderBy(field, direction);
+    return this as T;
+  }
+
+  /// LIMIT clause - chainable
+  T limit(int value) {
+    _qb.limit(value);
+    return this as T;
+  }
+
+  /// OFFSET clause - chainable
+  T offset(int value) {
+    _qb.offset(value);
+    return this as T;
+  }
+
+  /// GROUP BY clause - chainable
+  T groupBy(String field) {
+    _qb.groupBy(field);
+    return this as T;
+  }
+
+  /// SELECT specific fields - chainable
+  T select(List<String> fields) {
+    _qb.select(fields);
+    return this as T;
+  }
+
+  /// Execute the query and get results
+  Future<List<T>> get() async {
+    final results = await _qb.get();
+    final modelResults =
+        results.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
+    _resetQuery();
+    return modelResults;
+  }
+
+  /// Get first result
+  Future<T?> first() async {
+    final result = await _qb.first();
+    _resetQuery();
+    return result != null ? fromMap(_convertDatabaseTypes(result)) : null;
+  }
+
+  /// Count results
+  Future<int> count([String column = '*']) async {
+    final result = await _qb.count(column);
+    _resetQuery();
+    return result;
+  }
+
+  /// Paginate results
+  Future<Map<String, dynamic>> paginate(int page, [int perPage = 15]) async {
+    final result = await _qb.paginate(page, perPage);
+    // Convert data from maps to models
+    final modelData = (result['data'] as List<Map<String, dynamic>>)
+        .map((map) => fromMap(_convertDatabaseTypes(map)))
+        .toList();
+
+    _resetQuery();
+    return {
+      'data': modelData,
+      'current_page': result['current_page'],
+      'per_page': result['per_page'],
+      'total': result['total'],
+      'last_page': result['last_page'],
+    };
+  }
+
+  /// Get max value
+  Future<dynamic> max(String column) async {
+    final result = await _qb.max(column);
+    _resetQuery();
+    return result;
+  }
+
+  /// Get min value
+  Future<dynamic> min(String column) async {
+    final result = await _qb.min(column);
+    _resetQuery();
+    return result;
+  }
+
+  /// Get average value
+  Future<double?> avg(String column) async {
+    final result = await _qb.avg(column);
+    _resetQuery();
+    return result;
+  }
+
+  /// Get sum value
+  Future<double?> sum(String column) async {
+    final result = await _qb.sum(column);
+    _resetQuery();
+    return result;
+  }
+
+  // ========== ORIGINAL CRUD METHODS (Preserved) ==========
+
   /// Refresh the model from DB
   Future<T?> refresh([dynamic id]) async {
     final currentId = this.id ?? id;
@@ -214,10 +380,7 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Delete this model
-  /// Delete this model
-  Future<bool> delete([
-    dynamic id,
-  ]) async {
+  Future<bool> delete([dynamic id]) async {
     final currentId = this.id ?? id;
     if (currentId == null) return false;
 
@@ -238,7 +401,6 @@ abstract class Model<T extends Model<T>> {
     return true;
   }
 
-  /// Find by ID
   /// Find by ID
   Future<T?> find(dynamic id) async {
     if (DB.driver == DBDriver.mysql) {
@@ -268,8 +430,8 @@ abstract class Model<T extends Model<T>> {
     return result.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
   }
 
-  /// Where clause
-  Future<List<T>> where(String field, dynamic value) async {
+  /// Simple where clause (non-chainable)
+  Future<List<T>> whereSimple(String field, dynamic value) async {
     // --- ✅ Convert bool → 1/0 for MySQL ---
     if (DB.driver == DBDriver.mysql) {
       if (value is bool) value = value ? 1 : 0; // bool → 1/0
@@ -293,9 +455,8 @@ abstract class Model<T extends Model<T>> {
     }
   }
 
-  /// Find records with custom conditions
-  /// Find records with custom conditions
-  Future<List<T>> whereIn(String field, List<dynamic> values) async {
+  /// Simple where IN clause (non-chainable)
+  Future<List<T>> whereInSimple(String field, List<dynamic> values) async {
     if (values.isEmpty) return [];
 
     // --- ✅ Normalize values for MySQL ---
@@ -333,7 +494,7 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Count all records
-  Future<int> count() async {
+  Future<int> countAll() async {
     final result = await DB.query(
       'SELECT COUNT(*) as count FROM ${table.name}',
     );
@@ -373,11 +534,6 @@ abstract class Model<T extends Model<T>> {
     } else {
       await DB.execute('TRUNCATE TABLE ${table.name}');
     }
-  }
-
-  /// Custom query builder
-  QueryBuilder query() {
-    return QueryBuilder(table: table.name);
   }
 
   /// Convert database-specific types to Dart types

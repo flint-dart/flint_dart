@@ -4,7 +4,7 @@ import 'package:sample/src/models/user_model.dart';
 
 class UserController {
   Future<Response> index(Request req, Response res) async {
-    final users = await User().whereIn("name", ["Wale", "lola"]);
+    final users = await User().where("name", ["Wale", "lola"]).get();
     return res.json({
       "message": 'List of user ',
       "users": users.map((user) => user.toMap()).toList()

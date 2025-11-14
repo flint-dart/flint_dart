@@ -1,8 +1,5 @@
 import 'package:flint_dart/flint_ui.dart';
 
-import 'flint_widget.dart';
-import 'flint_template.dart';
-
 abstract class FlintComponent extends FlintTemplate {
   /// The reactive state of this component
   Map<String, dynamic> state();

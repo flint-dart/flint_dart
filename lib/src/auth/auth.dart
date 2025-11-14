@@ -9,7 +9,6 @@ import 'package:flint_dart/src/auth/providers/google_provider.dart';
 import 'package:flint_dart/src/auth/providers/github_provider.dart';
 import 'package:flint_dart/src/auth/providers/facebook_provider.dart';
 import 'package:flint_dart/src/auth/providers/apple_provider.dart';
-import 'package:flint_dart/src/database/orm/query_builder.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 

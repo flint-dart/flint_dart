@@ -8,10 +8,14 @@ class QueryBuilder {
 
   final List<String> _selects = [];
   final List<String> _wheres = [];
+  final List<String> _orWheres = [];
+  final List<String> _orderBys = [];
+  final List<String> _groups = [];
   final Map<String, dynamic> _bindings = {};
   static final Map<String, _ColumnInfo> _columnCache = {};
 
   int? _limit;
+  int? _offset;
   int _paramIndex = 1;
 
   QueryBuilder({required this.table});
@@ -38,18 +42,209 @@ class QueryBuilder {
     return this;
   }
 
-  /// LIMIT
+  /// WHERE IN clause
+  QueryBuilder whereIn(String field, List<dynamic> values) {
+    if (values.isEmpty) {
+      _wheres.add('1 = 0'); // Always false if no values
+      return this;
+    }
+
+    final paramNames = List.generate(values.length, (i) {
+      final paramName = 'p${_paramIndex++}';
+      _bindings[paramName] = values[i];
+      return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
+    }).join(', ');
+
+    _wheres.add('$field IN ($paramNames)');
+    return this;
+  }
+
+  /// WHERE NOT IN clause
+  QueryBuilder whereNotIn(String field, List<dynamic> values) {
+    if (values.isEmpty) {
+      _wheres.add('1 = 1'); // Always true if no values
+      return this;
+    }
+
+    final paramNames = List.generate(values.length, (i) {
+      final paramName = 'p${_paramIndex++}';
+      _bindings[paramName] = values[i];
+      return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
+    }).join(', ');
+
+    _wheres.add('$field NOT IN ($paramNames)');
+    return this;
+  }
+
+  /// OR WHERE clause
+  QueryBuilder orWhere(String field, String operator, dynamic value) {
+    final paramName = 'p${_paramIndex++}';
+
+    if (DB.driver == DBDriver.postgres) {
+      _orWheres.add('$field $operator :$paramName');
+    } else {
+      _orWheres.add('$field $operator ?');
+    }
+
+    _bindings[paramName] = value;
+    return this;
+  }
+
+  /// WHERE NULL clause
+  QueryBuilder whereNull(String field) {
+    _wheres.add('$field IS NULL');
+    return this;
+  }
+
+  /// WHERE NOT NULL clause
+  QueryBuilder whereNotNull(String field) {
+    _wheres.add('$field IS NOT NULL');
+    return this;
+  }
+
+  /// ORDER BY clause
+  QueryBuilder orderBy(String field, [String direction = 'ASC']) {
+    final dir = direction.toUpperCase() == 'DESC' ? 'DESC' : 'ASC';
+    _orderBys.add('$field $dir');
+    return this;
+  }
+
+  /// GROUP BY clause
+  QueryBuilder groupBy(String field) {
+    _groups.add(field);
+    return this;
+  }
+
+  /// LIMIT clause
   QueryBuilder limit(int value) {
     _limit = value;
     return this;
   }
 
+  /// OFFSET clause
+  QueryBuilder offset(int value) {
+    _offset = value;
+    return this;
+  }
+
+  /// JOIN clause
+  QueryBuilder join(
+      String table, String first, String operator, String second) {
+    // Simple JOIN implementation - you can extend this for different JOIN types
+    _selects.add('$table.*'); // Add joined table columns
+    _wheres.add('$first $operator $second');
+    return this;
+  }
+
+  /// COUNT aggregate
+  Future<int> count([String column = '*']) async {
+    final originalSelects = List<String>.from(_selects);
+    final originalLimit = _limit;
+    final originalOffset = _offset;
+
+    _selects.clear();
+    _limit = null;
+    _offset = null;
+
+    _selects.add('COUNT($column) as count');
+
+    final result = await first();
+
+    // Restore original state
+    _selects.clear();
+    _selects.addAll(originalSelects);
+    _limit = originalLimit;
+    _offset = originalOffset;
+
+    return result?['count'] as int? ?? 0;
+  }
+
+  /// MAX aggregate
+  Future<dynamic> max(String column) async {
+    final originalSelects = List<String>.from(_selects);
+    _selects.clear();
+    _selects.add('MAX($column) as max_value');
+
+    final result = await first();
+
+    _selects.clear();
+    _selects.addAll(originalSelects);
+
+    return result?['max_value'];
+  }
+
+  /// MIN aggregate
+  Future<dynamic> min(String column) async {
+    final originalSelects = List<String>.from(_selects);
+    _selects.clear();
+    _selects.add('MIN($column) as min_value');
+
+    final result = await first();
+
+    _selects.clear();
+    _selects.addAll(originalSelects);
+
+    return result?['min_value'];
+  }
+
+  /// AVG aggregate
+  Future<double?> avg(String column) async {
+    final originalSelects = List<String>.from(_selects);
+    _selects.clear();
+    _selects.add('AVG($column) as avg_value');
+
+    final result = await first();
+
+    _selects.clear();
+    _selects.addAll(originalSelects);
+
+    return result?['avg_value']?.toDouble();
+  }
+
+  /// SUM aggregate
+  Future<double?> sum(String column) async {
+    final originalSelects = List<String>.from(_selects);
+    _selects.clear();
+    _selects.add('SUM($column) as sum_value');
+
+    final result = await first();
+
+    _selects.clear();
+    _selects.addAll(originalSelects);
+
+    return result?['sum_value']?.toDouble();
+  }
+
   String _buildSelectQuery() {
     final select = _selects.isEmpty ? '*' : _selects.join(', ');
-    final whereClause =
-        _wheres.isNotEmpty ? ' WHERE ${_wheres.join(' AND ')}' : '';
+    var whereClause = '';
+
+    if (_wheres.isNotEmpty || _orWheres.isNotEmpty) {
+      final whereParts = <String>[];
+
+      if (_wheres.isNotEmpty) {
+        whereParts.add(_wheres.join(' AND '));
+      }
+
+      if (_orWheres.isNotEmpty) {
+        if (_wheres.isNotEmpty) {
+          whereParts.add('(${_orWheres.join(' OR ')})');
+        } else {
+          whereParts.add(_orWheres.join(' OR '));
+        }
+      }
+
+      whereClause = ' WHERE ${whereParts.join(' AND ')}';
+    }
+
+    final groupClause =
+        _groups.isNotEmpty ? ' GROUP BY ${_groups.join(', ')}' : '';
+    final orderClause =
+        _orderBys.isNotEmpty ? ' ORDER BY ${_orderBys.join(', ')}' : '';
     final limitClause = _limit != null ? ' LIMIT $_limit' : '';
-    return 'SELECT $select FROM $table$whereClause$limitClause';
+    final offsetClause = _offset != null ? ' OFFSET $_offset' : '';
+
+    return 'SELECT $select FROM $table$whereClause$groupClause$orderClause$limitClause$offsetClause';
   }
 
   /// Internal query executor
@@ -85,6 +280,31 @@ class QueryBuilder {
     return rows.isNotEmpty ? rows.first : null;
   }
 
+  /// Paginate results
+  Future<Map<String, dynamic>> paginate(int page, [int perPage = 15]) async {
+    final offset = (page - 1) * perPage;
+    final originalLimit = _limit;
+    final originalOffset = _offset;
+
+    _limit = perPage;
+    _offset = offset;
+
+    final data = await get();
+    final total = await count();
+
+    // Restore original state
+    _limit = originalLimit;
+    _offset = originalOffset;
+
+    return {
+      'data': data,
+      'current_page': page,
+      'per_page': perPage,
+      'total': total,
+      'last_page': (total / perPage).ceil(),
+    };
+  }
+
   /// INSERT
   Future<void> insert(Map<String, dynamic> data,
       {String idColumn = 'id'}) async {
@@ -97,7 +317,7 @@ class QueryBuilder {
       _columnCache[table] = columnInfo;
     }
 
-    // --- Step 2: Generate ID if needed ---
+    // Generate ID if needed
     if (!columnInfo.isAutoIncrement) {
       if (columnInfo.isString &&
           (!data.containsKey(idColumn) ||
@@ -172,7 +392,6 @@ class QueryBuilder {
   }
 
   /// --- Load primary key info from the database ---
-
   Future<_ColumnInfo> _loadIdColumnInfo(String idColumn) async {
     try {
       if (DB.driver == DBDriver.mysql) {
