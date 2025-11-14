@@ -1,6 +1,6 @@
+# 🚀 Flint Dart — Version 1.0.0+18
 # 🚀 Flint Dart — Version 1.0.0+17
 
-**Release Date:** 2025-11-10
 
 ### 🆕 New Features
 
