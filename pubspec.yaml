@@ -30,6 +30,6 @@ dev_dependencies:
   test: ^1.24.0         # Testing framework
 
 executables:
-  flint: flint_dart 
-  flint_dart:hot_reload: hot_reload  # Add this line
+  flint: bin/flint_dart.dart
+  hot_reload: bin/hot_reload.dart
 
