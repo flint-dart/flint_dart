@@ -3,7 +3,10 @@ import 'dart:io';
 /// A lightweight environment variable loader for Dart applications.
 ///
 /// `FlintEnv` provides a simple way to read configuration values
-/// from a `.env` file and access them as `String`, `int`, or `bool`.
+/// from multiple sources in the following priority order (highest to lowest):
+/// 1. Global/System environment variables
+/// 2. `.env` file values
+/// 3. Default values
 ///
 /// The `.env` file should contain key-value pairs in the format:
 /// ```env
@@ -22,15 +25,18 @@ import 'dart:io';
 /// final isProd = FlintEnv.getBool('PRODUCTION', false);
 /// ```
 class FlintEnv {
-  /// Internal in-memory store for environment variables.
-  static final Map<String, String> _env = {};
+  /// Internal in-memory store for environment variables from .env file.
+  static final Map<String, String> _envFromFile = {};
 
   /// Tracks whether the `.env` file has been loaded already.
   static bool _isLoaded = false;
 
   /// Returns the value for the given [key].
   ///
-  /// If the key is not found, returns the [defaultValue] (defaults to `''`).
+  /// Priority order:
+  /// 1. Global/System environment variables
+  /// 2. `.env` file values
+  /// 3. [defaultValue] (defaults to `''`)
   ///
   /// Example:
   /// ```dart
@@ -38,13 +44,29 @@ class FlintEnv {
   /// ```
   static String get(String key, [String defaultValue = '']) {
     _ensureLoaded();
-    return _env[key] ?? defaultValue;
+
+    // 1. Check global/system environment variables first (highest priority)
+    final globalValue = Platform.environment[key];
+    if (globalValue != null) {
+      return globalValue;
+    }
+
+    // 2. Check .env file values
+    final envFileValue = _envFromFile[key];
+    if (envFileValue != null) {
+      return envFileValue;
+    }
+
+    // 3. Return default value
+    return defaultValue;
   }
 
   /// Returns the integer value for the given [key].
   ///
-  /// If the key is not found or cannot be parsed as an integer,
-  /// returns the [defaultValue] (defaults to `0`).
+  /// Priority order:
+  /// 1. Global/System environment variables
+  /// 2. `.env` file values
+  /// 3. [defaultValue] (defaults to `0`)
   ///
   /// Example:
   /// ```dart
@@ -52,14 +74,32 @@ class FlintEnv {
   /// ```
   static int getInt(String key, [int defaultValue = 0]) {
     _ensureLoaded();
-    return int.tryParse(_env[key] ?? '') ?? defaultValue;
+
+    // 1. Check global/system environment variables first
+    final globalValue = Platform.environment[key];
+    if (globalValue != null) {
+      return int.tryParse(globalValue) ?? defaultValue;
+    }
+
+    // 2. Check .env file values
+    final envFileValue = _envFromFile[key];
+    if (envFileValue != null) {
+      return int.tryParse(envFileValue) ?? defaultValue;
+    }
+
+    // 3. Return default value
+    return defaultValue;
   }
 
   /// Returns the boolean value for the given [key].
   ///
-  /// Accepted values for `true`: `'true'`, `'1'`
-  /// Accepted values for `false`: `'false'`, `'0'`
-  /// If the key is not found or cannot be interpreted, returns [defaultValue] (defaults to `false`).
+  /// Priority order:
+  /// 1. Global/System environment variables
+  /// 2. `.env` file values
+  /// 3. [defaultValue] (defaults to `false`)
+  ///
+  /// Accepted values for `true`: `'true'`, `'1'`, `'yes'`
+  /// Accepted values for `false`: `'false'`, `'0'`, `'no'`
   ///
   /// Example:
   /// ```dart
@@ -67,12 +107,64 @@ class FlintEnv {
   /// ```
   static bool getBool(String key, [bool defaultValue = false]) {
     _ensureLoaded();
-    final val = _env[key]?.toLowerCase();
-    return val == 'true' || val == '1'
+
+    // 1. Check global/system environment variables first
+    final globalValue = Platform.environment[key];
+    if (globalValue != null) {
+      return _parseBool(globalValue, defaultValue);
+    }
+
+    // 2. Check .env file values
+    final envFileValue = _envFromFile[key];
+    if (envFileValue != null) {
+      return _parseBool(envFileValue, defaultValue);
+    }
+
+    // 3. Return default value
+    return defaultValue;
+  }
+
+  /// Parses a string value to boolean.
+  static bool _parseBool(String value, bool defaultValue) {
+    final val = value.toLowerCase().trim();
+    return val == 'true' || val == '1' || val == 'yes'
         ? true
-        : val == 'false' || val == '0'
+        : val == 'false' || val == '0' || val == 'no'
             ? false
             : defaultValue;
+  }
+
+  /// Returns all available environment variables as a Map.
+  ///
+  /// Priority order is maintained: global variables override .env file values.
+  static Map<String, String> getAll() {
+    _ensureLoaded();
+
+    final allEnv = <String, String>{};
+
+    // 1. Add .env file values first (lower priority)
+    allEnv.addAll(_envFromFile);
+
+    // 2. Override with global/system environment variables (higher priority)
+    allEnv.addAll(Platform.environment);
+
+    return allEnv;
+  }
+
+  /// Checks if a specific key exists in any environment source.
+  static bool exists(String key) {
+    _ensureLoaded();
+    return Platform.environment.containsKey(key) ||
+        _envFromFile.containsKey(key);
+  }
+
+  /// Reloads the environment variables from both sources.
+  ///
+  /// Useful for development when .env files might change.
+  static void reload() {
+    _isLoaded = false;
+    _envFromFile.clear();
+    _ensureLoaded();
   }
 
   /// Ensures the `.env` file is loaded into memory.
@@ -83,7 +175,7 @@ class FlintEnv {
       final file = File('.env');
       if (file.existsSync()) {
         final lines = file.readAsLinesSync();
-        _env.addAll(_parseLines(lines));
+        _envFromFile.addAll(_parseLines(lines));
       }
       _isLoaded = true;
     }
