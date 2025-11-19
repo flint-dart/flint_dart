@@ -1,3 +1,4 @@
+# 🚀 Flint Dart — Version 1.0.0+19
 # 🚀 Flint Dart — Version 1.0.0+18
 # 🚀 Flint Dart — Version 1.0.0+17
 
