@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flint_dart/src/database/db.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/mail/mail_config.dart';
 import 'package:flint_dart/src/route_builder.dart';
 import 'package:flint_dart/src/websocket/websocket_manager.dart';
@@ -340,18 +341,17 @@ class Flint {
   /// Starts the HTTP & WebSocket server on [port].
   ///
   /// - Attempts to auto-connect to the database via `.env` unless already connected.
-  /// - Runs with hot reload during development unless `FLINT_HOT` is set.
+  /// - Runs with hot reload during development unless hotReload is set to true in listen.
   /// - Handles both HTTP and WebSocket upgrade requests.
-  Future<void> listen(int port) async {
+  Future<void> listen(int port, {bool hotReload = false}) async {
     // Hot reload parent process
-    if (Platform.environment['FLINT_HOT'] != '1') {
+    if (hotReload && Platform.environment['FLINT_HOT'] != '1') {
       print('[FLINT] Starting with hot reload...');
       final child = await Process.start('dart',
           ['--enable-vm-service', 'run', 'flint_dart:hot_reload', rootPath],
           environment: {'FLINT_HOT': '1'},
           mode: ProcessStartMode.inheritStdio,
           runInShell: true);
-
       ProcessSignal.sigint.watch().listen((_) async {
         print('\n[FLINT] Shutting down...');
         child.kill(ProcessSignal.sigint);
@@ -359,10 +359,8 @@ class Flint {
         await child.exitCode;
         exit(0);
       });
-
       return;
     }
-
     HttpServer? server;
     try {
       server = await HttpServer.bind(InternetAddress.anyIPv4, port);

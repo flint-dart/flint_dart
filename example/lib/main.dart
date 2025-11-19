@@ -249,7 +249,7 @@ void main() {
   });
 
   app.mount("/auth", authRoutes);
-  app.listen(3001);
+  app.listen(3001, hotReload: false);
 }
 
 // Handle JSON messages from Flutter app

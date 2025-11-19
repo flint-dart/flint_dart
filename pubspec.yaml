@@ -31,3 +31,5 @@ dev_dependencies:
 
 executables:
   flint: flint_dart 
+  flint_dart:hot_reload: hot_reload  # Add this line
+

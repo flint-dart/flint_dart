@@ -1,10 +1,12 @@
 // bin/flint_cli.dart
 import 'dart:io';
+import 'package:flint_dart/src/cli/build_command.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/create_project_command.dart';
 import 'package:flint_dart/src/cli/db_commands.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/cli/make_controller_command.dart';
+import 'package:flint_dart/src/cli/make_docker_command.dart';
 import 'package:flint_dart/src/cli/make_mail_command.dart';
 import 'package:flint_dart/src/cli/make_middleware_command.dart';
 import 'package:flint_dart/src/cli/make_model_command.dart';
@@ -16,6 +18,8 @@ final Map<String, FlintCommand> commands = {
   'create': CreateProjectCommand(),
   'start': RunServerCommand(),
   'run': RunServerCommand(),
+  'build': BuildCommand(), // Add this
+  'make:docker': MakeDockerCommand(), // Add this
   'migrate': DBMigrateCommand(),
   'make:model': MakeModelCommand(),
   'make:controller': MakeControllerCommand(),
