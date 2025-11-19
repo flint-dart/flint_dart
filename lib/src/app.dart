@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flint_dart/src/database/db.dart';
-import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/mail/mail_config.dart';
 import 'package:flint_dart/src/route_builder.dart';
 import 'package:flint_dart/src/websocket/websocket_manager.dart';
