@@ -249,7 +249,6 @@ Future<void> _safeCreateUpdatedAtTriggerForPostgres(String tableName) async {
   // Check table exists first
   final exists = await DB.tableExists(tableName);
   if (!exists) {
-    print('⚠️ Skipped trigger for "$tableName" (table not found yet).');
     return;
   }
 
@@ -277,7 +276,6 @@ Future<void> _safeCreateUpdatedAtTriggerForPostgres(String tableName) async {
     await DB.execute(functionSql);
     await DB.execute(dropTriggerSql);
     await DB.execute(createTriggerSql);
-    print('🧠 Added PostgreSQL updated_at trigger for "$tableName"');
   } catch (e) {
     final error = e.toString().toLowerCase();
     if (error.contains('permission denied') ||

@@ -15,3 +15,4 @@ export 'events.dart';
 export 'flint_render_object.dart';
 export 'flint_action.dart';
 export 'flint_script.dart';
+export 'state.dart';

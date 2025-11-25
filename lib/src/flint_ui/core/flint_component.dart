@@ -11,7 +11,7 @@ abstract class FlintComponent extends FlintTemplate {
   FlintWidget buildTemplate() {
     // Serialize state() map to x-data
     final xData = _serializeState(state());
-    return FlintBox(
+    return Container(
       xData: xData,
       children: [render()],
     );

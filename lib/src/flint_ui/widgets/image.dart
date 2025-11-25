@@ -6,7 +6,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 /// A versatile image widget in **Flint UI**, designed for rendering images
 /// in multiple formats including HTML (for emails and web) and plain text.
 ///
-/// The [FlintImage] class provides flexible styling options such as
+/// The [Image] class provides flexible styling options such as
 /// margins, padding, borders, shadows, captions, and lazy-loading support.
 ///
 /// It can optionally wrap the image inside a link or display a caption below
@@ -14,7 +14,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 ///
 /// Example:
 /// ```dart
-/// FlintImage(
+/// Image(
 ///   src: 'https://flintdart.dev/logo.png',
 ///   alt: 'Flint Dart Logo',
 ///   width: 120,
@@ -25,7 +25,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 ///
 /// This will render as an HTML image with a caption underneath and lazy loading enabled.
 /// {@endtemplate}
-class FlintImage extends FlintWidget {
+class Image extends FlintWidget {
   /// The source URL or path of the image.
   final String src;
 
@@ -73,10 +73,10 @@ class FlintImage extends FlintWidget {
   /// When set, the image becomes clickable, rendered inside an `<a>` tag.
   final String? linkUrl;
 
-  /// Creates a [FlintImage] widget.
+  /// Creates a [Image] widget.
   ///
   /// Most parameters are optional except [src].
-  FlintImage({
+  Image({
     required this.src,
     this.alt,
     this.width,
@@ -155,7 +155,7 @@ class FlintImage extends FlintWidget {
 
   /// {@macro flint_widget.buildTemplate}
   ///
-  /// Since [FlintImage] is a leaf widget (it cannot contain child widgets),
+  /// Since [Image] is a leaf widget (it cannot contain child widgets),
   /// this method simply returns itself.
   @override
   FlintWidget buildTemplate() => this;
@@ -258,7 +258,7 @@ class FlintImage extends FlintWidget {
   /// Creates a copy of this image with updated properties.
   ///
   /// This allows you to modify certain fields without recreating the entire widget.
-  FlintImage copyWith({
+  Image copyWith({
     String? src,
     String? alt,
     double? width,
@@ -274,7 +274,7 @@ class FlintImage extends FlintWidget {
     bool? lazyLoading,
     String? linkUrl,
   }) {
-    return FlintImage(
+    return Image(
       src: src ?? this.src,
       alt: alt ?? this.alt,
       width: width ?? this.width,

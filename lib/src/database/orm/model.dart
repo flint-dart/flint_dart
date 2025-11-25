@@ -5,6 +5,12 @@ import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'query_builder.dart';
 
+typedef RelationLoader = Future<void> Function(
+  List<Model> parents,
+);
+
+final Map<String, RelationLoader> _relationLoaders = {};
+
 abstract class Model<T extends Model<T>> {
   /// Primary key column
   String get primaryKey => 'id';
@@ -16,6 +22,7 @@ abstract class Model<T extends Model<T>> {
   List<String> get conceal => [];
 
   /// Base map of model fields (user implements this)
+  dynamic getField(String field) => toMap()[field];
 
   /// Returns the safe map including concealed filter and timestamps
   Map<String, dynamic> toMap();
@@ -125,12 +132,35 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Execute the query and get results
+
   Future<List<T>> get() async {
-    final results = await _qb.get();
-    final modelResults =
-        results.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
+    final rows = await _qb.get();
+
+    final models =
+        rows.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
+
+    if (_qb.relations.isNotEmpty) {
+      await _loadRelations(models, _qb.relations);
+    }
     _resetQuery();
-    return modelResults;
+    return models;
+  }
+
+  Future<void> _loadRelations(
+    List<Model> parents,
+    List<String> relations,
+  ) async {
+    for (final relation in relations) {
+      final loader = _relationLoaders['${runtimeType.toString()}.$relation'];
+
+      if (loader == null) {
+        throw Exception(
+          "Relation '$relation' is not defined for ${runtimeType.toString()}",
+        );
+      }
+
+      await loader(parents);
+    }
   }
 
   /// Get first result
@@ -138,6 +168,10 @@ abstract class Model<T extends Model<T>> {
     final result = await _qb.first();
     _resetQuery();
     return result != null ? fromMap(_convertDatabaseTypes(result)) : null;
+  }
+
+  void registerRelation(String name, RelationLoader loader) {
+    _relationLoaders['${runtimeType.toString()}.$name'] = loader;
   }
 
   /// Count results
@@ -222,6 +256,7 @@ abstract class Model<T extends Model<T>> {
   /// Insert new record (works for both PostgreSQL and MySQL)
   Future<T?> create([Map<String, dynamic>? data]) async {
     final insertMap = data ?? toMap();
+
     final idColumn = table.columns.firstWhere((c) => c.isPrimaryKey,
         orElse: () => Column(
               name: 'id',
@@ -244,13 +279,23 @@ abstract class Model<T extends Model<T>> {
       insertMap.remove(idColumn.name);
     }
 
+    insertMap.removeWhere((key, data) => data == null);
+
     if (insertMap.isEmpty) {
       throw Exception("No data provided for creation");
     }
+
     // --- ✅ Convert bool → 1/0 for MySQL ---
     insertMap.updateAll((key, value) {
+      final column = table.columns.firstWhere(
+        (c) => c.name == key,
+        orElse: () => Column(name: key, type: ColumnType.string),
+      );
       if (value is bool) {
         return value ? 1 : 0;
+      }
+      if (column.type == ColumnType.json && value != null) {
+        return jsonEncode(value);
       }
       if (value is Enum) return value = value.name; // enum → string
       return value;
@@ -351,6 +396,14 @@ abstract class Model<T extends Model<T>> {
     // --- ✅ Convert bool → 1/0 for MySQL ---
     if (DB.driver == DBDriver.mysql) {
       updateData.updateAll((key, value) {
+        final column = table.columns.firstWhere(
+          (c) => c.name == key,
+          orElse: () => Column(name: key, type: ColumnType.string),
+        );
+
+        if (column.type == ColumnType.json && value != null) {
+          return jsonEncode(value);
+        }
         if (value is bool) return value ? 1 : 0;
         if (value is Enum) return value = value.name; // enum → string
         return value;
@@ -372,6 +425,7 @@ abstract class Model<T extends Model<T>> {
   /// Save model (create or update)
   Future<T?> save() async {
     final currentId = id;
+
     if (currentId == null) {
       return await create();
     } else {

@@ -17,10 +17,10 @@ abstract class FlintEmailTemplate extends FlintTemplate {
 
   /// Common header for all emails
   FlintWidget _buildHeader() {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.all(20),
       children: [
-        FlintImage(
+        Image(
           src: 'https://example.com/logo.png',
           alt: 'Company Logo',
           width: 120,
@@ -31,11 +31,11 @@ abstract class FlintEmailTemplate extends FlintTemplate {
 
   /// Common footer for all emails
   FlintWidget _buildFooter() {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.all(20),
       backgroundColor: '#f8f9fa',
       children: [
-        FlintText(
+        Text(
           '© ${DateTime.now().year} Your Company. All rights reserved.',
           style: TextStyle(
             fontSize: 12,
@@ -43,20 +43,20 @@ abstract class FlintEmailTemplate extends FlintTemplate {
           ),
           align: TextAlign.center,
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 8),
           children: [
-            FlintRichText(
-              children: [
-                FlintTextSpan('Contact: '),
-                FlintTextSpan(
-                  'support@example.com',
-                  onTap: 'mailto:support@example.com',
-                  style: TextStyle(color: theme.primaryColor),
-                ),
-              ],
-              align: TextAlign.center,
-            ),
+            // Text(
+            //   children: [
+            //     Text('Contact: '),
+            //     Text(
+            //       'support@example.com',
+            //       onTap: 'mailto:support@example.com',
+            //       style: TextStyle(color: theme.primaryColor),
+            //     ),
+            //   ],
+            //   align: TextAlign.center,
+            // ),
           ],
         ),
       ],
@@ -69,7 +69,7 @@ abstract class FlintEmailTemplate extends FlintTemplate {
   /// Final template assembly
   @override
   FlintWidget buildTemplate() {
-    return FlintBox(
+    return Container(
       constraints: BoxConstraints(maxWidth: 600),
       backgroundColor: '#ffffff',
       children: [
@@ -92,7 +92,7 @@ abstract class FlintNotificationTemplate extends FlintEmailTemplate {
   /// Notification-specific styling
   @override
   FlintWidget buildTemplate() {
-    return FlintBox(
+    return Container(
       constraints: BoxConstraints(maxWidth: 500),
       backgroundColor: '#ffffff',
       border: BoxBorder.all(color: '#e0e0e0'),
@@ -115,7 +115,7 @@ abstract class FlintMarketingTemplate extends FlintEmailTemplate {
   /// Marketing-specific styling with more visual elements
   @override
   FlintWidget buildTemplate() {
-    return FlintBox(
+    return Container(
       constraints: BoxConstraints(maxWidth: 600),
       backgroundColor: '#ffffff',
       children: [
@@ -127,11 +127,11 @@ abstract class FlintMarketingTemplate extends FlintEmailTemplate {
   }
 
   FlintWidget _buildMarketingHeader() {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.all(30),
       backgroundColor: theme.primaryColor,
       children: [
-        FlintText(
+        Text(
           'Special Offer Inside!',
           style: TextStyle(
             fontSize: 24,
@@ -145,11 +145,11 @@ abstract class FlintMarketingTemplate extends FlintEmailTemplate {
   }
 
   FlintWidget _buildMarketingFooter() {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.all(20),
       backgroundColor: '#2d3748',
       children: [
-        FlintText(
+        Text(
           'Don\'t miss out on our latest offers!',
           style: TextStyle(
             fontSize: 14,

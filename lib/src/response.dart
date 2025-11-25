@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flint_dart/flint_ui.dart';
+import 'package:flint_dart/flint_ui.dart' hide FlintTemplate;
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:path/path.dart' as p;
@@ -234,7 +234,8 @@ class Response {
       final html = includePreview
           ? _generatePreviewHtml(widget, title ?? 'Flint Render')
           : widget.toHtml();
-
+      var test = File("test.html").create(recursive: true);
+      test.then((v) => v.writeAsString(html));
       raw.write(html);
     } catch (e) {
       raw.statusCode = 500;
@@ -334,12 +335,13 @@ class Response {
   ///
   /// [filePath] can be absolute or relative to your project's `views` directory.
   /// Optionally, you can pass [data] for simple variable replacement in the template.
-  Future<Response> view(String filePath, {Map<String, dynamic>? data}) async {
-    // Resolve possible view file paths
-    final base = p.join(Flint.viewPath, filePath);
 
-    final flintPath = base.endsWith('.flint.html') ? base : '$base.flint.html';
-    final htmlPath = base.endsWith('.html') ? base : '$base.html';
+  Future<Response> view(String templateName,
+      {Map<String, dynamic>? data}) async {
+    // Convert template name (e.g., "schools.register") to file path
+    final filePath = templateName.replaceAll('.', Platform.pathSeparator);
+    final flintPath = p.join('lib', 'src', 'views', '$filePath.flint.html');
+    final htmlPath = p.join('lib', 'src', 'views', '$filePath.html');
 
     File? file;
 
@@ -351,14 +353,19 @@ class Response {
 
     if (file == null) {
       raw.statusCode = 404;
-      raw.write('❌ View not found: $flintPath');
+      raw.write('❌ View not found: $templateName');
       await raw.close();
       return this;
     }
 
-    // Render based on file extension
-
-    String content = await FlintTemplateEngine().render(file.path, data: data);
+    String content;
+    try {
+      // Use the original templateName directly
+      content = FlintTemplateEngine.render(templateName, data: data ?? {});
+    } catch (e) {
+      // Fallback to raw file content if template rendering fails
+      content = await file.readAsString();
+    }
 
     raw.statusCode = 200;
     raw.headers.contentType = ContentType.html;
@@ -367,6 +374,8 @@ class Response {
 
     return this;
   }
+
+  /// Convert absolute file path to template name relative to views directory
 
   /// Generates a preview HTML wrapper for FlintWidget content
   String _generatePreviewHtml(FlintWidget content, String title) {

@@ -2,7 +2,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 
 /// A layout widget that arranges its [children] horizontally in a flexible row.
 ///
-/// The [FlintRow] widget is inspired by Flutter’s `Row`, but it generates
+/// The [Row] widget is inspired by Flutter’s `Row`, but it generates
 /// HTML table-based layouts optimized for consistent email and web rendering.
 ///
 /// It automatically divides space equally among children (unless custom
@@ -11,7 +11,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 ///
 /// Example:
 /// ```dart
-/// FlintRow(
+/// Row(
 ///   gap: 12,
 ///   backgroundColor: "#f9f9f9",
 ///   padding: EdgeInsets.all(16),
@@ -22,7 +22,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 ///   ],
 /// );
 /// ```
-class FlintRow extends FlintWidget {
+class Row extends FlintWidget {
   /// The list of widgets to display horizontally.
   ///
   /// Each widget is rendered in a separate `<td>` element.
@@ -59,11 +59,11 @@ class FlintRow extends FlintWidget {
   /// Accepts values such as `'top'`, `'center'`, or `'bottom'`.
   final String alignment;
 
-  /// Creates a new [FlintRow] widget for horizontal layout.
+  /// Creates a new [Row] widget for horizontal layout.
   ///
   /// By default, children share equal widths, and spacing between them
   /// is controlled via [gap].
-  FlintRow({
+  Row({
     required this.children,
     this.columnWidths = const [],
     this.gap = 16.0,
@@ -73,6 +73,24 @@ class FlintRow extends FlintWidget {
     this.border,
     this.borderRadius,
     this.alignment = 'center',
+    super.xData,
+    super.xInit,
+    super.xShow,
+    super.xBind,
+    super.xOn,
+    super.xText,
+    super.xHtml,
+    super.xModel,
+    super.xModelable,
+    super.xFor,
+    super.xTransition,
+    super.xEffect,
+    super.xIgnore,
+    super.xRef,
+    super.xCloak,
+    super.xTeleport,
+    super.xIf,
+    super.xId,
   });
 
   /// Converts this row and its children into HTML.
@@ -119,7 +137,7 @@ class FlintRow extends FlintWidget {
     };
   }
 
-  /// Returns the same instance since [FlintRow] is not composed dynamically.
+  /// Returns the same instance since [Row] is not composed dynamically.
   @override
   FlintWidget buildTemplate() => this;
 

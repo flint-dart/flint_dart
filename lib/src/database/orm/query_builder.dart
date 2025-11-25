@@ -11,6 +11,8 @@ class QueryBuilder {
   final List<String> _orWheres = [];
   final List<String> _orderBys = [];
   final List<String> _groups = [];
+  final List<String> _relations = [];
+  final Map<String, dynamic> _eagerLoaded = {};
   final Map<String, dynamic> _bindings = {};
   static final Map<String, _ColumnInfo> _columnCache = {};
 
@@ -28,6 +30,8 @@ class QueryBuilder {
     return this;
   }
 
+  List<String> get relations => _relations;
+
   /// WHERE clause
   QueryBuilder where(String field, String operator, dynamic value) {
     final paramName = 'p${_paramIndex++}';
@@ -39,6 +43,11 @@ class QueryBuilder {
     }
 
     _bindings[paramName] = value;
+    return this;
+  }
+
+  QueryBuilder withRelations(List<String> relations) {
+    _relations.addAll(relations);
     return this;
   }
 
@@ -156,7 +165,17 @@ class QueryBuilder {
     _limit = originalLimit;
     _offset = originalOffset;
 
-    return result?['count'] as int? ?? 0;
+    if (result?["count"] is String) {
+      return int.tryParse("${result?["count"] ?? 0}  ") ?? 0;
+    }
+    if (result?["count"] is num) {
+      return result?["count"] as int;
+    }
+
+    if (result?["count"] is int) {
+      return result?["count"];
+    }
+    return 0;
   }
 
   /// MAX aggregate

@@ -19,17 +19,17 @@ class FlintTheme {
   final double borderRadius;
 
   const FlintTheme({
-    this.primaryColor = FlintColors.primary,
-    this.secondaryColor = FlintColors.secondary,
-    this.backgroundColor = FlintColors.white,
-    this.surfaceColor = FlintColors.gray50,
-    this.errorColor = FlintColors.danger,
-    this.successColor = FlintColors.success,
-    this.warningColor = FlintColors.warning,
-    this.infoColor = FlintColors.info,
-    this.textColor = FlintColors.gray900,
-    this.textSecondaryColor = FlintColors.gray600,
-    this.borderColor = FlintColors.gray300,
+    this.primaryColor = Colors.primary,
+    this.secondaryColor = Colors.secondary,
+    this.backgroundColor = Colors.white,
+    this.surfaceColor = Colors.gray50,
+    this.errorColor = Colors.danger,
+    this.successColor = Colors.success,
+    this.warningColor = Colors.warning,
+    this.infoColor = Colors.info,
+    this.textColor = Colors.gray900,
+    this.textSecondaryColor = Colors.gray600,
+    this.borderColor = Colors.gray300,
     this.fontFamily =
         '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif',
     this.baseFontSize = 16.0,
@@ -40,28 +40,28 @@ class FlintTheme {
   static const FlintTheme light = FlintTheme();
 
   static const FlintTheme dark = FlintTheme(
-    primaryColor: FlintColors.primaryLight,
-    secondaryColor: FlintColors.secondaryLight,
-    backgroundColor: FlintColors.gray900,
-    surfaceColor: FlintColors.gray800,
-    textColor: FlintColors.white,
-    textSecondaryColor: FlintColors.gray300,
-    borderColor: FlintColors.gray700,
+    primaryColor: Colors.primaryLight,
+    secondaryColor: Colors.secondaryLight,
+    backgroundColor: Colors.gray900,
+    surfaceColor: Colors.gray800,
+    textColor: Colors.white,
+    textSecondaryColor: Colors.gray300,
+    borderColor: Colors.gray700,
   );
 
   static const FlintTheme blue = FlintTheme(
-    primaryColor: FlintColors.blue,
-    secondaryColor: FlintColors.lightBlue,
+    primaryColor: Colors.blue,
+    secondaryColor: Colors.lightBlue,
   );
 
   static const FlintTheme green = FlintTheme(
-    primaryColor: FlintColors.green,
-    secondaryColor: FlintColors.lightGreen,
+    primaryColor: Colors.green,
+    secondaryColor: Colors.lightGreen,
   );
 
   static const FlintTheme purple = FlintTheme(
-    primaryColor: FlintColors.purple,
-    secondaryColor: FlintColors.deepPurple,
+    primaryColor: Colors.purple,
+    secondaryColor: Colors.deepPurple,
   );
 
   // Copy with method

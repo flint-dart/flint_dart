@@ -1,6 +1,4 @@
 // lib/src/cli/commands.dart
-// ignore_for_file: valid_regexps
-
 import 'dart:convert';
 import 'dart:io';
 
@@ -19,6 +17,7 @@ import 'package:flint_dart/src/cli/commands.dart';
 /// /// @response 200 Successful response
 /// /// @response 401 Unauthorized
 /// /// @param id path string required User ID
+/// /// @query page integer optional Page number for pagination
 /// app.get("/users/:id", (req, res) async {
 ///   return res.respond({"id": req.params['id'], "name": "Ademola"});
 /// }).useMiddleware(AuthMiddleware());
@@ -34,6 +33,10 @@ import 'package:flint_dart/src/cli/commands.dart';
 /// @param name in type required/optional description
 
 /// Example: @param id path string required The user ID
+
+/// @query name type required/optional description
+
+/// Example: @query page integer optional Page number for pagination
 
 /// @body { "field": "type", "field2": "type" }
 
@@ -114,8 +117,26 @@ class GenerateDocsCommand extends FlintCommand {
           final routeInfo = _parseRoute(line);
           if (routeInfo != null) {
             var fullPath = routeInfo['path'];
-            if (currentPrefix != null && !fullPath.startsWith(currentPrefix)) {
-              fullPath = currentPrefix + fullPath;
+
+            if (currentPrefix != null) {
+              // Ensure prefix starts with /
+              var prefix = currentPrefix.startsWith('/')
+                  ? currentPrefix
+                  : '/$currentPrefix';
+              // Remove trailing slash from prefix if present
+              if (prefix.endsWith('/') && prefix != '/') {
+                prefix = prefix.substring(0, prefix.length - 1);
+              }
+
+              // Normalize route path: if root '/', treat as empty; remove leading slash otherwise
+              var path = fullPath == '/'
+                  ? ''
+                  : fullPath.startsWith('/')
+                      ? fullPath.substring(1)
+                      : fullPath;
+
+              // Combine
+              fullPath = '$prefix${path.isNotEmpty ? '/$path' : ''}';
             }
 
             paths.putIfAbsent(fullPath, () => {});
@@ -133,13 +154,25 @@ class GenerateDocsCommand extends FlintCommand {
               operation['requestBody'] = docs['requestBody'];
             }
 
+            // Combine parameters: path params + query params + manual params
+            final allParameters = <Map<String, dynamic>>[];
+
             // Auto-generate path params
-            final autoParams = _extractPathParams(fullPath);
-            if (docs.containsKey('parameters')) {
-              autoParams.addAll(docs['parameters']);
+            final autoPathParams = _extractPathParams(fullPath);
+            allParameters.addAll(autoPathParams);
+
+            // Add query parameters
+            if (docs.containsKey('queryParameters')) {
+              allParameters.addAll(docs['queryParameters']);
             }
-            if (autoParams.isNotEmpty) {
-              operation['parameters'] = autoParams;
+
+            // Add manually defined parameters
+            if (docs.containsKey('parameters')) {
+              allParameters.addAll(docs['parameters']);
+            }
+
+            if (allParameters.isNotEmpty) {
+              operation['parameters'] = allParameters;
             }
 
             // Auth/Security
@@ -202,6 +235,7 @@ class GenerateDocsCommand extends FlintCommand {
     final result = <String, dynamic>{};
     final responses = <String, dynamic>{};
     final parameters = <Map<String, dynamic>>[];
+    final queryParameters = <Map<String, dynamic>>[];
     final servers = <String>[];
 
     for (var line in docs) {
@@ -235,6 +269,21 @@ class GenerateDocsCommand extends FlintCommand {
             "description": description
           });
         }
+      } else if (line.startsWith('@query')) {
+        final parts = line.split(' ');
+        if (parts.length >= 4) {
+          final name = parts[1];
+          final type = parts[2];
+          final required = parts[3].toLowerCase() == "required";
+          final description = parts.sublist(4).join(' ');
+          queryParameters.add({
+            "name": name,
+            "in": "query",
+            "schema": {"type": type},
+            "required": required,
+            "description": description
+          });
+        }
       } else if (line.startsWith('@body')) {
         final jsonStr = line.replaceFirst('@body', '').trim();
         try {
@@ -260,6 +309,7 @@ class GenerateDocsCommand extends FlintCommand {
 
     if (responses.isNotEmpty) result['responses'] = responses;
     if (parameters.isNotEmpty) result['parameters'] = parameters;
+    if (queryParameters.isNotEmpty) result['queryParameters'] = queryParameters;
     if (servers.isNotEmpty) result['servers'] = servers;
 
     return result;

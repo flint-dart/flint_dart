@@ -2,6 +2,7 @@ import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'mysql_connection.dart';
 import 'pg_connection.dart';
+import 'dart:convert';
 
 /// Supported database drivers
 enum DBDriver { mysql, postgres }
@@ -317,16 +318,72 @@ class DB {
     _pg = null;
   }
 
-  /// Convert Dart types to DB-compatible types
+  /// Convert Dart types to DB-compatible types.
+  /// This function now automatically handles:
+  /// - List → JSON string
+  /// - Map → JSON string
+  /// - Object with toJson() → JSON string
+  /// - Object with toMap() → JSON string
+  /// - DateTime → ISO8601
+  /// - bool → 1/0 for MySQL
   static dynamic _normalizeValueForDb(dynamic value) {
-    if (_driver == DBDriver.mysql) {
-      if (value is bool) return value ? 1 : 0; // bool → 1/0
-      if (value is Enum) return value.name; // enum → string
-    } else {
-      if (value is Enum) {
-        return value.name; // PostgreSQL also stores enums as string
-      }
+    // Null stays null
+    if (value == null) return null;
+
+    // DateTime → ISO8601 text (works for MySQL & Postgres)
+    if (value is DateTime) return value.toIso8601String();
+
+    // Enums → store enum name
+    if (value is Enum) return value.name;
+
+    // Bool (MySQL expects 0/1, Postgres accepts bool directly)
+    if (_driver == DBDriver.mysql && value is bool) {
+      return value ? 1 : 0;
     }
+
+    // List → jsonEncode()
+    if (value is List) {
+      return jsonEncode(value);
+    }
+
+    // Map → jsonEncode()
+    if (value is Map) {
+      return jsonEncode(value);
+    }
+
+    // Object with toJson() → jsonEncode()
+    final toJson = _getToJson(value);
+    if (toJson != null) {
+      return jsonEncode(toJson());
+    }
+
+    // Object with toMap() → jsonEncode()
+    final toMap = _getToMap(value);
+    if (toMap != null) {
+      return jsonEncode(toMap());
+    }
+
+    // Default → return as-is
     return value;
   }
+
+  static MapFn? _getToMap(dynamic obj) {
+    try {
+      final candidate = obj.toMap;
+      if (candidate is MapFn) return candidate;
+    } catch (_) {}
+    return null;
+  }
+
+  static JsonFn? _getToJson(dynamic obj) {
+    try {
+      final candidate = obj.toJson;
+      if (candidate is JsonFn) return candidate;
+    } catch (_) {}
+    return null;
+  }
 }
+
+typedef JsonMap = Map<String, dynamic>;
+typedef MapFn = JsonMap Function();
+typedef JsonFn = JsonMap Function();

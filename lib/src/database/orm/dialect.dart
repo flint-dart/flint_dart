@@ -357,7 +357,7 @@ extension ColumnSQL on Column {
         }
         return 'VARCHAR(50)'; // fallback if no options provided
       case ColumnType.json:
-        return 'JSON';
+        return 'TEXT';
     }
   }
 

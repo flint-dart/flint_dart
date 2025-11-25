@@ -42,7 +42,7 @@ abstract class ViewMailable {
       validate();
 
       // Render .flint.html template into HTML
-      final html = await FlintTemplateEngine().render(view, data: data);
+      final html = FlintTemplateEngine.render(view, data: data);
       final text = _stripHtmlTags(html);
 
       final mail = Mail().toMany(to).subject(subject).html(html).text(text);
@@ -63,7 +63,7 @@ abstract class ViewMailable {
     try {
       validate();
 
-      final html = await FlintTemplateEngine().render(view, data: data);
+      final html = FlintTemplateEngine.render(view, data: data);
       final text = _stripHtmlTags(html);
 
       final mail = Mail().toMany(to).subject(subject).html(html).text(text);

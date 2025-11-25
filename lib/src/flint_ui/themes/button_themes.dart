@@ -4,7 +4,7 @@ import 'package:flint_dart/src/flint_ui/core/button_style.dart';
 import 'package:flint_dart/src/flint_ui/core/edge_insets.dart';
 import 'package:flint_dart/src/flint_ui/widgets/flint_button.dart';
 
-class FlintButtonThemes {
+class ButtonThemes {
   // Size presets
   static const EdgeInsets small =
       EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0);
@@ -28,14 +28,14 @@ class FlintButtonThemes {
   static const String play = '▶️';
 
   // Factory methods for common button types
-  static FlintButton primary({
+  static Button primary({
     required String text,
     required String url,
     ButtonSize size = ButtonSize.medium,
     bool fullWidth = false,
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: url,
       style: ButtonStyle.primary(),
@@ -46,14 +46,14 @@ class FlintButtonThemes {
     );
   }
 
-  static FlintButton secondary({
+  static Button secondary({
     required String text,
     required String url,
     ButtonSize size = ButtonSize.medium,
     bool fullWidth = false,
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: url,
       style: ButtonStyle.secondary(),
@@ -64,14 +64,14 @@ class FlintButtonThemes {
     );
   }
 
-  static FlintButton outline({
+  static Button outline({
     required String text,
     required String url,
     ButtonSize size = ButtonSize.medium,
     bool fullWidth = false,
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: url,
       style: ButtonStyle.outline(),
@@ -82,13 +82,13 @@ class FlintButtonThemes {
     );
   }
 
-  static FlintButton ghost({
+  static Button ghost({
     required String text,
     required String url,
     ButtonSize size = ButtonSize.medium,
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: url,
       style: ButtonStyle.ghost(),
@@ -98,14 +98,14 @@ class FlintButtonThemes {
     );
   }
 
-  static FlintButton success({
+  static Button success({
     required String text,
     required String url,
     ButtonSize size = ButtonSize.medium,
     bool fullWidth = false,
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: url,
       style: ButtonStyle.success(),

@@ -1,6 +1,6 @@
 // lib/flint_ui/core/colors.dart
 
-class FlintColors {
+class Colors {
   // Primary colors
   static const String primary = '#007cba';
   static const String primaryDark = '#005a87';

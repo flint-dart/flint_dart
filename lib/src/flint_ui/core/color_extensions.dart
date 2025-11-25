@@ -4,7 +4,7 @@ import 'package:flint_dart/src/flint_ui/core/colors.dart';
 extension FlintColorExtensions on String {
   /// Convert hex color to rgba with opacity
   String withOpacity(double opacity) {
-    return FlintColors.withOpacity(this, opacity);
+    return Colors.withOpacity(this, opacity);
   }
 
   /// Check if color is light
@@ -24,6 +24,6 @@ extension FlintColorExtensions on String {
 
   /// Get contrasting text color (black or white)
   String get contrastingColor {
-    return isLightColor ? FlintColors.black : FlintColors.white;
+    return isLightColor ? Colors.black : Colors.white;
   }
 }

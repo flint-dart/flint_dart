@@ -2,8 +2,49 @@ import 'package:flint_dart/flint_ui.dart';
 
 class Welcome extends FlintTemplate {
   @override
+  Head get head => Head(
+        title: "Welcome to Flint Dart",
+        description: "Build web apps & email templates with Dart",
+        links: {"icon": "/favicon.ico"},
+        styles: [
+          """
+          body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+          """
+        ],
+        scripts: [
+          """
+          console.log("WelcomePage loaded");
+          """,
+        ],
+      );
+
+  @override
+  List<String> styles() {
+    return [];
+  }
+
+  @override
+  List<String> scripts() {
+    return [
+      """
+    console.log("Flint UI Loaded");
+    """
+    ];
+  }
+
+  // Create state for toggle examples
+  final state = FlintState({
+    "counter": 0,
+    'showContent': false,
+    'isDarkMode': false,
+    'selectedTab': 'home',
+    'items': ['Item 1', 'Item 2', 'Item 3'],
+  });
+
+  @override
   FlintWidget buildTemplate() {
-    return FlintBox(
+    return Container(
+      xData: state.toJsObject(),
       padding: EdgeInsets.zero(),
       margin: EdgeInsets.zero(),
       children: [
@@ -26,49 +67,118 @@ class Welcome extends FlintTemplate {
   }
 
   FlintWidget _buildHeroSection() {
-    return FlintColumn(
+    return Column(
+      xData: """{
+    counter: 0,
+    showContent: false,
+    isDarkMode: false,
+    selectedTab: 'home',
+    items: ['Item 1', 'Item 2', 'Item 3'],
+  }""",
       padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-      backgroundColor: FlintColors.primary,
+      backgroundColor: Colors.primary,
       alignment: Alignment.center,
-      gap: 10,
+      gap: 20,
       children: [
-        FlintText(
+        Text(
           '🚀 Flint Dart',
           style: TextStyle(
             fontSize: 48,
             fontWeight: FontWeight.bold,
-            color: FlintColors.white,
+            color: Colors.white,
           ),
           align: TextAlign.center,
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 16),
           children: [
-            FlintText(
+            Text(
               'Build beautiful emails and web applications with Dart',
               style: TextStyle(
                 fontSize: 20,
-                color: FlintColors.white.withOpacity(0.9),
+                color: Colors.white.withOpacity(0.9),
                 lineHeight: 1.5,
               ),
               align: TextAlign.center,
             ),
           ],
         ),
-        FlintBox(
+
+        // Counter Section
+        Container(
+          margin: EdgeInsets.only(top: 32),
+          padding: EdgeInsets.all(16),
+          backgroundColor: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          children: [
+            Column(
+              alignment: Alignment.center,
+              gap: 10,
+              children: [
+                Text(
+                  'Counter: ${state.get('counter') ?? 0}',
+                  style: TextStyle(
+                    fontSize: 24,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  align: TextAlign.center,
+                ),
+                Row(
+                  alignment: 'center',
+                  gap: 16,
+                  children: [
+                    Button(
+                      text: '-',
+                      onClick: () {
+                        final current = state.get('counter') ?? 0;
+                        state.set('counter', current - 1);
+                      },
+                      style: ButtonStyle.primary().copyWith(
+                        backgroundColor: Colors.red,
+                        textStyle: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    Button(
+                      text: '+',
+                      onClick: () {
+                        final current = state.get('counter') ?? 0;
+                        state.set('counter', current + 1);
+                      },
+                      xOn: {"click": "counter++"},
+                      style: ButtonStyle.primary().copyWith(
+                        backgroundColor: Colors.green,
+                        textStyle: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // Existing Buttons
+        Container(
           margin: EdgeInsets.only(top: 32),
           children: [
-            FlintRow(
+            Row(
               alignment: 'center',
               gap: 16,
               children: [
-                FlintButton(
+                Button(
                   text: 'Get Started',
                   url: '#getting-started',
                   style: ButtonStyle.primary().copyWith(
-                    backgroundColor: FlintColors.white,
+                    backgroundColor: Colors.white,
                     textStyle: TextStyle(
-                      color: FlintColors.primary,
+                      color: Colors.primary,
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
@@ -76,17 +186,17 @@ class Welcome extends FlintTemplate {
                   padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                FlintButton(
+                Button(
                   text: 'View Documentation',
                   url: 'https://flintdart.eulogia.net',
                   style: ButtonStyle.outline().copyWith(
                     textStyle: TextStyle(
-                      color: FlintColors.white,
+                      color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
                     border: BoxBorder.all(
-                      color: FlintColors.white,
+                      color: Colors.white,
                       width: 2,
                     ),
                   ),
@@ -102,23 +212,23 @@ class Welcome extends FlintTemplate {
   }
 
   FlintWidget _buildFeaturesSection() {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-      backgroundColor: FlintColors.white,
+      backgroundColor: Colors.white,
       children: [
-        FlintText(
+        Text(
           'Why Choose Flint Dart?',
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
-            color: FlintColors.gray900,
+            color: Colors.gray900,
           ),
           align: TextAlign.center,
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 48),
           children: [
-            FlintRow(
+            Row(
               columnWidths: [33, 33, 33],
               gap: 32,
               children: [
@@ -144,10 +254,10 @@ class Welcome extends FlintTemplate {
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 48),
           children: [
-            FlintRow(
+            Row(
               columnWidths: [33, 33, 33],
               gap: 32,
               children: [
@@ -182,34 +292,34 @@ class Welcome extends FlintTemplate {
     required String title,
     required String description,
   }) {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.all(24),
       margin: EdgeInsets.all(24),
-      backgroundColor: FlintColors.gray50,
+      backgroundColor: Colors.gray50,
       borderRadius: BorderRadius.circular(12),
       alignment: BoxAlignment.center,
       children: [
-        FlintText(
+        Text(
           icon,
           style: TextStyle(fontSize: 48),
           align: TextAlign.center,
         ),
-        FlintColumn(
+        Column(
           children: [
-            FlintText(
+            Text(
               title,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: FlintColors.gray900,
+                color: Colors.gray900,
               ),
               align: TextAlign.center,
             ),
-            FlintText(
+            Text(
               description,
               style: TextStyle(
                 fontSize: 14,
-                color: FlintColors.gray600,
+                color: Colors.gray600,
                 lineHeight: 1.6,
               ),
               align: TextAlign.start,
@@ -221,23 +331,23 @@ class Welcome extends FlintTemplate {
   }
 
   FlintWidget _buildGettingStartedSection() {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-      backgroundColor: FlintColors.gray100,
+      backgroundColor: Colors.gray100,
       children: [
-        FlintText(
+        Text(
           'Get Started in Minutes',
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
-            color: FlintColors.gray900,
+            color: Colors.gray900,
           ),
           align: TextAlign.center,
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 48),
           children: [
-            FlintRow(
+            Row(
               columnWidths: [50, 50],
               gap: 48,
               children: [
@@ -259,10 +369,10 @@ class Welcome extends FlintTemplate {
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 32),
           children: [
-            FlintRow(
+            Row(
               columnWidths: [50, 50],
               gap: 48,
               children: [
@@ -284,16 +394,16 @@ class Welcome extends FlintTemplate {
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 48),
           children: [
-            FlintButton(
+            Button(
               text: 'Read Full Documentation',
               url: 'https://flintdart.eulogia.net',
               style: ButtonStyle.primary().copyWith(
-                backgroundColor: FlintColors.primary,
+                backgroundColor: Colors.primary,
                 textStyle: TextStyle(
-                  color: FlintColors.white,
+                  color: Colors.white,
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                 ),
@@ -313,66 +423,66 @@ class Welcome extends FlintTemplate {
     required String description,
     required String code,
   }) {
-    return FlintBox(
+    return Container(
       padding: EdgeInsets.all(24),
-      backgroundColor: FlintColors.white,
+      backgroundColor: Colors.white,
       borderRadius: BorderRadius.circular(12),
-      border: BoxBorder.all(color: FlintColors.gray300),
+      border: BoxBorder.all(color: Colors.gray300),
       children: [
-        FlintBox(
+        Container(
           padding: EdgeInsets.all(12),
-          backgroundColor: FlintColors.primary.withOpacity(0.1),
+          backgroundColor: Colors.primary.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
           alignment: BoxAlignment.center,
           constraints: BoxConstraints.tightFor(width: 40, height: 40),
           children: [
-            FlintText(
+            Text(
               step,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: FlintColors.primary,
+                color: Colors.primary,
               ),
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 16),
           children: [
-            FlintText(
+            Text(
               title,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: FlintColors.gray900,
+                color: Colors.gray900,
               ),
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 8),
           children: [
-            FlintText(
+            Text(
               description,
               style: TextStyle(
                 fontSize: 14,
-                color: FlintColors.gray600,
+                color: Colors.gray600,
                 lineHeight: 1.5,
               ),
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 16),
           padding: EdgeInsets.all(12),
-          backgroundColor: FlintColors.gray900,
+          backgroundColor: Colors.gray900,
           borderRadius: BorderRadius.circular(6),
           children: [
-            FlintText(
+            Text(
               code,
               style: TextStyle(
                 fontSize: 14,
-                color: FlintColors.gray100,
+                color: Colors.gray100,
                 fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
               ),
             ),
@@ -383,37 +493,37 @@ class Welcome extends FlintTemplate {
   }
 
   FlintWidget _buildCommunitySection() {
-    return FlintColumn(
+    return Column(
       padding: EdgeInsets.symmetric(vertical: 80, horizontal: 24),
-      backgroundColor: FlintColors.white,
+      backgroundColor: Colors.white,
       alignment: Alignment.center,
       children: [
-        FlintText(
+        Text(
           'Join Our Community',
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
-            color: FlintColors.gray900,
+            color: Colors.gray900,
           ),
           align: TextAlign.center,
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 16),
           children: [
-            FlintText(
+            Text(
               'Flint Dart is open source and built by developers for developers',
               style: TextStyle(
                 fontSize: 18,
-                color: FlintColors.gray600,
+                color: Colors.gray600,
               ),
               align: TextAlign.center,
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 48),
           children: [
-            FlintRow(
+            Row(
               alignment: 'center',
               gap: 24,
               children: [
@@ -450,17 +560,17 @@ class Welcome extends FlintTemplate {
     required String platform,
     required String url,
   }) {
-    return FlintButton(
+    return Button(
       text: '$icon $platform',
       url: url,
       style: ButtonStyle.outline().copyWith(
         textStyle: TextStyle(
-          color: FlintColors.gray700,
+          color: Colors.gray700,
           fontWeight: FontWeight.w500,
           fontSize: 14,
         ),
         border: BoxBorder.all(
-          color: FlintColors.gray300,
+          color: Colors.gray300,
           width: 1,
         ),
       ),
@@ -470,66 +580,51 @@ class Welcome extends FlintTemplate {
   }
 
   FlintWidget _buildFooter() {
-    return FlintColumn(
+    return Column(
       padding: EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-      backgroundColor: FlintColors.gray900,
+      backgroundColor: Colors.gray900,
       alignment: Alignment.center,
       children: [
-        FlintText(
+        Text(
           '🚀 Flint Dart',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: FlintColors.white,
+            color: Colors.white,
           ),
           align: TextAlign.center,
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 16),
           children: [
-            FlintText(
+            Text(
               'Build beautiful applications with Dart',
               style: TextStyle(
                 fontSize: 14,
-                color: FlintColors.gray400,
+                color: Colors.gray400,
               ),
               align: TextAlign.center,
             ),
           ],
         ),
-        FlintBox(
+        Container(
           margin: EdgeInsets.only(top: 24),
           children: [
-            FlintRow(
+            Row(
               alignment: 'center',
               gap: 24,
               children: [
-                FlintRichText(
-                  children: [
-                    FlintTextSpan(
-                      '© ${DateTime.now().year} Flint Dart',
-                      style: TextStyle(color: FlintColors.gray400),
-                    ),
-                  ],
+                Text(
+                  '© ${DateTime.now().year} Flint Dart',
+                  style: TextStyle(color: Colors.gray400),
                 ),
-                FlintRichText(
-                  children: [
-                    FlintTextSpan(
-                      'MIT License',
-                      style: TextStyle(color: FlintColors.gray400),
-                      onTap:
-                          'https://github.com/flint-dart/flint/blob/main/LICENSE',
-                    ),
-                  ],
+                Text(
+                  'MIT License',
+                  style: TextStyle(color: Colors.gray400),
                 ),
-                FlintRichText(
-                  children: [
-                    FlintTextSpan(
-                      'Privacy',
-                      style: TextStyle(color: FlintColors.gray400),
-                      onTap: 'https://flintdart.eulogia.net/privacy',
-                    ),
-                  ],
+                Text(
+                  'Privacy',
+                  style: TextStyle(color: Colors.gray400),
                 ),
               ],
             ),

@@ -348,6 +348,58 @@ class Request {
     return false;
   }
 
+  /// NEW: Checks if multiple files with the given field name exist in the request
+  ///
+  /// This method is useful for handling multiple file uploads with the same field name.
+  /// For example, when uploading multiple gallery images with field name "gallery[]"
+  Future<bool> hasFiles(String fieldName) async {
+    await _parseBody();
+    if (_bodyCache is Map && _bodyCache.containsKey('files')) {
+      final files = _bodyCache['files'] as Map<String, UploadedFile>;
+
+      // Check for exact match first
+      if (files.containsKey(fieldName)) {
+        return true;
+      }
+
+      // Check for array-style field names (e.g., "gallery[]", "gallery[0]", etc.)
+      final pattern = RegExp('^${RegExp.escape(fieldName)}(\\[\\d*\\])?\$');
+      return files.keys.any((key) => pattern.hasMatch(key));
+    }
+    return false;
+  }
+
+  /// NEW: Retrieves multiple uploaded files by field name
+  ///
+  /// This method returns all files that match the given field name,
+  /// including array-style field names (e.g., "gallery[]", "gallery[0]", etc.)
+  Future<List<UploadedFile?>> files(String fieldName) async {
+    await _parseBody();
+    if (_bodyCache is Map && _bodyCache.containsKey('files')) {
+      final files = _bodyCache['files'] as Map<String, UploadedFile>;
+
+      final List<UploadedFile?> result = [];
+
+      // Add exact match if exists
+      if (files.containsKey(fieldName)) {
+        result.add(files[fieldName]);
+      }
+
+      // Add array-style matches (e.g., "gallery[]", "gallery[0]", etc.)
+      final pattern = RegExp('^${RegExp.escape(fieldName)}(\\[\\d*\\])?\$');
+      files.forEach((key, file) {
+        if (pattern.hasMatch(key)) {
+          result.add(file);
+        }
+      });
+
+      return result;
+    }
+    return [];
+  }
+
+  /// Retrieves all uploaded files fro
+
   /// Retrieves a single uploaded file by field name
   Future<UploadedFile?> file(String fieldName) async {
     await _parseBody();
@@ -359,7 +411,7 @@ class Request {
   }
 
   /// Retrieves all uploaded files from the request
-  Future<Map<String, UploadedFile>> files() async {
+  Future<Map<String, UploadedFile>> allFiles() async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {
       return Map<String, UploadedFile>.from(_bodyCache['files']);

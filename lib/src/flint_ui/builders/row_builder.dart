@@ -5,40 +5,39 @@ import '../core/flint_widget.dart';
 import '../core/style.dart';
 import '../widgets/widget.dart';
 
-class FlintRowBuilder {
+class RowBuilder {
   /// Create a responsive row that stacks on mobile
-  static FlintFlexRow responsive({
+  static Row responsive({
     required List<FlintWidget> children,
     List<int>? columnWidths,
     double gap = 16.0,
     bool mobileStack = true,
   }) {
-    return FlintFlexRow(
+    return Row(
       children: children,
-      columnWidths: columnWidths,
+      // columnWidths: columnWidths,
       gap: gap,
-      mobileStack: mobileStack,
     );
   }
 
   /// Create a row with equal width columns
-  static FlintRow equalWidth({
+  static Row equalWidth({
     required List<FlintWidget> children,
     double gap = 16.0,
   }) {
-    return FlintRow(
+    return Row(
       children: children,
       gap: gap,
     );
   }
 
   /// Create a row with specific column widths
-  static FlintRow customWidth({
+  static Row customWidth({
     required List<FlintWidget> children,
     required List<int> columnWidths,
     double gap = 16.0,
   }) {
-    return FlintRow(
+    return Row(
       children: children,
       columnWidths: columnWidths,
       gap: gap,
@@ -46,24 +45,24 @@ class FlintRowBuilder {
   }
 
   /// Create a feature row with icons and text
-  static FlintRow features({
+  static Row features({
     required List<FeatureItem> features,
     int columns = 3,
     double gap = 20.0,
   }) {
     final featureWidgets = features.map((feature) {
-      return FlintBox(
+      return Container(
         padding: EdgeInsets.all(16),
         children: [
-          FlintText(
+          Text(
             feature.icon,
             style: TextStyle(fontSize: 32),
             align: TextAlign.center,
           ),
-          FlintBox(
+          Container(
             margin: EdgeInsets.only(top: 12),
             children: [
-              FlintText(
+              Text(
                 feature.title,
                 style: TextStyle(
                   fontSize: 16,
@@ -74,10 +73,10 @@ class FlintRowBuilder {
               ),
             ],
           ),
-          FlintBox(
+          Container(
             margin: EdgeInsets.only(top: 8),
             children: [
-              FlintText(
+              Text(
                 feature.description,
                 style: TextStyle(
                   fontSize: 12,
@@ -92,7 +91,7 @@ class FlintRowBuilder {
       );
     }).toList();
 
-    return FlintRow(
+    return Row(
       children: featureWidgets,
       gap: gap,
     );

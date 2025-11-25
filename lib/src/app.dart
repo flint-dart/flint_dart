@@ -342,7 +342,11 @@ class Flint {
   /// - Attempts to auto-connect to the database via `.env` unless already connected.
   /// - Runs with hot reload during development unless hotReload is set to true in listen.
   /// - Handles both HTTP and WebSocket upgrade requests.
-  Future<void> listen(int port, {bool hotReload = false}) async {
+  Future<void> listen(int port, {bool hotReload = true}) async {
+    if (hotReload) {
+      print(
+          '[FLINT] ⚠️ Hot reload is ENABLED. Remember to disable it in production by setting hotReload: false.');
+    }
     // Hot reload parent process
     if (hotReload && Platform.environment['FLINT_HOT'] != '1') {
       print('[FLINT] Starting with hot reload...');

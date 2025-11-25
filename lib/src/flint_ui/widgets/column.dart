@@ -5,7 +5,7 @@ import '../core/core.dart';
 /// A layout widget that arranges its [children] vertically,
 /// similar to Flutter's `Column` widget.
 ///
-/// The [FlintColumn] is part of the Flint UI framework and is designed
+/// The [Column] is part of the Flint UI framework and is designed
 /// to render flexible vertical layouts for HTML emails, web views,
 /// or text-based rendering.
 ///
@@ -14,7 +14,7 @@ import '../core/core.dart';
 ///
 /// Example usage:
 /// ```dart
-/// FlintColumn(
+/// Column(
 ///   padding: EdgeInsets.all(12),
 ///   backgroundColor: '#f5f5f5',
 ///   alignment: Alignment.center,
@@ -24,7 +24,7 @@ import '../core/core.dart';
 ///   ],
 /// )
 /// ```
-class FlintColumn extends FlintWidget {
+class Column extends FlintWidget {
   /// The widgets arranged vertically inside this column.
   final List<FlintWidget> children;
 
@@ -70,12 +70,12 @@ class FlintColumn extends FlintWidget {
   /// When `true`, the last child appears first.
   final bool reverse;
 
-  /// Creates a new [FlintColumn] widget.
+  /// Creates a new [Column] widget.
   ///
   /// The [children] parameter must not be null.
-  FlintColumn({
+  Column({
     required this.children,
-    this.gap = 8.0,
+    this.gap = 5.0,
     this.padding,
     this.margin,
     this.backgroundColor,
@@ -83,6 +83,24 @@ class FlintColumn extends FlintWidget {
     this.borderRadius,
     this.alignment = Alignment.left,
     this.reverse = false,
+    super.xData,
+    super.xInit,
+    super.xShow,
+    super.xBind,
+    super.xOn,
+    super.xText,
+    super.xHtml,
+    super.xModel,
+    super.xModelable,
+    super.xFor,
+    super.xTransition,
+    super.xEffect,
+    super.xIgnore,
+    super.xRef,
+    super.xCloak,
+    super.xTeleport,
+    super.xIf,
+    super.xId,
   });
 
   // ---------------------------------------------------------------------------
@@ -137,7 +155,7 @@ class FlintColumn extends FlintWidget {
 
   /// Returns this column widget as the final build result.
   ///
-  /// Since [FlintColumn] has no dynamic build logic, this simply returns `this`.
+  /// Since [Column] has no dynamic build logic, this simply returns `this`.
   @override
   FlintWidget buildTemplate() => this;
 
@@ -169,7 +187,7 @@ class FlintColumn extends FlintWidget {
 }
 
 /// Defines how child elements are horizontally aligned
-/// within a [FlintColumn].
+/// within a [Column].
 ///
 /// Maps directly to CSS `align-items`.
 enum Alignment {

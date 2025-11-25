@@ -6,13 +6,13 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 /// render as HTML, text, or JSON — and now supports client-side actions via
 /// [FlintScript] or [FlintAction].
 ///
-/// Each [FlintButton] automatically generates a unique [id] that can be used
+/// Each [Button] automatically generates a unique [id] that can be used
 /// for DOM updates or targeting via scripts. Developers can override the [id]
 /// manually if desired.
 ///
 /// Example usage:
 /// ```dart
-/// FlintButton(
+/// Button(
 ///   text: 'Save',
 ///   onClick: FlintAction.api('/api/user/update', {'id': 1, 'name': 'Hybiekay'}),
 /// )
@@ -20,13 +20,13 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 ///
 /// Or a static inline script:
 /// ```dart
-/// FlintButton(
+/// Button(
 ///   text: 'Alert',
 ///   onClick: FlintScript.custom("alert('Hello Flint!');"),
 /// )
 /// ```
 /// {@endtemplate}
-class FlintButton extends FlintWidget {
+class Button extends FlintWidget {
   /// Unique identifier for this widget instance.
   /// Automatically generated unless overridden by user.
   @override
@@ -69,8 +69,8 @@ class FlintButton extends FlintWidget {
   /// Optional script to run when clicked.
   final dynamic onClick; // can be FlintAction or FlintScript
 
-  /// Creates a new [FlintButton].
-  FlintButton({
+  /// Creates a new [Button].
+  Button({
     String? id,
     required this.text,
     this.url,
@@ -88,6 +88,24 @@ class FlintButton extends FlintWidget {
     this.size = ButtonSize.medium,
     this.icon,
     this.onClick,
+    super.xData,
+    super.xInit,
+    super.xShow,
+    super.xBind,
+    super.xOn,
+    super.xText,
+    super.xHtml,
+    super.xModel,
+    super.xModelable,
+    super.xFor,
+    super.xTransition,
+    super.xEffect,
+    super.xIgnore,
+    super.xRef,
+    super.xCloak,
+    super.xTeleport,
+    super.xIf,
+    super.xId,
   }) : id = id ?? _generateId();
 
   /// Generates a random unique element ID like `flint-btn-7f3a9`.
@@ -206,6 +224,11 @@ document.querySelector('#$id')?.addEventListener('click', () => {
     if (semanticLabel != null) {
       attrs.add(' aria-label="${_escapeHtml(semanticLabel!)}"');
     }
+
+    final dir = directives.entries
+        .map((e) => e.value.isEmpty ? e.key : '${e.key}="${e.value}"')
+        .join(' ');
+    if (dir.isNotEmpty) attrs.add(dir);
     if (url != null && state != ButtonState.disabled) {
       attrs.add(' data-url="$url"');
     }

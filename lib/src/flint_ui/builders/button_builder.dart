@@ -7,16 +7,16 @@ import 'package:flint_dart/src/flint_ui/core/style.dart';
 import 'package:flint_dart/src/flint_ui/themes/button_themes.dart';
 import 'package:flint_dart/src/flint_ui/widgets/flint_button.dart';
 
-class FlintButtonBuilder {
+class ButtonBuilder {
   /// Create a prominent call-to-action button
-  static FlintButton callToAction({
+  static Button callToAction({
     required String text,
     required String url,
     ButtonSize size = ButtonSize.large,
     bool prominent = true,
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: url,
       style: ButtonStyle.primary().copyWith(
@@ -40,11 +40,11 @@ class FlintButtonBuilder {
   }
 
   /// Create an email confirmation button
-  static FlintButton emailConfirmation({
+  static Button emailConfirmation({
     required String url,
     String text = 'Confirm Email Address',
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: url,
       style: ButtonStyle.success(),
@@ -54,34 +54,34 @@ class FlintButtonBuilder {
           BoxShadow(offsetY: 3, blurRadius: 8, color: 'rgba(40, 167, 69, 0.3)'),
       fullWidth: true,
       size: ButtonSize.large,
-      icon: FlintButtonThemes.checkmark,
+      icon: ButtonThemes.checkmark,
     );
   }
 
   /// Create a download button
-  static FlintButton download({
+  static Button download({
     required String url,
     required String fileName,
     String text = 'Download',
   }) {
-    return FlintButton(
+    return Button(
       text: '$text $fileName',
       url: url,
       style: ButtonStyle.primary(),
       padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
       borderRadius: BorderRadius.circular(6.0),
       size: ButtonSize.medium,
-      icon: FlintButtonThemes.download,
+      icon: ButtonThemes.download,
     );
   }
 
   /// Create a disabled button with tooltip
-  static FlintButton disabled({
+  static Button disabled({
     required String text,
     String? tooltip,
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: '#',
       style: ButtonStyle.primary().copyWith(
@@ -96,11 +96,11 @@ class FlintButtonBuilder {
   }
 
   /// Create a button with loading state
-  static FlintButton loading({
+  static Button loading({
     String text = 'Loading...',
     String? icon,
   }) {
-    return FlintButton(
+    return Button(
       text: text,
       url: '#',
       style: ButtonStyle.secondary(),

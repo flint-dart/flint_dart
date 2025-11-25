@@ -3,7 +3,7 @@
 import 'package:flint_dart/src/flint_ui/core/core.dart';
 import 'package:flint_dart/src/flint_ui/widgets/image.dart';
 
-class FlintImageStyles {
+class ImageStyles {
   // Common image aspect ratios
   static const Size square = Size.square(1);
   static const Size landscape = Size(16, 9);
@@ -31,12 +31,12 @@ class FlintImageStyles {
   );
 
   // Factory methods for common image types
-  static FlintImage logo({
+  static Image logo({
     required String src,
     String? alt,
     double size = 120,
   }) {
-    return FlintImage(
+    return Image(
       src: src,
       alt: alt ?? 'Logo',
       width: size,
@@ -46,12 +46,12 @@ class FlintImageStyles {
     );
   }
 
-  static FlintImage avatar({
+  static Image avatar({
     required String src,
     required String alt,
     double size = 64,
   }) {
-    return FlintImage(
+    return Image(
       src: src,
       alt: alt,
       width: size,
@@ -62,13 +62,13 @@ class FlintImageStyles {
     );
   }
 
-  static FlintImage heroImage({
+  static Image heroImage({
     required String src,
     required String alt,
     double? width,
     double height = 300,
   }) {
-    return FlintImage(
+    return Image(
       src: src,
       alt: alt,
       width: width,
@@ -78,12 +78,12 @@ class FlintImageStyles {
     );
   }
 
-  static FlintImage thumbnail({
+  static Image thumbnail({
     required String src,
     required String alt,
     double size = 100,
   }) {
-    return FlintImage(
+    return Image(
       src: src,
       alt: alt,
       width: size,
@@ -94,13 +94,13 @@ class FlintImageStyles {
     );
   }
 
-  static FlintImage banner({
+  static Image banner({
     required String src,
     required String alt,
     double width = 600,
     double height = 200,
   }) {
-    return FlintImage(
+    return Image(
       src: src,
       alt: alt,
       width: width,

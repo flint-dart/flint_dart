@@ -1,27 +1,51 @@
 import 'package:flint_dart/flint_ui.dart';
 
-class FlintText extends FlintWidget {
+class Text extends FlintWidget {
   final String data;
   final TextStyle? style;
   final TextAlign align;
   final int? maxLines;
   final TextOverflow? overflow;
 
-  FlintText(
+  Text(
     this.data, {
-    super.id, // <— inherit from FlintWidget
+    super.id,
     this.style,
     this.align = TextAlign.left,
     this.maxLines,
     this.overflow,
+    super.xData,
+    super.xInit,
+    super.xShow,
+    super.xBind,
+    super.xOn,
+    super.xText,
+    super.xHtml,
+    super.xModel,
+    super.xModelable,
+    super.xFor,
+    super.xTransition,
+    super.xEffect,
+    super.xIgnore,
+    super.xRef,
+    super.xCloak,
+    super.xTeleport,
+    super.xIf,
+    super.xId,
   });
 
   @override
   String toHtml() {
-    final style = _buildStyle();
+    final styleStr = _buildStyle();
     final tag = _getHtmlTag();
-    // Include ID attribute
-    return '<$tag id="$id" style="$style">${_escapeHtml(data)}</$tag>';
+    final attrs = directives;
+
+    // Convert directives map → HTML attributes
+    final attrStr = attrs.entries
+        .map((e) => e.value.isEmpty ? e.key : '${e.key}="${e.value}"')
+        .join(' ');
+
+    return '<$tag $attrStr style="$styleStr">${_escapeHtml(data)}</$tag>';
   }
 
   @override
@@ -36,6 +60,7 @@ class FlintText extends FlintWidget {
         'align': align.name,
         'maxLines': maxLines,
         'overflow': overflow?.name,
+        'directives': directives,
       };
 
   @override
@@ -62,7 +87,7 @@ class FlintText extends FlintWidget {
         s.add('font-weight: ${style!.fontWeight!.value};');
       }
     }
-    s.add('text-align: ${align.toCss()}; line-height: 1.6;');
+    s.add('text-align: ${align.toCss()}; line-height: 1.2;');
     return s.join(' ');
   }
 

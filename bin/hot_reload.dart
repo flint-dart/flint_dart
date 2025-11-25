@@ -2,50 +2,48 @@ import 'dart:async';
 import 'dart:io';
 
 Process? server;
+Timer? _debounce;
 
-// 1. Modify startServer to return `true` on success and `false` on failure.
+// Start the server
 Future<bool> startServer() async {
   print('🚀 Attempting to start server...');
   server = await Process.start(
     'dart',
-    // Ensure you're running your main entry file
-    ['lib/main.dart'], // Or 'lib/main.dart', whatever your entry file is
+    ['lib/main.dart'],
     mode: ProcessStartMode.inheritStdio,
   );
 
-  // We'll wait for a short period to see if the process exits with an error.
-  // An immediate exit usually means a startup failure (like port binding).
   final exitCode = await server!.exitCode.timeout(
     const Duration(seconds: 2),
-    onTimeout: () => -1, // -1 means it's still running, which is good.
+    onTimeout: () => -1,
   );
 
   if (exitCode != -1) {
     print('⚠️ Server failed to start with exit code: $exitCode');
-    return false; // Startup failed
+    return false;
   }
 
   print('✅ Server started successfully.');
-  return true; // Startup was successful
+  return true;
 }
 
-// 2. Modify restartServer to include the retry logic.
+// Restart the server
 Future<void> restartServer() async {
+  int attempts = 0;
+  bool started = false;
+
+  // Only stop the old server here, after debounce
   if (server != null) {
     print('♻️ Shutting down old server...');
     server!.kill(ProcessSignal.sigint);
     await server!.exitCode;
   }
 
-  int attempts = 0;
-  bool started = false;
-
   while (attempts < 5 && !started) {
     attempts++;
     print('[Attempt $attempts/5]');
     started = await startServer();
     if (!started && attempts < 5) {
-      // Wait before trying again
       await Future.delayed(const Duration(milliseconds: 750));
     }
   }
@@ -59,13 +57,22 @@ Future<void> main(List<String> args) async {
   // Initial start
   await restartServer();
 
-  // Watch for changes in lib/
+  // Watch for changes
   final watcher = Directory('lib').watch(recursive: true);
+
   await for (final event in watcher) {
-    if (event.type == FileSystemEvent.modify && event.path.endsWith('.dart') ||
-        event.path.endsWith('.env') | event.path.endsWith('.flint.html')) {
-      print('\n[HotReload] Change detected in ${event.path}');
-      await restartServer();
+    if (event.type == FileSystemEvent.modify &&
+        (event.path.endsWith('.dart') ||
+            event.path.endsWith('.env') ||
+            event.path.endsWith('.flint.html'))) {
+      // Cancel previous debounce
+      _debounce?.cancel();
+
+      // Start a new debounce timer
+      _debounce = Timer(const Duration(milliseconds: 500), () async {
+        print('\n[HotReload] Changes settled. Restarting server...');
+        await restartServer();
+      });
     }
   }
 }

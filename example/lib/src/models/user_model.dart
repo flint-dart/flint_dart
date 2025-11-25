@@ -1,5 +1,6 @@
 import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
+import 'package:sample/src/models/post_model.dart';
 
 class User extends Model<User> {
   @override
@@ -51,4 +52,6 @@ class User extends Model<User> {
           ),
         ],
       );
+
+  Future<List<PostModel>> post() => hasMany(() => PostModel());
 }
