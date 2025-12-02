@@ -1,1 +1,1 @@
-const String flintVersion = '1.0.0+12';
+const String flintVersion = '1.0.0+21';
