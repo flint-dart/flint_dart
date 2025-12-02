@@ -11,17 +11,6 @@ import 'dart:convert';
 import 'package:flint_dart/db.dart';
 import 'package:flint_dart/model.dart';
 
-/// NOTE / ASSUMPTIONS
-/// - `Model` must expose:
-///   - `dynamic getField(String name)` -> fetch field value by column/key
-///   - `QueryBuilder query()` -> returns a query builder for the model
-///   - `dynamic id` -> model primary identifier (used for caching keys)
-/// - `QueryBuilder` is expected to implement fluent methods:
-///   - `where(field, op, value)`, `whereIn(field, List)`, `first()`, `get()`, `withRelations(List<String>)`
-/// - This file intentionally avoids runtime reflection and `Type` constructors.
-
-// final _logger = developer.log;
-
 String _toSnakeCase(String input) {
   // Simple snake_case converter for typical PascalCase or camelCase input
   final buffer = StringBuffer();
@@ -60,8 +49,14 @@ class _RelationshipCache {
   final Map<String, _CacheEntry> _cache = {};
   final Duration ttl;
 
-  _RelationshipCache({this.ttl = const Duration(minutes: 5)});
+  /// Creates a cache with an optional time-to-live (TTL) for entries.
+  /// Defaults to 5 minutes.
+  _RelationshipCache({
+    required this.ttl,
+  });
 
+  /// Retrieves a cached value by [key].
+  /// Returns null if the key is missing or the entry has expired.
   T? get<T>(String key) {
     final entry = _cache[key];
     if (entry == null) return null;
@@ -72,21 +67,27 @@ class _RelationshipCache {
     return entry.value as T;
   }
 
+  /// Stores a [value] in the cache with the given [key].
   void set<T>(String key, T value) {
     _cache[key] = _CacheEntry(value, DateTime.now().add(ttl));
   }
 
+  /// Removes a specific [key] from the cache.
   void clear(String key) => _cache.remove(key);
+
+  /// Clears all entries in the cache.
   void clearAll() => _cache.clear();
 }
 
+/// Internal class to store cached value and expiration timestamp.
 class _CacheEntry {
   final dynamic value;
   final DateTime expiresAt;
+
   _CacheEntry(this.value, this.expiresAt);
 }
 
-final _relationshipCache = _RelationshipCache();
+final _relationshipCache = _RelationshipCache(ttl: const Duration(minutes: 5));
 
 /// Relationships extension using factory constructors for each related model.
 /// Usage examples (in model classes):
@@ -261,7 +262,7 @@ extension ModelRelationships on Model {
 
   // ------------- BELONGS TO MANY -------------
   /// IMPORTANT: pivotTable should be a valid table identifier (no user input).
-  /// foreignPivotKey defaults to <parent>_id, relatedPivotKey defaults to <related>_id
+  /// foreignPivotKey defaults to &lt;parent&gt_id, relatedPivotKey defaults to &lt;related&gt_id
   Future<List<R>> belongsToMany<R>(
     Model Function() relatedFactory, {
     required String pivotTable,

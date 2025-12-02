@@ -63,103 +63,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>📘 <strong>Validate Request Body</strong></p>
-<p>This method parses and validates the incoming JSON request body
-against the specified validation <code>rules</code>.</p>
-<hr>
-<h3 id="-usage-example">✅ <strong>Usage Example</strong></h3>
-<pre class="language-dart"><code class="language-dart">// Inside a controller method
-Future&lt;Response&gt; register(Request req) async {
-  final data = await req.validate({
-    'name': 'required|string',
-    'email': 'required|string|email',
-    'password': 'required|string|confirmed|min:6',
-  });
-
-  // Safe to use: all fields are validated
-  return Response.json({'user': data});
-}
-</code></pre>
-<hr>
-<h3 id="-behavior">🧠 <strong>Behavior</strong></h3>
-<ul>
-<li>
-<p>Reads the request body as JSON.</p>
-</li>
-<li>
-<p>Validates all keys using the <a href="../../flint_dart/Validator/validate.html">Validator.validate</a> method.</p>
-</li>
-<li>
-<p>Throws a <code>ValidationException</code> if any rule fails.</p>
-</li>
-<li>
-<p>Returns the parsed request body (<code>Map&lt;String, dynamic&gt;</code>) if validation passes.
- /// The rules use a pipe-separated format (e.g., <code>"required|string|min:3"</code>)
-and support the following checks:</p>
-</li>
-<li>
-<p><code>required</code>: Field must be present and not empty.</p>
-</li>
-<li>
-<p><code>string</code>: Value must be a string.</p>
-</li>
-<li>
-<p><code>int</code>: Value must be an integer.</p>
-</li>
-<li>
-<p><code>double</code>: Value must be an integer.</p>
-</li>
-<li>
-<p><code>bool</code>: Value must be a boolean.</p>
-</li>
-<li>
-<p><code>email</code>: Must be a valid email address.</p>
-</li>
-<li>
-<p><code>regex:&lt;pattern&gt;</code>: Value must match the given regular expression.</p>
-</li>
-<li>
-<p><code>list</code>: Value must be a list.</p>
-</li>
-<li>
-<p><code>list:&lt;type&gt;</code>: All items in the list must match the given type
-(<code>string</code>, <code>int</code>, <code>bool</code>).</p>
-</li>
-<li>
-<p><code>min:&lt;n&gt;</code>: Minimum length (for strings/lists) or value (for numbers).</p>
-</li>
-<li>
-<p><code>max:&lt;n&gt;</code>: Maximum length (for strings/lists) or value (for numbers).</p>
-</li>
-</ul>
-<hr>
-<h3 id="-supported-validation-rules">⚙️ <strong>Supported Validation Rules</strong></h3>
-<ul>
-<li><code>required</code> — Field must not be null or empty.</li>
-<li><code>string</code> — Must be a string.</li>
-<li><code>email</code> — Must be a valid email format.</li>
-<li><code>int</code>: Value must be an integer.</li>
-<li><code>double</code>: Value must be an integer.</li>
-<li><code>list</code>: Value must be a list.</li>
-<li><code>list:&lt;type&gt;</code>: All items in the list must match the given type
-(<code>string</code>, <code>int</code>, <code>bool</code>).</li>
-<li><code>min:&lt;n&gt;</code> — Minimum string length or numeric value.</li>
-<li><code>max:&lt;n&gt;</code> — Maximum string length or numeric value.</li>
-<li><code>confirmed</code> — Field must have a matching confirmation field (<code>confirm_field</code> or <code>field_confirmation</code>).</li>
-<li><code>bool</code> — Must be <code>true</code> or <code>false</code>.</li>
-<li><code>date</code> — Must be a valid date string or <code>DateTime</code>.</li>
-<li><code>in:&lt;a,b,c&gt;</code> — Value must be one of the listed items.</li>
-</ul>
-<hr>
-<h3 id="-throws">⚠️ <strong>Throws</strong></h3>
-<ul>
-<li><code>ValidationException</code> — when one or more rules fail.</li>
-</ul>
-<hr>
-<h3 id="-returns">📤 <strong>Returns</strong></h3>
-<ul>
-<li>A <code>Map&lt;String, dynamic&gt;</code> representing the validated request body.</li>
-</ul>
+  <p>Validates the request body against specified validation rules</p>
 </section>
 
 
@@ -198,7 +102,7 @@ and support the following checks:</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

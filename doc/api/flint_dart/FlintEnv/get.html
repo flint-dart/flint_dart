@@ -65,7 +65,12 @@
     
 <section class="desc markdown">
   <p>Returns the value for the given <code>key</code>.</p>
-<p>If the key is not found, returns the <code>defaultValue</code> (defaults to <code>''</code>).</p>
+<p>Priority order:</p>
+<ol>
+<li>Global/System environment variables</li>
+<li><code>.env</code> file values</li>
+<li><code>defaultValue</code> (defaults to <code>''</code>)</li>
+</ol>
 <p>Example:</p>
 <pre class="language-dart"><code class="language-dart">final apiKey = FlintEnv.get('API_KEY', 'default-key');
 </code></pre>
@@ -77,7 +82,21 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static String get(String key, [String defaultValue = &#39;&#39;]) {
   _ensureLoaded();
-  return _env[key] ?? defaultValue;
+
+  &#47;&#47; 1. Check global&#47;system environment variables first (highest priority)
+  final globalValue = Platform.environment[key];
+  if (globalValue != null) {
+    return globalValue;
+  }
+
+  &#47;&#47; 2. Check .env file values
+  final envFileValue = _envFromFile[key];
+  if (envFileValue != null) {
+    return envFileValue;
+  }
+
+  &#47;&#47; 3. Return default value
+  return defaultValue;
 }</code></pre>
 </section>
 
@@ -106,7 +125,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

@@ -83,7 +83,8 @@
     final html = includePreview
         ? _generatePreviewHtml(widget, title ?? &#39;Flint Render&#39;)
         : widget.toHtml();
-
+    var test = File(&quot;test.html&quot;).create(recursive: true);
+    test.then((v) =&gt; v.writeAsString(html));
     raw.write(html);
   } catch (e) {
     raw.statusCode = 500;
@@ -121,7 +122,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

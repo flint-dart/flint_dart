@@ -70,7 +70,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">String renderScriptAttributes() {
-  final attrs = &lt;String&gt;[&#39;id=&quot;$id&quot;&#39;]; &#47;&#47; ✅ Always include ID
+  final attrs = &lt;String&gt;[];
 
   if (script != null) {
     final data = script!.toJson();
@@ -108,7 +108,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

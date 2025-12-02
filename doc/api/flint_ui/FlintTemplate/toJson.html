@@ -75,7 +75,12 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">@override
-Map&lt;String, dynamic&gt; toJson() =&gt; buildTemplate().toJson();</code></pre>
+Map&lt;String, dynamic&gt; toJson() =&gt; {
+      &#39;head&#39;: head?.toJson() ?? {},
+      &#39;headStyles&#39;: styles(),
+      &#39;headScripts&#39;: scripts(),
+      &#39;body&#39;: buildTemplate().toJson(),
+    };</code></pre>
 </section>
 
 
@@ -103,7 +108,7 @@ Map&lt;String, dynamic&gt; toJson() =&gt; buildTemplate().toJson();</code></pre>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

@@ -82,6 +82,11 @@
       return &#39;TIMESTAMP&#39;;
     case ColumnType.timestamp:
       return &#39;TIMESTAMPTZ&#39;;
+    case ColumnType.enumeration:
+      &#47;&#47; Postgres doesn’t have built-in ENUM literals unless pre-declared, so fallback to TEXT
+      return &#39;TEXT&#39;;
+    case ColumnType.json:
+      return &#39;JSONB&#39;;
   }
 }</code></pre>
 </section>
@@ -111,7 +116,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

@@ -62,16 +62,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Parses the request body and returns a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a> of form fields.</p>
-<p>This method handles two types of form data:</p>
-<ol>
-<li><code>application/x-www-form-urlencoded</code>: Returns the key-value pairs directly.</li>
-<li><code>multipart/form-data</code>: Extracts and returns the non-file fields.</li>
-</ol>
-<p>Use this method to access form data, especially when handling file uploads
-where the other fields (e.g., user name, file description) are sent
-alongside the file.</p>
-<p>@returns A <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a> that completes with a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map&lt;String, String&gt;</a> of the form fields.</p>
+  <p>Parses form data from application/x-www-form-urlencoded or multipart/form-data</p>
 </section>
 
 
@@ -80,12 +71,15 @@ alongside the file.</p>
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, String&gt;&gt; form() async {
   await _parseBody();
+
   if (_bodyCache is Map&lt;String, String&gt;) {
     return _bodyCache;
   }
+
   if (_bodyCache is Map &amp;&amp; _bodyCache.containsKey(&#39;fields&#39;)) {
-    return _bodyCache[&#39;fields&#39;] as Map&lt;String, String&gt;;
+    return Map&lt;String, String&gt;.from(_bodyCache[&#39;fields&#39;]);
   }
+
   return {};
 }</code></pre>
 </section>
@@ -115,7 +109,7 @@ alongside the file.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

@@ -54,7 +54,7 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype">QueryBuilder</span>
+<span class="returntype"><a href="../../db/QueryBuilder-class.html">QueryBuilder</a></span>
 <span class="name ">query</span>(<wbr>)
 
       
@@ -62,7 +62,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Custom query builder</p>
+  <p>Custom query builder - starts a new chain</p>
 </section>
 
 
@@ -70,7 +70,8 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">QueryBuilder query() {
-  return QueryBuilder(table: table.name);
+  _queryBuilder = QueryBuilder(table: table.name);
+  return _queryBuilder!;
 }</code></pre>
 </section>
 
@@ -99,7 +100,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

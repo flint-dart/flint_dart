@@ -74,7 +74,7 @@
     validate();
 
     &#47;&#47; Render .flint.html template into HTML
-    final html = await FlintTemplateEngine().render(view, data: data);
+    final html = FlintTemplateEngine.render(view, data: data);
     final text = _stripHtmlTags(html);
 
     final mail = Mail().toMany(to).subject(subject).html(html).text(text);
@@ -116,7 +116,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

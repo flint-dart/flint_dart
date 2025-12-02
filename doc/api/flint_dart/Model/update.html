@@ -85,6 +85,22 @@
   if (updateData.isEmpty) {
     throw Exception(&quot;No data provided for update&quot;);
   }
+  &#47;&#47; --- ✅ Convert bool → 1&#47;0 for MySQL ---
+  if (DB.driver == DBDriver.mysql) {
+    updateData.updateAll((key, value) {
+      final column = table.columns.firstWhere(
+        (c) =&gt; c.name == key,
+        orElse: () =&gt; Column(name: key, type: ColumnType.string),
+      );
+
+      if (column.type == ColumnType.json &amp;&amp; value != null) {
+        return jsonEncode(value);
+      }
+      if (value is bool) return value ? 1 : 0;
+      if (value is Enum) return value = value.name; &#47;&#47; enum → string
+      return value;
+    });
+  }
 
   &#47;&#47; Use backticks for column names to handle reserved words
   final setClause = updateData.keys.map((k) =&gt; &#39;`$k` = :$k&#39;).join(&#39;, &#39;);
@@ -124,7 +140,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

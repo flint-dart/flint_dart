@@ -54,8 +54,7 @@
 
     
 <section class="desc markdown">
-  <p>Represents an HTTP request with convenient accessors for
-method, headers, parameters, body, and other common features.</p>
+  <p>Enhanced HTTP request wrapper with comprehensive parsing, validation, and session management.</p>
 </section>
 
 
@@ -85,7 +84,7 @@ method, headers, parameters, body, and other common features.</p>
 
 </dt>
 <dd>
-  Returns the bearer token from the <code>Authorization</code> header if present.
+  Extract Bearer token from Authorization header
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
@@ -97,7 +96,7 @@ method, headers, parameters, body, and other common features.</p>
 
 </dt>
 <dd>
-  Parses cookies from the <code>Cookie</code> header into a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map&lt;String, String&gt;</a>.
+  Parsed cookies from the Cookie header
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
@@ -121,8 +120,43 @@ method, headers, parameters, body, and other common features.</p>
 
 </dt>
 <dd>
-  All request headers as a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map&lt;String, String&gt;</a>.
-If a header has multiple values, they are joined with commas.
+  All request headers as a case-insensitive map
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="ipAddress" class="property">
+  <span class="name"><a href="../flint_dart/Request/ipAddress.html">ipAddress</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  
+
+</dt>
+<dd>
+  Client IP address
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="isAuthenticated" class="property">
+  <span class="name"><a href="../flint_dart/Request/isAuthenticated.html">isAuthenticated</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Returns true if the request has a valid authenticated user (cached in _storage)
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="jwt" class="property">
+  <span class="name"><a href="../flint_dart/Request/jwt.html">jwt</a></span>
+  <span class="signature">&#8594; <a href="../flint_dart/FlintJwt-class.html">FlintJwt</a></span>
+  
+
+</dt>
+<dd>
+  JWT utility instance for token operations
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
@@ -134,7 +168,7 @@ If a header has multiple values, they are joined with commas.
 
 </dt>
 <dd>
-  The HTTP method (e.g. GET, POST, PUT).
+  The HTTP method (e.g. GET, POST, PUT, DELETE)
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
@@ -158,7 +192,7 @@ If a header has multiple values, they are joined with commas.
 
 </dt>
 <dd>
-  The full request path (e.g. <code>/api/users/1</code>).
+  The full request path (e.g. <code>/api/users/1</code>)
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
@@ -170,7 +204,7 @@ If a header has multiple values, they are joined with commas.
 
 </dt>
 <dd>
-  Query parameters from the URL as a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map&lt;String, String&gt;</a>.
+  Query parameters from the URL
   <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
@@ -199,6 +233,54 @@ If a header has multiple values, they are joined with commas.
 
 </dd>
 
+        <dt id="session" class="property">
+  <span class="name"><a href="../flint_dart/Request/session.html">session</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  Returns current session data if exists (delegates to SessionManager)
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="sessionId" class="property">
+  <span class="name"><a href="../flint_dart/Request/sessionId.html">sessionId</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd>
+  Session ID from FLINTSESSID cookie
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="uri" class="property">
+  <span class="name"><a href="../flint_dart/Request/uri.html">uri</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Uri-class.html">Uri</a></span>
+  
+
+</dt>
+<dd>
+  The request URI
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="user" class="property">
+  <span class="name"><a href="../flint_dart/Request/user.html">user</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  Returns the authenticated user payload from JWT or session (option C: session shape == JWT payload)
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
     </dl>
   </section>
 
@@ -208,6 +290,19 @@ If a header has multiple values, they are joined with commas.
       id="instance-methods">
     <h2>Methods</h2>
     <dl class="callables">
+        <dt id="allFiles" class="callable">
+  <span class="name"><a href="../flint_dart/Request/allFiles.html">allFiles</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves all uploaded files from the request
+  
+
+</dd>
+
         <dt id="body" class="callable">
   <span class="name"><a href="../flint_dart/Request/body.html">body</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
@@ -216,37 +311,47 @@ If a header has multiple values, they are joined with commas.
 
 </dt>
 <dd>
-  Reads and returns the raw request body as a <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>.
-Note: This will not work for <code>multipart/form-data</code> requests.
+  Reads and returns the raw request body as a string
+Note: For multipart/form-data requests, use <a href="../flint_dart/Request/form.html">form()</a> or <a href="../flint_dart/Request/files.html">files()</a> instead
+  
+
+</dd>
+
+        <dt id="destroySession" class="callable">
+  <span class="name"><a href="../flint_dart/Request/destroySession.html">destroySession</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Destroys the current session (delegates to SessionManager)
   
 
 </dd>
 
         <dt id="file" class="callable">
-  <span class="name"><a href="../flint_dart/Request/file.html">file</a></span><span class="signature">(<wbr><span class="parameter" id="file-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+  <span class="name"><a href="../flint_dart/Request/file.html">file</a></span><span class="signature">(<wbr><span class="parameter" id="file-param-fieldName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">fieldName</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a>?</span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Retrieves a single uploaded file by its field name.
-@param name The name of the file field.
-@returns An <a href="../flint_dart/UploadedFile-class.html">UploadedFile</a> object or <code>null</code> if not found.
+  Retrieves a single uploaded file by field name
   
 
 </dd>
 
         <dt id="files" class="callable">
-  <span class="name"><a href="../flint_dart/Request/files.html">files</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a></span>&gt;</span></span>&gt;</span></span>
+  <span class="name"><a href="../flint_dart/Request/files.html">files</a></span><span class="signature">(<wbr><span class="parameter" id="files-param-fieldName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">fieldName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a>?</span>&gt;</span></span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Retrieves all uploaded files from the request.
-@returns A <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a> of all uploaded files, keyed by field name.
+  Retrieves multiple uploaded files by field name
   
 
 </dd>
@@ -259,23 +364,46 @@ Note: This will not work for <code>multipart/form-data</code> requests.
 
 </dt>
 <dd>
-  Parses the request body and returns a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a> of form fields.
+  Parses form data from application/x-www-form-urlencoded or multipart/form-data
+  
+
+</dd>
+
+        <dt id="get" class="callable">
+  <span class="name"><a href="../flint_dart/Request/get.html">get</a></span><span class="signature">(<wbr><span class="parameter" id="get-param-key"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">key</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Retrieves a value from request-scoped storage
   
 
 </dd>
 
         <dt id="hasFile" class="callable">
-  <span class="name"><a href="../flint_dart/Request/hasFile.html">hasFile</a></span><span class="signature">(<wbr><span class="parameter" id="hasFile-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span></span>)
+  <span class="name"><a href="../flint_dart/Request/hasFile.html">hasFile</a></span><span class="signature">(<wbr><span class="parameter" id="hasFile-param-fieldName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">fieldName</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Checks if a file with the given name exists in the request.
-@param name The name of the file field.
-Returns <code>true</code> if a file is uploaded with the given <code>field</code>.
-Returns <code>false</code> otherwise.
+  Checks if a file with the given field name exists in the request
+  
+
+</dd>
+
+        <dt id="hasFiles" class="callable">
+  <span class="name"><a href="../flint_dart/Request/hasFiles.html">hasFiles</a></span><span class="signature">(<wbr><span class="parameter" id="hasFiles-param-fieldName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">fieldName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Checks if multiple files with the given field name exist in the request
   
 
 </dd>
@@ -288,8 +416,8 @@ Returns <code>false</code> otherwise.
 
 </dt>
 <dd>
-  Parses the body as JSON and returns a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map&lt;String, dynamic&gt;</a>.
-Throws if the body is not valid JSON.
+  Parses the body as JSON and returns a Map
+@throws FormatException if body is not valid JSON
   
 
 </dd>
@@ -307,6 +435,46 @@ Throws if the body is not valid JSON.
 
 </dd>
 
+        <dt id="requireUser" class="callable">
+  <span class="name"><a href="../flint_dart/Request/requireUser.html">requireUser</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Throws an exception if no user is authenticated
+  
+
+</dd>
+
+        <dt id="set" class="callable">
+  <span class="name"><a href="../flint_dart/Request/set.html">set</a></span><span class="signature">(<wbr><span class="parameter" id="set-param-key"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">key</span>, </span><span class="parameter" id="set-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Stores a value in request-scoped storage
+  
+
+</dd>
+
+        <dt id="startSession" class="callable">
+  <span class="name"><a href="../flint_dart/Request/startSession.html">startSession</a></span><span class="signature">(<wbr><span class="parameter" id="startSession-param-data"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">data</span>, {</span><span class="parameter" id="startSession-param-ttl"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Duration-class.html">Duration</a>?</span> <span class="parameter-name">ttl</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Creates a new session with the provided data (delegates to SessionManager)
+Returns the generated session id.
+  
+
+</dd>
+
         <dt id="toString" class="callable inherited">
   <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
@@ -320,6 +488,21 @@ Throws if the body is not valid JSON.
 
 </dd>
 
+        <dt id="updateSession" class="callable">
+  <span class="name"><a href="../flint_dart/Request/updateSession.html">updateSession</a></span><span class="signature">(<wbr><span class="parameter" id="updateSession-param-updates"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">updates</span>, {</span><span class="parameter" id="updateSession-param-ttl"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Duration-class.html">Duration</a>?</span> <span class="parameter-name">ttl</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Merge updates into existing session. NOTE: this implementation will create a NEW session
+with merged data and set a new cookie (session id regenerated). If you need to preserve the
+old session id, add an update method to SessionManager that writes in-place.
+  
+
+</dd>
+
         <dt id="validate" class="callable">
   <span class="name"><a href="../flint_dart/Request/validate.html">validate</a></span><span class="signature">(<wbr><span class="parameter" id="validate-param-rules"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">rules</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
@@ -328,7 +511,20 @@ Throws if the body is not valid JSON.
 
 </dt>
 <dd>
-  📘 <strong>Validate Request Body</strong>
+  Validates the request body against specified validation rules
+  
+
+</dd>
+
+        <dt id="validateForm" class="callable">
+  <span class="name"><a href="../flint_dart/Request/validateForm.html">validateForm</a></span><span class="signature">(<wbr><span class="parameter" id="validateForm-param-rules"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">rules</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Validates form data against specified rules
   
 
 </dd>
@@ -357,6 +553,23 @@ Throws if the body is not valid JSON.
     </dl>
   </section>
     
+  <section class="summary offset-anchor" id="static-properties">
+    <h2>Static Properties</h2>
+    <dl class="properties">
+        <dt id="sessionManager" class="property">
+  <span class="name"><a href="../flint_dart/Request/sessionManager.html">sessionManager</a></span>
+  <span class="signature">&#8594; SessionManager</span>
+  
+
+</dt>
+<dd>
+  Singleton SessionManager instance (use your existing SessionManager).
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+    </dl>
+  </section>
     
     
 
@@ -383,7 +596,7 @@ Throws if the body is not valid JSON.
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

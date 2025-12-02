@@ -62,8 +62,8 @@
     </section>
     
 <section class="desc markdown">
-  <p>Parses the body as JSON and returns a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map&lt;String, dynamic&gt;</a>.
-Throws if the body is not valid JSON.</p>
+  <p>Parses the body as JSON and returns a Map
+@throws FormatException if body is not valid JSON</p>
 </section>
 
 
@@ -71,12 +71,17 @@ Throws if the body is not valid JSON.</p>
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;Map&lt;String, dynamic&gt;&gt; json() async {
-  final content = await body();
-  final decoded = jsonDecode(content);
-  if (decoded is Map&lt;String, dynamic&gt;) {
-    return decoded;
+  await _parseBody();
+
+  if (_bodyCache is Map&lt;String, dynamic&gt;) {
+    return _bodyCache;
   }
-  throw FormatException(&#39;Expected a JSON object&#39;);
+
+  if (_bodyCache is String &amp;&amp; (_bodyCache as String).isEmpty) {
+    return &lt;String, dynamic&gt;{};
+  }
+
+  throw FormatException(&#39;Expected a JSON object in request body&#39;);
 }</code></pre>
 </section>
 
@@ -105,7 +110,7 @@ Throws if the body is not valid JSON.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

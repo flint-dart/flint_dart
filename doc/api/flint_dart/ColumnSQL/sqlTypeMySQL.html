@@ -82,6 +82,16 @@
       return &#39;DATETIME&#39;;
     case ColumnType.timestamp:
       return &#39;TIMESTAMP&#39;;
+    case ColumnType.enumeration:
+      &#47;&#47; For MySQL ENUM, you can store allowed values in `options` (if supported)
+      &#47;&#47; Example: ENUM(&#39;draft&#39;, &#39;published&#39;)
+      if (options != null &amp;&amp; options!.isNotEmpty) {
+        final values = options!.map((v) =&gt; &quot;&#39;$v&#39;&quot;).join(&#39;, &#39;);
+        return &#39;ENUM($values)&#39;;
+      }
+      return &#39;VARCHAR(50)&#39;; &#47;&#47; fallback if no options provided
+    case ColumnType.json:
+      return &#39;TEXT&#39;;
   }
 }</code></pre>
 </section>
@@ -111,7 +121,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

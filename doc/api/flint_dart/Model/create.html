@@ -72,13 +72,14 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;T?&gt; create([Map&lt;String, dynamic&gt;? data]) async {
   final insertMap = data ?? toMap();
+
   final idColumn = table.columns.firstWhere((c) =&gt; c.isPrimaryKey,
       orElse: () =&gt; Column(
-          name: &#39;id&#39;,
-          type: ColumnType.string,
-          isPrimaryKey: true,
-          isAutoIncrement: false,
-          defaultValue: Default.uuid()));
+            name: &#39;id&#39;,
+            type: ColumnType.string,
+            isPrimaryKey: true,
+            isAutoIncrement: false,
+          ));
 
   &#47;&#47; --- ✅ Auto-generate UUID for string-based primary keys ---
   if (!idColumn.isAutoIncrement &amp;&amp;
@@ -94,10 +95,27 @@
     insertMap.remove(idColumn.name);
   }
 
+  insertMap.removeWhere((key, data) =&gt; data == null);
+
   if (insertMap.isEmpty) {
     throw Exception(&quot;No data provided for creation&quot;);
   }
 
+  &#47;&#47; --- ✅ Convert bool → 1&#47;0 for MySQL ---
+  insertMap.updateAll((key, value) {
+    final column = table.columns.firstWhere(
+      (c) =&gt; c.name == key,
+      orElse: () =&gt; Column(name: key, type: ColumnType.string),
+    );
+    if (value is bool) {
+      return value ? 1 : 0;
+    }
+    if (column.type == ColumnType.json &amp;&amp; value != null) {
+      return jsonEncode(value);
+    }
+    if (value is Enum) return value = value.name; &#47;&#47; enum → string
+    return value;
+  });
   final fields = insertMap.keys.join(&#39;, &#39;);
 
   if (DB.driver == DBDriver.postgres) {
@@ -168,7 +186,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

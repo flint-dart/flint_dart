@@ -26,7 +26,7 @@
   <ol class="breadcrumbs gt-separated dark hidden-xs">
     <li><a href="../index.html">flint_dart</a></li>
     <li><a href="../flint_ui/">flint_ui.dart</a></li>
-    <li class="self-crumb">FlintState<span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_ui/FlintStatefulWidget-class.html">FlintStatefulWidget</a></span>&gt;</span> class</li>
+    <li class="self-crumb">FlintState class</li>
   </ol>
   <div class="self-name">FlintState</div>
   <form class="search navbar-right" role="search">
@@ -48,14 +48,13 @@
     data-above-sidebar="flint_ui&#47;flint_ui-library-sidebar.html"
     data-below-sidebar="flint_ui&#47;FlintState-class-sidebar.html">
     <div>
-<h1><span class="kind-class">FlintState&lt;<wbr><span class="type-parameter">T extends FlintStatefulWidget</span>&gt;</span> class 
-    <a href="https://dart.dev/language/class-modifiers#abstract" class="feature feature-abstract" title="This type can not be directly constructed.">abstract</a>
+<h1><span class="kind-class">FlintState</span> class 
  
 </h1></div>
 
     
 <section class="desc markdown">
-  <p>State object paired to a <a href="../flint_ui/FlintStatefulWidget-class.html">FlintStatefulWidget</a>.</p>
+  <p>Reactive state management for Flint widgets</p>
 </section>
 
 
@@ -65,7 +64,7 @@
     <h2>Constructors</h2>
     <dl class="constructor-summary-list">
         <dt id="FlintState.new" class="callable">
-          <span class="name"><a href="../flint_ui/FlintState/FlintState.html">FlintState.new</a></span><span class="signature">()</span>
+          <span class="name"><a href="../flint_ui/FlintState/FlintState.html">FlintState.new</a></span><span class="signature">([<span class="parameter" id="-param-initialData"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">initialData</span></span>])</span>
         </dt>
         <dd>
           
@@ -78,21 +77,21 @@
       id="instance-properties">
     <h2>Properties</h2>
     <dl class="properties">
-        <dt id="element" class="property">
-  <span class="name"><a href="../flint_ui/FlintState/element.html">element</a></span>
-  <span class="signature">&#8596; FlintStatefulElement</span>
+        <dt id="data" class="property">
+  <span class="name"><a href="../flint_ui/FlintState/data.html">data</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
   
 
 </dt>
 <dd>
   
-  <div class="features"><span class="feature">getter/setter pair</span></div>
+  <div class="features"><span class="feature">no setter</span></div>
 
 </dd>
 
         <dt id="hashCode" class="property inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/hashCode.html">hashCode</a></span>
-  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/int-class.html">int</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>
   
 
 </dt>
@@ -103,26 +102,14 @@
 </dd>
 
         <dt id="runtimeType" class="property inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/runtimeType.html">runtimeType</a></span>
-  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/Type-class.html">Type</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Type-class.html">Type</a></span>
   
 
 </dt>
 <dd class="inherited">
   A representation of the runtime type of the object.
   <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
-
-</dd>
-
-        <dt id="widget" class="property">
-  <span class="name"><a href="../flint_ui/FlintState/widget.html">widget</a></span>
-  <span class="signature">&#8596; T</span>
-  
-
-</dt>
-<dd>
-  
-  <div class="features"><span class="feature">getter/setter pair</span></div>
 
 </dd>
 
@@ -135,34 +122,47 @@
       id="instance-methods">
     <h2>Methods</h2>
     <dl class="callables">
-        <dt id="build" class="callable">
-  <span class="name"><a href="../flint_ui/FlintState/build.html">build</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="../flint_ui/FlintWidget-class.html">FlintWidget</a></span>
+        <dt id="addComputedProperty" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/addComputedProperty.html">addComputedProperty</a></span><span class="signature">(<wbr><span class="parameter" id="addComputedProperty-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="addComputedProperty-param-computeFn"><span class="type-annotation">dynamic</span> <span class="parameter-name">computeFn</span>()</span>)
+    <span class="returntype parameter">&#8594; void</span>
   </span>
   
 
 </dt>
 <dd>
-  Build returns the child widget tree representing the current state.
+  Add computed properties for Alpine.js
   
 
 </dd>
 
-        <dt id="createRenderObject" class="callable">
-  <span class="name"><a href="../flint_ui/FlintState/createRenderObject.html">createRenderObject</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="../flint_ui/FlintRenderObject-class.html">FlintRenderObject</a></span>
+        <dt id="addListener" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/addListener.html">addListener</a></span><span class="signature">(<wbr><span class="parameter" id="addListener-param-listener"><span class="type-annotation">dynamic</span> <span class="parameter-name">listener</span>(<span class="parameter" id="param-"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span></span>)</span>)
+    <span class="returntype parameter">&#8594; void</span>
   </span>
   
 
 </dt>
 <dd>
-  Called once to create the RenderObject for this state (mount time).
+  
+  
+
+</dd>
+
+        <dt id="get" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/get.html">get</a></span><span class="signature">(<wbr><span class="parameter" id="get-param-key"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">key</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
   
 
 </dd>
 
         <dt id="noSuchMethod" class="callable inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
     <span class="returntype parameter">&#8594; dynamic</span>
   </span>
   
@@ -174,22 +174,61 @@
 
 </dd>
 
-        <dt id="setState" class="callable">
-  <span class="name"><a href="../flint_ui/FlintState/setState.html">setState</a></span><span class="signature">(<wbr><span class="parameter" id="setState-param-fn"><span class="type-annotation">void</span> <span class="parameter-name">fn</span>()</span>)
+        <dt id="removeListener" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/removeListener.html">removeListener</a></span><span class="signature">(<wbr><span class="parameter" id="removeListener-param-listener"><span class="type-annotation">dynamic</span> <span class="parameter-name">listener</span>(<span class="parameter" id="param-"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span></span>)</span>)
     <span class="returntype parameter">&#8594; void</span>
   </span>
   
 
 </dt>
 <dd>
-  setState: mutate internal state then ask element to rebuild.
+  
+  
+
+</dd>
+
+        <dt id="set" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/set.html">set</a></span><span class="signature">(<wbr><span class="parameter" id="set-param-key"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">key</span>, </span><span class="parameter" id="set-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="toAlpineData" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/toAlpineData.html">toAlpineData</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Convert state to Alpine.js compatible format
+  
+
+</dd>
+
+        <dt id="toJsObject" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/toJsObject.html">toJsObject</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
   
 
 </dd>
 
         <dt id="toString" class="callable inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/String-class.html">String</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
   </span>
   
 
@@ -197,6 +236,19 @@
 <dd class="inherited">
   A string representation of this object.
   <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="update" class="callable">
+  <span class="name"><a href="../flint_ui/FlintState/update.html">update</a></span><span class="signature">(<wbr><span class="parameter" id="update-param-newData"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span> <span class="parameter-name">newData</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
 
 </dd>
 
@@ -209,8 +261,8 @@
     <h2>Operators</h2>
     <dl class="callables">
         <dt id="operator ==" class="callable inherited">
-  <span class="name"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.8.1/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.8.1/dart-core/bool-class.html">bool</a></span>
+  <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span>
   </span>
   
 
@@ -238,7 +290,7 @@
 <ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
     <li><a href="../index.html">flint_dart</a></li>
     <li><a href="../flint_ui/">flint_ui</a></li>
-    <li class="self-crumb">FlintState<span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_ui/FlintStatefulWidget-class.html">FlintStatefulWidget</a></span>&gt;</span> class</li>
+    <li class="self-crumb">FlintState class</li>
 </ol>
 
     <h5>flint_ui library</h5>
@@ -250,7 +302,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+10
+      1.0.0+21
   </span>
   
 </footer>

@@ -78,7 +78,9 @@ directory exists, and writes the file's content to disk.</p>
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static Future&lt;String&gt; create(UploadedFile file,
     {String subdirectory = &#39;&#39;}) async {
-  final String uniqueFileName = &#39;${Uuid().v4()}_${file.filename}&#39;;
+  final safeFileName = file.filename.replaceAll(&#39; &#39;, &#39;_&#39;);
+
+  final String uniqueFileName = &#39;${Uuid().v4()}_$safeFileName&#39;;
   final String uploadPath = &#39;$_baseDir&#47;$subdirectory&#39;;
 
   final Directory dir = Directory(uploadPath);
@@ -88,7 +90,7 @@ directory exists, and writes the file's content to disk.</p>
 
   final File newFile = File(&#39;$uploadPath&#47;$uniqueFileName&#39;);
   await file.content.pipe(newFile.openWrite());
-
+  print(&#39;$_baseUrl&#47;$subdirectory&#47;$uniqueFileName&#39;);
   return &#39;$_baseUrl&#47;$subdirectory&#47;$uniqueFileName&#39;;
 }</code></pre>
 </section>
@@ -118,7 +120,7 @@ directory exists, and writes the file's content to disk.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>

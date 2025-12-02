@@ -56,6 +56,24 @@
     
 
 
+    <section>
+      <dl class="dl-horizontal">
+        
+
+        
+        
+
+
+        
+  <dt>Available extensions</dt>
+  <dd><ul class="comma-separated clazz-relationships">
+      <li><a href="../flint_dart/ModelRelationships.html">ModelRelationships</a></li>
+  </ul></dd>
+        
+
+
+      </dl>
+    </section>
 
     
   <section class="summary offset-anchor" id="constructors">
@@ -206,8 +224,103 @@
 
 </dd>
 
+        <dt id="avg" class="callable">
+  <span class="name"><a href="../flint_dart/Model/avg.html">avg</a></span><span class="signature">(<wbr><span class="parameter" id="avg-param-column"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">column</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/double-class.html">double</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get average value
+  
+
+</dd>
+
+        <dt id="belongsTo" class="callable">
+  <span class="name"><a href="../flint_dart/ModelRelationships/belongsTo.html">belongsTo</a></span><span class="signature">&lt;<wbr><span class="type-parameter">R</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="belongsTo-param-relatedFactory"><span class="type-annotation"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span> <span class="parameter-name">relatedFactory</span>(), {</span><span class="parameter" id="belongsTo-param-localKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">localKey</span>, </span><span class="parameter" id="belongsTo-param-foreignKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">foreignKey</span> = <span class="default-value">&#39;id&#39;</span>, </span><span class="parameter" id="belongsTo-param-useCache"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">useCache</span> = <span class="default-value">false</span>, </span><span class="parameter" id="belongsTo-param-extraCacheParams"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">extraCacheParams</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">R?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>,
+        provided by the <a href="../flint_dart/ModelRelationships.html">ModelRelationships</a> extension</span>
+      </p>
+  
+  
+
+</dd>
+
+        <dt id="belongsToMany" class="callable">
+  <span class="name"><a href="../flint_dart/ModelRelationships/belongsToMany.html">belongsToMany</a></span><span class="signature">&lt;<wbr><span class="type-parameter">R</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="belongsToMany-param-relatedFactory"><span class="type-annotation"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span> <span class="parameter-name">relatedFactory</span>(), {</span><span class="parameter" id="belongsToMany-param-pivotTable"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">pivotTable</span>, </span><span class="parameter" id="belongsToMany-param-foreignPivotKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">foreignPivotKey</span>, </span><span class="parameter" id="belongsToMany-param-relatedPivotKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">relatedPivotKey</span>, </span><span class="parameter" id="belongsToMany-param-localKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">localKey</span> = <span class="default-value">&#39;id&#39;</span>, </span><span class="parameter" id="belongsToMany-param-relatedKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">relatedKey</span> = <span class="default-value">&#39;id&#39;</span>, </span><span class="parameter" id="belongsToMany-param-useCache"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">useCache</span> = <span class="default-value">false</span>, </span><span class="parameter" id="belongsToMany-param-eagerLoad"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span>?</span> <span class="parameter-name">eagerLoad</span>, </span><span class="parameter" id="belongsToMany-param-pivotConditions"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">pivotConditions</span>, </span><span class="parameter" id="belongsToMany-param-extraCacheParams"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">extraCacheParams</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">R</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>,
+        provided by the <a href="../flint_dart/ModelRelationships.html">ModelRelationships</a> extension</span>
+      </p>
+  IMPORTANT: pivotTable should be a valid table identifier (no user input).
+foreignPivotKey defaults to &lt;parent&amp;gt_id, relatedPivotKey defaults to &lt;related&amp;gt_id
+  
+
+</dd>
+
+        <dt id="clearAllRelationshipCache" class="callable">
+  <span class="name"><a href="../flint_dart/ModelRelationships/clearAllRelationshipCache.html">clearAllRelationshipCache</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>,
+        provided by the <a href="../flint_dart/ModelRelationships.html">ModelRelationships</a> extension</span>
+      </p>
+  
+  
+
+</dd>
+
+        <dt id="clearRelationshipCacheFor" class="callable">
+  <span class="name"><a href="../flint_dart/ModelRelationships/clearRelationshipCacheFor.html">clearRelationshipCacheFor</a></span><span class="signature">(<wbr><span class="parameter" id="clearRelationshipCacheFor-param-relationshipKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">relationshipKey</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>,
+        provided by the <a href="../flint_dart/ModelRelationships.html">ModelRelationships</a> extension</span>
+      </p>
+  
+  
+
+</dd>
+
         <dt id="count" class="callable">
-  <span class="name"><a href="../flint_dart/Model/count.html">count</a></span><span class="signature">(<wbr>)
+  <span class="name"><a href="../flint_dart/Model/count.html">count</a></span><span class="signature">(<wbr>[<span class="parameter" id="count-param-column"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">column</span> = <span class="default-value">&#39;*&#39;</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Count results
+  
+
+</dd>
+
+        <dt id="countAll" class="callable">
+  <span class="name"><a href="../flint_dart/Model/countAll.html">countAll</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span>&gt;</span></span>
   </span>
   
@@ -254,7 +367,6 @@
 </dt>
 <dd>
   Delete this model
-Delete this model
   
 
 </dd>
@@ -268,7 +380,19 @@ Delete this model
 </dt>
 <dd>
   Find by ID
-Find by ID
+  
+
+</dd>
+
+        <dt id="first" class="callable">
+  <span class="name"><a href="../flint_dart/Model/first.html">first</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get first result
   
 
 </dd>
@@ -286,6 +410,136 @@ Find by ID
 
 </dd>
 
+        <dt id="get" class="callable">
+  <span class="name"><a href="../flint_dart/Model/get.html">get</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Execute the query and get results
+  
+
+</dd>
+
+        <dt id="getField" class="callable">
+  <span class="name"><a href="../flint_dart/Model/getField.html">getField</a></span><span class="signature">(<wbr><span class="parameter" id="getField-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Base map of model fields (user implements this)
+  
+
+</dd>
+
+        <dt id="groupBy" class="callable">
+  <span class="name"><a href="../flint_dart/Model/groupBy.html">groupBy</a></span><span class="signature">(<wbr><span class="parameter" id="groupBy-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  GROUP BY clause - chainable
+  
+
+</dd>
+
+        <dt id="hasMany" class="callable">
+  <span class="name"><a href="../flint_dart/ModelRelationships/hasMany.html">hasMany</a></span><span class="signature">&lt;<wbr><span class="type-parameter">R</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="hasMany-param-relatedFactory"><span class="type-annotation"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span> <span class="parameter-name">relatedFactory</span>(), {</span><span class="parameter" id="hasMany-param-foreignKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">foreignKey</span>, </span><span class="parameter" id="hasMany-param-localKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">localKey</span> = <span class="default-value">&#39;id&#39;</span>, </span><span class="parameter" id="hasMany-param-useCache"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">useCache</span> = <span class="default-value">false</span>, </span><span class="parameter" id="hasMany-param-eagerLoad"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span>?</span> <span class="parameter-name">eagerLoad</span>, </span><span class="parameter" id="hasMany-param-extraCacheParams"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">extraCacheParams</span>, </span><span class="parameter" id="hasMany-param-additionalConditions"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">additionalConditions</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">R</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>,
+        provided by the <a href="../flint_dart/ModelRelationships.html">ModelRelationships</a> extension</span>
+      </p>
+  
+  
+
+</dd>
+
+        <dt id="hasManyThrough" class="callable">
+  <span class="name"><a href="../flint_dart/ModelRelationships/hasManyThrough.html">hasManyThrough</a></span><span class="signature">&lt;<wbr><span class="type-parameter">T</span>, <span class="type-parameter">R</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="hasManyThrough-param-throughFactory"><span class="type-annotation"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span> <span class="parameter-name">throughFactory</span>(), </span><span class="parameter" id="hasManyThrough-param-relatedFactory"><span class="type-annotation"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span> <span class="parameter-name">relatedFactory</span>(), {</span><span class="parameter" id="hasManyThrough-param-firstKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">firstKey</span>, </span><span class="parameter" id="hasManyThrough-param-secondKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">secondKey</span>, </span><span class="parameter" id="hasManyThrough-param-localKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">localKey</span> = <span class="default-value">&#39;id&#39;</span>, </span><span class="parameter" id="hasManyThrough-param-relatedKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">relatedKey</span> = <span class="default-value">&#39;id&#39;</span>, </span><span class="parameter" id="hasManyThrough-param-useCache"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">useCache</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">R</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>,
+        provided by the <a href="../flint_dart/ModelRelationships.html">ModelRelationships</a> extension</span>
+      </p>
+  Example: Country hasMany Posts through Users
+throughFactory builds the "through" model (e.g. () =&gt; User())
+  
+
+</dd>
+
+        <dt id="hasOne" class="callable">
+  <span class="name"><a href="../flint_dart/ModelRelationships/hasOne.html">hasOne</a></span><span class="signature">&lt;<wbr><span class="type-parameter">R</span>&gt;</span><span class="signature">(<wbr><span class="parameter" id="hasOne-param-relatedFactory"><span class="type-annotation"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span> <span class="parameter-name">relatedFactory</span>(), {</span><span class="parameter" id="hasOne-param-foreignKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">foreignKey</span>, </span><span class="parameter" id="hasOne-param-localKey"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">localKey</span> = <span class="default-value">&#39;id&#39;</span>, </span><span class="parameter" id="hasOne-param-useCache"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">useCache</span> = <span class="default-value">false</span>, </span><span class="parameter" id="hasOne-param-extraCacheParams"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">extraCacheParams</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">R?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+      <p class="from-extension">
+        <span>Available on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>,
+        provided by the <a href="../flint_dart/ModelRelationships.html">ModelRelationships</a> extension</span>
+      </p>
+  
+  
+
+</dd>
+
+        <dt id="limit" class="callable">
+  <span class="name"><a href="../flint_dart/Model/limit.html">limit</a></span><span class="signature">(<wbr><span class="parameter" id="limit-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  LIMIT clause - chainable
+  
+
+</dd>
+
+        <dt id="max" class="callable">
+  <span class="name"><a href="../flint_dart/Model/max.html">max</a></span><span class="signature">(<wbr><span class="parameter" id="max-param-column"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">column</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get max value
+  
+
+</dd>
+
+        <dt id="min" class="callable">
+  <span class="name"><a href="../flint_dart/Model/min.html">min</a></span><span class="signature">(<wbr><span class="parameter" id="min-param-column"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">column</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get min value
+  
+
+</dd>
+
         <dt id="noSuchMethod" class="callable inherited">
   <span class="name"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
     <span class="returntype parameter">&#8594; dynamic</span>
@@ -299,15 +553,119 @@ Find by ID
 
 </dd>
 
-        <dt id="query" class="callable">
-  <span class="name"><a href="../flint_dart/Model/query.html">query</a></span><span class="signature">(<wbr>)
-    <span class="returntype parameter">&#8594; QueryBuilder</span>
+        <dt id="offset" class="callable">
+  <span class="name"><a href="../flint_dart/Model/offset.html">offset</a></span><span class="signature">(<wbr><span class="parameter" id="offset-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
   </span>
   
 
 </dt>
 <dd>
-  Custom query builder
+  OFFSET clause - chainable
+  
+
+</dd>
+
+        <dt id="orderBy" class="callable">
+  <span class="name"><a href="../flint_dart/Model/orderBy.html">orderBy</a></span><span class="signature">(<wbr><span class="parameter" id="orderBy-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, [</span><span class="parameter" id="orderBy-param-direction"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">direction</span> = <span class="default-value">&#39;ASC&#39;</span></span>])
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  ORDER BY clause - chainable
+  
+
+</dd>
+
+        <dt id="orWhere" class="callable">
+  <span class="name"><a href="../flint_dart/Model/orWhere.html">orWhere</a></span><span class="signature">(<wbr><span class="parameter" id="orWhere-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="orWhere-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  OR WHERE clause - chainable
+  
+
+</dd>
+
+        <dt id="orWhereContains" class="callable">
+  <span class="name"><a href="../flint_dart/Model/orWhereContains.html">orWhereContains</a></span><span class="signature">(<wbr><span class="parameter" id="orWhereContains-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="orWhereContains-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="orWhereContains-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="orWhereContains-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="orWhereEndsWith" class="callable">
+  <span class="name"><a href="../flint_dart/Model/orWhereEndsWith.html">orWhereEndsWith</a></span><span class="signature">(<wbr><span class="parameter" id="orWhereEndsWith-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="orWhereEndsWith-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="orWhereEndsWith-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="orWhereEndsWith-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="orWhereLike" class="callable">
+  <span class="name"><a href="../flint_dart/Model/orWhereLike.html">orWhereLike</a></span><span class="signature">(<wbr><span class="parameter" id="orWhereLike-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="orWhereLike-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="orWhereLike-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="orWhereLike-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="orWhereStartsWith" class="callable">
+  <span class="name"><a href="../flint_dart/Model/orWhereStartsWith.html">orWhereStartsWith</a></span><span class="signature">(<wbr><span class="parameter" id="orWhereStartsWith-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="orWhereStartsWith-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="orWhereStartsWith-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="orWhereStartsWith-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="paginate" class="callable">
+  <span class="name"><a href="../flint_dart/Model/paginate.html">paginate</a></span><span class="signature">(<wbr><span class="parameter" id="paginate-param-page"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">page</span>, [</span><span class="parameter" id="paginate-param-perPage"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">perPage</span> = <span class="default-value">15</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Paginate results
+  
+
+</dd>
+
+        <dt id="query" class="callable">
+  <span class="name"><a href="../flint_dart/Model/query.html">query</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="../db/QueryBuilder-class.html">QueryBuilder</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Custom query builder - starts a new chain
   
 
 </dd>
@@ -325,6 +683,19 @@ Find by ID
 
 </dd>
 
+        <dt id="registerRelation" class="callable">
+  <span class="name"><a href="../flint_dart/Model/registerRelation.html">registerRelation</a></span><span class="signature">(<wbr><span class="parameter" id="registerRelation-param-name"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">name</span>, </span><span class="parameter" id="registerRelation-param-loader"><span class="type-annotation"><a href="../flint_dart/RelationLoader.html">RelationLoader</a></span> <span class="parameter-name">loader</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
         <dt id="save" class="callable">
   <span class="name"><a href="../flint_dart/Model/save.html">save</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
@@ -338,6 +709,32 @@ Find by ID
 
 </dd>
 
+        <dt id="select" class="callable">
+  <span class="name"><a href="../flint_dart/Model/select.html">select</a></span><span class="signature">(<wbr><span class="parameter" id="select-param-fields"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">fields</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  SELECT specific fields - chainable
+  
+
+</dd>
+
+        <dt id="sum" class="callable">
+  <span class="name"><a href="../flint_dart/Model/sum.html">sum</a></span><span class="signature">(<wbr><span class="parameter" id="sum-param-column"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">column</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/double-class.html">double</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Get sum value
+  
+
+</dd>
+
         <dt id="toMap" class="callable">
   <span class="name"><a href="../flint_dart/Model/toMap.html">toMap</a></span><span class="signature">(<wbr>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
@@ -346,8 +743,7 @@ Find by ID
 
 </dt>
 <dd>
-  Base map of model fields (user implements this)
-Returns the safe map including concealed filter and timestamps
+  Returns the safe map including concealed filter and timestamps
   
 
 </dd>
@@ -393,26 +789,195 @@ Returns the safe map including concealed filter and timestamps
 
         <dt id="where" class="callable">
   <span class="name"><a href="../flint_dart/Model/where.html">where</a></span><span class="signature">(<wbr><span class="parameter" id="where-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="where-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+    <span class="returntype parameter">&#8594; T</span>
   </span>
   
 
 </dt>
 <dd>
-  Where clause
+  WHERE clause - chainable
+  
+
+</dd>
+
+        <dt id="whereBetween" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereBetween.html">whereBetween</a></span><span class="signature">(<wbr><span class="parameter" id="whereBetween-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereBetween-param-start"><span class="type-annotation">dynamic</span> <span class="parameter-name">start</span>, </span><span class="parameter" id="whereBetween-param-end"><span class="type-annotation">dynamic</span> <span class="parameter-name">end</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="whereContains" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereContains.html">whereContains</a></span><span class="signature">(<wbr><span class="parameter" id="whereContains-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereContains-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="whereContains-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="whereContains-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="whereEndsWith" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereEndsWith.html">whereEndsWith</a></span><span class="signature">(<wbr><span class="parameter" id="whereEndsWith-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereEndsWith-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="whereEndsWith-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="whereEndsWith-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
   
 
 </dd>
 
         <dt id="whereIn" class="callable">
   <span class="name"><a href="../flint_dart/Model/whereIn.html">whereIn</a></span><span class="signature">(<wbr><span class="parameter" id="whereIn-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereIn-param-values"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a></span> <span class="parameter-name">values</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  WHERE IN clause - chainable
+  
+
+</dd>
+
+        <dt id="whereInSimple" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereInSimple.html">whereInSimple</a></span><span class="signature">(<wbr><span class="parameter" id="whereInSimple-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereInSimple-param-values"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a></span> <span class="parameter-name">values</span></span>)
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Find records with custom conditions
+  Simple where IN clause (non-chainable)
+  
+
+</dd>
+
+        <dt id="whereLike" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereLike.html">whereLike</a></span><span class="signature">(<wbr><span class="parameter" id="whereLike-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereLike-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="whereLike-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="whereLike-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="whereNotBetween" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereNotBetween.html">whereNotBetween</a></span><span class="signature">(<wbr><span class="parameter" id="whereNotBetween-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereNotBetween-param-start"><span class="type-annotation">dynamic</span> <span class="parameter-name">start</span>, </span><span class="parameter" id="whereNotBetween-param-end"><span class="type-annotation">dynamic</span> <span class="parameter-name">end</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="whereNotIn" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereNotIn.html">whereNotIn</a></span><span class="signature">(<wbr><span class="parameter" id="whereNotIn-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereNotIn-param-values"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a></span> <span class="parameter-name">values</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  WHERE NOT IN clause - chainable
+  
+
+</dd>
+
+        <dt id="whereNotLike" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereNotLike.html">whereNotLike</a></span><span class="signature">(<wbr><span class="parameter" id="whereNotLike-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereNotLike-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="whereNotLike-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="whereNotLike-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
+        <dt id="whereNotNull" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereNotNull.html">whereNotNull</a></span><span class="signature">(<wbr><span class="parameter" id="whereNotNull-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  WHERE NOT NULL clause - chainable
+  
+
+</dd>
+
+        <dt id="whereNull" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereNull.html">whereNull</a></span><span class="signature">(<wbr><span class="parameter" id="whereNull-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  WHERE NULL clause - chainable
+  
+
+</dd>
+
+        <dt id="whereOperator" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereOperator.html">whereOperator</a></span><span class="signature">(<wbr><span class="parameter" id="whereOperator-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereOperator-param-operator"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">operator</span>, </span><span class="parameter" id="whereOperator-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  WHERE with custom operator - chainable
+  
+
+</dd>
+
+        <dt id="whereSimple" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereSimple.html">whereSimple</a></span><span class="signature">(<wbr><span class="parameter" id="whereSimple-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereSimple-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Simple where clause (non-chainable)
+  
+
+</dd>
+
+        <dt id="whereStartsWith" class="callable">
+  <span class="name"><a href="../flint_dart/Model/whereStartsWith.html">whereStartsWith</a></span><span class="signature">(<wbr><span class="parameter" id="whereStartsWith-param-field"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">field</span>, </span><span class="parameter" id="whereStartsWith-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span>, {</span><span class="parameter" id="whereStartsWith-param-caseSensitive"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">caseSensitive</span> = <span class="default-value">false</span>, </span><span class="parameter" id="whereStartsWith-param-escape"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">escape</span> = <span class="default-value">true</span></span>})
+    <span class="returntype parameter">&#8594; T</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
   
 
 </dd>
@@ -467,7 +1032,7 @@ Returns the safe map including concealed filter and timestamps
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+16
+      1.0.0+21
   </span>
   
 </footer>
