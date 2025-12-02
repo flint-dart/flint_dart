@@ -90,9 +90,34 @@ final _relationshipCache = _RelationshipCache();
 
 /// Relationships extension using factory constructors for each related model.
 /// Usage examples (in model classes):
+/// Defines a one-to-one inverse relationship between models.
+///
+/// This method establishes a "belongs to" relationship, indicating that the current model
+/// belongs to a single instance of the related model specified by [relatedFactory].
+///
+/// **Example:**
+/// ```dart
+/// class Post extends Model {
 ///   Future<User?> user() => belongsTo(() => User(), localKey: 'user_id');
-///   Future<List<Post>> posts() => hasMany(() => Post());
-///   Future<List<Role>> roles() => belongsToMany(() => Role(), pivotTable: 'role_user');
+/// }
+/// ```
+///
+/// **Parameters:**
+/// - [relatedFactory]: A factory function that returns an instance of the related model.
+/// - [localKey]: The local key on the current model used to establish the relationship.
+///   If not specified, defaults to the foreign key convention.
+/// - [foreignKey]: The foreign key on the related model. Defaults to `'id'`.
+/// - [useCache]: Whether to cache the relationship result. Defaults to `false`.
+///
+/// **Returns:**
+/// A [Future] that resolves to a single instance of the related model, or `null` if no
+/// related model exists.
+///
+/// **See also:**
+/// - [hasMany] for one-to-many relationships
+/// - [belongsToMany] for many-to-many relationships
+///   Future&gt;List&gt;Post>> posts() => hasMany(() => Post());
+///   Future&lt;List&gt;Role&gt;&gt; roles() => belongsToMany(() => Role(), pivotTable: 'role_user');
 extension ModelRelationships on Model {
   // ------------- BELONGS TO -------------
   Future<R?> belongsTo<R>(

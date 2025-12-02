@@ -550,6 +550,51 @@ class Response {
 </html>
 ''';
   }
+
+  /// ----------------------------------------
+  /// COOKIE SUPPORT
+  /// ----------------------------------------
+
+  /// Set a cookie on the response
+  Response setCookie(
+    String name,
+    String value, {
+    DateTime? expires,
+    int? maxAge,
+    String path = '/',
+    bool httpOnly = true,
+    bool secure = false,
+    String sameSite = 'Lax', // Lax, Strict, None
+  }) {
+    final cookie = StringBuffer()..write('$name=$value; Path=$path;');
+
+    if (expires != null) {
+      cookie.write(' Expires=${HttpDate.format(expires)};');
+    }
+
+    if (maxAge != null) {
+      cookie.write(' Max-Age=$maxAge;');
+    }
+
+    if (httpOnly) cookie.write(' HttpOnly;');
+    if (secure) cookie.write(' Secure;');
+    if (sameSite.isNotEmpty) cookie.write(' SameSite=$sameSite;');
+
+    raw.headers.add('Set-Cookie', cookie.toString());
+    return this;
+  }
+
+  /// Remove a cookie
+  Response clearCookie(
+    String name, {
+    String path = '/',
+  }) {
+    raw.headers.add(
+      'Set-Cookie',
+      '$name=; Path=$path; Expires=Thu, 01 Jan 1970 00:00:00 GMT;',
+    );
+    return this;
+  }
 }
 
 /// Common HTTP status codes and their default messages.

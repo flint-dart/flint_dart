@@ -37,7 +37,9 @@ class Storage {
   /// Returns the public URL of the saved file.
   static Future<String> create(UploadedFile file,
       {String subdirectory = ''}) async {
-    final String uniqueFileName = '${Uuid().v4()}_${file.filename}';
+    final safeFileName = file.filename.replaceAll(' ', '_');
+
+    final String uniqueFileName = '${Uuid().v4()}_$safeFileName';
     final String uploadPath = '$_baseDir/$subdirectory';
 
     final Directory dir = Directory(uploadPath);
@@ -47,7 +49,7 @@ class Storage {
 
     final File newFile = File('$uploadPath/$uniqueFileName');
     await file.content.pipe(newFile.openWrite());
-
+    print('$_baseUrl/$subdirectory/$uniqueFileName');
     return '$_baseUrl/$subdirectory/$uniqueFileName';
   }
 

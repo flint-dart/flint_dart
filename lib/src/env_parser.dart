@@ -192,23 +192,33 @@ class FlintEnv {
 
     for (var line in lines) {
       line = line.trim();
+
+      // Ignore full-line comments
       if (line.isEmpty || line.startsWith('#')) continue;
+
+      // Remove inline comments (# ...)
+      final commentIndex = line.indexOf('#');
+      if (commentIndex != -1) {
+        line = line.substring(0, commentIndex).trim();
+      }
+
+      if (line.isEmpty) continue;
 
       final match = regex.firstMatch(line);
       if (match != null) {
         final key = match.group(1)!;
         var value = match.group(2)!;
 
-        // Remove surrounding quotes if present
-        if (value.startsWith('"') && value.endsWith('"')) {
-          value = value.substring(1, value.length - 1);
-        } else if (value.startsWith("'") && value.endsWith("'")) {
+        // Remove surrounding quotes
+        if ((value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))) {
           value = value.substring(1, value.length - 1);
         }
 
         result[key] = value;
       }
     }
+
     return result;
   }
 }

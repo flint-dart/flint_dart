@@ -227,6 +227,78 @@ abstract class Model<T extends Model<T>> {
     return result;
   }
 
+  T whereLike(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.whereLike(field, value, caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T whereNotLike(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.whereNotLike(field, value,
+        caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T orWhereLike(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.orWhereLike(field, value, caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T whereBetween(String field, dynamic start, dynamic end) {
+    _qb.whereBetween(field, start, end);
+    return this as T;
+  }
+
+  T whereNotBetween(String field, dynamic start, dynamic end) {
+    _qb.whereNotBetween(field, start, end);
+    return this as T;
+  }
+
+  // Helper methods for contains, starts with, ends with
+  T whereContains(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.whereContains(field, value,
+        caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T whereStartsWith(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.whereStartsWith(field, value,
+        caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T whereEndsWith(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.whereEndsWith(field, value,
+        caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T orWhereContains(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.orWhereContains(field, value,
+        caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T orWhereStartsWith(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.orWhereStartsWith(field, value,
+        caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
+  T orWhereEndsWith(String field, String value,
+      {bool caseSensitive = false, bool escape = true}) {
+    _qb.orWhereStartsWith(field, value,
+        caseSensitive: caseSensitive, escape: escape);
+    return this as T;
+  }
+
   // ========== ORIGINAL CRUD METHODS (Preserved) ==========
 
   /// Refresh the model from DB

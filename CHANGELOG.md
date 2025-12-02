@@ -1,9 +1,47 @@
-# 🚀 Flint Dart — Version 1.0.0+20
-# 🚀 Flint Dart — Version 1.0.0+19
-# 🚀 Flint Dart — Version 1.0.0+18
+# 🚀 Flint Dart Changelog
+
+All notable changes to Flint Dart will be documented in this file.
+
+---
+
+## [1.0.0+21] — 2025-12-02
+### 🆕 New Features
+* **Full QueryBuilder Dartdoc:** Added complete documentation for all QueryBuilder methods.
+* **Enhanced LIKE Helpers:** `whereContains`, `whereStartsWith`, `whereEndsWith`, and their OR counterparts now fully documented.
+* **Date and Range Filtering:** `whereDate`, `whereBetween`, `whereNotBetween` fully documented with examples.
+* **Aggregate Functions:** `count`, `max`, `min`, `avg`, `sum` updated with usage examples.
+
+---
+
+## [1.0.0+20] — 2025-11-28
+### 🆕 New Features
+* **UUID Primary Key Support:** Automatically generates UUIDs for string-based primary keys when no value is provided.
+* **Database-Aware Inserts:** Insert logic now checks column types and auto-increment settings for both MySQL and PostgreSQL.
+* **Column Info Caching:** Reduces repeated queries to `information_schema` by caching column metadata per table.
+* **Seamless Auto-Increment Handling:** Integer primary keys without values are left to DB auto-increment; no manual intervention needed.
+* **PostgreSQL & MySQL Compatible:** Insert logic and ID handling work consistently across both supported databases.
+
+---
+
+## [1.0.0+19] — 2025-11-25
+### 🆕 New Features
+* **QueryBuilder `orWhereLike` and `orWhereNotLike`:** Adds OR-based LIKE conditions for more flexible queries.
+* **Eager-Loaded Relations Support:** `withRelations()` method added for automatic relation fetching.
+* **Pagination Improvements:** `paginate()` method now restores original limits/offsets after fetching.
+
+---
+
+## [1.0.0+18] — 2025-11-22
+### 🆕 New Features
+* **Helper Methods for LIKE:** Added `whereContains`, `whereStartsWith`, `whereEndsWith` helpers for clean queries.
+* **OR Helper Methods:** `orWhereContains`, `orWhereStartsWith`, `orWhereEndsWith` for OR-based matching.
+* **Case Sensitivity Toggle:** All LIKE helpers support `caseSensitive` parameter.
+* **Escape Special Characters:** LIKE patterns automatically escape `%` and `_` with `_escapeLike()` helper.
+
+* **Aggregate Functions:** Added `count`, `max`, `min`, `avg`, and `sum` for QueryBuilder.
+* **Group & Order:** `groupBy()` and `orderBy()` methods enhanced to support multiple fields.
+* **LIMIT & OFFSET:** Fluent interface for pagination and query control.
 # 🚀 Flint Dart — Version 1.0.0+17
-
-
 ### 🆕 New Features
 
 * **UUID Primary Key Support:** Automatically generates UUIDs for string-based primary keys when no value is provided.

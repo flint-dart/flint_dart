@@ -481,7 +481,22 @@ class FlintTemplateEngine {
       return current;
     }
 
-    return context[trimmed];
+    // Handle dot notation for nested properties
+    if (trimmed.contains('.')) {
+      final parts = trimmed.split('.');
+      dynamic current = context;
+
+      for (final part in parts) {
+        if (current is Map && current.containsKey(part)) {
+          current = current[part]; // This is Dart Map access!
+        } else {
+          return null;
+        }
+      }
+      return current;
+    }
+
+    return context[trimmed]; // Direct Map access
   }
 
   static bool _evaluateCondition(

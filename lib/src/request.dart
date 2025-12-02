@@ -2,10 +2,9 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/src/auth/auth.dart';
+import 'package:flint_dart/src/session/session.dart';
 import 'package:mime/mime.dart';
-
-/// In-memory session storage (in production, use a persistent store)
-final Map<String, Map<String, dynamic>> _sessionStore = {};
 
 /// Represents a single uploaded file with metadata and content stream.
 class UploadedFile {
@@ -31,9 +30,6 @@ class UploadedFile {
 }
 
 /// Enhanced HTTP request wrapper with comprehensive parsing, validation, and session management.
-///
-/// This class provides a convenient interface for handling HTTP requests in a Flint Dart server,
-/// including body parsing, file uploads, authentication, session management, and validation.
 class Request {
   /// The original [HttpRequest] from Dart's `dart:io` server.
   final HttpRequest raw;
@@ -46,6 +42,9 @@ class Request {
 
   /// Cache for parsed body content to avoid multiple parsing
   dynamic _bodyCache;
+
+  /// Singleton SessionManager instance (use your existing SessionManager).
+  static final sessionManager = SessionManager();
 
   /// Constructs a [Request] with the raw [HttpRequest] and optional route [params].
   Request(this.raw, {Map<String, String>? params}) : params = params ?? {};
@@ -99,19 +98,41 @@ class Request {
   /// JWT utility instance for token operations
   FlintJwt get jwt => FlintJwt(FlintEnv.get('JWT_SECRET'));
 
-  /// Returns the authenticated user payload from JWT
-  Map<String, dynamic>? get user => get('user');
+  // ---------------- USER ----------------
+  /// Returns the authenticated user payload from JWT or session (option C: session shape == JWT payload)
+  Future<Map<String, dynamic>?> get user async {
+    // 1️⃣ JWT first
+    final token = bearerToken;
+    if (token != null) {
+      try {
+        final payload = Auth.verifyToken(token);
+        set('user', payload);
+        return payload;
+      } catch (_) {
+        // invalid token → fallback to session
+      }
+    }
 
-  /// Returns true if the request has a valid authenticated user
-  bool get isAuthenticated => user != null;
+    // 2️⃣ fallback to session (SessionManager returns the session data we stored earlier)
+    final s = await session;
+    if (s != null) {
+      // Option C: session data is the same shape as JWT payload
+      set('user', s);
+      return s;
+    }
+
+    // 3️⃣ no user
+    return null;
+  }
+
+  /// Returns true if the request has a valid authenticated user (cached in _storage)
+  bool get isAuthenticated => _storage.containsKey('user');
 
   /// Throws an exception if no user is authenticated
   Map<String, dynamic> requireUser() {
-    final user = this.user;
-    if (user == null) {
-      throw Exception('Authentication required');
-    }
-    return user;
+    final u = _storage['user'];
+    if (u == null) throw Exception('Authentication required');
+    return Map<String, dynamic>.from(u as Map);
   }
 
   // ==================== SESSION MANAGEMENT ====================
@@ -119,54 +140,42 @@ class Request {
   /// Session ID from FLINTSESSID cookie
   String? get sessionId => cookies['FLINTSESSID'];
 
-  /// Returns current session data if exists
-  Map<String, dynamic>? get session {
-    final id = sessionId;
-    return id != null ? _sessionStore[id] : null;
+  /// Returns current session data if exists (delegates to SessionManager)
+  Future<Map<String, dynamic>?> get session async {
+    return await sessionManager.getSession(sessionId);
   }
 
-  /// Creates a new session with the provided data
-  Future<void> startSession(Map<String, dynamic> data) async {
-    final newId = _generateSessionId();
-    raw.response.cookies.add(
-      Cookie('FLINTSESSID', newId)
-        ..path = '/'
-        ..httpOnly = true
-        ..secure = true, // Use secure cookies in production
-    );
-
-    _sessionStore[newId] = Map<String, dynamic>.from(data);
+  /// Creates a new session with the provided data (delegates to SessionManager)
+  /// Returns the generated session id.
+  Future<String> startSession(Map<String, dynamic> data,
+      {Duration? ttl}) async {
+    final id = await sessionManager.createSession(raw.response, data, ttl: ttl);
+    // cache user in request storage (session payload is same shape as JWT per option C)
+    set('user', data);
+    return id;
   }
 
-  /// Updates the current session data
-  void updateSession(Map<String, dynamic> updates) {
-    final id = sessionId;
-    if (id != null && _sessionStore.containsKey(id)) {
-      _sessionStore[id]!.addAll(updates);
-    }
+  /// Merge updates into existing session. NOTE: this implementation will create a NEW session
+  /// with merged data and set a new cookie (session id regenerated). If you need to preserve the
+  /// old session id, add an update method to SessionManager that writes in-place.
+  Future<String?> updateSession(Map<String, dynamic> updates,
+      {Duration? ttl}) async {
+    final current = await session;
+    if (current == null) return null;
+
+    final merged = {...current, ...updates};
+    // destroy old session and create a new one (keeps code simple and secure)
+    await sessionManager.destroySession(raw.response, sessionId);
+    final newId =
+        await sessionManager.createSession(raw.response, merged, ttl: ttl);
+    set('user', merged);
+    return newId;
   }
 
-  /// Destroys the current session
-  void destroySession() {
-    final id = sessionId;
-    if (id != null) {
-      _sessionStore.remove(id);
-      // Clear the session cookie
-      raw.response.cookies.add(
-        Cookie('FLINTSESSID', '')
-          ..path = '/'
-          ..maxAge = 0,
-      );
-    }
-  }
-
-  /// Generates a cryptographically secure session ID
-  String _generateSessionId() {
-    // Improved session ID generation
-    final random = List<int>.generate(
-        32, (_) => DateTime.now().millisecondsSinceEpoch % 256);
-    return base64Url.encode(random) +
-        DateTime.now().millisecondsSinceEpoch.toString();
+  /// Destroys the current session (delegates to SessionManager)
+  Future<void> destroySession() async {
+    await sessionManager.destroySession(raw.response, sessionId);
+    _storage.remove('user');
   }
 
   // ==================== COOKIE MANAGEMENT ====================
@@ -176,14 +185,22 @@ class Request {
     final cookieHeader = raw.headers.value(HttpHeaders.cookieHeader);
     if (cookieHeader == null) return {};
 
-    return Map.fromEntries(cookieHeader.split(';').map((cookie) {
+    final cookies = <String, String>{};
+
+    for (var cookie in cookieHeader.split(';')) {
       final trimmed = cookie.trim();
-      final parts = trimmed.split('=');
-      if (parts.length == 2) {
-        return MapEntry(parts[0], parts[1]);
-      }
-      return MapEntry(trimmed, '');
-    }));
+      final index = trimmed.indexOf('=');
+
+      if (index == -1) continue; // skip malformed cookies
+
+      final key = trimmed.substring(0, index).trim();
+      final value =
+          trimmed.substring(index + 1).trim(); // keep all remaining chars
+
+      cookies[key] = value;
+    }
+
+    return cookies;
   }
 
   // ==================== BODY PARSING ====================
@@ -296,7 +313,6 @@ class Request {
   // ==================== BODY ACCESS METHODS ====================
 
   /// Reads and returns the raw request body as a string
-  ///
   /// Note: For multipart/form-data requests, use [form()] or [files()] instead
   Future<String> body() async {
     await _parseBody();
@@ -307,7 +323,6 @@ class Request {
   }
 
   /// Parses the body as JSON and returns a Map
-  ///
   /// @throws FormatException if body is not valid JSON
   Future<Map<String, dynamic>> json() async {
     await _parseBody();
@@ -348,10 +363,7 @@ class Request {
     return false;
   }
 
-  /// NEW: Checks if multiple files with the given field name exist in the request
-  ///
-  /// This method is useful for handling multiple file uploads with the same field name.
-  /// For example, when uploading multiple gallery images with field name "gallery[]"
+  /// Checks if multiple files with the given field name exist in the request
   Future<bool> hasFiles(String fieldName) async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {
@@ -369,10 +381,7 @@ class Request {
     return false;
   }
 
-  /// NEW: Retrieves multiple uploaded files by field name
-  ///
-  /// This method returns all files that match the given field name,
-  /// including array-style field names (e.g., "gallery[]", "gallery[0]", etc.)
+  /// Retrieves multiple uploaded files by field name
   Future<List<UploadedFile?>> files(String fieldName) async {
     await _parseBody();
     if (_bodyCache is Map && _bodyCache.containsKey('files')) {
@@ -398,8 +407,6 @@ class Request {
     return [];
   }
 
-  /// Retrieves all uploaded files fro
-
   /// Retrieves a single uploaded file by field name
   Future<UploadedFile?> file(String fieldName) async {
     await _parseBody();
@@ -422,22 +429,6 @@ class Request {
   // ==================== VALIDATION ====================
 
   /// Validates the request body against specified validation rules
-  ///
-  /// This method automatically parses the JSON body and validates it
-  /// using the Flint validation system.
-  ///
-  /// Example:
-  /// ```dart
-  /// final data = await request.validate({
-  ///   'email': 'required|email',
-  ///   'password': 'required|min:6',
-  ///   'age': 'optional|integer|min:18'
-  /// });
-  /// ```
-  ///
-  /// @param rules Validation rules in pipe-separated format
-  /// @returns Validated and parsed request body
-  /// @throws ValidationException if validation fails
   Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
     final body = await json();
     await Validator.validate(body, rules);
@@ -445,8 +436,6 @@ class Request {
   }
 
   /// Validates form data against specified rules
-  ///
-  /// Useful for traditional form submissions
   Future<Map<String, String>> validateForm(Map<String, String> rules) async {
     final formData = await form();
     await Validator.validate(formData, rules);

@@ -12,7 +12,7 @@ class QueryBuilder {
   final List<String> _orderBys = [];
   final List<String> _groups = [];
   final List<String> _relations = [];
-  final Map<String, dynamic> _eagerLoaded = {};
+  // final Map<String, dynamic> _eagerLoaded = {};
   final Map<String, dynamic> _bindings = {};
   static final Map<String, _ColumnInfo> _columnCache = {};
 
@@ -31,6 +31,183 @@ class QueryBuilder {
   }
 
   List<String> get relations => _relations;
+
+  String _escapeLike(String value) {
+    return value
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+  }
+
+  /// Adds a LIKE condition to the query.
+  ///
+  /// [field] is the column to match.
+  /// [pattern] is the SQL pattern (supports % as wildcard).
+  /// [caseSensitive] determines if the match is case-sensitive.
+  /// [escape] determines if special characters in the pattern are escaped.
+  QueryBuilder whereLike(String field, String pattern,
+      {bool caseSensitive = false, bool escape = true}) {
+    final paramName = 'p${_paramIndex++}';
+    final processedPattern = escape ? _escapeLike(pattern) : pattern;
+
+    if (DB.driver == DBDriver.postgres) {
+      final sql = caseSensitive
+          ? '$field LIKE :$paramName'
+          : '$field ILIKE :$paramName';
+      _wheres.add(sql);
+    } else {
+      final sql =
+          caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
+      _wheres.add(sql);
+    }
+
+    _bindings[paramName] = processedPattern;
+    return this;
+  }
+
+  /// Adds a NOT LIKE condition to the query.
+  ///
+  /// [field] is the column to match.
+  /// [pattern] is the SQL pattern.
+  /// [caseSensitive] determines if the match is case-sensitive.
+  /// [escape] determines if special characters in the pattern are escaped.
+  QueryBuilder whereNotLike(String field, String pattern,
+      {bool caseSensitive = false, bool escape = true}) {
+    final paramName = 'p${_paramIndex++}';
+    final processedPattern = escape ? _escapeLike(pattern) : pattern;
+
+    if (DB.driver == DBDriver.postgres) {
+      final sql = caseSensitive
+          ? '$field NOT LIKE :$paramName'
+          : '$field NOT ILIKE :$paramName';
+      _wheres.add(sql);
+    } else {
+      final sql = caseSensitive
+          ? '$field NOT LIKE ?'
+          : 'LOWER($field) NOT LIKE LOWER(?)';
+      _wheres.add(sql);
+    }
+
+    _bindings[paramName] = processedPattern;
+    return this;
+  }
+
+  /// Adds an OR LIKE condition to the query.
+  ///
+  /// Works similarly to [whereLike] but combines with OR logic.
+  QueryBuilder orWhereLike(String field, String pattern,
+      {bool caseSensitive = false, bool escape = true}) {
+    final paramName = 'p${_paramIndex++}';
+    final processedPattern = escape ? _escapeLike(pattern) : pattern;
+
+    if (DB.driver == DBDriver.postgres) {
+      final sql = caseSensitive
+          ? '$field LIKE :$paramName'
+          : '$field ILIKE :$paramName';
+      _orWheres.add(sql);
+    } else {
+      final sql =
+          caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
+      _orWheres.add(sql);
+    }
+
+    _bindings[paramName] = processedPattern;
+    return this;
+  }
+
+  // Helper methods for contains, starts with, ends with
+  // ------------------------
+  // Helper Methods for LIKE
+  // ------------------------
+
+  /// Adds a WHERE condition that checks if [field] contains [value].
+  QueryBuilder whereContains(String field, String value,
+          {bool caseSensitive = false, bool escape = true}) =>
+      whereLike(field, '%$value%',
+          caseSensitive: caseSensitive, escape: escape);
+
+  /// Adds a WHERE condition that checks if [field] starts with [value].
+  QueryBuilder whereStartsWith(String field, String value,
+          {bool caseSensitive = false, bool escape = true}) =>
+      whereLike(field, '$value%', caseSensitive: caseSensitive, escape: escape);
+
+  /// Adds a WHERE condition that checks if [field] ends with [value].
+  QueryBuilder whereEndsWith(String field, String value,
+          {bool caseSensitive = false, bool escape = true}) =>
+      whereLike(field, '%$value', caseSensitive: caseSensitive, escape: escape);
+
+  /// Adds an OR condition that checks if [field] contains [value].
+  QueryBuilder orWhereContains(String field, String value,
+          {bool caseSensitive = false, bool escape = true}) =>
+      orWhereLike(field, '%$value%',
+          caseSensitive: caseSensitive, escape: escape);
+
+  /// Adds an OR condition that checks if [field] starts with [value].
+  QueryBuilder orWhereStartsWith(String field, String value,
+          {bool caseSensitive = false, bool escape = true}) =>
+      orWhereLike(field, '$value%',
+          caseSensitive: caseSensitive, escape: escape);
+
+  /// Adds an OR condition that checks if [field] ends with [value].
+  QueryBuilder orWhereEndsWith(String field, String value,
+          {bool caseSensitive = false, bool escape = true}) =>
+      orWhereLike(field, '%$value',
+          caseSensitive: caseSensitive, escape: escape);
+  // ------------------------
+  // Range / Date Methods
+  // ------------------------
+
+  /// Adds a WHERE condition that filters [field] between [start] and [end].
+  QueryBuilder whereBetween(
+    String field,
+    dynamic start,
+    dynamic end,
+  ) {
+    final paramStart = 'p${_paramIndex++}';
+    final paramEnd = 'p${_paramIndex++}';
+
+    if (DB.driver == DBDriver.postgres) {
+      _wheres.add('$field BETWEEN :$paramStart AND :$paramEnd');
+    } else {
+      _wheres.add('$field BETWEEN ? AND ?');
+    }
+
+    _bindings[paramStart] = start;
+    _bindings[paramEnd] = end;
+
+    return this;
+  }
+
+  /// Adds a WHERE condition that filters [field] NOT between [start] and [end].
+  QueryBuilder whereNotBetween(String field, dynamic start, dynamic end) {
+    final paramStart = 'p${_paramIndex++}';
+    final paramEnd = 'p${_paramIndex++}';
+
+    if (DB.driver == DBDriver.postgres) {
+      _wheres.add('$field NOT BETWEEN :$paramStart AND :$paramEnd');
+    } else {
+      _wheres.add('$field NOT BETWEEN ? AND ?');
+    }
+
+    _bindings[paramStart] = start;
+    _bindings[paramEnd] = end;
+
+    return this;
+  }
+
+  /// Adds a WHERE condition that filters [field] to match the given [date].
+  QueryBuilder whereDate(String field, DateTime date) {
+    final paramName = 'p${_paramIndex++}';
+
+    if (DB.driver == DBDriver.postgres) {
+      _wheres.add("DATE($field) = DATE(:$paramName)");
+    } else {
+      _wheres.add("DATE($field) = DATE(?)");
+    }
+
+    _bindings[paramName] = date.toIso8601String();
+    return this;
+  }
 
   /// WHERE clause
   QueryBuilder where(String field, String operator, dynamic value) {
