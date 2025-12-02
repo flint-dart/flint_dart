@@ -18,7 +18,9 @@ class Cookie {
   @override
   String toString() {
     String cookie = '$name=$value; Path=$path;';
-    if (expires != null) cookie += ' Expires=${expires!.toUtc().toIso8601String()};';
+    if (expires != null) {
+      cookie += ' Expires=${expires!.toUtc().toIso8601String()};';
+    }
     if (httpOnly) cookie += ' HttpOnly;';
     if (secure) cookie += ' Secure;';
     return cookie;

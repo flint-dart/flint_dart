@@ -1,10 +1,11 @@
 import 'package:flint_dart/auth.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 import 'package:flint_dart/src/response.dart';
+
 extension OAuthResponse on Response {
   Response oAuthRedirect(String provider, {String? callback}) {
     String authUrl;
-    
+
     // Handle callback parameter with proper URL construction
     String callbackUrl;
     if (callback != null) {

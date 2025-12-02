@@ -59,10 +59,12 @@ class BoxBorder {
         'style': style.name,
       };
 
-  static all({
+  static BoxBorder all({
     required String color,
-    double? width,
-  }) {}
+    double width = 1,
+  }) {
+    return BoxBorder(color: color, width: width);
+  }
 }
 
 enum BorderStyle {
