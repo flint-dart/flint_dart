@@ -24,15 +24,12 @@ class Router {
 
   Handler? match(
       String method, String pathToMatch, Map<String, String> paramsOut) {
+    // First pass: try to find exact matches or parameterized routes
     for (final route in routes) {
       if (route.method != method) continue;
 
-      if (route.path.endsWith('/*')) {
-        final prefix = route.path.substring(0, route.path.length - 1);
-        if (pathToMatch.startsWith(prefix)) {
-          return _wrapWithMiddlewares(route.handler, route.middlewares);
-        }
-      }
+      // Skip wildcard routes in first pass
+      if (route.path.endsWith('/*')) continue;
 
       final routeParts = route.path.split('/');
       final pathParts = pathToMatch.split('/');
@@ -58,6 +55,18 @@ class Router {
       if (matched) {
         paramsOut.addAll(params);
         return _wrapWithMiddlewares(route.handler, route.middlewares);
+      }
+    }
+
+    // Second pass: check wildcard routes (only if no exact match found)
+    for (final route in routes) {
+      if (route.method != method) continue;
+
+      if (route.path.endsWith('/*')) {
+        final prefix = route.path.substring(0, route.path.length - 1);
+        if (pathToMatch.startsWith(prefix)) {
+          return _wrapWithMiddlewares(route.handler, route.middlewares);
+        }
       }
     }
 

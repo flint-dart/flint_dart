@@ -6,21 +6,25 @@ import 'package:flint_dart/src/auth/auth.dart';
 import 'package:flint_dart/src/session/session.dart';
 import 'package:mime/mime.dart';
 
-/// Represents a single uploaded file with metadata and content stream.
 class UploadedFile {
   final String fieldName;
   final String filename;
   final String? contentType;
+  final int? size; // file size in bytes
+  final String? extension; // ".png", ".jpg"
+  final DateTime uploadedAt; // auto timestamp
   final Stream<List<int>> content;
 
   UploadedFile({
     required this.fieldName,
     required this.filename,
     this.contentType,
+    this.size,
+    this.extension,
+    DateTime? uploadedAt,
     required this.content,
-  });
+  }) : uploadedAt = uploadedAt ?? DateTime.now();
 
-  /// Saves the uploaded file to the specified path
   Future<void> saveTo(String path) async {
     final file = File(path);
     final sink = file.openWrite();
@@ -265,18 +269,32 @@ class Request {
     if (fieldName == null) return;
 
     if (contentDisposition.contains('filename=')) {
-      // This is a file part
+      // FILE FIELD
       final filename = _extractFilename(contentDisposition);
+      final ext = filename.split('.').last;
       final contentType = part.headers['content-type']?.split(';')[0];
+
+      // Count size while buffering the stream
+      int totalBytes = 0;
+      final controller = StreamController<List<int>>();
+
+      part.listen((chunk) {
+        totalBytes += chunk.length;
+        controller.add(chunk);
+      }, onDone: () {
+        controller.close();
+      });
 
       files[fieldName] = UploadedFile(
         fieldName: fieldName,
         filename: filename,
         contentType: contentType,
-        content: part,
+        size: totalBytes,
+        extension: ext,
+        content: controller.stream,
       );
     } else {
-      // This is a regular form field
+      // NORMAL FIELD
       fields[fieldName] = await utf8.decodeStream(part);
     }
   }

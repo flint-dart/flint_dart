@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flint_dart/flint_ui.dart' hide FlintTemplate;
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
+import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:path/path.dart' as p;
 
 import '../flint_dart.dart';
@@ -289,8 +290,63 @@ class Response {
   /// Streams the contents of a [File] directly to the response body.
   ///
   /// Does not set the content type automatically — you should set it before calling.
-  Future<void> streamFile(File file) async {
-    await raw.addStream(file.openRead());
+  /// Streams a file to the response, optionally with byte range.
+  Future<void> streamFile(File file, {int start = 0, int? end}) async {
+    try {
+      if (start == 0 && end == null) {
+        // Full file stream
+        await raw.addStream(file.openRead());
+      } else {
+        // Range request - read specific bytes
+        final rangeStream = _createFileRangeStream(file, start, end);
+        await raw.addStream(rangeStream);
+      }
+    } catch (e) {
+      print('Error streaming file: $e');
+      if (!isClosed) {
+        raw.statusCode = HttpStatus.internalServerError;
+        raw.write('Error serving file');
+        await close();
+      }
+    }
+  }
+
+  /// Creates a stream for a specific byte range of a file.
+  Stream<List<int>> _createFileRangeStream(
+      File file, int start, int? end) async* {
+    final raf = await file.open(mode: FileMode.read);
+    try {
+      await raf.setPosition(start);
+
+      final chunkSize = 64 * 1024; // 64KB chunks
+      final maxBytes = end != null ? (end - start + 1) : null;
+      var bytesRead = 0;
+
+      while (true) {
+        // Calculate how many bytes to read in this chunk
+        int bytesToRead;
+        if (maxBytes != null) {
+          final remaining = maxBytes - bytesRead;
+          bytesToRead = remaining > chunkSize ? chunkSize : remaining;
+          if (bytesToRead <= 0) break;
+        } else {
+          bytesToRead = chunkSize;
+        }
+
+        final buffer = List<int>.filled(bytesToRead, 0);
+        final bytesReadNow = await raf.readInto(buffer, 0, bytesToRead);
+
+        if (bytesReadNow == 0) break;
+
+        // Yield only the portion that was actually read
+        yield buffer.sublist(0, bytesReadNow);
+        bytesRead += bytesReadNow;
+
+        if (maxBytes != null && bytesRead >= maxBytes) break;
+      }
+    } finally {
+      await raf.close();
+    }
   }
 
   /// Redirects the client to a different [location] (URL or path).
@@ -361,7 +417,8 @@ class Response {
     String content;
     try {
       // Use the original templateName directly
-      content = FlintTemplateEngine.render(templateName, data: data ?? {});
+      // TemplateEngine().render(view, context)
+      content = TemplateEngine().render(templateName, data ?? {});
     } catch (e) {
       // Fallback to raw file content if template rendering fails
       content = await file.readAsString();

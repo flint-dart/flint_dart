@@ -95,7 +95,7 @@ abstract class FlintNotificationTemplate extends FlintEmailTemplate {
     return Container(
       constraints: BoxConstraints(maxWidth: 500),
       backgroundColor: '#ffffff',
-      border: BoxBorder.all(color: '#e0e0e0'),
+    
       borderRadius: BorderRadius.circular(8),
       children: [
         buildContent(),

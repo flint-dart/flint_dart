@@ -2,10 +2,12 @@
 // File: lib/core/helpers.dart
 // ----------------------------
 
+import 'package:flint_dart/src/template_engine/template_engine.dart';
+
 import '../src/template_engine/template.dart';
 
 String view(String name, [Map<String, dynamic> data = const {}]) =>
-    FlintTemplateEngine.render(name, data: data);
+    TemplateEngine().render(name, data);
 
 // CSRF helper stub (you must wire this to your session/auth layer)
 String csrfField(String token) =>
@@ -22,14 +24,14 @@ String old(Map<String, dynamic> oldData, String key) =>
 // <html>
 // <head>
 //   <meta charset="utf-8" />
-//   <title>{@ yield('title') @}</title>
+//   <title>{@ yield('title') }}</title>
 // </head>
 // <body>
 //   <aside>
-//     {@ yield('sidebar') @}
+//     {@ yield('sidebar') }}
 //   </aside>
 //   <main>
-//     {@ yield('content') @}
+//     {@ yield('content') }}
 //   </main>
 // </body>
 // </html>
@@ -47,22 +49,22 @@ String old(Map<String, dynamic> oldData, String key) =>
 // ----------------------------
 // File: views/dashboard.html (example)
 // ----------------------------
-// {@ extends('layouts.app') @}
+// {@ extends('layouts.app') }}
 //
-// {@ section('title', 'Dashboard') @}
+// {@ section('title', 'Dashboard') }}
 //
-// {@ section('sidebar') @}
-//   {@ include('partials/sidebar') @}
-// {@ endsection @}
+// {@ section('sidebar') }}
+//   {@ include('partials/sidebar') }}
+// {@ endsection }}
 //
-// {@ section('content') @}
+// {@ section('content') }}
 //   <h1>Hello, @{ name }</h1>
-//   {@ if is_admin @}
+//   {@ if is_admin }}
 //     <p>You are admin</p>
-//   {@ else @}
+//   {@ else }}
 //     <p>Welcome user</p>
-//   {@ endif @}
-// {@ endsection @}
+//   {@ endif }}
+// {@ endsection }}
 
 // ----------------------------
 // File: README (usage)

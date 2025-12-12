@@ -3,7 +3,7 @@
 import 'package:flint_dart/src/flint_ui/core/box_style.dart';
 import 'package:flint_dart/src/flint_ui/core/style.dart';
 
-/// {@template button_style}
+/// {{template button_style}
 /// The [ButtonStyle] class defines the visual appearance and behavior of buttons
 /// in the Flint UI framework.
 ///
@@ -28,7 +28,7 @@ import 'package:flint_dart/src/flint_ui/core/style.dart';
 ///   hoverColor: '#155d8a',
 /// );
 /// ```
-/// {@endtemplate}
+/// {{endtemplate}
 class ButtonStyle {
   /// The main background color of the button.
   ///
@@ -217,12 +217,12 @@ class ButtonStyle {
       };
 }
 
-/// {@template button_size}
+/// {{template button_size}
 /// Defines available button size categories in Flint UI.
 ///
 /// Used to determine consistent padding, font size, and layout proportions
 /// for button widgets.
-/// {@endtemplate}
+/// {{endtemplate}
 enum ButtonSize {
   /// Small button — typically compact, for tight spaces.
   small,
@@ -237,11 +237,11 @@ enum ButtonSize {
   xlarge,
 }
 
-/// {@template button_state}
+/// {{template button_state}
 /// Represents the current interactive state of a button in Flint UI.
 ///
 /// This helps in rendering dynamic UI states like disabled or loading buttons.
-/// {@endtemplate}
+/// {{endtemplate}
 enum ButtonState {
   /// The button is active and clickable.
   enabled,

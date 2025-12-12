@@ -662,7 +662,7 @@ className:"operator",relevance:0,variants:[{match:De},{match:`\\.(\\.|${Re})+`}]
 variants:[{match:`\\b(${h})(\\.(${h}))?([eE][+-]?(${h}))?\\b`},{
 match:`\\b0x(${f})(\\.(${f}))?([pP][+-]?(${h}))?\\b`},{match:/\b0o([0-7]_*)+\b/
 },{match:/\b0b([01]_*)+\b/}]},E=(e="")=>({className:"subst",variants:[{
-match:b(/\\/,e,/[0\\tnr"']/)},{match:b(/\\/,e,/u\{[0-9a-fA-F]{1,8}\}/)}]
+match:b(/\\/,e,/[0\\tnr"']/)},{match:b(/\\/,e,/u\{[0-9a-fA-F]{1,8}}/)}]
 }),N=(e="")=>({className:"subst",match:b(/\\/,e,/[\t ]*(?:[\r\n]|\r\n)/)
 }),y=(e="")=>({className:"subst",label:"interpol",begin:b(/\\/,e,/\(/),end:/\)/
 }),w=(e="")=>({begin:b(e,/"""/),end:b(/"""/,e),contains:[E(e),N(e),y(e)]
@@ -715,7 +715,7 @@ begin:/%[qQwWx]?\(/,end:/\)/},{begin:/%[qQwWx]?\[/,end:/\]/},{
 begin:/%[qQwWx]?\{/,end:/\}/},{begin:/%[qQwWx]?</,end:/>/},{begin:/%[qQwWx]?\//,
 end:/\//},{begin:/%[qQwWx]?%/,end:/%/},{begin:/%[qQwWx]?-/,end:/-/},{
 begin:/%[qQwWx]?\|/,end:/\|/},{begin:/\B\?(\\\d{1,3})/},{
-begin:/\B\?(\\x[A-Fa-f0-9]{1,2})/},{begin:/\B\?(\\u\{?[A-Fa-f0-9]{1,6}\}?)/},{
+begin:/\B\?(\\x[A-Fa-f0-9]{1,2})/},{begin:/\B\?(\\u\{?[A-Fa-f0-9]{1,6}}?)/},{
 begin:/\B\?(\\M-\\C-|\\M-\\c|\\c\\M-|\\M-|\\C-\\M-)[\x20-\x7e]/},{
 begin:/\B\?\\(c|C-)[\x20-\x7e]/},{begin:/\B\?\\?\S/},{
 begin:n.concat(/<<[-~]?'?/,n.lookahead(/(\w+)(?=\W)[^\n]*\n(?:[^\n]*\n)*?\s*\1\b/)),
@@ -755,7 +755,7 @@ grmr_yaml:e=>{
 const n="true false yes no null",t="[\\w#;/?:@&=+$,.~*'()[\\]]+",a={
 className:"string",relevance:0,variants:[{begin:/'/,end:/'/},{begin:/"/,end:/"/
 },{begin:/\S+/}],contains:[e.BACKSLASH_ESCAPE,{className:"template-variable",
-variants:[{begin:/\{\{/,end:/\}\}/},{begin:/%\{/,end:/\}/}]}]},i=e.inherit(a,{
+variants:[{begin:/\{\{/,end:/\}}/},{begin:/%\{/,end:/\}/}]}]},i=e.inherit(a,{
 variants:[{begin:/'/,end:/'/},{begin:/"/,end:/"/},{begin:/[^\s,{}[\]]+/}]}),s={
 end:",",endsWithParent:!0,excludeEnd:!0,keywords:n,relevance:0},r={begin:/\{/,
 end:/\}/,contains:[s],illegal:"\\n",relevance:0},o={begin:"\\[",end:"\\]",

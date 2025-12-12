@@ -2,7 +2,7 @@
 
 import 'package:flint_dart/src/flint_ui/core/core.dart';
 
-/// {@template flint_image}
+/// {{template flint_image}
 /// A versatile image widget in **Flint UI**, designed for rendering images
 /// in multiple formats including HTML (for emails and web) and plain text.
 ///
@@ -24,7 +24,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 /// ```
 ///
 /// This will render as an HTML image with a caption underneath and lazy loading enabled.
-/// {@endtemplate}
+/// {{endtemplate}
 class Image extends FlintWidget {
   /// The source URL or path of the image.
   final String src;
@@ -153,7 +153,7 @@ class Image extends FlintWidget {
     };
   }
 
-  /// {@macro flint_widget.buildTemplate}
+  /// {{macro flint_widget.buildTemplate}
   ///
   /// Since [Image] is a leaf widget (it cannot contain child widgets),
   /// this method simply returns itself.

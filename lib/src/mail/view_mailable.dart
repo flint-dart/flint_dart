@@ -2,6 +2,7 @@
 
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
+import 'package:flint_dart/src/template_engine/template_engine.dart';
 
 /// Represents an email built from an HTML view template (.flint.html)
 abstract class ViewMailable {
@@ -42,7 +43,7 @@ abstract class ViewMailable {
       validate();
 
       // Render .flint.html template into HTML
-      final html = FlintTemplateEngine.render(view, data: data);
+      final html = TemplateEngine().render(view, data);
       final text = _stripHtmlTags(html);
 
       final mail = Mail().toMany(to).subject(subject).html(html).text(text);
@@ -63,7 +64,7 @@ abstract class ViewMailable {
     try {
       validate();
 
-      final html = FlintTemplateEngine.render(view, data: data);
+      final html = TemplateEngine().render(view, data);
       final text = _stripHtmlTags(html);
 
       final mail = Mail().toMany(to).subject(subject).html(html).text(text);

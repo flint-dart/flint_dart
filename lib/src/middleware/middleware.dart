@@ -9,7 +9,7 @@ import 'package:flint_dart/src/validation/validator.dart';
 import 'package:mysql_dart/exception.dart';
 import 'package:postgres/postgres.dart';
 
-import 'router.dart';
+import '../router.dart';
 
 abstract class Middleware {
   Handler handle(Handler next);
@@ -94,6 +94,9 @@ class LoggerMiddleware extends Middleware {
   Handler handle(Handler next) {
     return (req, res) async {
       print('[${req.method}] ${req.path}');
+      print(req.cookies);
+      print(req.ipAddress);
+      print("is isAuthenticated ${req.isAuthenticated}");
       return await next(req, res);
     };
   }

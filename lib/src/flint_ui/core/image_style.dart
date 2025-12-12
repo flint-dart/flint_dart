@@ -1,6 +1,6 @@
 // lib/flint_ui/core/image_style.dart
 
-/// {@template image_style}
+/// {{template image_style}
 /// The [ImageStyle] class defines visual and behavioral properties for images
 /// within the Flint UI framework.
 ///
@@ -21,7 +21,7 @@
 ///   decoding: ImageDecoding.auto,
 /// );
 /// ```
-/// {@endtemplate}
+/// {{endtemplate}
 class ImageStyle {
   /// Adjusts the image's transparency level, between `0.0` (fully transparent)
   /// and `1.0` (fully opaque).
@@ -100,14 +100,14 @@ class ImageStyle {
   }
 }
 
-/// {@template object_fit}
+/// {{template object_fit}
 /// Describes how an image should be resized to fit its container.
 ///
 /// Mirrors the CSS `object-fit` property.
 ///
 /// Commonly used in [ImageStyle] to ensure consistent rendering
 /// in both HTML and email output contexts.
-/// {@endtemplate}
+/// {{endtemplate}
 enum ObjectFit {
   /// The image is stretched to fill the element’s content box.
   fill('fill'),
@@ -137,11 +137,11 @@ enum ObjectFit {
   String toCss() => cssValue;
 }
 
-/// {@template image_decoding}
+/// {{template image_decoding}
 /// Defines how images are decoded by the renderer or browser.
 ///
 /// Mirrors the HTML `decoding` attribute used in `<img>` tags.
-/// {@endtemplate}
+/// {{endtemplate}
 enum ImageDecoding {
   /// Decode the image synchronously.
   sync('sync'),

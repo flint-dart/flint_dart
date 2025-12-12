@@ -74,6 +74,45 @@ class DB {
     _isConnected = true;
   }
 
+  /// Manual connect for dynamic tenant switching.
+  static Future<void> connect({
+    required String database,
+    String? host,
+    int? port,
+    String? username,
+    String? password,
+    bool? isSecure,
+  }) async {
+    _isConnected = false;
+
+    final driver = FlintEnv.get('DB_CONNECTION', 'mysql');
+
+    if (driver == 'postgres') {
+      _driver = DBDriver.postgres;
+      _pg = PgConnectionWrapper();
+      await _pg!.connect(
+        host: host ?? FlintEnv.get('DB_HOST', 'localhost'),
+        port: port ?? FlintEnv.getInt('DB_PORT', 5432),
+        database: database,
+        username: username ?? FlintEnv.get('DB_USER', 'postgres'),
+        password: password ?? FlintEnv.get('DB_PASSWORD', ''),
+      );
+    } else {
+      _driver = DBDriver.mysql;
+      _mysql = MySqlConnectionWrapper();
+      await _mysql!.connect(
+        host: host ?? FlintEnv.get('DB_HOST', 'localhost'),
+        port: port ?? FlintEnv.getInt('DB_PORT', 3306),
+        db: database,
+        user: username ?? FlintEnv.get('DB_USER', 'root'),
+        password: password ?? FlintEnv.get('DB_PASSWORD', ''),
+        isSecure: isSecure ?? FlintEnv.getBool('DB_SECURE', false),
+      );
+    }
+
+    _isConnected = true;
+  }
+
   /// Attempt auto-connect with retries.
   static Future<void> tryAutoConnect(
       {int retries = 5, int delaySeconds = 3}) async {
@@ -89,6 +128,12 @@ class DB {
         await Future.delayed(Duration(seconds: delaySeconds));
       }
     }
+  }
+
+  static void overrideConnection(DBWrapper connection) {
+    _mysql = connection is MySqlConnectionWrapper ? connection : null;
+    _pg = connection is PgConnectionWrapper ? connection : null;
+    _isConnected = true;
   }
 
   /// Returns whether the database is currently connected.

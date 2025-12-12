@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flint_dart/src/flint_ui/core/core.dart';
 
-/// {@template flint_button}
+/// {{template flint_button}
 /// A customizable and responsive button widget for **Flint UI**, designed to
 /// render as HTML, text, or JSON — and now supports client-side actions via
 /// [FlintScript] or [FlintAction].
@@ -25,7 +25,7 @@ import 'package:flint_dart/src/flint_ui/core/core.dart';
 ///   onClick: FlintScript.custom("alert('Hello Flint!');"),
 /// )
 /// ```
-/// {@endtemplate}
+/// {{endtemplate}
 class Button extends FlintWidget {
   /// Unique identifier for this widget instance.
   /// Automatically generated unless overridden by user.

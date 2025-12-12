@@ -5,7 +5,7 @@ import 'package:flint_dart/src/route_builder.dart';
 import 'package:flint_dart/src/websocket/websocket_manager.dart';
 import 'package:flint_dart/src/websocket/ws_helper.dart';
 import 'package:mime/mime.dart';
-import 'middleware.dart';
+import 'middleware/middleware.dart';
 import 'request.dart';
 import 'response.dart';
 import 'router.dart';
@@ -314,28 +314,60 @@ class Flint {
     final subApp = Flint(rootPath: rootPath);
     callback(subApp);
 
-    for (final route in subApp._router.routes) {
-      var allMiddleware = [...middlewares, ...route.middlewares];
+    // Normalize prefix: ensure it starts with "/" and remove trailing slash
+    String cleanPrefix = prefix;
+    if (!cleanPrefix.startsWith('/')) {
+      cleanPrefix = '/$cleanPrefix';
+    }
+    if (cleanPrefix != '/' && cleanPrefix.endsWith('/')) {
+      cleanPrefix = cleanPrefix.substring(0, cleanPrefix.length - 1);
+    }
 
-      var handlerWithMiddlewares = allMiddleware.fold<Handler>(
+    for (final route in subApp._router.routes) {
+      // Normalize route path
+      String cleanPath = route.path;
+
+      // Fix missing leading slash
+      if (!cleanPath.startsWith('/')) {
+        cleanPath = '/$cleanPath';
+      }
+
+      // Remove duplicate "/" when combining
+      final fullPath = cleanPath == '/'
+          ? cleanPrefix
+          : cleanPrefix == '/'
+              ? cleanPath
+              : '$cleanPrefix$cleanPath';
+
+      // Merge middlewares
+      final allMiddleware = [...middlewares, ...route.middlewares];
+
+      final handlerWithMiddlewares = allMiddleware.fold<Handler>(
         route.handler,
         (prev, middleware) => middleware.handle(prev),
       );
 
       _router.add(
         route.method,
-        '$prefix${route.path == '/' ? '' : route.path}',
+        fullPath,
         handlerWithMiddlewares,
       );
     }
 
+    // Normalize websocket paths too
     for (final wsRoute in subApp._wsRoutes) {
-      _wsRoutes.add(
-          WsRoute('$prefix${wsRoute.path}', wsRoute.handler, wsRoute.auth));
+      String cleanWsPath = wsRoute.path;
+
+      if (!cleanWsPath.startsWith('/')) {
+        cleanWsPath = '/$cleanWsPath';
+      }
+
+      final fullWsPath =
+          cleanPrefix == '/' ? cleanWsPath : '$cleanPrefix$cleanWsPath';
+
+      _wsRoutes.add(WsRoute(fullWsPath, wsRoute.handler, wsRoute.auth));
     }
   }
-
-  // ===== START SERVER =====
 
   /// Starts the HTTP & WebSocket server on [port].
   ///
