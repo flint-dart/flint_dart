@@ -43,13 +43,13 @@ class MakeMailCommand extends FlintCommand {
     final mailDir = Directory('lib/src/mail');
     final htmlDir = Directory('lib/src/mail/views');
 
-    if (!mailDir.existsSync()) mailDir.createSync(recursive: true);
-    if (!htmlDir.existsSync()) htmlDir.createSync(recursive: true);
+    if (!await mailDir.exists()) mailDir.createSync(recursive: true);
+    if (!await htmlDir.exists()) htmlDir.createSync(recursive: true);
 
     final mailFile = File('${mailDir.path}/${name}_mail.dart');
     final htmlFile = File('${htmlDir.path}/$name.flint.html');
 
-    if (mailFile.existsSync() || htmlFile.existsSync()) {
+    if (await mailFile.exists() || await htmlFile.exists()) {
       print('⚠️  Mail "$name" already exists.');
       return;
     }
@@ -70,13 +70,13 @@ class MakeMailCommand extends FlintCommand {
     final mailDir = Directory('lib/src/mail');
     final templateDir = Directory('lib/src/mail/templates');
 
-    if (!mailDir.existsSync()) mailDir.createSync(recursive: true);
-    if (!templateDir.existsSync()) templateDir.createSync(recursive: true);
+    if (!await mailDir.exists()) mailDir.createSync(recursive: true);
+    if (!await templateDir.exists()) templateDir.createSync(recursive: true);
 
     final mailFile = File('${mailDir.path}/${name}_mail.dart');
     final templateFile = File('${templateDir.path}/${name}_template.dart');
 
-    if (mailFile.existsSync() || templateFile.existsSync()) {
+    if (await mailFile.exists() || await templateFile.exists()) {
       print('⚠️  Mail "$name" already exists.');
       return;
     }

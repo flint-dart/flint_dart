@@ -75,7 +75,7 @@
   <pre class="language-dart"><code class="language-dart">@override
 Future&lt;dynamic&gt; get(String key) async {
   final file = File(_filePath(key));
-  if (!file.existsSync()) return null;
+  if (!file.exists()) return null;
 
   final data = jsonDecode(await file.readAsString());
   final expires =

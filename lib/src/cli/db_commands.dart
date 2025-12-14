@@ -71,7 +71,7 @@ class DBMigrateCommand extends FlintCommand {
     final registryPath = '$appRoot/lib/src/config/table_registry.dart';
     final registryFile = File(registryPath);
 
-    if (!registryFile.existsSync()) {
+    if (!await registryFile.exists()) {
       throw Exception('❌ Could not find table_registry.dart.');
     }
 

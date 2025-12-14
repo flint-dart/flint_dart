@@ -74,7 +74,7 @@
   <pre class="language-dart"><code class="language-dart">@override
 Future&lt;void&gt; clear() async {
   final dir = Directory(cacheDir);
-  if (dir.existsSync()) {
+  if (dir.exists()) {
     for (var file in dir.listSync()) {
       if (file is File) await file.delete();
     }

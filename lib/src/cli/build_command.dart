@@ -28,14 +28,14 @@ class BuildCommand extends FlintCommand {
 
     // Reset build directory
     final buildDirectory = Directory(buildDir);
-    if (buildDirectory.existsSync()) {
+    if (await buildDirectory.exists()) {
       print('🧹 Removing previous build...');
       buildDirectory.deleteSync(recursive: true);
     }
     buildDirectory.createSync(recursive: true);
 
     // Load project name from pubspec.yaml
-    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final pubspec = await File('pubspec.yaml').readAsString();
     final match = RegExp(r'name:\s*(\S+)').firstMatch(pubspec);
     if (match == null) {
       print('❌ Error: Missing project name in pubspec.yaml');
@@ -122,7 +122,7 @@ class BuildCommand extends FlintCommand {
       if (entity is File) {
         if (!entity.path.endsWith('.dart')) {
           File(targetPath).parent.createSync(recursive: true);
-          if (entity.existsSync()) entity.copySync(targetPath);
+          if (await entity.exists()) entity.copySync(targetPath);
         }
       } else if (entity is Directory) {
         await _copyFilesRecursively(

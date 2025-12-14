@@ -25,7 +25,6 @@ class SectionProcessor implements BaseExpression {
       final value = context[sectionName];
 
       if (value == null) {
-        print('Warning: yield section "$sectionName" not found in context');
         return '';
       }
 

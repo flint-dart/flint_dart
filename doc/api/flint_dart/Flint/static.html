@@ -76,7 +76,7 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">void static(String urlPrefix, String directoryPath) {
   final directory = Directory(directoryPath);
-  if (!directory.existsSync()) {
+  if (!directory.exists()) {
     print(&#39;[FLINT] ⚠️ Warning: Static directory not found: $directoryPath&#39;);
     return;
   }

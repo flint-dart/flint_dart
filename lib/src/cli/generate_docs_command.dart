@@ -66,7 +66,7 @@ class GenerateDocsCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     final routesDir = Directory('lib/src/routes');
-    if (!routesDir.existsSync()) {
+    if (!(await routesDir.exists())) {
       print('[FLINT] ❌ No routes directory found at lib/src/routes');
       return;
     }
@@ -205,7 +205,7 @@ class GenerateDocsCommand extends FlintCommand {
     };
 
     final docsDir = Directory('docs');
-    if (!docsDir.existsSync()) docsDir.createSync(recursive: true);
+    if (!(await docsDir.exists())) docsDir.createSync(recursive: true);
 
     final outFile = File('${docsDir.path}/swagger.json');
     outFile.writeAsStringSync(JsonEncoder.withIndent('  ').convert(swagger));

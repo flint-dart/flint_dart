@@ -15,7 +15,7 @@ class MakeDockerCommand extends FlintCommand {
 
     // Create docker directory
     final dockerDir = Directory(outputDir);
-    if (dockerDir.existsSync()) {
+    if (await dockerDir.exists()) {
       print('📁 Docker directory already exists. Overwriting files...');
     } else {
       dockerDir.createSync(recursive: true);
@@ -25,7 +25,7 @@ class MakeDockerCommand extends FlintCommand {
     final envVars = _loadEnvVars();
 
     // Get project name from pubspec.yaml
-    final pubspec = File('pubspec.yaml').readAsStringSync();
+    final pubspec = await File('pubspec.yaml').readAsString();
     final nameMatch = RegExp(r'name:\s*(\S+)').firstMatch(pubspec);
     final projectName = nameMatch?.group(1) ?? 'flint_app';
 
@@ -362,9 +362,9 @@ $outputDir/
     File(path.join(outputDir, '.dockerignore')).writeAsStringSync(content);
   }
 
-  void _copyExistingEnv(String outputDir) {
+  void _copyExistingEnv(String outputDir) async {
     final envFile = File('.env');
-    if (envFile.existsSync()) {
+    if (await envFile.exists()) {
       print('📄 Copying your existing .env file to docker directory...');
       envFile.copySync(path.join(outputDir, '.env'));
     } else {

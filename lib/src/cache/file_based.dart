@@ -27,7 +27,7 @@ class FileCacheStore implements CacheStore {
   @override
   Future<dynamic> get(String key) async {
     final file = File(_filePath(key));
-    if (!file.existsSync()) return null;
+    if (!(await file.exists())) return null;
 
     final data = jsonDecode(await file.readAsString());
     final expires =
@@ -42,13 +42,13 @@ class FileCacheStore implements CacheStore {
   @override
   Future<void> remove(String key) async {
     final file = File(_filePath(key));
-    if (file.existsSync()) await file.delete();
+    if (await file.exists()) await file.delete();
   }
 
   @override
   Future<void> clear() async {
     final dir = Directory(cacheDir);
-    if (dir.existsSync()) {
+    if (await dir.exists()) {
       for (var file in dir.listSync()) {
         if (file is File) await file.delete();
       }

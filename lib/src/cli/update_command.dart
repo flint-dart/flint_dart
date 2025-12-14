@@ -26,7 +26,7 @@ class UpdateCommand extends FlintCommand {
     }
 
     final pubspec = File('pubspec.yaml');
-    if (!pubspec.existsSync()) {
+    if (!(await pubspec.exists())) {
       print('❌ No pubspec.yaml found in this directory.');
       return;
     }

@@ -75,7 +75,7 @@
   <pre class="language-dart"><code class="language-dart">@override
 Future&lt;void&gt; remove(String key) async {
   final file = File(_filePath(key));
-  if (file.existsSync()) await file.delete();
+  if (file.exists()) await file.delete();
 }</code></pre>
 </section>
 

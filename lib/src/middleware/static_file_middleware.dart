@@ -78,14 +78,14 @@ class StaticFileMiddleware extends Middleware {
       }
 
       // Set cache headers
-      _setCacheHeaders(res, eTag, lastModified, cacheDuration);
+      _setCacheHeaders(res, eTag, lastModified, cacheDuration, req.path);
 
       // Security headers
       _setSecurityHeaders(res);
 
       // MIME type with charset for text files
       final mime = lookupMimeType(file.path) ?? 'application/octet-stream';
-      _setContentType(res, mime);
+      _setContentType(res, mime, file.path);
 
       // Handle HEAD request
       if (req.method == 'HEAD') {
@@ -144,13 +144,25 @@ class StaticFileMiddleware extends Middleware {
     return false;
   }
 
-  void _setCacheHeaders(
-      Response res, String eTag, DateTime lastModified, Duration duration) {
+  void _setCacheHeaders(Response res, String eTag, DateTime lastModified,
+      Duration duration, String filePath) {
+    // Files you want to bypass caching (e.g., for dev)
+    final bypassCacheExtensions = ['.css', '.js', '.map'];
+
+    // Check if file should bypass caching
+    final shouldBypass =
+        bypassCacheExtensions.any((ext) => filePath.endsWith(ext));
+
+    final cacheDuration = shouldBypass ? Duration(seconds: 0) : duration;
+
     res.raw.headers.set(HttpHeaders.etagHeader, eTag);
     res.raw.headers
         .set(HttpHeaders.lastModifiedHeader, HttpDate.format(lastModified));
-    res.raw.headers.set(HttpHeaders.cacheControlHeader,
-        'public, max-age=${duration.inSeconds}, immutable');
+    res.raw.headers.set(
+        HttpHeaders.cacheControlHeader,
+        shouldBypass
+            ? 'no-cache, no-store, must-revalidate'
+            : 'public, max-age=${cacheDuration.inSeconds}, immutable');
   }
 
   void _setSecurityHeaders(Response res) {
@@ -160,7 +172,12 @@ class StaticFileMiddleware extends Middleware {
     res.raw.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   }
 
-  void _setContentType(Response res, String mime) {
+  void _setContentType(Response res, String mime, String filePath) {
+    if (filePath.endsWith('.css')) {
+      res.raw.headers.contentType =
+          ContentType('text', 'css', charset: 'utf-8');
+      return;
+    }
     if (mime.startsWith('text/') ||
         mime.contains('javascript') ||
         mime.contains('json') ||

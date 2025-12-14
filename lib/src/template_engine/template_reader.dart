@@ -2,26 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-/// An interface (abstract class) for reading template files.
-abstract class TemplateReader {
-  /// Reads the template contents from the given [filePath].
-  String read(String filePath);
-}
-
-class FileTemplateReader implements TemplateReader {
-  static final FileTemplateReader _singleton = FileTemplateReader._internal();
-  factory FileTemplateReader() => _singleton;
-  FileTemplateReader._internal();
-
-  /// Reads the html template from the given [template] path.
-  ///
-  /// The template path is relative to the `lib/resources/view/` directory.
-  /// The template file must end with `.html`.
-  ///
-  /// Throws a [FileSystemException] if the file does not exist.
-  ///
-  ///
-  // Private implementation
+class FileTemplateReader {
   static String _resolveTemplatePath(String name) {
     final normalized = name.replaceAll('.', Platform.pathSeparator);
     final currentDir = Directory.current.path;
@@ -47,9 +28,7 @@ class FileTemplateReader implements TemplateReader {
     return flintPath;
   }
 
-  @override
   String read(String template) {
-    print(template);
     final filePath = _resolveTemplatePath(template);
     File file = File(filePath);
     if (!file.existsSync()) {

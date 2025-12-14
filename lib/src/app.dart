@@ -271,9 +271,9 @@ class Flint {
   /// ```dart
   /// app.static('/public', 'public');
   /// ```
-  void static(String urlPrefix, String directoryPath) {
+  void static(String urlPrefix, String directoryPath) async {
     final directory = Directory(directoryPath);
-    if (!directory.existsSync()) {
+    if (!await directory.exists()) {
       print('[FLINT] ⚠️ Warning: Static directory not found: $directoryPath');
       return;
     }
