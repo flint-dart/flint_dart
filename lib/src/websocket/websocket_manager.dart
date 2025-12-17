@@ -39,6 +39,31 @@ class WebSocketManager {
       _rooms.remove(room);
     }
   }
+
+  // =========================
+  // 🔥 EMIT HELPERS (IMPORTANT)
+  // =========================
+
+  void emitToRoom(String room, String event, dynamic data) {
+    final roomClients = _rooms[room];
+    if (roomClients == null) return;
+
+    for (final client in roomClients) {
+      client.emit(event, data);
+    }
+  }
+
+  void emitToClient(String clientId, String event, dynamic data) {
+    final client = _clients[clientId];
+    if (client == null) return;
+    client.emit(event, data);
+  }
+
+  void emitToAll(String event, dynamic data) {
+    for (final client in _clients.values) {
+      client.emit(event, data);
+    }
+  }
 }
 
 final wsManager = WebSocketManager();
