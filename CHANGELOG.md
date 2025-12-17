@@ -1,6 +1,33 @@
 # 🚀 Flint Dart Changelog
 
 All notable changes to Flint Dart will be documented in this file.
+---
+
+## [1.0.0+23] - 2025-12-17
+### Added
+- **WebSocketManager helpers**: `emitToRoom`, `emitToClient`, `emitToAll` for room-scoped and global event emission.
+- **Global room system** using `Set<FlintWebSocket>` to prevent duplicate clients in rooms.
+- **IsolateTask** class for running heavy or long-running tasks in isolates with optional completion and error callbacks.
+- **ViewMailable** class to send and queue emails from `.flint.html` templates, replacing the old `FlintUI` mail system.
+- Support for **task progress broadcasting** over WebSockets in background tasks.
+- OOP-based **RouteGroup system**, enabling modular and nested route registration with middleware inheritance.
+
+### Changed
+- Refactored `AppRoutes` and other route groups to OOP style, replacing procedural callbacks.
+- `FlintWebSocket` now fully cleans up event listeners and rooms on disconnect.
+- Improved middleware inheritance across nested route groups.
+- `Flint` framework now supports emitting events safely from background isolates.
+
+### Fixed
+- Prevented potential memory leaks on WebSocket disconnect.
+- Minor JSON decoding fixes in `FlintWebSocket._handleIncomingMessage`.
+- Fixed edge cases in queued mail sending.
+
+### Notes
+- Internal build increment only (`+23`) — no breaking changes.
+- All APIs are backward-compatible; some procedural route registration can be migrated to `RouteGroup` classes.
+
+All notable changes to Flint Dart will be documented in this file.
 ## [1.0.0+22]
 
 ---
