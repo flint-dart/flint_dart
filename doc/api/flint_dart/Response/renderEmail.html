@@ -55,7 +55,7 @@
     <section class="multi-line-signature">
       
 <span class="returntype"><a href="../../flint_dart/Response-class.html">Response</a></span>
-<span class="name ">renderEmail</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="renderEmail-param-mailable"><span class="type-annotation"><a href="../../mail/Mailable-class.html">Mailable</a></span> <span class="parameter-name">mailable</span>, {</span></li>
+<span class="name ">renderEmail</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="renderEmail-param-mailable"><span class="type-annotation"><a href="../../mail/ViewMailable-class.html">ViewMailable</a></span> <span class="parameter-name">mailable</span>, {</span></li>
 <li><span class="parameter" id="renderEmail-param-includePreview"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">includePreview</span> = <span class="default-value">true</span>, </span></li>
 </ol>})
 
@@ -74,17 +74,17 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Response renderEmail(
-  Mailable mailable, {
+  ViewMailable mailable, {
   bool includePreview = true,
 }) {
   try {
     raw.statusCode = 200;
     raw.headers.contentType = ContentType.html;
 
-    final content = mailable.build();
-    final html = includePreview
-        ? _generatePreviewHtml(content, mailable.subject)
-        : content.toHtml();
+    final html = TemplateEngine().render(
+      mailable.view,
+      mailable.data,
+    );
 
     raw.write(html);
   } catch (e) {
@@ -93,6 +93,7 @@
     raw.write(&#39;❌ Failed to render email: ${e.runtimeType}&#39;);
     print(&#39;[Flint] Render Email Error: $e&#39;);
   }
+
   close();
   return this;
 }</code></pre>
@@ -123,7 +124,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+21
+      1.0.0+23
   </span>
   
 </footer>
