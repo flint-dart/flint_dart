@@ -279,6 +279,19 @@ final lastId = await DB.getLastInsertId("users", "id");
 
 </dd>
 
+        <dt id="connect" class="callable">
+  <span class="name"><a href="../db/DB/connect.html">connect</a></span><span class="signature">(<wbr>{<span class="parameter" id="connect-param-database"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">database</span>, </span><span class="parameter" id="connect-param-host"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">host</span>, </span><span class="parameter" id="connect-param-port"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">port</span>, </span><span class="parameter" id="connect-param-username"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">username</span>, </span><span class="parameter" id="connect-param-password"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">password</span>, </span><span class="parameter" id="connect-param-isSecure"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a>?</span> <span class="parameter-name">isSecure</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Manual connect for dynamic tenant switching.
+  
+
+</dd>
+
         <dt id="execute" class="callable">
   <span class="name"><a href="../db/DB/execute.html">execute</a></span><span class="signature">(<wbr><span class="parameter" id="execute-param-sql"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">sql</span>, {</span><span class="parameter" id="execute-param-positionalParams"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a>?</span> <span class="parameter-name">positionalParams</span>, </span><span class="parameter" id="execute-param-namedParams"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span>?</span> <span class="parameter-name">namedParams</span></span>})
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
@@ -314,6 +327,19 @@ final lastId = await DB.getLastInsertId("users", "id");
 </dt>
 <dd>
   Normalize SQL and parameters for the active driver.
+  
+
+</dd>
+
+        <dt id="overrideConnection" class="callable">
+  <span class="name"><a href="../db/DB/overrideConnection.html">overrideConnection</a></span><span class="signature">(<wbr><span class="parameter" id="overrideConnection-param-connection"><span class="type-annotation">DBWrapper</span> <span class="parameter-name">connection</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  
   
 
 </dd>

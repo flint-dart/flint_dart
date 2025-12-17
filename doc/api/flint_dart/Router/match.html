@@ -71,15 +71,12 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Handler? match(
     String method, String pathToMatch, Map&lt;String, String&gt; paramsOut) {
+  &#47;&#47; First pass: try to find exact matches or parameterized routes
   for (final route in routes) {
     if (route.method != method) continue;
 
-    if (route.path.endsWith(&#39;&#47;*&#39;)) {
-      final prefix = route.path.substring(0, route.path.length - 1);
-      if (pathToMatch.startsWith(prefix)) {
-        return _wrapWithMiddlewares(route.handler, route.middlewares);
-      }
-    }
+    &#47;&#47; Skip wildcard routes in first pass
+    if (route.path.endsWith(&#39;&#47;*&#39;)) continue;
 
     final routeParts = route.path.split(&#39;&#47;&#39;);
     final pathParts = pathToMatch.split(&#39;&#47;&#39;);
@@ -105,6 +102,18 @@
     if (matched) {
       paramsOut.addAll(params);
       return _wrapWithMiddlewares(route.handler, route.middlewares);
+    }
+  }
+
+  &#47;&#47; Second pass: check wildcard routes (only if no exact match found)
+  for (final route in routes) {
+    if (route.method != method) continue;
+
+    if (route.path.endsWith(&#39;&#47;*&#39;)) {
+      final prefix = route.path.substring(0, route.path.length - 1);
+      if (pathToMatch.startsWith(prefix)) {
+        return _wrapWithMiddlewares(route.handler, route.middlewares);
+      }
     }
   }
 

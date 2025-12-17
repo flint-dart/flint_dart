@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flint_dart/src/template_engine/all_expression/baseRun.dart';
+import 'package:flint_dart/src/template_engine/all_expression/base_run.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:flint_dart/src/template_engine/template_reader.dart';
 
@@ -14,7 +14,6 @@ class IncludeProcessor implements BaseExpression {
       dotAll: true,
     );
 
-    String result = content;
     int lastIndex = 0;
     StringBuffer buffer = StringBuffer();
 

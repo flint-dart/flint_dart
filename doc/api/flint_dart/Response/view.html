@@ -98,7 +98,8 @@ Optionally, you can pass <code>data</code> for simple variable replacement in th
   String content;
   try {
     &#47;&#47; Use the original templateName directly
-    content = FlintTemplateEngine.render(templateName, data: data ?? {});
+    &#47;&#47; TemplateEngine().render(view, context)
+    content = TemplateEngine().render(templateName, data ?? {});
   } catch (e) {
     &#47;&#47; Fallback to raw file content if template rendering fails
     content = await file.readAsString();

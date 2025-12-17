@@ -2,7 +2,7 @@
 //     {{ case <value(s)> }}<content>{{ endcase }}
 //     {{ default }}<content>{{ enddefault }}   (optional)
 //   {{ endswitch }}
-import 'package:flint_dart/src/template_engine/all_expression/baseRun.dart';
+import 'package:flint_dart/src/template_engine/all_expression/base_run.dart';
 
 class SwitchCasesProcessor implements BaseExpression {
   /// Parse `{{ switch <variable> }}` blocks in [content] and replace them with

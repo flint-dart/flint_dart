@@ -1,4 +1,3 @@
-// bin/flint_cli.dart
 import 'dart:io';
 import 'package:flint_dart/src/cli/build_command.dart';
 import 'package:flint_dart/src/cli/commands.dart';
@@ -7,6 +6,7 @@ import 'package:flint_dart/src/cli/db_commands.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/cli/make_controller_command.dart';
 import 'package:flint_dart/src/cli/make_docker_command.dart';
+import 'package:flint_dart/src/cli/make_isolate_command.dart';
 import 'package:flint_dart/src/cli/make_mail_command.dart';
 import 'package:flint_dart/src/cli/make_middleware_command.dart';
 import 'package:flint_dart/src/cli/make_model_command.dart';
@@ -18,36 +18,62 @@ final Map<String, FlintCommand> commands = {
   'create': CreateProjectCommand(),
   'start': RunServerCommand(),
   'run': RunServerCommand(),
-  'build': BuildCommand(), // Add this
-  'make:docker': MakeDockerCommand(), // Add this
+  'build': BuildCommand(),
+  'make:docker': MakeDockerCommand(),
   'migrate': DBMigrateCommand(),
   'make:model': MakeModelCommand(),
   'make:controller': MakeControllerCommand(),
   'make:middleware': MakeMiddlewareCommand(),
+  'make:isolate': MakeIsolateCommand(), // ✅ Add here
   'docs:generate': GenerateDocsCommand(),
   'make:mail': MakeMailCommand(),
-  "update": UpdateCommand(),
-  "upgrade": UpgradeCommand(),
-  "version": VersionCommand(),
-  "--v": VersionCommand()
+  'update': UpdateCommand(),
+  'upgrade': UpgradeCommand(),
+  'version': VersionCommand(),
+  '--v': VersionCommand(),
 };
+
+// Map alternative long-form commands (with --) to standard commands
+final Map<String, String> aliasCommands = {
+  '--make-mail': 'make:mail',
+  '--make-model': 'make:model',
+  '--make-controller': 'make:controller',
+  '--make-middleware': 'make:middleware',
+  '--make-docker': 'make:docker',
+  '--make-isolate': 'make:isolate',
+  "--docs-generate": 'docs:generate'
+};
+
 void main(List<String> args) async {
-  if (args.isEmpty || !commands.containsKey(args[0])) {
-    print('''
+  if (args.isEmpty) {
+    _printUsage();
+    return;
+  }
+
+  // Map long-form --commands to normal commands
+  final firstArg = aliasCommands[args[0]] ?? args[0];
+
+  if (!commands.containsKey(firstArg)) {
+    print('❌ Unknown command: ${args[0]}');
+    _printUsage();
+    exit(1);
+  }
+
+  try {
+    await commands[firstArg]!.execute(args.sublist(1));
+  } catch (e) {
+    print('Error: $e');
+    exitCode = 1;
+  }
+}
+
+void _printUsage() {
+  print('''
 FlintDart CLI
 
 Usage: flint <command> [options]
 
 Available commands:
-${commands.entries.map((e) => '  ${e.key.padRight(10)}${e.value.description}').join('\n')}
+${commands.entries.map((e) => '  ${e.key.padRight(20)}${e.value.description}').join('\n')}
 ''');
-    return;
-  }
-
-  try {
-    await commands[args[0]]!.execute(args.sublist(1));
-  } catch (e) {
-    print('Error: $e');
-    exitCode = 1;
-  }
 }

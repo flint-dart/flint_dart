@@ -55,19 +55,16 @@
     
 <section class="desc markdown">
   <p>Handles file storage operations for uploaded files in Flint Dart.</p>
-<p>This class provides static helper methods to:</p>
+<p>Default behavior:</p>
 <ul>
-<li>Save uploaded files to a public directory</li>
-<li>Delete files by their public URL</li>
-<li>Replace existing files with new ones</li>
+<li>Files are stored in <code>public/uploads</code></li>
+<li>Public URL is <code>/uploads/&lt;generated-filename&gt;</code></li>
 </ul>
-<p>Files are stored in the <code>public/uploads</code> directory by default
-and accessed via the <code>/uploads</code> URL path.</p>
-<p>Example:</p>
-<pre class="language-dart"><code class="language-dart">final fileUrl = await Storage.create(uploadedFile);
-await Storage.delete(fileUrl);
-final newFileUrl = await Storage.update(fileUrl, newUploadedFile);
-</code></pre>
+<p>If user passes a <code>subdirectory</code>, files go to:</p>
+<ul>
+<li><code>public/&lt;subdirectory&gt;</code></li>
+<li>URL <code>/subdirectory/&lt;generated-filename&gt;</code></li>
+</ul>
 </section>
 
 
@@ -178,7 +175,7 @@ final newFileUrl = await Storage.update(fileUrl, newUploadedFile);
     <h2>Static Methods</h2>
     <dl class="callables">
         <dt id="create" class="callable">
-  <span class="name"><a href="../storage/Storage/create.html">create</a></span><span class="signature">(<wbr><span class="parameter" id="create-param-file"><span class="type-annotation"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a></span> <span class="parameter-name">file</span>, {</span><span class="parameter" id="create-param-subdirectory"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">subdirectory</span> = <span class="default-value">&#39;&#39;</span></span>})
+  <span class="name"><a href="../storage/Storage/create.html">create</a></span><span class="signature">(<wbr><span class="parameter" id="create-param-file"><span class="type-annotation"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a></span> <span class="parameter-name">file</span>, {</span><span class="parameter" id="create-param-subdirectory"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">subdirectory</span></span>})
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
   </span>
   
@@ -198,20 +195,20 @@ final newFileUrl = await Storage.update(fileUrl, newUploadedFile);
 
 </dt>
 <dd>
-  Deletes a file from the server using its public URL.
+  Deletes file using its public URL.
   
 
 </dd>
 
         <dt id="update" class="callable">
-  <span class="name"><a href="../storage/Storage/update.html">update</a></span><span class="signature">(<wbr><span class="parameter" id="update-param-oldFileUrl"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">oldFileUrl</span>, </span><span class="parameter" id="update-param-newFile"><span class="type-annotation"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a></span> <span class="parameter-name">newFile</span>, {</span><span class="parameter" id="update-param-subdirectory"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">subdirectory</span> = <span class="default-value">&#39;&#39;</span></span>})
+  <span class="name"><a href="../storage/Storage/update.html">update</a></span><span class="signature">(<wbr><span class="parameter" id="update-param-oldFileUrl"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">oldFileUrl</span>, </span><span class="parameter" id="update-param-newFile"><span class="type-annotation"><a href="../flint_dart/UploadedFile-class.html">UploadedFile</a></span> <span class="parameter-name">newFile</span>, {</span><span class="parameter" id="update-param-subdirectory"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">subdirectory</span></span>})
     <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
   </span>
   
 
 </dt>
 <dd>
-  Replaces an old file with a new uploaded file.
+  Replaces an old file with a new one.
   
 
 </dd>

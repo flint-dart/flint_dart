@@ -1,7 +1,6 @@
 // lib/mail/view_mailable.dart
 
 import 'package:flint_dart/mail.dart';
-import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 
 /// Represents an email built from an HTML view template (.flint.html)

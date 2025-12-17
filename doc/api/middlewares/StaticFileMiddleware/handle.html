@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the handle method from the StaticFileMiddleware class, for the Dart programming language.">
+  <title>handle method - StaticFileMiddleware class - middlewares library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">flint_dart</a></li>
+    <li><a href="../../middlewares/">middlewares.dart</a></li>
+    <li><a href="../../middlewares/StaticFileMiddleware-class.html">StaticFileMiddleware</a></li>
+    <li class="self-crumb">handle method</li>
+  </ol>
+  <div class="self-name">handle</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="middlewares&#47;StaticFileMiddleware-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">handle</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+  <div>
+    <ol class="annotation-list">
+        <li>@<a href="https://api.dart.dev/stable/3.9.2/dart-core/override-constant.html">override</a></li>
+    </ol>
+  </div>
+<span class="returntype"><a href="../../flint_dart/Handler.html">Handler</a></span>
+<span class="name ">handle</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="handle-param-next"><span class="type-annotation"><a href="../../flint_dart/Handler.html">Handler</a></span> <span class="parameter-name">next</span></span></li>
+</ol>)
+
+      <div class="features"><span class="feature">override</span></div>
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">@override
+Handler handle(Handler next) {
+  return (Request req, Response res) async {
+    &#47;&#47; Only handle GET&#47;HEAD requests
+    if (req.method != &#39;GET&#39; &amp;&amp; req.method != &#39;HEAD&#39;) {
+      return await next(req, res);
+    }
+
+    &#47;&#47; Ignore known non-static routes
+    if (_shouldSkip(req.path)) {
+      return await next(req, res);
+    }
+
+    &#47;&#47; Only static files have extensions
+    if (!req.path.contains(&#39;.&#39;) &amp;&amp; req.path != &#39;&#47;&#39;) {
+      return await next(req, res);
+    }
+
+    &#47;&#47; Handle root path
+    String relativePath = req.path;
+    if (relativePath == &#39;&#47;&#39;) {
+      relativePath = &#39;&#47;index.html&#39;;
+    }
+    if (relativePath.startsWith(&#39;&#47;&#39;)) {
+      relativePath = relativePath.substring(1);
+    }
+
+    final filePath = path.join(publicFolder, relativePath);
+    final file = File(filePath);
+
+    if (!await file.exists()) {
+      return await next(req, res);
+    }
+
+    &#47;&#47; Get file stats
+    final fileStat = await file.stat();
+
+    &#47;&#47; Check file size limit
+    if (fileStat.size &gt; maxFileSize) {
+      res.status(413).send(&#39;File too large&#39;);
+      return res;
+    }
+
+    &#47;&#47; Cache headers
+    final lastModified = await file.lastModified();
+    final eTag = _generateETag(fileStat);
+
+    &#47;&#47; Check conditional requests
+    if (_isCacheValid(req, eTag, lastModified)) {
+      res.raw.statusCode = HttpStatus.notModified;
+      return res;
+    }
+
+    &#47;&#47; Set cache headers
+    _setCacheHeaders(res, eTag, lastModified, cacheDuration, req.path);
+
+    &#47;&#47; Security headers
+    _setSecurityHeaders(res);
+
+    &#47;&#47; MIME type with charset for text files
+    final mime = lookupMimeType(file.path) ?? &#39;application&#47;octet-stream&#39;;
+    _setContentType(res, mime, file.path);
+
+    &#47;&#47; Handle HEAD request
+    if (req.method == &#39;HEAD&#39;) {
+      res.raw.headers.contentLength = fileStat.size;
+      return res;
+    }
+
+    &#47;&#47; Handle range requests
+    if (enableRangeRequests) {
+      final rangeResponse =
+          await _handleRangeRequest(req, res, file, fileStat.size, mime);
+      if (rangeResponse != null) {
+        return rangeResponse;
+      }
+    }
+
+    &#47;&#47; Send full file
+    await res.streamFile(file);
+    return res;
+  };
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">flint_dart</a></li>
+    <li><a href="../../middlewares/">middlewares</a></li>
+    <li><a href="../../middlewares/StaticFileMiddleware-class.html">StaticFileMiddleware</a></li>
+    <li class="self-crumb">handle method</li>
+</ol>
+
+    <h5>StaticFileMiddleware class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    flint_dart
+      1.0.0+21
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

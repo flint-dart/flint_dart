@@ -54,9 +54,9 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype">dynamic</span>
+<span class="returntype"><a href="../../flint_ui/BoxBorder-class.html">BoxBorder</a></span>
 <span class="name ">all</span>(<wbr>{<ol class="parameter-list"> <li><span class="parameter" id="all-param-color"><span>required</span> <span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">color</span>, </span></li>
-<li><span class="parameter" id="all-param-width"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">width</span>, </span></li>
+<li><span class="parameter" id="all-param-width"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/double-class.html">double</a></span> <span class="parameter-name">width</span> = <span class="default-value">1</span>, </span></li>
 </ol>})
 
       
@@ -68,10 +68,12 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">static all({
+  <pre class="language-dart"><code class="language-dart">static BoxBorder all({
   required String color,
-  double? width,
-}) {}</code></pre>
+  double width = 1,
+}) {
+  return BoxBorder(color: color, width: width);
+}</code></pre>
 </section>
 
 

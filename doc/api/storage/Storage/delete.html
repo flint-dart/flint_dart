@@ -63,9 +63,9 @@
     </section>
     
 <section class="desc markdown">
-  <p>Deletes a file from the server using its public URL.</p>
-<p><code>fileUrl</code> - The public URL of the file to delete.</p>
-<p>Does nothing if the file does not exist or the URL is invalid.</p>
+  <p>Deletes file using its public URL.</p>
+<p>Example:
+<code>/uploads/abc.png</code> → deletes <code>public/uploads/abc.png</code></p>
 </section>
 
 
@@ -73,11 +73,11 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static Future&lt;void&gt; delete(String fileUrl) async {
-  if (!fileUrl.startsWith(_baseUrl)) {
-    return;
+  if (fileUrl.startsWith(&#39;&#47;&#39;)) {
+    fileUrl = fileUrl.substring(1); &#47;&#47; remove leading &quot;&#47;&quot;
   }
 
-  final filePath = fileUrl.replaceFirst(_baseUrl, _baseDir);
+  final filePath = &#39;$_baseDir&#47;$fileUrl&#39;;
   final fileToDelete = File(filePath);
 
   if (await fileToDelete.exists()) {

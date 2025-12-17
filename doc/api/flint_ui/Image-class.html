@@ -54,7 +54,8 @@
 
     
 <section class="desc markdown">
-  <p>A versatile image widget in <strong>Flint UI</strong>, designed for rendering images
+  <p>{{template flint_image}
+A versatile image widget in <strong>Flint UI</strong>, designed for rendering images
 in multiple formats including HTML (for emails and web) and plain text.</p>
 <p>The <a href="../flint_ui/Image-class.html">Image</a> class provides flexible styling options such as
 margins, padding, borders, shadows, captions, and lazy-loading support.</p>
@@ -69,7 +70,8 @@ it, using semantic HTML elements like <code>&lt;a&gt;</code> and <code>&lt;figur
   lazyLoading: true,
 )
 </code></pre>
-<p>This will render as an HTML image with a caption underneath and lazy loading enabled.</p>
+<p>This will render as an HTML image with a caption underneath and lazy loading enabled.
+{{endtemplate}</p>
 </section>
 
 
@@ -576,8 +578,7 @@ and when the image fails to load.
 
 </dt>
 <dd>
-  Since <a href="../flint_ui/Image-class.html">Image</a> is a leaf widget (it cannot contain child widgets),
-this method simply returns itself.
+  {{macro flint_widget.buildTemplate}
   <div class="features"><span class="feature">override</span></div>
 
 </dd>

@@ -1,6 +1,7 @@
 # 🚀 Flint Dart Changelog
 
 All notable changes to Flint Dart will be documented in this file.
+## [1.0.0+22]
 
 ---
 

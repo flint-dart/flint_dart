@@ -4,18 +4,34 @@ import 'package:path/path.dart' as p;
 
 class FileTemplateReader {
   static String _resolveTemplatePath(String name) {
-    final normalized = name.replaceAll('.', Platform.pathSeparator);
     final currentDir = Directory.current.path;
 
-    var cleanNormalized = normalized;
-    if (cleanNormalized.startsWith(Platform.pathSeparator)) {
-      cleanNormalized = cleanNormalized.substring(1);
+    // ✅ 1. If already an absolute or relative file path → use it directly
+    final directPath =
+        p.isAbsolute(name) ? name : p.normalize(p.join(currentDir, name));
+
+    if (File(directPath).existsSync()) {
+      return directPath;
     }
 
+    // ✅ 2. Otherwise treat it as a logical view name
+    final normalized = name.replaceAll('.', Platform.pathSeparator);
+
     final flintPath = p.join(
-        currentDir, 'lib', 'src', 'views', '$cleanNormalized.flint.html');
-    final htmlPath =
-        p.join(currentDir, 'lib', 'src', 'views', '$cleanNormalized.html');
+      currentDir,
+      'lib',
+      'src',
+      'views',
+      '$normalized.flint.html',
+    );
+
+    final htmlPath = p.join(
+      currentDir,
+      'lib',
+      'src',
+      'views',
+      '$normalized.html',
+    );
 
     if (File(flintPath).existsSync()) {
       return flintPath;
@@ -25,15 +41,11 @@ class FileTemplateReader {
       return htmlPath;
     }
 
-    return flintPath;
+    throw FileSystemException('Html template not found', name);
   }
 
   String read(String template) {
     final filePath = _resolveTemplatePath(template);
-    File file = File(filePath);
-    if (!file.existsSync()) {
-      throw FileSystemException('Html template not found', filePath);
-    }
-    return file.readAsStringSync();
+    return File(filePath).readAsStringSync();
   }
 }

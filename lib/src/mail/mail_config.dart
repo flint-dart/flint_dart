@@ -1,4 +1,5 @@
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/mail.dart';
 
 class MailConfig {
   static void load() {

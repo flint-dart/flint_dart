@@ -56,7 +56,7 @@
       
 <span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>&gt;</span></span>
 <span class="name ">create</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="create-param-file"><span class="type-annotation"><a href="../../flint_dart/UploadedFile-class.html">UploadedFile</a></span> <span class="parameter-name">file</span>, {</span></li>
-<li><span class="parameter" id="create-param-subdirectory"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">subdirectory</span> = <span class="default-value">&#39;&#39;</span>, </span></li>
+<li><span class="parameter" id="create-param-subdirectory"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">subdirectory</span>, </span></li>
 </ol>})
 
       
@@ -65,33 +65,41 @@
     
 <section class="desc markdown">
   <p>Saves an uploaded file to the server.</p>
-<p>Generates a unique filename to avoid collisions, ensures the target
-directory exists, and writes the file's content to disk.</p>
-<p><code>file</code> - The <a href="../../flint_dart/UploadedFile-class.html">UploadedFile</a> object from the request.
-<code>subdirectory</code> - Optional subdirectory within the base directory.</p>
-<p>Returns the public URL of the saved file.</p>
+<p><code>file</code> - The uploaded file.
+<code>subdirectory</code> - Optional folder inside <code>/public</code>.</p>
+<p>Examples:
+<code>Storage.create(file)</code> → public/uploads/
+<code>Storage.create(file, subdirectory: 'schools/logo')</code></p>
 </section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">static Future&lt;String&gt; create(UploadedFile file,
-    {String subdirectory = &#39;&#39;}) async {
+  <pre class="language-dart"><code class="language-dart">static Future&lt;String&gt; create(
+  UploadedFile file, {
+  String? subdirectory,
+}) async {
   final safeFileName = file.filename.replaceAll(&#39; &#39;, &#39;_&#39;);
+  final uniqueFileName = &#39;${Uuid().v4()}_$safeFileName&#39;;
 
-  final String uniqueFileName = &#39;${Uuid().v4()}_$safeFileName&#39;;
-  final String uploadPath = &#39;$_baseDir&#47;$subdirectory&#39;;
+  &#47;&#47; Determine folder
+  final folder = (subdirectory == null || subdirectory.isEmpty)
+      ? _defaultUploadsFolder
+      : subdirectory;
 
-  final Directory dir = Directory(uploadPath);
+  final directoryPath = &#39;$_baseDir&#47;$folder&#39;;
+
+  final Directory dir = Directory(directoryPath);
   if (!await dir.exists()) {
     await dir.create(recursive: true);
   }
 
-  final File newFile = File(&#39;$uploadPath&#47;$uniqueFileName&#39;);
+  final File newFile = File(&#39;$directoryPath&#47;$uniqueFileName&#39;);
   await file.content.pipe(newFile.openWrite());
-  print(&#39;$_baseUrl&#47;$subdirectory&#47;$uniqueFileName&#39;);
-  return &#39;$_baseUrl&#47;$subdirectory&#47;$uniqueFileName&#39;;
+
+  &#47;&#47; Return public URL
+  return &#39;&#47;$folder&#47;$uniqueFileName&#39;;
 }</code></pre>
 </section>
 

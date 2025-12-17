@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart' show Response;
-import 'package:flint_dart/src/router.dart' show Handler;
+import 'package:flint_dart/src/routing/router.dart' show Handler;
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as path;
 

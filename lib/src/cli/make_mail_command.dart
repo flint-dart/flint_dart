@@ -3,19 +3,18 @@ import 'commands.dart';
 
 class MakeMailCommand extends FlintCommand {
   MakeMailCommand()
-      : super('make:mail', 'Create a new Flint mail class and template.');
+      : super('make:mail',
+            'Create a new HTML-based Flint mail class and template.');
 
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      print('❌ Usage: flint make:mail <name> [--html]');
+      print('❌ Usage: flint make:mail <name>');
       print('   Example: flint make:mail newsletter');
-      print('   Example: flint make:mail welcome --html');
       return;
     }
 
     final rawName = args.first;
-    final useHtml = args.contains('--html');
 
     if (!_isValidName(rawName)) {
       print(
@@ -25,20 +24,15 @@ class MakeMailCommand extends FlintCommand {
 
     final name = _toSnakeCase(rawName);
     final className = '${_toPascalCase(rawName)}Mail';
-    final templateName = '${_toPascalCase(rawName)}Template';
 
     try {
-      if (useHtml) {
-        await _createHtmlMailFiles(name, className);
-      } else {
-        await _createFlintUiMailFiles(name, className, templateName);
-      }
+      await _createHtmlMailFiles(name, className);
     } catch (e) {
       print('❌ Error creating mail: $e');
     }
   }
 
-  // --- HTML mode ---
+  /// --- HTML mode ---
   Future<void> _createHtmlMailFiles(String name, String className) async {
     final mailDir = Directory('lib/src/mail');
     final htmlDir = Directory('lib/src/mail/views');
@@ -61,185 +55,7 @@ class MakeMailCommand extends FlintCommand {
     print('✅ Created: ${htmlFile.path}');
   }
 
-  // --- Flint UI mode ---
-  Future<void> _createFlintUiMailFiles(
-    String name,
-    String className,
-    String templateName,
-  ) async {
-    final mailDir = Directory('lib/src/mail');
-    final templateDir = Directory('lib/src/mail/templates');
-
-    if (!await mailDir.exists()) mailDir.createSync(recursive: true);
-    if (!await templateDir.exists()) templateDir.createSync(recursive: true);
-
-    final mailFile = File('${mailDir.path}/${name}_mail.dart');
-    final templateFile = File('${templateDir.path}/${name}_template.dart');
-
-    if (await mailFile.exists() || await templateFile.exists()) {
-      print('⚠️  Mail "$name" already exists.');
-      return;
-    }
-
-    await mailFile.writeAsString(_generateMailClass(className, templateName));
-    await templateFile.writeAsString(_generateTemplateClass(templateName));
-
-    print('✅ Created: ${mailFile.path}');
-    print('✅ Created: ${templateFile.path}');
-  }
-
-  // --- Flint UI mail class ---
-  String _generateMailClass(String className, String templateName) {
-    return '''
-import 'package:flint_dart/flint_ui.dart';
-import './templates/${_toSnakeCase(templateName.replaceAll('Template', ''))}_template.dart';
-import 'package:flint_dart/mail.dart';
-
-class $className extends TransactionalMailable {
-  final String title;
-  final String content;
-  final String? imageUrl;
-
-  $className({
-    required super.recipientEmail,
-    required super.recipientName,
-    required this.title,
-    required this.content,
-    this.imageUrl,
-  });
-
-  @override
-  String get subject => title;
-
-  @override
-  FlintWidget build() {
-    return $templateName(
-      title: title,
-      content: content,
-      imageUrl: imageUrl,
-    );
-  }
-}
-''';
-  }
-
-  // --- Flint UI template ---
-  String _generateTemplateClass(String className) {
-    final shortName = className.replaceAll('Template', '');
-    return '''
-import 'package:flint_dart/flint_ui.dart';
-
-class $className extends FlintEmailTemplate {
-  final String title;
-  final String content;
-  final String? imageUrl;
-  final String? ctaUrl;
-  final String? ctaText;
-
-  $className({
-    required this.title,
-    required this.content,
-    this.imageUrl,
-    this.ctaUrl,
-    this.ctaText = 'Learn More',
-    super.theme = const FlintTheme(),
-  }) : super(
-          recipientName: 'Subscriber',
-          recipientEmail: 'newsletter@example.com',
-        );
-
-  @override
-  FlintWidget buildContent() {
-    return FlintBox(
-      padding: EdgeInsets.all(0),
-      children: [
-        if (imageUrl != null)
-          FlintImage(
-            src: imageUrl!,
-            alt: title,
-            width: 600,
-            height: 200,
-            style: const ImageStyle(fit: ObjectFit.cover),
-          ),
-        FlintBox(
-          padding: EdgeInsets.all(24),
-          children: [
-            FlintText(
-              title,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: '#1a1a1a',
-              ),
-              align: TextAlign.center,
-            ),
-            FlintText(
-              content,
-              style: TextStyle(
-                fontSize: 14,
-                color: '#666666',
-              ),
-              align: TextAlign.center,
-            ),
-            if (ctaUrl != null)
-              FlintButton(
-                text: ctaText!,
-                url: ctaUrl!,
-                style: ButtonStyle.primary().copyWith(
-                  backgroundColor: theme.primaryColor,
-                  textStyle: TextStyle(
-                    color: '#ffffff',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                borderRadius: BorderRadius.circular(6),
-              ),
-            FlintBox(
-              margin: EdgeInsets.only(top: 32),
-              padding: EdgeInsets.all(16),
-              backgroundColor: '#f8f9fa',
-              borderRadius: BorderRadius.circular(6),
-              children: [
-                FlintText(
-                  'You received this email because you subscribed to our $shortName updates.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: '#666666',
-                  ),
-                  align: TextAlign.center,
-                ),
-                FlintBox(
-                  margin: EdgeInsets.only(top: 8),
-                  children: [
-                    FlintRichText(
-                      children: [
-                        FlintTextSpan(
-                          'Unsubscribe',
-                          style: TextStyle(
-                            color: '#999999',
-                            decoration: TextDecoration.underline,
-                          ),
-                          onTap: 'https://example.com/unsubscribe',
-                        ),
-                      ],
-                      align: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-''';
-  }
-
-  // --- HTML mail ---
+  /// --- Generate Dart Mail class ---
   String _generateHtmlMailClass(String name, String className) {
     return '''
 import 'package:flint_dart/mail.dart';
@@ -272,6 +88,7 @@ class $className extends ViewMailable {
 ''';
   }
 
+  /// --- Generate HTML template ---
   String _generateHtmlView(String className) {
     final readableName = _getReadableName(className);
     return '''
@@ -296,7 +113,7 @@ class $className extends ViewMailable {
 ''';
   }
 
-  // --- Helpers ---
+  /// --- Helpers ---
   String _getReadableName(String className) {
     return className
         .replaceAll('Mail', '')

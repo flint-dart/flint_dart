@@ -253,17 +253,17 @@ class Response {
   /// [mailable] is the Mailable instance to render.
   /// [includePreview] wraps the content in email preview interface if true.
   Response renderEmail(
-    Mailable mailable, {
+    ViewMailable mailable, {
     bool includePreview = true,
   }) {
     try {
       raw.statusCode = 200;
       raw.headers.contentType = ContentType.html;
 
-      final content = mailable.build();
-      final html = includePreview
-          ? _generatePreviewHtml(content, mailable.subject)
-          : content.toHtml();
+      final html = TemplateEngine().render(
+        mailable.view,
+        mailable.data,
+      );
 
       raw.write(html);
     } catch (e) {
@@ -272,6 +272,7 @@ class Response {
       raw.write('❌ Failed to render email: ${e.runtimeType}');
       print('[Flint] Render Email Error: $e');
     }
+
     close();
     return this;
   }

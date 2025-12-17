@@ -4,8 +4,6 @@
 
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 
-import '../src/template_engine/template.dart';
-
 String view(String name, [Map<String, dynamic> data = const {}]) =>
     TemplateEngine().render(name, data);
 

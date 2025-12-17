@@ -9,7 +9,7 @@ import 'package:flint_dart/src/validation/validator.dart';
 import 'package:mysql_dart/exception.dart';
 import 'package:postgres/postgres.dart';
 
-import '../router.dart';
+import '../routing/router.dart';
 
 abstract class Middleware {
   Handler handle(Handler next);

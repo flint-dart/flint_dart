@@ -76,6 +76,9 @@
 Handler handle(Handler next) {
   return (req, res) async {
     print(&#39;[${req.method}] ${req.path}&#39;);
+    print(req.cookies);
+    print(req.ipAddress);
+    print(&quot;is isAuthenticated ${req.isAuthenticated}&quot;);
     return await next(req, res);
   };
 }</code></pre>

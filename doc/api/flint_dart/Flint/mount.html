@@ -80,24 +80,58 @@ You can also pass specific <code>middlewares</code> for the mounted app.</p>
   final subApp = Flint(rootPath: rootPath);
   callback(subApp);
 
-  for (final route in subApp._router.routes) {
-    var allMiddleware = [...middlewares, ...route.middlewares];
+  &#47;&#47; Normalize prefix: ensure it starts with &quot;&#47;&quot; and remove trailing slash
+  String cleanPrefix = prefix;
+  if (!cleanPrefix.startsWith(&#39;&#47;&#39;)) {
+    cleanPrefix = &#39;&#47;$cleanPrefix&#39;;
+  }
+  if (cleanPrefix != &#39;&#47;&#39; &amp;&amp; cleanPrefix.endsWith(&#39;&#47;&#39;)) {
+    cleanPrefix = cleanPrefix.substring(0, cleanPrefix.length - 1);
+  }
 
-    var handlerWithMiddlewares = allMiddleware.fold&lt;Handler&gt;(
+  for (final route in subApp._router.routes) {
+    &#47;&#47; Normalize route path
+    String cleanPath = route.path;
+
+    &#47;&#47; Fix missing leading slash
+    if (!cleanPath.startsWith(&#39;&#47;&#39;)) {
+      cleanPath = &#39;&#47;$cleanPath&#39;;
+    }
+
+    &#47;&#47; Remove duplicate &quot;&#47;&quot; when combining
+    final fullPath = cleanPath == &#39;&#47;&#39;
+        ? cleanPrefix
+        : cleanPrefix == &#39;&#47;&#39;
+            ? cleanPath
+            : &#39;$cleanPrefix$cleanPath&#39;;
+
+    &#47;&#47; Merge middlewares
+    final allMiddleware = [...middlewares, ...route.middlewares];
+
+    final handlerWithMiddlewares = allMiddleware.fold&lt;Handler&gt;(
       route.handler,
       (prev, middleware) =&gt; middleware.handle(prev),
     );
 
     _router.add(
       route.method,
-      &#39;$prefix${route.path == &#39;&#47;&#39; ? &#39;&#39; : route.path}&#39;,
+      fullPath,
       handlerWithMiddlewares,
     );
   }
 
+  &#47;&#47; Normalize websocket paths too
   for (final wsRoute in subApp._wsRoutes) {
-    _wsRoutes.add(
-        WsRoute(&#39;$prefix${wsRoute.path}&#39;, wsRoute.handler, wsRoute.auth));
+    String cleanWsPath = wsRoute.path;
+
+    if (!cleanWsPath.startsWith(&#39;&#47;&#39;)) {
+      cleanWsPath = &#39;&#47;$cleanWsPath&#39;;
+    }
+
+    final fullWsPath =
+        cleanPrefix == &#39;&#47;&#39; ? cleanWsPath : &#39;$cleanPrefix$cleanWsPath&#39;;
+
+    _wsRoutes.add(WsRoute(fullWsPath, wsRoute.handler, wsRoute.auth));
   }
 }</code></pre>
 </section>

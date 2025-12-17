@@ -74,7 +74,7 @@
     validate();
 
     &#47;&#47; Render .flint.html template into HTML
-    final html = FlintTemplateEngine.render(view, data: data);
+    final html = TemplateEngine().render(view, data);
     final text = _stripHtmlTags(html);
 
     final mail = Mail().toMany(to).subject(subject).html(html).text(text);

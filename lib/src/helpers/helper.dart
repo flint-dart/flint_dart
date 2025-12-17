@@ -25,7 +25,10 @@ Future getSession(String key) async {
   return;
 }
 
-Future<Map<String, dynamic>?> allSessions() async {}
+Future<Map<String, dynamic>?> allSessions() async {
+  return null;
+}
+
 Future<void> deleteSession(String key) async {}
 
 Future<void> destroyAllSessions() async {}

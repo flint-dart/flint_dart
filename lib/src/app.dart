@@ -1,14 +1,15 @@
 import 'dart:io';
+import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/database/db.dart';
-import 'package:flint_dart/src/mail/mail_config.dart';
-import 'package:flint_dart/src/route_builder.dart';
+import 'package:flint_dart/src/routing/route_builder.dart';
+import 'package:flint_dart/src/routing/route_group.dart';
 import 'package:flint_dart/src/websocket/websocket_manager.dart';
 import 'package:flint_dart/src/websocket/ws_helper.dart';
 import 'package:mime/mime.dart';
 import 'middleware/middleware.dart';
 import 'request.dart';
 import 'response.dart';
-import 'router.dart';
+import 'routing/router.dart';
 import 'websocket/websocket.dart'; // FlintWebSocket and wsManager
 import 'websocket/ws_router.dart'; // _WsRoute, WsHandler, WsAuthMiddleware typedefs
 import 'package:path/path.dart' as path;
@@ -367,6 +368,81 @@ class Flint {
 
       _wsRoutes.add(WsRoute(fullWsPath, wsRoute.handler, wsRoute.auth));
     }
+  }
+
+  /// Registers a [RouteGroup] and its optional child groups into the Flint app.
+  ///
+  /// This method allows you to organize routes into hierarchical, reusable groups
+  /// with automatic URL prefixing and middleware composition. It supports **nested
+  /// route groups**, making it easy to build modular and maintainable applications.
+  ///
+  /// ### How it works
+  /// 1. If the parent [group] has an empty prefix (`''`), its routes are registered
+  ///    directly on the current app instance.
+  /// 2. Child groups (if any) are recursively registered at the same level.
+  /// 3. If the parent [group] has a prefix, it is mounted using [Flint.mount].
+  ///    - Parent routes are registered inside the mounted sub-app.
+  ///    - Child groups are recursively registered inside the sub-app.
+  /// 4. Middlewares defined on the parent [group] are applied to all its routes
+  ///    and automatically inherited by child groups.
+  ///
+  /// ### Example: Simple registration
+  /// ```dart
+  /// app.routes(ApiRoute());
+  /// ```
+  ///
+  /// ### Example: Nested route groups
+  /// ```dart
+  /// app.routes(
+  ///   ApiRoute(),
+  ///   children: [
+  ///     SchoolRoutes(),
+  ///     AIRoutes(),
+  ///   ],
+  /// );
+  /// ```
+  ///
+  /// This automatically composes prefixes and middleware:
+  /// - `/api` -> ApiRoute
+  /// - `/api/schools` -> SchoolRoutes
+  /// - `/api/ai` -> AIRoutes
+  ///
+  /// ### Middleware order
+  /// ```
+// — Global middlewares
+// — Parent RouteGroup middlewares
+// — Child RouteGroup middlewares
+// — Route-specific middlewares
+  /// ```
+  ///
+  /// ### Parameters
+  /// - [group]: The [RouteGroup] to register. Can define a prefix and middlewares.
+  /// - [children]: Optional list of [RouteGroup] instances nested inside [group].
+  ///
+  /// ### Notes
+  /// - Child groups inherit the parent group's prefix and middleware.
+  /// - Supports deep nesting of route groups for modular API design.
+  /// - Recommended for organizing large applications with multiple logical route sections.
+  void routes(
+    RouteGroup group, {
+    List<RouteGroup> children = const [],
+  }) {
+    // Normalize prefix: empty string or "/" is treated the same
+    String cleanPrefix = group.prefix.isEmpty ? '/' : group.prefix;
+
+    mount(
+      cleanPrefix,
+      (subApp) {
+        // Register this group's routes in the sub-app
+        group.register(subApp);
+
+        // Recursively register child groups in the sub-app
+        for (final child in children) {
+          subApp.routes(child);
+        }
+      },
+      middlewares: group.middlewares,
+    );
   }
 
   /// Starts the HTTP & WebSocket server on [port].
