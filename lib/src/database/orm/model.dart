@@ -15,7 +15,36 @@ abstract class Model<T extends Model<T>> {
   final Map<String, dynamic> _attributes = {};
 
   /// Read raw attribute
-  dynamic getAttribute(String key) => _attributes[key];
+  T? getAttribute<T>(String key) {
+    final value = _attributes[key];
+    if (value == null) return null;
+
+    // Return directly if type matches
+    if (value is T) return value;
+    if (T == dynamic) return value;
+
+    // DateTime parsing
+    if (T == DateTime && value is String) {
+      return DateTime.tryParse(value) as T?;
+    }
+
+    // Numeric parsing ONLY if T is int/double/num explicitly
+    if (T == int && value is String) return int.tryParse(value) as T?;
+    if (T == double && value is String) return double.tryParse(value) as T?;
+    if (T == num && value is String) return num.tryParse(value) as T?;
+
+    // Bool parsing
+    if (T == bool && value is! bool) {
+      final str = value.toString().toLowerCase();
+      if (str == 'true' || str == '1') return true as T;
+      if (str == 'false' || str == '0') return false as T;
+    }
+
+    // String conversion only if explicitly requested
+    if (T == String) return value.toString() as T;
+
+    return null; // can't convert safely
+  }
 
   /// Set raw attribute
   void setAttribute(String key, dynamic value) {
@@ -67,6 +96,12 @@ abstract class Model<T extends Model<T>> {
     });
 
     return model;
+  }
+
+  E? getEnum<E extends Enum>(String key, List<E> values) {
+    final value = getAttribute(key);
+    if (value == null) return null;
+    return values.byName(value.toString());
   }
 
   /// Internal query builder instance for chaining
