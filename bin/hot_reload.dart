@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flint_dart/src/cli/generate_docs_command.dart';
+
 Process? server;
 Timer? _debounce;
 
@@ -50,7 +52,14 @@ Future<void> restartServer() async {
 
   if (!started) {
     print('❌ CRITICAL: Could not restart server after 5 attempts.');
+  } else {
+    generateSwaggerDocs();
   }
+}
+
+// Run Flint Swagger Docs generator
+Future<void> generateSwaggerDocs() async {
+  GenerateDocsCommand().execute([]);
 }
 
 Future<void> main(List<String> args) async {

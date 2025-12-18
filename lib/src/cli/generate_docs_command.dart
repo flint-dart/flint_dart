@@ -1,64 +1,9 @@
-// lib/src/cli/commands.dart
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/src/cli/commands.dart';
 
 /// 📖 Flint Swagger Docs Generator
-
-/// Flint comes with a built-in CLI command to generate Swagger/OpenAPI documentation from your annotated routes.
-
-/// 1. Add Documentation Annotations
-
-/// Inside your route files (e.g., lib/src/routes/user_routes.dart), you can use special /// annotations:
-
-/// /// @summary Get all users
-/// /// @auth bearer
-/// /// @response 200 Successful response
-/// /// @response 401 Unauthorized
-/// /// @param id path string required User ID
-/// /// @query page integer optional Page number for pagination
-/// app.get("/users/:id", (req, res) async {
-///   return res.respond({"id": req.params['id'], "name": "Ademola"});
-/// }).useMiddleware(AuthMiddleware());
-
-/// Available Annotations
-
-/// @summary → Short description of the endpoint
-
-/// @auth → Security (default: bearer)
-
-/// @response → HTTP response code + description
-
-/// @param name in type required/optional description
-
-/// Example: @param id path string required The user ID
-
-/// @query name type required/optional description
-
-/// Example: @query page integer optional Page number for pagination
-
-/// @body { "field": "type", "field2": "type" }
-
-/// Example: @body {"email":"string","password":"string"}
-
-/// @prefix /api/v1 → Add a prefix to following routes
-
-/// @server http://localhost:3000 → Add server to Swagger
-
-/// 2. Generate Swagger JSON
-
-/// Run the command:
-
-/// dart run flint docs:generate
-
-/// ✅ Output:
-
-/// Swagger docs generated at docs/swagger.json
-
-/// 3. Serve Swagger UI in Flint
-
-/// Add a simple docs route to your main.dart:
 class GenerateDocsCommand extends FlintCommand {
   GenerateDocsCommand()
       : super('docs:generate', 'Generate Swagger docs from routes');
@@ -81,8 +26,23 @@ class GenerateDocsCommand extends FlintCommand {
     for (var file in files) {
       final lines = File(file.path).readAsLinesSync();
 
+      // Attempt to detect RouteGroup prefix & tag from class
+      String? groupPrefix;
+      String? groupTag;
+
+      final classPrefixReg =
+          RegExp(r'''String\s+get\s+prefix\s*=>\s*['"]([^'"]+)['"]''');
+      final classTagReg =
+          RegExp(r'''String\s+get\s+tag\s*=>\s*['"]([^'"]+)['"]''');
+
+      for (var line in lines) {
+        final prefixMatch = classPrefixReg.firstMatch(line);
+        if (prefixMatch != null) groupPrefix = prefixMatch.group(1);
+        final tagMatch = classTagReg.firstMatch(line);
+        if (tagMatch != null) groupTag = tagMatch.group(1);
+      }
+
       List<String> docBuffer = [];
-      String? currentPrefix;
 
       for (var i = 0; i < lines.length; i++) {
         final line = lines[i].trim();
@@ -92,101 +52,83 @@ class GenerateDocsCommand extends FlintCommand {
           continue;
         }
 
-        if (line.contains('app.get') ||
-            line.contains('app.post') ||
-            line.contains('app.put') ||
-            line.contains('app.delete') ||
-            line.contains('app.patch')) {
+        final routeInfo = _parseRoute(line);
+        if (routeInfo != null) {
           final docs = _parseDocs(docBuffer);
 
-          // Prefix
-          if (docs.containsKey('prefix')) {
-            currentPrefix = docs['prefix'];
+          // Use RouteGroup prefix if exists
+          final currentPrefix = groupPrefix ?? docs['prefix'];
+          var fullPath = _parseRoute(line)?['path'] ?? '';
+
+          if (currentPrefix != null) {
+            var prefix = currentPrefix.startsWith('/')
+                ? currentPrefix
+                : '/$currentPrefix';
+
+            if (prefix.endsWith('/') && prefix != '/') {
+              prefix = prefix.substring(0, prefix.length - 1);
+            }
+
+            var path = fullPath == '/'
+                ? ''
+                : fullPath.startsWith('/')
+                    ? fullPath.substring(1)
+                    : fullPath;
+
+            fullPath = '$prefix${path.isNotEmpty ? '/$path' : ''}';
           }
 
-          // Servers
-          if (docs.containsKey('servers')) {
-            for (var s in docs['servers']) {
-              if (!servers.any((srv) => srv['url'] == s)) {
-                servers.add({"url": s});
-                print("✅ Added server: $s");
-              }
-            }
+          paths.putIfAbsent(fullPath, () => {});
+
+          final operation = <String, dynamic>{
+            "summary": docs['summary'] ?? '',
+            "tags": [groupTag ?? 'Default'], // Use RouteGroup tag if available
+            "responses": docs['responses'] ??
+                {
+                  "200": {"description": "OK"}
+                }
+          };
+
+          // Attach requestBody
+          if (docs.containsKey('requestBody')) {
+            operation['requestBody'] = docs['requestBody'];
           }
 
-          final routeInfo = _parseRoute(line);
-          if (routeInfo != null) {
-            var fullPath = routeInfo['path'];
+          // Combine parameters: path params + query params + manual params
+          final allParameters = <Map<String, dynamic>>[];
+          final autoPathParams = _extractPathParams(fullPath);
+          allParameters.addAll(autoPathParams);
 
-            if (currentPrefix != null) {
-              // Ensure prefix starts with /
-              var prefix = currentPrefix.startsWith('/')
-                  ? currentPrefix
-                  : '/$currentPrefix';
-              // Remove trailing slash from prefix if present
-              if (prefix.endsWith('/') && prefix != '/') {
-                prefix = prefix.substring(0, prefix.length - 1);
-              }
-
-              // Normalize route path: if root '/', treat as empty; remove leading slash otherwise
-              var path = fullPath == '/'
-                  ? ''
-                  : fullPath.startsWith('/')
-                      ? fullPath.substring(1)
-                      : fullPath;
-
-              // Combine
-              fullPath = '$prefix${path.isNotEmpty ? '/$path' : ''}';
-            }
-
-            paths.putIfAbsent(fullPath, () => {});
-
-            final operation = <String, dynamic>{
-              "summary": docs['summary'] ?? '',
-              "responses": docs['responses'] ??
-                  {
-                    "200": {"description": "OK"}
-                  }
-            };
-
-            // Attach requestBody
-            if (docs.containsKey('requestBody')) {
-              operation['requestBody'] = docs['requestBody'];
-            }
-
-            // Combine parameters: path params + query params + manual params
-            final allParameters = <Map<String, dynamic>>[];
-
-            // Auto-generate path params
-            final autoPathParams = _extractPathParams(fullPath);
-            allParameters.addAll(autoPathParams);
-
-            // Add query parameters
-            if (docs.containsKey('queryParameters')) {
-              allParameters.addAll(docs['queryParameters']);
-            }
-
-            // Add manually defined parameters
-            if (docs.containsKey('parameters')) {
-              allParameters.addAll(docs['parameters']);
-            }
-
-            if (allParameters.isNotEmpty) {
-              operation['parameters'] = allParameters;
-            }
-
-            // Auth/Security
-            if (docs.containsKey('auth')) {
-              final authType = docs['auth'];
-              operation['security'] = [
-                {authType: []} // e.g., {"bearer": []} or {"basicAuth": []}
-              ];
-            }
-
-            paths[fullPath][routeInfo['method']] = operation;
+          if (docs.containsKey('queryParameters')) {
+            allParameters.addAll(docs['queryParameters']);
           }
+          if (docs.containsKey('parameters')) {
+            allParameters.addAll(docs['parameters']);
+          }
+
+          if (allParameters.isNotEmpty) {
+            operation['parameters'] = allParameters;
+          }
+
+          // Auth/Security
+          if (docs.containsKey('auth')) {
+            final authType = docs['auth'];
+            operation['security'] = [
+              {authType: []}
+            ];
+          }
+
+          final method = _parseRoute(line)?['method'] ?? 'get';
+          paths[fullPath][method] = operation;
 
           docBuffer = [];
+        }
+      }
+
+      final docServers = _parseDocs(docBuffer)['servers'] ?? [];
+      for (var s in docServers) {
+        if (!servers.any((srv) => srv['url'] == s)) {
+          servers.add({'url': s});
         }
       }
     }
@@ -209,7 +151,7 @@ class GenerateDocsCommand extends FlintCommand {
 
     final outFile = File('${docsDir.path}/swagger.json');
     outFile.writeAsStringSync(JsonEncoder.withIndent('  ').convert(swagger));
-    print('✅ Swagger docs generated at ${outFile.path}');
+    // print('✅ Swagger docs generated at ${outFile.path}');
   }
 
   Map<String, dynamic>? _parseRoute(String line) {
@@ -222,7 +164,6 @@ class GenerateDocsCommand extends FlintCommand {
     if (match != null) {
       final method = match.group(2);
       var path = match.group(3);
-
       if (method != null && path != null) {
         path = path.replaceAllMapped(RegExp(r':(\w+)'), (m) => '{${m[1]}}');
         return {"method": method.toLowerCase(), "path": path};
@@ -244,8 +185,6 @@ class GenerateDocsCommand extends FlintCommand {
         result['auth'] = value.isEmpty ? 'bearer' : value;
       } else if (line.startsWith('@server')) {
         servers.add(line.replaceFirst('@server', '').trim());
-      } else if (line.startsWith('@prefix')) {
-        result['prefix'] = line.replaceFirst('@prefix', '').trim();
       } else if (line.startsWith('@summary')) {
         result['summary'] = line.replaceFirst('@summary', '').trim();
       } else if (line.startsWith('@response')) {

@@ -61,6 +61,7 @@ abstract class Model<T extends Model<T>> {
   List<String> get conceal => [];
 
   /// Base map of model fields (user implements this)
+  @Deprecated('Use getAttribute<T>(key) instead for type-safe access')
   dynamic getField(String field) => _attributes[field];
 
   /// Returns the safe map including concealed filter and timestamps
