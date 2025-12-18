@@ -25,7 +25,7 @@ class ForLoopProcessor extends BaseExpression {
   ///   {{ endfor }}
   ///
   ///  {{ for i=0; i<3; i++ }}
-  ///    Index ->: @{i} - Name: @{users[i].name}
+  ///    Index ->: {{i} - Name: {{users[i].name}}
   ///  {{ endfor }}
   ///```
   /// Is replaced with the contents of the loop block, with `user` replaced with each value of the iterable returned by the expression.

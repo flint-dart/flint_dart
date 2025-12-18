@@ -12,6 +12,16 @@ typedef RelationLoader = Future<void> Function(
 final Map<String, RelationLoader> _relationLoaders = {};
 
 abstract class Model<T extends Model<T>> {
+  final Map<String, dynamic> _attributes = {};
+
+  /// Read raw attribute
+  dynamic getAttribute(String key) => _attributes[key];
+
+  /// Set raw attribute
+  void setAttribute(String key, dynamic value) {
+    _attributes[key] = value;
+  }
+
   /// Primary key column
   String get primaryKey => 'id';
 
@@ -22,19 +32,42 @@ abstract class Model<T extends Model<T>> {
   List<String> get conceal => [];
 
   /// Base map of model fields (user implements this)
-  dynamic getField(String field) => toMap()[field];
+  dynamic getField(String field) => _attributes[field];
 
   /// Returns the safe map including concealed filter and timestamps
-  Map<String, dynamic> toMap();
+  Map<String, dynamic> toMap() {
+    final map = Map<String, dynamic>.from(_attributes);
+
+    // Remove any concealed fields
+    for (final key in conceal) {
+      map.remove(key);
+    }
+    // Ensure createdAt/updatedAt are DateTime
+    if (map['created_at'] is String && _looksLikeDateTime(map['created_at'])) {
+      map['created_at'] = DateTime.parse(map['created_at']);
+    }
+    if (map['updated_at'] is String && _looksLikeDateTime(map['updated_at'])) {
+      map['updated_at'] = DateTime.parse(map['updated_at']);
+    }
+    return map;
+  }
 
   Map<String, dynamic> asMap() => toMap();
 
-  DateTime? get createdAt => toMap()['created_at'];
-  DateTime? get updatedAt => toMap()['updated_at'];
-  dynamic get id => toMap()[primaryKey];
+  DateTime? get createdAt => _attributes['created_at'];
+  DateTime? get updatedAt => _attributes['updated_at'];
+  dynamic get id => _attributes[primaryKey];
 
   /// Convert DB map into a model instance
-  T fromMap(Map<dynamic, dynamic> map);
+  T fromMap(Map<dynamic, dynamic> map) {
+    final model = this as T;
+
+    map.forEach((key, value) {
+      model.setAttribute(key.toString(), value);
+    });
+
+    return model;
+  }
 
   /// Internal query builder instance for chaining
   QueryBuilder? _queryBuilder;
@@ -294,7 +327,7 @@ abstract class Model<T extends Model<T>> {
 
   T orWhereEndsWith(String field, String value,
       {bool caseSensitive = false, bool escape = true}) {
-    _qb.orWhereStartsWith(field, value,
+    _qb.orWhereEndsWith(field, value,
         caseSensitive: caseSensitive, escape: escape);
     return this as T;
   }
@@ -327,7 +360,7 @@ abstract class Model<T extends Model<T>> {
 
   /// Insert new record (works for both PostgreSQL and MySQL)
   Future<T?> create([Map<String, dynamic>? data]) async {
-    final insertMap = data ?? toMap();
+    final insertMap = data ?? _attributes;
 
     final idColumn = table.columns.firstWhere((c) => c.isPrimaryKey,
         orElse: () => Column(
@@ -457,7 +490,7 @@ abstract class Model<T extends Model<T>> {
       throw Exception("Cannot update: $primaryKey is null");
     }
 
-    final updateMap = data ?? toMap();
+    final updateMap = data ?? _attributes;
     final updateData = Map<String, dynamic>.from(updateMap)
       ..remove(primaryKey)
       ..removeWhere((k, v) => k.trim().isEmpty);
@@ -764,6 +797,17 @@ abstract class Model<T extends Model<T>> {
       }
     }
 
+    // --- 🔥 GLOBAL TIMESTAMP SAFETY (created_at, updated_at) ---
+    for (final entry in converted.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      if (value is String &&
+          (key == 'created_at' || key == 'updated_at') &&
+          _looksLikeDateTime(value)) {
+        converted[key] = DateTime.parse(value);
+      }
+    }
     return converted;
   }
 
