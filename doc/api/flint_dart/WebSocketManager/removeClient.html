@@ -70,7 +70,7 @@
   <pre class="language-dart"><code class="language-dart">void removeClient(String id) {
   final client = _clients.remove(id);
   if (client != null) {
-    for (var room in client.rooms) {
+    for (var room in client.rooms.toList()) {
       _rooms[room]?.remove(client);
       if (_rooms[room]?.isEmpty ?? false) {
         _rooms.remove(room);
@@ -105,7 +105,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+23
+      1.0.0+24
   </span>
   
 </footer>

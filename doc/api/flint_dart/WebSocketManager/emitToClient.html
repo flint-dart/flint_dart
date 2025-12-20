@@ -70,8 +70,9 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">void emitToClient(String clientId, String event, dynamic data) {
-  final client = _clients[clientId];
+  final client = clients[clientId];
   if (client == null) return;
+
   client.emit(event, data);
 }</code></pre>
 </section>
@@ -101,7 +102,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+23
+      1.0.0+24
   </span>
   
 </footer>

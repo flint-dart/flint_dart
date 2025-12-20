@@ -71,7 +71,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;T?&gt; create([Map&lt;String, dynamic&gt;? data]) async {
-  final insertMap = data ?? toMap();
+  final insertMap = data ?? _attributes;
 
   final idColumn = table.columns.firstWhere((c) =&gt; c.isPrimaryKey,
       orElse: () =&gt; Column(
@@ -186,7 +186,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+23
+      1.0.0+24
   </span>
   
 </footer>

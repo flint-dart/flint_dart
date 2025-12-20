@@ -83,7 +83,7 @@
   final defaultLocal = &#39;${_toSnakeCase(related.runtimeType.toString())}_id&#39;;
   final lKey = localKey ?? defaultLocal;
 
-  final localValue = getField(lKey);
+  final localValue = getAttribute(lKey);
   if (localValue == null) return null;
 
   final cacheKey = useCache
@@ -135,7 +135,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+23
+      1.0.0+24
   </span>
   
 </footer>

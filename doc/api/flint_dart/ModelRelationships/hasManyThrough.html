@@ -113,7 +113,7 @@ throughFactory builds the "through" model (e.g. () =&gt; User())</p>
     if (cached != null) return cached;
   }
 
-  final localValue = getField(localKey);
+  final localValue = getAttribute(localKey);
   if (localValue == null) return &lt;R&gt;[];
 
   &#47;&#47; 1) Load through IDs where through.firstKey = localValue
@@ -158,7 +158,7 @@ throughFactory builds the "through" model (e.g. () =&gt; User())</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+23
+      1.0.0+24
   </span>
   
 </footer>

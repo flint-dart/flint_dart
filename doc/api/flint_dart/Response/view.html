@@ -97,12 +97,53 @@ Optionally, you can pass <code>data</code> for simple variable replacement in th
 
   String content;
   try {
-    &#47;&#47; Use the original templateName directly
-    &#47;&#47; TemplateEngine().render(view, context)
+    &#47;&#47; Render template using TemplateEngine
     content = TemplateEngine().render(templateName, data ?? {});
   } catch (e) {
     &#47;&#47; Fallback to raw file content if template rendering fails
     content = await file.readAsString();
+  }
+
+&#47;&#47; Wrap in main-content container for hot reload
+&#47;&#47; Wrap in main-content container for hot reload
+  content = &#39;&lt;div id=&quot;main-content&quot;&gt;$content&lt;&#47;div&gt;&#39;;
+
+&#47;&#47; Inject hot reload WebSocket script (only for development)
+  if (Platform.environment[&#39;FLINT_HOT&#39;] == &#39;1&#39;) {
+    content += &#39;&#39;&#39;
+&lt;script&gt;
+function connectHotReload() {
+const socket = new WebSocket(&#39;ws:&#47;&#47;localhost:3000&#47;flint_reload&#39;);
+
+socket.addEventListener(&#39;open&#39;, () =&gt; {
+  console.log(&#39;[FLINT] Hot reload WebSocket connected&#39;);
+});
+
+socket.addEventListener(&#39;message&#39;, event =&gt; {
+  const data = JSON.parse(event.data);
+  if (data.event === &#39;flint:reload&#39;) {
+    console.log(&#39;[FLINT] Hot reload triggered&#39;);
+    window.location.reload();
+  }
+});
+
+socket.addEventListener(&#39;close&#39;, () =&gt; {
+  console.log(&#39;[FLINT] WebSocket disconnected, retrying in 1s...&#39;);
+  setTimeout(connectHotReload, 1000); &#47;&#47; reconnect after 1 second
+});
+
+socket.addEventListener(&#39;error&#39;, err =&gt; {
+  console.error(&#39;[FLINT] WebSocket error:&#39;, err);
+  socket.close(); &#47;&#47; close and trigger reconnect
+});
+}
+
+&#47;&#47; start connection
+connectHotReload();
+&lt;&#47;script&gt;
+
+
+&#39;&#39;&#39;;
   }
 
   raw.statusCode = 200;
@@ -139,7 +180,7 @@ Optionally, you can pass <code>data</code> for simple variable replacement in th
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+23
+      1.0.0+24
   </span>
   
 </footer>

@@ -72,7 +72,7 @@
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">void broadcast(String message, {bool includeSelf = false}) {
-  for (var client in _manager.clients.values) {
+  for (var client in wsManager.clients.values) {
     if (includeSelf || client.id != id) {
       client.send(message);
     }
@@ -105,7 +105,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+23
+      1.0.0+24
   </span>
   
 </footer>
