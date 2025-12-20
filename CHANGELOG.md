@@ -1,7 +1,22 @@
 # 🚀 Flint Dart Changelog
 
 All notable changes to Flint Dart will be documented in this file.
----
+---## [1.0.0+24] - 2025-12-20
+
+### Added
+- Live hot reload for `.flint.html` templates without restarting the server.
+- WebSocket-based reload listener for development mode.
+- Automatic WebSocket reconnection for hot reload when the connection drops.
+
+### Improved
+- Developer experience when editing view templates.
+- Faster iteration on UI changes with instant browser refresh.
+
+### Fixed
+- Hot reload disconnect issues when the server restarts.
+
+
+
 
 ## [1.0.0+23] - 2025-12-17
 ### Added
