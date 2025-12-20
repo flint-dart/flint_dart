@@ -16,7 +16,8 @@ class TemplateEngine {
 
   String render(String template, [Map<String, dynamic>? data]) {
     String templateContent = FileTemplateReader().read(template);
-    String renderedTemplate = renderString(templateContent, data);
+    var realdata = {...(data ?? {}), "templateName": template};
+    String renderedTemplate = renderString(templateContent, realdata);
     sessionErrors.clear();
     formData.clear();
     sessions.clear();

@@ -3,6 +3,7 @@ import 'package:flint_dart/schema.dart';
 import 'package:sample/src/models/post_model.dart';
 
 class User extends Model<User> {
+  User() : super(() => User());
   @override
   int? id;
   String? name;

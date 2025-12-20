@@ -2,7 +2,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
-import 'websocket_manager.dart';
+import 'ws_manager_instance.dart';
 
 /// Represents a connected WebSocket client
 class FlintWebSocket {
@@ -13,7 +13,6 @@ class FlintWebSocket {
   // Event listeners storage
   final Map<String, List<void Function(dynamic)>> _eventListeners = {};
   StreamSubscription<dynamic>? _messageSubscription;
-  final WebSocketManager _manager = WebSocketManager();
 
   FlintWebSocket(this._socket, this.id) {
     // Setup the main message listener
@@ -24,7 +23,7 @@ class FlintWebSocket {
     );
 
     // Add to manager
-    _manager.addClient(id, this);
+    wsManager.addClient(id, this);
   }
 
   /// Send a text message
@@ -141,13 +140,13 @@ class FlintWebSocket {
   /// Join a room
   void join(String room) {
     rooms.add(room);
-    _manager.addToRoom(room, this);
+    wsManager.addToRoom(room, this);
   }
 
   /// Leave a room
   void leave(String room) {
     rooms.remove(room);
-    _manager.removeFromRoom(room, this);
+    wsManager.removeFromRoom(room, this);
   }
 
   /// Leave all rooms
@@ -159,7 +158,7 @@ class FlintWebSocket {
 
   /// Broadcast to all connected clients
   void broadcast(String message, {bool includeSelf = false}) {
-    for (var client in _manager.clients.values) {
+    for (var client in wsManager.clients.values) {
       if (includeSelf || client.id != id) {
         client.send(message);
       }
@@ -169,7 +168,7 @@ class FlintWebSocket {
   /// Broadcast to a specific room
   void broadcastToRoom(String room, String message,
       {bool includeSelf = false}) {
-    final roomClients = _manager.rooms[room];
+    final roomClients = wsManager.rooms[room];
     if (roomClients != null) {
       for (var client in roomClients) {
         if (includeSelf || client.id != id) {
@@ -181,7 +180,7 @@ class FlintWebSocket {
 
   /// Emit to all connected clients
   void emitToAll(String event, dynamic data, {bool includeSelf = false}) {
-    for (var client in _manager.clients.values) {
+    for (var client in wsManager.clients.values) {
       if (includeSelf || client.id != id) {
         client.emit(event, data);
       }
@@ -191,7 +190,7 @@ class FlintWebSocket {
   /// Emit to a specific room
   void emitToRoom(String room, String event, dynamic data,
       {bool includeSelf = false}) {
-    final roomClients = _manager.rooms[room];
+    final roomClients = wsManager.rooms[room];
     if (roomClients != null) {
       for (var client in roomClients) {
         if (includeSelf || client.id != id) {
@@ -208,6 +207,6 @@ class FlintWebSocket {
 
     // Leave rooms and remove from manager
     leaveAll();
-    _manager.removeClient(id);
+    wsManager.removeClient(id);
   }
 }

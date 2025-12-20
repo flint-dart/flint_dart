@@ -13,35 +13,38 @@ final Map<String, RelationLoader> _relationLoaders = {};
 
 abstract class Model<T extends Model<T>> {
   final Map<String, dynamic> _attributes = {};
+  final T Function() _factory;
+
+  Model(this._factory);
 
   /// Read raw attribute
-  T? getAttribute<T>(String key) {
+  R? getAttribute<R>(String key) {
     final value = _attributes[key];
     if (value == null) return null;
 
     // Return directly if type matches
-    if (value is T) return value;
-    if (T == dynamic) return value;
+    if (value is R) return value;
+    if (R == dynamic) return value;
 
     // DateTime parsing
-    if (T == DateTime && value is String) {
-      return DateTime.tryParse(value) as T?;
+    if (R == DateTime && value is String) {
+      return DateTime.tryParse(value) as R?;
     }
 
     // Numeric parsing ONLY if T is int/double/num explicitly
-    if (T == int && value is String) return int.tryParse(value) as T?;
-    if (T == double && value is String) return double.tryParse(value) as T?;
-    if (T == num && value is String) return num.tryParse(value) as T?;
+    if (R == int && value is String) return int.tryParse(value) as R?;
+    if (R == double && value is String) return double.tryParse(value) as R?;
+    if (R == num && value is String) return num.tryParse(value) as R?;
 
     // Bool parsing
-    if (T == bool && value is! bool) {
+    if (R == bool && value is! bool) {
       final str = value.toString().toLowerCase();
-      if (str == 'true' || str == '1') return true as T;
-      if (str == 'false' || str == '0') return false as T;
+      if (str == 'true' || str == '1') return true as R;
+      if (str == 'false' || str == '0') return false as R;
     }
 
     // String conversion only if explicitly requested
-    if (T == String) return value.toString() as T;
+    if (R == String) return value.toString() as R;
 
     return null; // can't convert safely
   }
@@ -89,13 +92,12 @@ abstract class Model<T extends Model<T>> {
   dynamic get id => _attributes[primaryKey];
 
   /// Convert DB map into a model instance
+  /// Hydrate a map into a new model instance
   T fromMap(Map<dynamic, dynamic> map) {
-    final model = this as T;
-
+    final model = _factory();
     map.forEach((key, value) {
       model.setAttribute(key.toString(), value);
     });
-
     return model;
   }
 

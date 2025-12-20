@@ -3,8 +3,9 @@ import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
-import 'package:flint_dart/src/websocket/websocket_manager.dart';
+
 import 'package:flint_dart/src/websocket/ws_helper.dart';
+import 'package:flint_dart/src/websocket/ws_manager_instance.dart';
 import 'package:mime/mime.dart';
 import 'middleware/middleware.dart';
 import 'request.dart';
@@ -445,119 +446,199 @@ class Flint {
     );
   }
 
+  _registerFlintTemReload() {
+    websocket('/flint_reload',
+        (FlintWebSocket client, Map<String, String> params) {
+      // client.onClose(() {
+      //   connectedClients.remove(client.id);
+      //   print('[FLINT] Client disconnected: ${client.id}');
+      // });
+    });
+  }
+
+  void _registerHotReloadEndpoint() {
+    // Endpoint for hot reload process to notify about template changes
+    post('/_flint/internal/hot-reload', (req, res) async {
+      try {
+        final body = await req.json();
+        final templateName = body['template'] as String?;
+        final htmlContent = body['html'] as String?;
+
+        if (templateName == null || htmlContent == null) {
+          return res.status(400).json({
+            'success': false,
+            'error': 'Missing template or html in request body'
+          });
+        }
+
+        // Emit to all WebSocket clients in THIS process
+        wsManager.emitToAll('flint:reload', {
+          'template': templateName,
+          'html': htmlContent,
+        });
+
+        return res.json({
+          'success': true,
+          'message': 'Hot reload event sent',
+          'clients': wsManager.clients.length,
+          'timestamp': DateTime.now().toIso8601String()
+        });
+      } catch (e) {
+        return res
+            .status(500)
+            .json({'success': false, 'error': 'Internal server error: $e'});
+      }
+    });
+  }
+
   /// Starts the HTTP & WebSocket server on [port].
   ///
   /// - Attempts to auto-connect to the database via `.env` unless already connected.
   /// - Runs with hot reload during development unless hotReload is set to true in listen.
   /// - Handles both HTTP and WebSocket upgrade requests.
+  /// Starts the HTTP & WebSocket server on [port].
   Future<void> listen(int port, {bool hotReload = true}) async {
+    // 1. Register hot reload websocket route if enabled
     if (hotReload) {
-      print(
-          '[FLINT] ⚠️ Hot reload is ENABLED. Remember to disable it in production by setting hotReload: false.');
+      _registerFlintTemReload();
+      _registerHotReloadEndpoint();
+      print('[FLINT] ⚠️ Hot reload is ENABLED.');
     }
-    // Hot reload parent process
+
+    // 2. THE LAUNCHER CHECK
+    // If we are in the Parent Process, start the watcher and STOP here.
     if (hotReload && Platform.environment['FLINT_HOT'] != '1') {
-      print('[FLINT] Starting with hot reload...');
-      final child = await Process.start('dart',
-          ['--enable-vm-service', 'run', 'flint_dart:hot_reload', rootPath],
-          environment: {'FLINT_HOT': '1'},
-          mode: ProcessStartMode.inheritStdio,
-          runInShell: true);
-      ProcessSignal.sigint.watch().listen((_) async {
-        print('\n[FLINT] Shutting down...');
-        child.kill(ProcessSignal.sigint);
-        child.kill();
-        await child.exitCode;
-        exit(0);
-      });
-      return;
+      await _startHotReloadLauncher(port);
+      return; // CRITICAL: Parent process returns here and never runs the server.
     }
+
+    // 3. THE ACTUAL SERVER (Worker Process)
+    // If we reach here, we are either in the child process or hot reload is off.
+    await _runServer(port);
+  }
+
+  /// Handles the Process forking for hot reload
+  Future<void> _startHotReloadLauncher(int port) async {
+    print('[FLINT] Starting Parent Launcher (PID: $pid)...');
+
+    final child = await Process.start(
+      'dart',
+      [
+        '--enable-vm-service',
+        'run',
+        'flint_dart:hot_reload',
+        rootPath,
+        '--port=$port'
+      ],
+      environment: {'FLINT_HOT': '1'},
+      mode: ProcessStartMode.inheritStdio,
+      runInShell: true,
+    );
+
+    ProcessSignal.sigint.watch().listen((_) async {
+      print('\n[FLINT] Shutting down launcher and child...');
+      child.kill(ProcessSignal.sigint);
+      await child.exitCode;
+      exit(0);
+    });
+  }
+
+  /// Binds the server and starts the request loop
+  Future<void> _runServer(int port) async {
     HttpServer? server;
     try {
-      server = await HttpServer.bind(InternetAddress.anyIPv4, port);
-      print('Server running on http://localhost:$port');
-      if (autoConnectDb) {
-        _connectDatabaseInBackground();
-      }
+      server =
+          await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
+      print(
+          '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
+
+      if (autoConnectDb) _connectDatabaseInBackground();
       MailConfig.load();
     } on SocketException catch (e) {
-      print('[FLINT] ❌ ERROR: Could not bind to port $port. Is it in use?');
-      print('[FLINT] 🔎 Details: ${e.message}');
-      await Future.delayed(const Duration(seconds: 1));
+      print('[FLINT] ❌ ERROR: Could not bind to port $port: ${e.message}');
       exit(1);
     }
 
+    // Handle graceful shutdown for the worker process
     ProcessSignal.sigint.watch().listen((_) async {
-      print('\n[FLINT] Server shutting down...');
+      print('\n[FLINT] Worker shutting down...');
       await server?.close(force: true);
       exit(0);
     });
 
     await for (var req in server) {
-      // ===== WebSocket check =====
-      if (WebSocketTransformer.isUpgradeRequest(req)) {
-        bool matched = false;
+      _handleIncomingRequest(req);
+    }
+  }
 
-        for (final route in _wsRoutes) {
-          final params = route.match(req.uri.path);
-          if (params != null) {
-            matched = true;
+  /// Dispatches requests to WebSockets or HTTP Routes
+  void _handleIncomingRequest(HttpRequest req) async {
+    // ===== WebSocket check =====
+    if (WebSocketTransformer.isUpgradeRequest(req)) {
+      await _handleWebSocketUpgrade(req);
+      return;
+    }
 
-            if (route.auth != null) {
-              final allowed = await route.auth!(req);
-              if (!allowed) {
-                req.response.statusCode = HttpStatus.unauthorized;
-                await req.response.close();
-                break;
-              }
-            }
+    // ===== HTTP Request handling =====
+    final request = Request(req);
+    final response = Response(req.response);
 
-            final socket = await WebSocketTransformer.upgrade(req);
-            final clientId = DateTime.now().microsecondsSinceEpoch.toString();
-            final client = FlintWebSocket(socket, clientId);
-            wsManager.addClient(clientId, client);
+    final handler = _router.match(request.method, request.path, request.params);
 
-            route.handler(client, params);
-            break;
+    final pipeline = _middlewares.fold<Handler>(
+      handler ?? ((req, res) async => res.send('404 Not Found', status: 404)),
+      (prev, middleware) => middleware.handle(prev),
+    );
+
+    try {
+      await pipeline(request, response);
+      if (!response.isClosed) {
+        await response.close();
+        await req.response.close();
+      }
+    } catch (e, st) {
+      if (!response.isClosed) {
+        response.raw.statusCode = 500;
+        response.raw.write('Internal Server Error: $e');
+        await response.close();
+      }
+      print('[FLINT] ❌ Handler error: $e\n$st');
+    }
+  }
+
+  /// Specialized handler for WebSocket Upgrades
+  Future<void> _handleWebSocketUpgrade(HttpRequest req) async {
+    bool matched = false;
+
+    for (final route in _wsRoutes) {
+      final params = route.match(req.uri.path);
+      if (params != null) {
+        matched = true;
+
+        if (route.auth != null) {
+          final allowed = await route.auth!(req);
+          if (!allowed) {
+            req.response.statusCode = HttpStatus.unauthorized;
+            await req.response.close();
+            return;
           }
         }
 
-        if (!matched) {
-          req.response.statusCode = HttpStatus.notFound;
-          await req.response.close();
-        }
-        continue;
+        final socket = await WebSocketTransformer.upgrade(req);
+        final clientId = DateTime.now().microsecondsSinceEpoch.toString();
+
+        // This is now guaranteed to be in the same process as the server
+        final client = FlintWebSocket(socket, clientId);
+        wsManager.addClient(clientId, client);
+
+        route.handler(client, params);
+        return;
       }
+    }
 
-      // ===== HTTP Request handling =====
-      final request = Request(req);
-      final response = Response(req.response);
-      final handler =
-          _router.match(request.method, request.path, request.params);
-
-      final pipeline = _middlewares.fold<Handler>(
-        handler ?? ((req, res) async => res.send('404 Not Found', status: 404)),
-        (prev, middleware) => middleware.handle(prev),
-      );
-
-      // await pipeline(request, response);
-
-      try {
-        await pipeline(request, response);
-
-        // ✅ Only close once
-        if (!response.isClosed) {
-          await response.close();
-          await req.response.close();
-        }
-      } catch (e, st) {
-        if (!response.isClosed) {
-          response.raw.statusCode = 500;
-          response.raw.write('Internal Server Error: $e');
-          await response.close();
-        }
-        print('[FLINT] ❌ Handler error: $e\n$st');
-      }
+    if (!matched) {
+      req.response.statusCode = HttpStatus.notFound;
+      await req.response.close();
     }
   }
 

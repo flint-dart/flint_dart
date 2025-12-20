@@ -133,7 +133,7 @@ extension ModelRelationships on Model {
     final defaultLocal = '${_toSnakeCase(related.runtimeType.toString())}_id';
     final lKey = localKey ?? defaultLocal;
 
-    final localValue = getField(lKey);
+    final localValue = getAttribute(lKey);
     if (localValue == null) return null;
 
     final cacheKey = useCache
@@ -196,7 +196,7 @@ extension ModelRelationships on Model {
       if (cached != null) return cached;
     }
 
-    final localValue = getField(localKey);
+    final localValue = getAttribute(localKey);
     if (localValue == null) return <R>[];
 
     var query = related.query().where(fKey, '=', localValue);
@@ -249,7 +249,7 @@ extension ModelRelationships on Model {
       if (cached != null) return cached;
     }
 
-    final localValue = getField(localKey);
+    final localValue = getAttribute(localKey);
     if (localValue == null) return null;
 
     final query = related.query().where(fKey, '=', localValue);
@@ -306,7 +306,7 @@ extension ModelRelationships on Model {
       if (cached != null) return cached;
     }
 
-    final localValue = getField(localKey);
+    final localValue = getAttribute(localKey);
     if (localValue == null) return <R>[];
 
     // Build pivot SQL safely for values. Table/column names are inserted raw and must be valid.
@@ -380,7 +380,7 @@ extension ModelRelationships on Model {
       if (cached != null) return cached;
     }
 
-    final localValue = getField(localKey);
+    final localValue = getAttribute(localKey);
     if (localValue == null) return <R>[];
 
     // 1) Load through IDs where through.firstKey = localValue

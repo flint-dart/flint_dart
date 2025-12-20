@@ -417,12 +417,53 @@ class Response {
 
     String content;
     try {
-      // Use the original templateName directly
-      // TemplateEngine().render(view, context)
+      // Render template using TemplateEngine
       content = TemplateEngine().render(templateName, data ?? {});
     } catch (e) {
       // Fallback to raw file content if template rendering fails
       content = await file.readAsString();
+    }
+
+// Wrap in main-content container for hot reload
+// Wrap in main-content container for hot reload
+    content = '<div id="main-content">$content</div>';
+
+// Inject hot reload WebSocket script (only for development)
+    if (Platform.environment['FLINT_HOT'] == '1') {
+      content += '''
+<script>
+function connectHotReload() {
+  const socket = new WebSocket('ws://localhost:3000/flint_reload');
+
+  socket.addEventListener('open', () => {
+    console.log('[FLINT] Hot reload WebSocket connected');
+  });
+
+  socket.addEventListener('message', event => {
+    const data = JSON.parse(event.data);
+    if (data.event === 'flint:reload') {
+      console.log('[FLINT] Hot reload triggered');
+      window.location.reload();
+    }
+  });
+
+  socket.addEventListener('close', () => {
+    console.log('[FLINT] WebSocket disconnected, retrying in 1s...');
+    setTimeout(connectHotReload, 1000); // reconnect after 1 second
+  });
+
+  socket.addEventListener('error', err => {
+    console.error('[FLINT] WebSocket error:', err);
+    socket.close(); // close and trigger reconnect
+  });
+}
+
+// start connection
+connectHotReload();
+</script>
+
+
+''';
     }
 
     raw.statusCode = 200;
