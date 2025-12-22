@@ -527,11 +527,12 @@ abstract class Model<T extends Model<T>> {
     if (currentId == null) {
       throw Exception("Cannot update: $primaryKey is null");
     }
-
-    final updateMap = data ?? _attributes;
+    bool isUpdate = (data == null || data.isEmpty);
+    final updateMap = isUpdate ? _attributes : data;
     final updateData = Map<String, dynamic>.from(updateMap)
       ..remove(primaryKey)
-      ..removeWhere((k, v) => k.trim().isEmpty);
+      ..removeWhere((k, v) => k.trim().isEmpty)
+      ..removeWhere((k, v) => v == null);
 
     if (updateData.isEmpty) {
       throw Exception("No data provided for update");
@@ -544,11 +545,14 @@ abstract class Model<T extends Model<T>> {
           orElse: () => Column(name: key, type: ColumnType.string),
         );
 
-        if (column.type == ColumnType.json && value != null) {
-          return jsonEncode(value);
-        }
+        if (value == null) return null;
+
+        if (column.type == ColumnType.json) return jsonEncode(value);
         if (value is bool) return value ? 1 : 0;
-        if (value is Enum) return value = value.name; // enum → string
+        if (value is Enum) return value.name; // enum → string
+        if (value is DateTime) {
+          return value.toIso8601String(); // <-- convert DateTime
+        }
         return value;
       });
     }

@@ -199,4 +199,30 @@ git clone https://github.com/eulogiatechnologies/flint_dart.git
 cd flint_dart
 dart pub get
 ```
+
+## 👥 Core Contributors
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/hybiekay">
+        <img src="https://avatars.githubusercontent.com/u/YOUR_ID?v=4" width="100px;" />
+        <br />
+        <sub><b>Ademola Ibukunoluwa</b></sub>
+      </a>
+      <br />
+      <a href="https://github.com/flint-dart/flint_dart">📦 Repo</a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/anotherContributor">
+        <img src="https://avatars.githubusercontent.com/u/ANOTHER_ID?v=4" width="100px;" />
+        <br />
+        <sub><b>Contributor Name</b></sub>
+      </a>
+      <br />
+      <a href="https://github.com/flint-dart/flint_dart">📦 Repo</a>
+    </td>
+  </tr>
+</table>
+
 Then feel free to submit issues or pull requests.
