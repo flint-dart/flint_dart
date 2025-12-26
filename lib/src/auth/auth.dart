@@ -372,6 +372,7 @@ class Auth {
   static Future<Map<String, dynamic>> saveProviderUser({
     required Map<String, dynamic> providerUserData,
     Map<String, dynamic>? additionalData,
+    List<String>? conflictProviders, // optional
   }) async {
     final table = config.table;
     final provider = providerUserData['provider'];
@@ -384,6 +385,12 @@ class Auth {
         .where(config.providerColumn ?? "provider", '=', provider)
         .where(config.providerIdColumn ?? "provider_id", '=', providerId)
         .first();
+
+    if (user != null &&
+        conflictProviders != null &&
+        conflictProviders.contains(user[config.providerColumn ?? 'provider'])) {
+      throw Exception('User already registered with a different provider');
+    }
 
     if (user != null) {
       // Build safe update data
@@ -894,5 +901,36 @@ class Auth {
         .where('email', '=', email)
         .delete();
     return generatePasswordResetCode(email);
+  }
+
+  static String providerRedirectUrl({
+    required String provider, // now just a string
+    required String redirectPath,
+    String? state,
+  }) {
+    switch (provider.toLowerCase()) {
+      case 'github':
+        final url = Uri.https('github.com', '/login/oauth/authorize', {
+          'client_id': config.githubClientId,
+          'redirect_uri': '${config.redirectBase}$redirectPath',
+          'scope': 'user:email',
+          'allow_signup': 'true',
+          if (state != null) 'state': state,
+        });
+        return url.toString();
+
+      case 'google':
+        final url = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
+          'client_id': config.googleClientId,
+          'redirect_uri': '${config.redirectBase}$redirectPath',
+          'response_type': 'code',
+          'scope': 'openid email profile',
+          if (state != null) 'state': state,
+        });
+        return url.toString();
+
+      default:
+        throw UnimplementedError('Provider "$provider" not implemented');
+    }
   }
 }

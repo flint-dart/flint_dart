@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:flint_dart/src/auth/providers/base_provider.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 
-class FacebookProvider {
+class FacebookProvider extends AuthProvider {
   static Future<Map<String, dynamic>> authenticate({
     String? accessToken,
     String? code,

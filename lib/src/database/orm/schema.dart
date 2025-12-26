@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flint_dart/db.dart';
 import 'package:flint_dart/flint_dart.dart';
 
+enum ForeignKeyAction { cascade, restrict, setNull, noAction, setDefault }
+
 /// Represents a database table schema, including its columns, indexes, and foreign keys.
 class Table {
   /// The name of the table.
@@ -161,31 +163,36 @@ class Index {
   });
 }
 
-/// Represents a foreign key constraint between tables.
 class ForeignKey {
-  /// The column in the current table.
   final String column;
-
-  /// The referenced table name.
   final String referenceTable;
-
-  /// The referenced column name in the foreign table.
   final String referenceColumn;
-
-  /// Behavior when the referenced record is deleted. Default is 'RESTRICT'.
   final String onDelete;
-
-  /// Behavior when the referenced record is updated. Default is 'RESTRICT'.
   final String onUpdate;
 
-  /// Creates a new [ForeignKey] constraint.
   ForeignKey({
     required this.column,
     required this.referenceTable,
     required this.referenceColumn,
-    this.onDelete = 'RESTRICT',
-    this.onUpdate = 'RESTRICT',
-  });
+    required ForeignKeyAction onDelete,
+    required ForeignKeyAction onUpdate,
+  })  : onDelete = _actionToSQL(onDelete),
+        onUpdate = _actionToSQL(onUpdate);
+
+  static String _actionToSQL(ForeignKeyAction action) {
+    switch (action) {
+      case ForeignKeyAction.cascade:
+        return 'CASCADE';
+      case ForeignKeyAction.restrict:
+        return 'RESTRICT';
+      case ForeignKeyAction.setNull:
+        return 'SET NULL';
+      case ForeignKeyAction.noAction:
+        return 'NO ACTION';
+      case ForeignKeyAction.setDefault:
+        return 'SET DEFAULT';
+    }
+  }
 }
 
 // --- COMMON SQL DEFAULTS ---
