@@ -19,7 +19,7 @@ class MakeMiddlewareCommand extends FlintCommand {
 
     final content = _generateMiddlewareTemplate(className);
 
-    final dir = Directory('lib/src/middlewares');
+    final dir = Directory('lib/middlewares');
     if (!await dir.exists()) await dir.create(recursive: true);
 
     final file = File('${dir.path}/$fileName.dart');
@@ -29,7 +29,7 @@ class MakeMiddlewareCommand extends FlintCommand {
     }
 
     await file.writeAsString(content);
-    print('✅ Middleware created: lib/src/middlewares/$fileName.dart');
+    print('✅ Middleware created: lib/middlewares/$fileName.dart');
   }
 
   String _capitalize(String str) =>

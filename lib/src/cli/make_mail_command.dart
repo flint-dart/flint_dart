@@ -34,8 +34,8 @@ class MakeMailCommand extends FlintCommand {
 
   /// --- HTML mode ---
   Future<void> _createHtmlMailFiles(String name, String className) async {
-    final mailDir = Directory('lib/src/mail');
-    final htmlDir = Directory('lib/src/mail/views');
+    final mailDir = Directory('lib/mail');
+    final htmlDir = Directory('lib/mail/views');
 
     if (!await mailDir.exists()) mailDir.createSync(recursive: true);
     if (!await htmlDir.exists()) htmlDir.createSync(recursive: true);

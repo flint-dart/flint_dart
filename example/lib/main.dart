@@ -13,7 +13,7 @@ void main() {
     withDefaultMiddleware: true,
     enableSwaggerDocs: true,
     autoConnectDb: true,
-    viewPath: 'lib/src/views',
+    viewPath: 'lib/views',
   );
 
   app.use(LoggerMiddleware());

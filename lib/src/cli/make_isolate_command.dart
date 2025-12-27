@@ -22,7 +22,7 @@ class MakeIsolateCommand extends FlintCommand {
     final className = '${_toPascalCase(rawName)}Task';
     final fileName = '${_toSnakeCase(rawName)}_task.dart';
 
-    final dir = Directory('lib/src/isolate/tasks');
+    final dir = Directory('lib/isolate/tasks');
     if (!dir.existsSync()) {
       dir.createSync(recursive: true);
     }

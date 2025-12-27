@@ -397,8 +397,8 @@ class Response {
       {Map<String, dynamic>? data}) async {
     // Convert template name (e.g., "schools.register") to file path
     final filePath = templateName.replaceAll('.', Platform.pathSeparator);
-    final flintPath = p.join('lib', 'src', 'views', '$filePath.flint.html');
-    final htmlPath = p.join('lib', 'src', 'views', '$filePath.html');
+    final flintPath = p.join('lib', 'views', '$filePath.flint.html');
+    final htmlPath = p.join('lib', 'views', '$filePath.html');
 
     File? file;
 

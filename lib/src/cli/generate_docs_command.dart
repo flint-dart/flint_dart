@@ -10,9 +10,8 @@ class GenerateDocsCommand extends FlintCommand {
 
   @override
   Future<void> execute(List<String> args) async {
-    final routesDir = Directory('lib/src/routes');
+    final routesDir = Directory('lib/routes');
     if (!(await routesDir.exists())) {
-      print('[FLINT] ❌ No routes directory found at lib/src/routes');
       return;
     }
 
@@ -89,13 +88,10 @@ class GenerateDocsCommand extends FlintCommand {
 
           if (routeDocs.containsKey('prefix')) {
             effectivePrefix = routeDocs['prefix'];
-            print('[FLINT] 📝 Using route @prefix: $effectivePrefix');
           } else if (currentClassPrefixFromDocs != null) {
             effectivePrefix = currentClassPrefixFromDocs;
-            print('[FLINT] 📝 Using class @prefix: $effectivePrefix');
           } else if (currentGroupPrefix != null) {
             effectivePrefix = currentGroupPrefix;
-            print('[FLINT] 📝 Using RouteGroup prefix: $effectivePrefix');
           }
 
           var fullPath = routeInfo['path'] ?? '';
@@ -125,11 +121,7 @@ class GenerateDocsCommand extends FlintCommand {
             } else {
               fullPath = prefix;
             }
-
-            print('[FLINT] 🔗 Final path: $fullPath');
-          } else {
-            print('[FLINT] ⚠️ No prefix found for route: $fullPath');
-          }
+          } else {}
 
           // Initialize path if not exists
           paths.putIfAbsent(fullPath, () => {});
@@ -228,7 +220,6 @@ class GenerateDocsCommand extends FlintCommand {
 
     final outFile = File('${docsDir.path}/swagger.json');
     outFile.writeAsStringSync(JsonEncoder.withIndent('  ').convert(swagger));
-    print('[FLINT] ✅ Swagger docs generated at ${outFile.path}');
   }
 
   /// Parse route information from a line

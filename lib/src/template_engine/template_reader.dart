@@ -20,7 +20,6 @@ class FileTemplateReader {
     final flintPath = p.join(
       currentDir,
       'lib',
-      'src',
       'views',
       '$normalized.flint.html',
     );
@@ -28,7 +27,6 @@ class FileTemplateReader {
     final htmlPath = p.join(
       currentDir,
       'lib',
-      'src',
       'views',
       '$normalized.html',
     );

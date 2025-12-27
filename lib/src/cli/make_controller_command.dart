@@ -1,4 +1,4 @@
-// lib/src/cli/make_controller_command.dart
+// lib/cli/make_controller_command.dart
 import 'dart:io';
 
 import 'package:flint_dart/src/cli/commands.dart';
@@ -22,7 +22,7 @@ class MakeControllerCommand extends FlintCommand {
       className,
     );
 
-    final dir = Directory('lib/src/controllers');
+    final dir = Directory('lib/controllers');
     if (!await dir.exists()) await dir.create(recursive: true);
 
     final file = File('${dir.path}/$fileName.dart');
@@ -32,7 +32,7 @@ class MakeControllerCommand extends FlintCommand {
     }
 
     await file.writeAsString(content);
-    print('✅ controller created: lib/src/controllers/$fileName.dart');
+    print('✅ controller created: lib/controllers/$fileName.dart');
   }
 
   String _capitalize(String str) =>

@@ -10,6 +10,7 @@ import 'package:flint_dart/src/cli/make_isolate_command.dart';
 import 'package:flint_dart/src/cli/make_mail_command.dart';
 import 'package:flint_dart/src/cli/make_middleware_command.dart';
 import 'package:flint_dart/src/cli/make_model_command.dart';
+import 'package:flint_dart/src/cli/make_seeder_command.dart';
 import 'package:flint_dart/src/cli/update_command.dart';
 import 'package:flint_dart/src/cli/upgrade_command.dart';
 import 'package:flint_dart/src/cli/version_commands.dart';
@@ -26,6 +27,8 @@ final Map<String, FlintCommand> commands = {
   'make:middleware': MakeMiddlewareCommand(),
   'make:isolate': MakeIsolateCommand(), // ✅ Add here
   'docs:generate': GenerateDocsCommand(),
+  'make:seeder': MakeSeederCommand(), // <-- Add here
+
   'make:mail': MakeMailCommand(),
   'update': UpdateCommand(),
   'upgrade': UpgradeCommand(),
@@ -41,7 +44,8 @@ final Map<String, String> aliasCommands = {
   '--make-middleware': 'make:middleware',
   '--make-docker': 'make:docker',
   '--make-isolate': 'make:isolate',
-  "--docs-generate": 'docs:generate'
+  "--docs-generate": 'docs:generate',
+  '--make-seeder': 'make:seeder', // <-- Add alias here
 };
 
 void main(List<String> args) async {

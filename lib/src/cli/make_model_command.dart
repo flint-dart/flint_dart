@@ -1,4 +1,4 @@
-// lib/src/cli/make_model_command.dart
+// lib/cli/make_model_command.dart
 import 'dart:io';
 
 import 'package:flint_dart/src/cli/commands.dart';
@@ -19,7 +19,7 @@ class MakeModelCommand extends FlintCommand {
 
     final content = _generateModelTemplate(className, fileName);
 
-    final dir = Directory('lib/src/models');
+    final dir = Directory('lib/models');
     if (!await dir.exists()) await dir.create(recursive: true);
 
     final file = File('${dir.path}/$fileName.dart');
@@ -29,7 +29,7 @@ class MakeModelCommand extends FlintCommand {
     }
 
     await file.writeAsString(content);
-    print('✅ Model created: lib/src/models/$fileName.dart');
+    print('✅ Model created: lib/models/$fileName.dart');
   }
 
   String _capitalize(String str) =>

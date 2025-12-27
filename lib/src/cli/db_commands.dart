@@ -68,7 +68,7 @@ class DBMigrateCommand extends FlintCommand {
 
   Future<void> _runTableRegistry() async {
     final appRoot = Directory.current.path;
-    final registryPath = '$appRoot/lib/src/config/table_registry.dart';
+    final registryPath = '$appRoot/lib/config/table_registry.dart';
     final registryFile = File(registryPath);
 
     if (!await registryFile.exists()) {

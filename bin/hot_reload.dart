@@ -102,7 +102,7 @@ void watchFiles(int serverPort) {
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 300), () async {
         try {
-          final relative = p.relative(event.path, from: 'lib/src/views');
+          final relative = p.relative(event.path, from: 'lib/views');
           final templateName = relative
               .replaceAll(Platform.pathSeparator, '.')
               .replaceAll(RegExp(r'\.flint\.html|\.html'), '');
