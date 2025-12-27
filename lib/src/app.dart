@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/database/db.dart';
+import 'package:flint_dart/src/middleware/cookie_session_middleware.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
 
@@ -131,6 +132,7 @@ class Flint {
     if (withDefaultMiddleware) {
       _middlewares.add(ExceptionMiddleware());
     }
+    _middlewares.add(CookieSessionMiddleware());
     if (enableSwaggerDocs) {
       _registerSwaggerDocs();
     }

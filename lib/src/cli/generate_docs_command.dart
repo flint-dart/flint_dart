@@ -26,113 +26,187 @@ class GenerateDocsCommand extends FlintCommand {
     for (var file in files) {
       final lines = File(file.path).readAsLinesSync();
 
-      // Attempt to detect RouteGroup prefix & tag from class
-      String? groupPrefix;
-      String? groupTag;
+      // Buffers for documentation
+      List<String> docBuffer = [];
 
+      // State tracking
+      String? currentClassPrefixFromDocs;
+      String? currentGroupPrefix;
+      String? currentGroupTag;
+      bool insideRouteGroupClass = false;
+
+      // Regex patterns
       final classPrefixReg =
           RegExp(r'''String\s+get\s+prefix\s*=>\s*['"]([^'"]+)['"]''');
       final classTagReg =
           RegExp(r'''String\s+get\s+tag\s*=>\s*['"]([^'"]+)['"]''');
 
-      for (var line in lines) {
-        final prefixMatch = classPrefixReg.firstMatch(line);
-        if (prefixMatch != null) groupPrefix = prefixMatch.group(1);
-        final tagMatch = classTagReg.firstMatch(line);
-        if (tagMatch != null) groupTag = tagMatch.group(1);
-      }
-
-      List<String> docBuffer = [];
-
       for (var i = 0; i < lines.length; i++) {
-        final line = lines[i].trim();
+        final line = lines[i];
 
-        if (line.startsWith('///')) {
-          docBuffer.add(line.substring(3).trim());
+        // Track if we're inside a RouteGroup class
+        if (line.contains('class ') && line.contains('RouteGroup')) {
+          insideRouteGroupClass = true;
+          currentClassPrefixFromDocs = null;
+          currentGroupPrefix = null;
+          currentGroupTag = null;
+        }
+
+        // Collect doc comments
+        final trimmedLine = line.trim();
+        if (trimmedLine.startsWith('///')) {
+          docBuffer.add(trimmedLine.substring(3).trim());
           continue;
         }
 
+        // Check for class definition - parse its docs
+        if (insideRouteGroupClass && trimmedLine.contains('class ')) {
+          final classDocs = _parseDocs(docBuffer);
+          currentClassPrefixFromDocs = classDocs['prefix'];
+          docBuffer.clear();
+        }
+
+        // Extract RouteGroup prefix/tag getters
+        if (insideRouteGroupClass) {
+          final prefixMatch = classPrefixReg.firstMatch(line);
+          if (prefixMatch != null) {
+            currentGroupPrefix = prefixMatch.group(1);
+          }
+
+          final tagMatch = classTagReg.firstMatch(line);
+          if (tagMatch != null) {
+            currentGroupTag = tagMatch.group(1);
+          }
+        }
+
+        // Process route definitions
         final routeInfo = _parseRoute(line);
-        if (routeInfo != null) {
-          final docs = _parseDocs(docBuffer);
+        if (routeInfo != null && insideRouteGroupClass) {
+          final routeDocs = _parseDocs(docBuffer);
 
-          // Use RouteGroup prefix if exists
-          final currentPrefix = groupPrefix ?? docs['prefix'];
-          var fullPath = _parseRoute(line)?['path'] ?? '';
+          // Priority: route @prefix -> class @prefix -> RouteGroup prefix
+          String? effectivePrefix;
 
-          if (currentPrefix != null) {
-            var prefix = currentPrefix.startsWith('/')
-                ? currentPrefix
-                : '/$currentPrefix';
+          if (routeDocs.containsKey('prefix')) {
+            effectivePrefix = routeDocs['prefix'];
+            print('[FLINT] 📝 Using route @prefix: $effectivePrefix');
+          } else if (currentClassPrefixFromDocs != null) {
+            effectivePrefix = currentClassPrefixFromDocs;
+            print('[FLINT] 📝 Using class @prefix: $effectivePrefix');
+          } else if (currentGroupPrefix != null) {
+            effectivePrefix = currentGroupPrefix;
+            print('[FLINT] 📝 Using RouteGroup prefix: $effectivePrefix');
+          }
 
+          var fullPath = routeInfo['path'] ?? '';
+
+          // Apply prefix if available
+          if (effectivePrefix != null && effectivePrefix.isNotEmpty) {
+            // Clean the prefix
+            var prefix = effectivePrefix;
+            if (!prefix.startsWith('/')) {
+              prefix = '/$prefix';
+            }
             if (prefix.endsWith('/') && prefix != '/') {
               prefix = prefix.substring(0, prefix.length - 1);
             }
 
-            var path = fullPath == '/'
-                ? ''
-                : fullPath.startsWith('/')
-                    ? fullPath.substring(1)
-                    : fullPath;
+            // Clean the route path
+            var routePath = fullPath;
+            if (routePath == '/') {
+              routePath = '';
+            } else if (routePath.startsWith('/')) {
+              routePath = routePath.substring(1);
+            }
 
-            fullPath = '$prefix${path.isNotEmpty ? '/$path' : ''}';
+            // Combine
+            if (routePath.isNotEmpty) {
+              fullPath = '$prefix/$routePath';
+            } else {
+              fullPath = prefix;
+            }
+
+            print('[FLINT] 🔗 Final path: $fullPath');
+          } else {
+            print('[FLINT] ⚠️ No prefix found for route: $fullPath');
           }
 
+          // Initialize path if not exists
           paths.putIfAbsent(fullPath, () => {});
 
+          // Build operation object
           final operation = <String, dynamic>{
-            "summary": docs['summary'] ?? '',
-            "tags": [groupTag ?? 'Default'], // Use RouteGroup tag if available
-            "responses": docs['responses'] ??
+            "summary": routeDocs['summary'] ?? '',
+            "tags": [currentGroupTag ?? 'Default'],
+            "responses": routeDocs['responses'] ??
                 {
                   "200": {"description": "OK"}
                 }
           };
 
-          // Attach requestBody
-          if (docs.containsKey('requestBody')) {
-            operation['requestBody'] = docs['requestBody'];
+          // Add requestBody if defined
+          if (routeDocs.containsKey('requestBody')) {
+            operation['requestBody'] = routeDocs['requestBody'];
           }
 
-          // Combine parameters: path params + query params + manual params
+          // Combine all parameter types
           final allParameters = <Map<String, dynamic>>[];
+
+          // Auto-extract path parameters
           final autoPathParams = _extractPathParams(fullPath);
           allParameters.addAll(autoPathParams);
 
-          if (docs.containsKey('queryParameters')) {
-            allParameters.addAll(docs['queryParameters']);
+          // Add query parameters from @query
+          if (routeDocs.containsKey('queryParameters')) {
+            allParameters.addAll(routeDocs['queryParameters']);
           }
-          if (docs.containsKey('parameters')) {
-            allParameters.addAll(docs['parameters']);
+
+          // Add manual parameters from @param
+          if (routeDocs.containsKey('parameters')) {
+            allParameters.addAll(routeDocs['parameters']);
           }
 
           if (allParameters.isNotEmpty) {
             operation['parameters'] = allParameters;
           }
 
-          // Auth/Security
-          if (docs.containsKey('auth')) {
-            final authType = docs['auth'];
+          // Add authentication/security
+          if (routeDocs.containsKey('auth')) {
+            final authType = routeDocs['auth'];
             operation['security'] = [
               {authType: []}
             ];
           }
 
-          final method = _parseRoute(line)?['method'] ?? 'get';
+          // Add operation to the path
+          final method = routeInfo['method'] ?? 'get';
           paths[fullPath][method] = operation;
 
-          docBuffer = [];
-        }
-      }
+          // Collect servers
+          final routeServers = routeDocs['servers'] ?? [];
+          for (var server in routeServers) {
+            if (!servers.any((srv) => srv['url'] == server)) {
+              servers.add({'url': server});
+            }
+          }
 
-      final docServers = _parseDocs(docBuffer)['servers'] ?? [];
-      for (var s in docServers) {
-        if (!servers.any((srv) => srv['url'] == s)) {
-          servers.add({'url': s});
+          // Reset doc buffer
+          docBuffer.clear();
+        } else if (trimmedLine.isNotEmpty && !trimmedLine.startsWith('///')) {
+          // If we hit non-doc, non-route code, clear buffer
+          docBuffer.clear();
+        }
+
+        // Check if we're leaving the class (end of class or new class)
+        if (trimmedLine.contains('}') && insideRouteGroupClass) {
+          // Simple check: if we see a closing brace at the start of line
+          // This might need refinement for complex cases
+          insideRouteGroupClass = false;
         }
       }
     }
 
+    // Build the final Swagger/OpenAPI specification
     final swagger = {
       "openapi": "3.0.0",
       "info": {"title": "Flint API", "version": "1.0.0"},
@@ -146,15 +220,20 @@ class GenerateDocsCommand extends FlintCommand {
       }
     };
 
+    // Write to file
     final docsDir = Directory('docs');
-    if (!(await docsDir.exists())) docsDir.createSync(recursive: true);
+    if (!(await docsDir.exists())) {
+      docsDir.createSync(recursive: true);
+    }
 
     final outFile = File('${docsDir.path}/swagger.json');
     outFile.writeAsStringSync(JsonEncoder.withIndent('  ').convert(swagger));
-    // print('✅ Swagger docs generated at ${outFile.path}');
+    print('[FLINT] ✅ Swagger docs generated at ${outFile.path}');
   }
 
+  /// Parse route information from a line
   Map<String, dynamic>? _parseRoute(String line) {
+    // Look for patterns like: app.get('/', ...), router.post('/login', ...), etc.
     final regex = RegExp(
       r'''(app|router|flint)\.(get|post|put|delete|patch|options|head)\(\s*['\"]([^'\"]+)['\"]''',
       caseSensitive: false,
@@ -165,6 +244,7 @@ class GenerateDocsCommand extends FlintCommand {
       final method = match.group(2);
       var path = match.group(3);
       if (method != null && path != null) {
+        // Convert :param to {param} format for OpenAPI
         path = path.replaceAllMapped(RegExp(r':(\w+)'), (m) => '{${m[1]}}');
         return {"method": method.toLowerCase(), "path": path};
       }
@@ -172,6 +252,7 @@ class GenerateDocsCommand extends FlintCommand {
     return null;
   }
 
+  /// Parse documentation annotations
   Map<String, dynamic> _parseDocs(List<String> docs) {
     final result = <String, dynamic>{};
     final responses = <String, dynamic>{};
@@ -180,7 +261,9 @@ class GenerateDocsCommand extends FlintCommand {
     final servers = <String>[];
 
     for (var line in docs) {
-      if (line.startsWith('@auth')) {
+      if (line.startsWith('@prefix')) {
+        result['prefix'] = line.replaceFirst('@prefix', '').trim();
+      } else if (line.startsWith('@auth')) {
         final value = line.replaceFirst('@auth', '').trim();
         result['auth'] = value.isEmpty ? 'bearer' : value;
       } else if (line.startsWith('@server')) {
@@ -246,6 +329,7 @@ class GenerateDocsCommand extends FlintCommand {
       }
     }
 
+    // Only add non-empty collections
     if (responses.isNotEmpty) result['responses'] = responses;
     if (parameters.isNotEmpty) result['parameters'] = parameters;
     if (queryParameters.isNotEmpty) result['queryParameters'] = queryParameters;
@@ -254,9 +338,11 @@ class GenerateDocsCommand extends FlintCommand {
     return result;
   }
 
+  /// Extract path parameters from a route path
   List<Map<String, dynamic>> _extractPathParams(String path) {
     final params = <Map<String, dynamic>>[];
     final exp = RegExp(r'\{(\w+)\}');
+
     for (final match in exp.allMatches(path)) {
       final paramName = match.group(1)!;
       params.add({
@@ -267,6 +353,7 @@ class GenerateDocsCommand extends FlintCommand {
         "description": "Path parameter: $paramName"
       });
     }
+
     return params;
   }
 }
