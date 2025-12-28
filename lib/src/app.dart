@@ -130,7 +130,7 @@ class Flint {
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false}) {
     if (withDefaultMiddleware) {
-      _middlewares.add(ExceptionMiddleware());
+      // _middlewares.add(ExceptionMiddleware());
     }
     _middlewares.add(CookieSessionMiddleware());
     if (enableSwaggerDocs) {

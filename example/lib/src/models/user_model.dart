@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
-import 'package:sample/src/models/post_model.dart';
 
 class User extends Model<User> {
   User() : super(() => User());
@@ -55,6 +52,4 @@ class User extends Model<User> {
           ),
         ],
       );
-
-  FutureOr<List<dynamic>> post() => hasMany(() => PostModel());
 }

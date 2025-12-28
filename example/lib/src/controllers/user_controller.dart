@@ -4,7 +4,7 @@ import 'package:sample/src/models/user_model.dart';
 
 class UserController {
   Future<Response> index(Request req, Response res) async {
-    final users = await User().where("name", ["Wale", "lola"]).get();
+    final users = await User().getWhere("name", ["Wale", "lola"]);
     return res.json({
       "message": 'List of user ',
       "users": users.map((user) => user.toMap()).toList()
@@ -84,8 +84,8 @@ class UserController {
   }
 
   Future<Response> delete(Request req, Response res) async {
-    var user = await User().delete(req.params['id']);
-    if (user) {
+    //var user = await User().delete(req.params['id']);
+    if (true) {
       return res.send('Deleting user ${req.params['id']}');
     } else {
       return res.status(404).json({"message": "user not found"});

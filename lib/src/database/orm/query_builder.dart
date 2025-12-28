@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/helper.dart';
 import 'package:flint_dart/src/database/db.dart';
@@ -12,15 +14,51 @@ class QueryBuilder {
   final List<String> _orderBys = [];
   final List<String> _groups = [];
   final List<String> _relations = [];
-  // final Map<String, dynamic> _eagerLoaded = {};
+  final List<String> _withRelations = [];
+  final Map<String, List<String>> _withColumns = {};
   final Map<String, dynamic> _bindings = {};
+  final Map<String, dynamic> _modelContext = {};
   static final Map<String, _ColumnInfo> _columnCache = {};
+
+  // Add these getters:
+  List<String> get relations => List.from(_relations);
+  List<String> get withRelations => List.from(_withRelations);
+  Map<String, dynamic> get modelContext => Map.from(_modelContext);
+  Map<String, List<String>> get withColumns => Map.from(_withColumns);
 
   int? _limit;
   int? _offset;
   int _paramIndex = 1;
 
   QueryBuilder({required this.table});
+
+  QueryBuilder withRelation(
+    String name, {
+    List<String>? columns,
+  }) {
+    if (!_withRelations.contains(name)) {
+      _withRelations.add(name);
+    }
+
+    if (columns != null && columns.isNotEmpty) {
+      _withColumns[name] = columns;
+    }
+
+    return this;
+  }
+
+  /// Add model context for relation loading
+  QueryBuilder addModelContext(Map<String, dynamic> context) {
+    _modelContext.addAll(context);
+    return this;
+  }
+
+  /// Check if a relation is being eager loaded
+  bool hasRelation(String relation) => _withRelations.contains(relation);
+
+  /// Get columns for a specific relation
+  List<String>? getColumnsForRelation(String relation) =>
+      _withColumns[relation];
 
   /// SELECT fields
   QueryBuilder select([List<String>? fields]) {
@@ -29,8 +67,6 @@ class QueryBuilder {
     }
     return this;
   }
-
-  List<String> get relations => _relations;
 
   String _escapeLike(String value) {
     return value
@@ -220,11 +256,6 @@ class QueryBuilder {
     }
 
     _bindings[paramName] = value;
-    return this;
-  }
-
-  QueryBuilder withRelations(List<String> relations) {
-    _relations.addAll(relations);
     return this;
   }
 
@@ -463,10 +494,23 @@ class QueryBuilder {
     }).toList();
   }
 
-  /// Fetch all rows
+  /// Fetch all rows with eager loading
   Future<List<Map<String, dynamic>>> get() async {
-    final sql = _buildSelectQuery();
-    return await _executeSelect(sql);
+    try {
+      final sql = _buildSelectQuery();
+      final results = await _executeSelect(sql);
+
+      // If no relations to eager load, return as is
+      if (_withRelations.isEmpty || _modelContext.isEmpty) {
+        return results;
+      }
+
+      // Load relations if requested
+      return await _eagerLoadRelations(results);
+    } catch (e) {
+      print(e.toString());
+      rethrow;
+    }
   }
 
   /// Fetch first row
@@ -645,6 +689,235 @@ class QueryBuilder {
 
     // Fallback: assume integer if not found
     return _ColumnInfo(isAutoIncrement: false, isString: false);
+  }
+
+  // ========== RELATION EAGER LOADING ==========
+
+  /// Eager load relations for the given results
+  /// In QueryBuilder class, update this method:
+
+  /// Eager load relations for the given results
+  Future<List<Map<String, dynamic>>> _eagerLoadRelations(
+    List<Map<String, dynamic>> mainResults,
+  ) async {
+    if (mainResults.isEmpty) return mainResults;
+
+    // Get model context
+    final factory = _modelContext['factory'] as Function()?;
+    final relations = _modelContext['relations'] as Map<String, dynamic>?;
+    final className = _modelContext['className'] as String?;
+
+    if (factory == null || relations == null || className == null) {
+      return mainResults;
+    }
+
+    // Create model instances from results
+    final models = <Model>[];
+    for (final result in mainResults) {
+      final model = factory() as Model;
+      (model as dynamic).fromMap(result);
+      models.add(model);
+    }
+
+    // Load each requested relation
+    for (final relationName in _withRelations) {
+      final definition = relations[relationName];
+      if (definition == null) continue;
+
+      // Find the loader
+      final loaderKey = '$className.$relationName';
+      final loader = relationLoaders[loaderKey];
+
+      if (loader != null) {
+        // Create proper RelationConfig object
+        final config = RelationConfig(
+          columns: _withColumns[relationName],
+          relationName: relationName,
+        );
+
+        // Cast the loader to the correct type
+        final typedLoader =
+            loader as FutureOr<void> Function(List<Model>, RelationConfig?);
+        await typedLoader(models, config);
+      }
+    }
+
+    // Convert models back to maps with relations included
+    return models.map((model) {
+      final map = model.asMap();
+
+      // Include loaded relations in the map
+      for (final relationName in _withRelations) {
+        final hasRelation = (model as dynamic).hasRelation(relationName);
+        if (hasRelation == true) {
+          final relationValue = (model as dynamic).getAttribute(relationName);
+          if (relationValue != null) {
+            if (relationValue is List) {
+              map[relationName] = relationValue.map((item) {
+                return item is Model ? (item as dynamic).toMap() : item;
+              }).toList();
+            } else if (relationValue is Model) {
+              map[relationName] = (relationValue as dynamic).toMap();
+            } else {
+              map[relationName] = relationValue;
+            }
+          }
+        }
+      }
+
+      return map;
+    }).toList();
+  }
+
+  /// Load a specific relation for a list of models
+  Future<void> _loadRelationForModels(
+    List<dynamic> models,
+    dynamic definition,
+    String relationName,
+    List<String>? columns,
+  ) async {
+    final loaderKey = '${models.first.runtimeType}.$relationName';
+
+    // Access relation loaders from the global helper
+    final relationLoaders = await _getRelationLoaders();
+    final loader = relationLoaders[loaderKey];
+
+    if (loader != null) {
+      // Cast models to base Model type
+      final baseModels = models.cast<Model>().toList();
+
+      // Create config
+      final config = {
+        'columns': columns,
+        'relationName': relationName,
+      };
+
+      // Execute the loader
+      await loader(baseModels, config);
+    }
+  }
+
+  /// Get relation loaders from the global helper
+  Future<Map<String, dynamic>> _getRelationLoaders() async {
+    try {
+      // Try to access the global relationLoaders map
+      // This assumes there's a global helper available
+
+      return relationLoaders ?? {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Load belongsTo relation for multiple models
+  Future<void> _loadBelongsToBatch(
+    List<Model> models,
+    String relationName,
+    dynamic definition,
+    List<String>? columns,
+  ) async {
+    final relatedFactory = definition.relatedFactory;
+    final foreignKey = definition.foreignKey;
+    final ownerKey = definition.ownerKey;
+
+    // Collect foreign key values
+    final fkValues = <dynamic>{};
+    final modelsByFk = <dynamic, List<Model>>{};
+
+    for (final model in models) {
+      final fkValue = model.getAttribute(foreignKey);
+      if (fkValue != null) {
+        fkValues.add(fkValue);
+        modelsByFk.putIfAbsent(fkValue, () => []).add(model);
+      }
+    }
+
+    if (fkValues.isEmpty) return;
+
+    // Query all related models in one batch
+    final relatedModels = await relatedFactory()
+        .resetQuery()
+        .qb
+        .whereIn(ownerKey, fkValues.toList())
+        .get();
+
+    // Create map of related models by owner key
+    final relatedMap = <dynamic, Model>{};
+    for (final result in relatedModels) {
+      final related = relatedFactory().fromMap(result);
+      final key = related.getAttribute(ownerKey);
+      if (key != null) {
+        relatedMap[key] = related;
+      }
+    }
+
+    // Assign related models to parent models
+    for (final entry in modelsByFk.entries) {
+      final fkValue = entry.key;
+      final related = relatedMap[fkValue];
+      if (related != null) {
+        for (final model in entry.value) {
+          model.setAttribute(relationName, related);
+        }
+      }
+    }
+  }
+
+  /// Load hasMany relation for multiple models
+  Future<void> _loadHasManyBatch(
+    List<Model> models,
+    String relationName,
+    dynamic definition,
+    List<String>? columns,
+  ) async {
+    final relatedFactory = definition.relatedFactory;
+    final foreignKey = definition.foreignKey;
+
+    // Collect parent IDs
+    final parentIds = <dynamic>{};
+    final modelsById = <dynamic, List<Model>>{};
+
+    for (final model in models) {
+      final parentId = model.id;
+      if (parentId != null) {
+        parentIds.add(parentId);
+        modelsById.putIfAbsent(parentId, () => []).add(model);
+      }
+    }
+
+    if (parentIds.isEmpty) {
+      // Set empty lists for all models
+      for (final model in models) {
+        model.setAttribute(relationName, []);
+      }
+      return;
+    }
+
+    // Query all related models in one batch
+    final relatedModels = await relatedFactory()
+        .resetQuery()
+        .qb
+        .whereIn(foreignKey, parentIds.toList())
+        .get();
+
+    // Group related models by foreign key
+    final relatedByFk = <dynamic, List<Model>>{};
+    for (final result in relatedModels) {
+      final related = relatedFactory().fromMap(result);
+      final fkValue = related.getAttribute(foreignKey);
+      if (fkValue != null) {
+        relatedByFk.putIfAbsent(fkValue, () => []).add(related);
+      }
+    }
+
+    // Assign related models to parent models
+    for (final entry in modelsById.entries) {
+      final parentId = entry.key;
+      final relatedList = relatedByFk[parentId] ?? [];
+      for (final model in entry.value) {
+        model.setAttribute(relationName, relatedList);
+      }
+    }
   }
 }
 
