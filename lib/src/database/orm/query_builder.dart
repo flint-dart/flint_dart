@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/helper.dart';
 import 'package:flint_dart/src/database/db.dart';
@@ -769,156 +768,33 @@ class QueryBuilder {
     }).toList();
   }
 
-  /// Load a specific relation for a list of models
-  Future<void> _loadRelationForModels(
-    List<dynamic> models,
-    dynamic definition,
-    String relationName,
-    List<String>? columns,
-  ) async {
-    final loaderKey = '${models.first.runtimeType}.$relationName';
+  // /// Load a specific relation for a list of models
+  // Future<void> _loadRelationForModels(
+  //   List<dynamic> models,
+  //   dynamic definition,
+  //   String relationName,
+  //   List<String>? columns,
+  // ) async {
+  //   final loaderKey = '${models.first.runtimeType}.$relationName';
 
-    // Access relation loaders from the global helper
-    final relationLoaders = await _getRelationLoaders();
-    final loader = relationLoaders[loaderKey];
+  //   // Access relation loaders from the global helper
+  //   final relationLoaders = await _getRelationLoaders();
+  //   final loader = relationLoaders[loaderKey];
 
-    if (loader != null) {
-      // Cast models to base Model type
-      final baseModels = models.cast<Model>().toList();
+  //   if (loader != null) {
+  //     // Cast models to base Model type
+  //     final baseModels = models.cast<Model>().toList();
 
-      // Create config
-      final config = {
-        'columns': columns,
-        'relationName': relationName,
-      };
+  //     // Create config
+  //     final config = {
+  //       'columns': columns,
+  //       'relationName': relationName,
+  //     };
 
-      // Execute the loader
-      await loader(baseModels, config);
-    }
-  }
-
-  /// Get relation loaders from the global helper
-  Future<Map<String, dynamic>> _getRelationLoaders() async {
-    try {
-      // Try to access the global relationLoaders map
-      // This assumes there's a global helper available
-
-      return relationLoaders ?? {};
-    } catch (_) {
-      return {};
-    }
-  }
-
-  /// Load belongsTo relation for multiple models
-  Future<void> _loadBelongsToBatch(
-    List<Model> models,
-    String relationName,
-    dynamic definition,
-    List<String>? columns,
-  ) async {
-    final relatedFactory = definition.relatedFactory;
-    final foreignKey = definition.foreignKey;
-    final ownerKey = definition.ownerKey;
-
-    // Collect foreign key values
-    final fkValues = <dynamic>{};
-    final modelsByFk = <dynamic, List<Model>>{};
-
-    for (final model in models) {
-      final fkValue = model.getAttribute(foreignKey);
-      if (fkValue != null) {
-        fkValues.add(fkValue);
-        modelsByFk.putIfAbsent(fkValue, () => []).add(model);
-      }
-    }
-
-    if (fkValues.isEmpty) return;
-
-    // Query all related models in one batch
-    final relatedModels = await relatedFactory()
-        .resetQuery()
-        .qb
-        .whereIn(ownerKey, fkValues.toList())
-        .get();
-
-    // Create map of related models by owner key
-    final relatedMap = <dynamic, Model>{};
-    for (final result in relatedModels) {
-      final related = relatedFactory().fromMap(result);
-      final key = related.getAttribute(ownerKey);
-      if (key != null) {
-        relatedMap[key] = related;
-      }
-    }
-
-    // Assign related models to parent models
-    for (final entry in modelsByFk.entries) {
-      final fkValue = entry.key;
-      final related = relatedMap[fkValue];
-      if (related != null) {
-        for (final model in entry.value) {
-          model.setAttribute(relationName, related);
-        }
-      }
-    }
-  }
-
-  /// Load hasMany relation for multiple models
-  Future<void> _loadHasManyBatch(
-    List<Model> models,
-    String relationName,
-    dynamic definition,
-    List<String>? columns,
-  ) async {
-    final relatedFactory = definition.relatedFactory;
-    final foreignKey = definition.foreignKey;
-
-    // Collect parent IDs
-    final parentIds = <dynamic>{};
-    final modelsById = <dynamic, List<Model>>{};
-
-    for (final model in models) {
-      final parentId = model.id;
-      if (parentId != null) {
-        parentIds.add(parentId);
-        modelsById.putIfAbsent(parentId, () => []).add(model);
-      }
-    }
-
-    if (parentIds.isEmpty) {
-      // Set empty lists for all models
-      for (final model in models) {
-        model.setAttribute(relationName, []);
-      }
-      return;
-    }
-
-    // Query all related models in one batch
-    final relatedModels = await relatedFactory()
-        .resetQuery()
-        .qb
-        .whereIn(foreignKey, parentIds.toList())
-        .get();
-
-    // Group related models by foreign key
-    final relatedByFk = <dynamic, List<Model>>{};
-    for (final result in relatedModels) {
-      final related = relatedFactory().fromMap(result);
-      final fkValue = related.getAttribute(foreignKey);
-      if (fkValue != null) {
-        relatedByFk.putIfAbsent(fkValue, () => []).add(related);
-      }
-    }
-
-    // Assign related models to parent models
-    for (final entry in modelsById.entries) {
-      final parentId = entry.key;
-      final relatedList = relatedByFk[parentId] ?? [];
-      for (final model in entry.value) {
-        model.setAttribute(relationName, relatedList);
-      }
-    }
-  }
+  //     // Execute the loader
+  //     await loader(baseModels, config);
+  //   }
+  // }
 }
 
 /// --- Helper class to cache column info ---

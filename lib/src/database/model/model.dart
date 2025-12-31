@@ -6,7 +6,6 @@ import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/model/_model_helper.dart';
 import 'package:flint_dart/src/database/relations/relation_config.dart';
 import 'package:flint_dart/src/database/relations/relation_definition.dart';
-import "package:flint_dart/src/database/model/model_query.dart";
 
 abstract class Model<T extends Model<T>> {
   final Map<String, dynamic> _attributes = {};
@@ -109,28 +108,24 @@ abstract class Model<T extends Model<T>> {
   Future<T?> find(dynamic id) async {
     final map = await qb.where(primaryKey, "=", id).first();
     if (map == null) return null;
-    return fromMap(map);
+    return fromMap(_convertDatabaseTypes(map));
   }
 
   Future<T?> firstWhere(String key, dynamic value) async {
     final map = await qb.where(key, "=", value).first();
     if (map == null) return null;
-    return fromMap(map);
+    return fromMap(_convertDatabaseTypes(map));
   }
 
   Future<List<T>> getWhere(String key, dynamic value) async {
     final results = await qb.where(key, "=", value).get();
-    return results.map((map) => fromMap(map)).toList();
-  }
-
-  Future<List<T>> all() async {
-    final results = await qb.get();
-    return results.map((map) => fromMap(map)).toList();
+    return results.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
   }
 
   Future<List<T>> get() async {
     final results = await qb.get();
-    final models = results.map((map) => fromMap(map)).toList();
+    final models =
+        results.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
 
     // If we have requested relations, load them
     if (qb.withRelations.isNotEmpty) {
@@ -143,7 +138,7 @@ abstract class Model<T extends Model<T>> {
   Future<T?> first() async {
     final result = await qb.first();
     if (result == null) return null;
-    final model = fromMap(result);
+    final model = fromMap(_convertDatabaseTypes(result));
 
     // If we have requested relations, load them
     if (qb.withRelations.isNotEmpty) {
@@ -151,11 +146,6 @@ abstract class Model<T extends Model<T>> {
     }
 
     return model;
-  }
-
-  Future<void> delete() async {
-    if (id == null) return;
-    await qb.where(primaryKey, "=", id).delete();
   }
 
   // ========== RELATION METHODS ==========
@@ -319,11 +309,10 @@ abstract class Model<T extends Model<T>> {
         .qb
         .whereIn(definition.ownerKey, fkValues.toList())
         .get();
-
     // Map related models by their owner key
     final relatedMap = <dynamic, Model>{};
     for (final result in relatedResults) {
-      final related = relatedFactory().fromMap(result);
+      final related = relatedFactory().fromMap(_convertDatabaseTypes(result));
       final key = related.getAttribute(definition.ownerKey);
       if (key != null) {
         relatedMap[key] = related;
@@ -371,7 +360,7 @@ abstract class Model<T extends Model<T>> {
     // Map related models by foreign key
     final relatedMap = <dynamic, Model>{};
     for (final result in relatedResults) {
-      final related = relatedFactory().fromMap(result);
+      final related = relatedFactory().fromMap(_convertDatabaseTypes(result));
       final fkValue = related.getAttribute(definition.foreignKey);
       if (fkValue != null && !relatedMap.containsKey(fkValue)) {
         relatedMap[fkValue] = related;
@@ -424,7 +413,7 @@ abstract class Model<T extends Model<T>> {
     // Group related models by foreign key
     final groupedMap = <dynamic, List<Model>>{};
     for (final result in relatedResults) {
-      final related = relatedFactory().fromMap(result);
+      final related = relatedFactory().fromMap(_convertDatabaseTypes(result));
       final fkValue = related.getAttribute(definition.foreignKey);
       if (fkValue != null) {
         groupedMap.putIfAbsent(fkValue, () => []).add(related);
@@ -468,5 +457,121 @@ abstract class Model<T extends Model<T>> {
   // Helper to check if string looks like a DateTime
   static bool looksLikeDateTime(String value) {
     return RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(value);
+  }
+
+  /// Convert database-specific types to Dart types
+  /// Convert database-specific types to Dart types safely,
+  /// respecting the model's schema definition.
+  Map<String, dynamic> _convertDatabaseTypes(Map<dynamic, dynamic> map) {
+    final converted = Map<String, dynamic>.from(map);
+
+    for (final column in table.columns) {
+      final key = column.name;
+      if (!converted.containsKey(key)) continue;
+
+      final value = converted[key];
+      if (value == null) continue;
+
+      switch (column.type) {
+        case ColumnType.integer:
+          if (value is String && int.tryParse(value) != null) {
+            converted[key] = int.parse(value);
+          } else if (value is BigInt) {
+            converted[key] = value.toInt();
+          }
+          break;
+
+        case ColumnType.double:
+          if (value is String && double.tryParse(value) != null) {
+            converted[key] = double.parse(value);
+          }
+          break;
+
+        case ColumnType.boolean:
+          if (value is bool) {
+            converted[key] = value;
+          } else if (value is num) {
+            converted[key] = value == 1;
+          } else if (value is String) {
+            final v = value.toLowerCase();
+            converted[key] = (v == 'true' || v == '1' || v == 'yes');
+          } else {
+            converted[key] = false;
+          }
+          break;
+
+        case ColumnType.datetime:
+        case ColumnType.timestamp:
+          if (value is String && looksLikeDateTime(value)) {
+            try {
+              converted[key] = DateTime.parse(value);
+            } catch (_) {}
+          }
+          break;
+
+        case ColumnType.string:
+        case ColumnType.text:
+          // 🔥 Handle both normal string and byte array text
+          if (value is String) {
+            converted[key] = value;
+          } else if (value is List<int>) {
+            try {
+              converted[key] = utf8.decode(value);
+            } catch (_) {
+              // fallback if UTF8 fails
+              converted[key] = String.fromCharCodes(value);
+            }
+          } else {
+            converted[key] = value.toString();
+          }
+          break;
+
+        case ColumnType.enumeration:
+          // Enums are stored as strings in SQL
+          if (value is String) {
+            converted[key] = value;
+          } else if (value is List<int>) {
+            try {
+              converted[key] = utf8.decode(value);
+            } catch (_) {
+              converted[key] = String.fromCharCodes(value);
+            }
+          } else {
+            converted[key] = value.toString();
+          }
+          break;
+
+        case ColumnType.json:
+          if (value is String) {
+            try {
+              converted[key] = jsonDecode(value);
+            } catch (_) {
+              converted[key] = value;
+            }
+          } else if (value is List<int>) {
+            try {
+              final decoded = utf8.decode(value);
+              converted[key] = jsonDecode(decoded);
+            } catch (_) {
+              // fallback to string if not valid json
+              converted[key] = String.fromCharCodes(value);
+            }
+          }
+          break;
+      }
+    }
+
+    // --- 🔥 GLOBAL TIMESTAMP SAFETY (created_at, updated_at) ---
+    for (final entry in converted.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      if (value is String &&
+          (key == 'created_at' || key == 'updated_at') &&
+          looksLikeDateTime(value)) {
+        converted[key] = DateTime.parse(value);
+      }
+    }
+    return converted;
   }
 }

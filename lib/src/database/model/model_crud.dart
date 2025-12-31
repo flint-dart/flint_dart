@@ -242,29 +242,6 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     return true;
   }
 
-  /// Find by ID
-  Future<T?> find(dynamic id) async {
-    if (DB.driver == DBDriver.mysql) {
-      // Use positional parameters for MySQL
-      final result = await DB.query(
-        'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
-        positionalParams: [id],
-      );
-      return result.isNotEmpty
-          ? fromMap(_convertDatabaseTypes(result.first))
-          : null;
-    } else {
-      // Use named parameters for PostgreSQL
-      final result = await DB.query(
-        'SELECT * FROM ${table.name} WHERE $primaryKey = :id LIMIT 1',
-        namedParams: {'id': id},
-      );
-      return result.isNotEmpty
-          ? fromMap(_convertDatabaseTypes(result.first))
-          : null;
-    }
-  }
-
   /// Get all records
   Future<List<T>> all() async {
     final result = await DB.query('SELECT * FROM ${table.name}');
