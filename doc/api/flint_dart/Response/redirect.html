@@ -89,7 +89,7 @@ res.redirect('https://example.com', status: 301);
   } catch (e) {
     raw.statusCode = 500;
     raw.write(&#39;❌ Redirect failed: ${e.runtimeType}&#39;);
-    print(&#39;[Flint] Redirect Error: $e&#39;);
+    Log.debug(&#39;[Flint] Redirect Error: $e&#39;);
   }
   close();
   return this;

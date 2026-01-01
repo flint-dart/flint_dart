@@ -1,4 +1,5 @@
 import 'dart:isolate';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/extensions/table_extension.dart';
 
@@ -18,7 +19,7 @@ import 'package:flint_dart/src/extensions/table_extension.dart';
 ///   An unused positional parameter (reserved for isolate call compatibility).
 /// - [sendPort] (`SendPort?`, optional):
 ///   A [`SendPort`](dart:isolate) used to send the computed schema differences
-///   back to the main isolate. If `null`, the function will print an error
+///   back to the main isolate. If `null`, the function will Log.debug an error
 ///   and exit.
 ///
 /// ### Behavior
@@ -47,7 +48,7 @@ void runTableRegistry(
   SendPort? sendPort,
 ]) async {
   if (sendPort == null) {
-    print(
+    Log.debug(
         "❌ Error: runTableRegistry must be called via the Flint CLI isolate.");
     Isolate.exit(); // ← Add this
     // return;
@@ -69,10 +70,8 @@ void runTableRegistry(
       }
     }
   } catch (e, st) {
-    print("⚠️ Error in table registry: $e\n$st");
+    Log.debug("⚠️ Error in table registry: $e\n$st");
   }
-
-  print(diffs);
 
   // ✅ Always send result back, even if empty
   sendPort.send(diffs);

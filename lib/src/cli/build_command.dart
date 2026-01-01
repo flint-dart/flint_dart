@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:path/path.dart' as path;
 
@@ -24,12 +25,12 @@ class BuildCommand extends FlintCommand {
       }
     }
 
-    print('🏗️  Building Flint application...');
+    Log.debug('🏗️  Building Flint application...');
 
     // Reset build directory
     final buildDirectory = Directory(buildDir);
     if (await buildDirectory.exists()) {
-      print('🧹 Removing previous build...');
+      Log.debug('🧹 Removing previous build...');
       buildDirectory.deleteSync(recursive: true);
     }
     buildDirectory.createSync(recursive: true);
@@ -38,7 +39,7 @@ class BuildCommand extends FlintCommand {
     final pubspec = await File('pubspec.yaml').readAsString();
     final match = RegExp(r'name:\s*(\S+)').firstMatch(pubspec);
     if (match == null) {
-      print('❌ Error: Missing project name in pubspec.yaml');
+      Log.debug('❌ Error: Missing project name in pubspec.yaml');
       exit(1);
     }
     final projectName = match.group(1)!.trim();
@@ -47,7 +48,7 @@ class BuildCommand extends FlintCommand {
     final exeName = Platform.isWindows ? '$projectName.exe' : projectName;
     final exePath = path.join(buildDir, exeName);
 
-    print('🔨 Compiling Dart executable...');
+    Log.debug('🔨 Compiling Dart executable...');
     final result = await Process.run(
       'dart',
       ['compile', 'exe', 'lib/main.dart', '-o', exePath],
@@ -55,23 +56,23 @@ class BuildCommand extends FlintCommand {
     );
 
     if (result.exitCode != 0) {
-      print('❌ Build failed:');
-      print(result.stderr);
+      Log.debug('❌ Build failed:');
+      Log.debug(result.stderr);
       exit(1);
     }
 
-    print('✅ Executable generated: $exePath');
+    Log.debug('✅ Executable generated: $exePath');
 
     // Copy files with loading spinner
-    print('📦 Copying non-Dart resources...');
+    Log.debug('📦 Copying non-Dart resources...');
     await _copyNonDartFilesWithSpinner(
         Directory.current, buildDirectory, buildDir);
 
     // Create start scripts
     _createStartScripts(buildDir, exeName, targetPlatform);
 
-    print('\n🎉 Build completed successfully!');
-    print('📁 Output directory: $buildDir/');
+    Log.debug('\n🎉 Build completed successfully!');
+    Log.debug('📁 Output directory: $buildDir/');
     _printRunInstructions(buildDir, targetPlatform);
   }
 
@@ -143,18 +144,18 @@ class BuildCommand extends FlintCommand {
 
     if (createLinux) {
       _createLinuxStartScript(buildDir, exeName);
-      print('🐧 Created Linux start script: start.sh');
+      Log.debug('🐧 Created Linux start script: start.sh');
     }
 
     if (createWindows) {
       _createWindowsStartScript(buildDir, exeName);
-      print('🪟 Created Windows start script: start.bat');
+      Log.debug('🪟 Created Windows start script: start.bat');
     }
 
     if (targetPlatform != null) {
-      print('🎯 Target platform: ${targetPlatform.toUpperCase()}');
+      Log.debug('🎯 Target platform: ${targetPlatform.toUpperCase()}');
     } else {
-      print('💻 Detected platform: ${currentPlatform.toUpperCase()}');
+      Log.debug('💻 Detected platform: ${currentPlatform.toUpperCase()}');
     }
   }
 
@@ -188,7 +189,7 @@ $exeName
   }
 
   void _printRunInstructions(String buildDir, String? targetPlatform) {
-    print('\n🚀 To run your application:');
+    Log.debug('\n🚀 To run your application:');
     final createLinux = targetPlatform == 'linux' ||
         targetPlatform == 'both' ||
         (targetPlatform == null && !Platform.isWindows);
@@ -196,12 +197,15 @@ $exeName
         targetPlatform == 'both' ||
         (targetPlatform == null && Platform.isWindows);
 
-    if (createLinux) print('   💻 Linux/Mac:   cd $buildDir && ./start.sh');
-    if (createWindows) print('   🪟 Windows:     cd $buildDir && start.bat');
+    if (createLinux) Log.debug('   💻 Linux/Mac:   cd $buildDir && ./start.sh');
+    if (createWindows) {
+      Log.debug('   🪟 Windows:     cd $buildDir && start.bat');
+    }
 
     if (targetPlatform == 'both') {
-      print('\n📝 Note: Both Linux and Windows start scripts were created.');
-      print('   Use the appropriate script for your target platform.');
+      Log.debug(
+          '\n📝 Note: Both Linux and Windows start scripts were created.');
+      Log.debug('   Use the appropriate script for your target platform.');
     }
   }
 }

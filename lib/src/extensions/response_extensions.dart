@@ -9,6 +9,7 @@
 
 import 'dart:io';
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/response.dart';
 
 extension ResponseSendStreamed on Response {
@@ -41,7 +42,7 @@ extension ResponseSendStreamed on Response {
 
       await raw.flush();
     } catch (e) {
-      print('[Flint] sendStreamed error: $e');
+      Log.debug('[Flint] sendStreamed error: $e');
       raw.statusCode = HttpStatus.internalServerError;
       raw.write('❌ Failed to send streamed response.');
     } finally {

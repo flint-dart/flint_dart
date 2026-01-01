@@ -79,7 +79,7 @@ the desired schema for each database table.</li>
 An unused positional parameter (reserved for isolate call compatibility).</li>
 <li><code>sendPort</code> (<code>SendPort?</code>, optional):
 A <a href="dart:isolate"><code>SendPort</code></a> used to send the computed schema differences
-back to the main isolate. If <code>null</code>, the function will print an error
+back to the main isolate. If <code>null</code>, the function will Log.debug an error
 and exit.</li>
 </ul>
 <h3 id="behavior">Behavior</h3>
@@ -110,7 +110,7 @@ runTableRegistry([
 &#47;&#47;&#47;   An unused positional parameter (reserved for isolate call compatibility).
 &#47;&#47;&#47; - [sendPort] (`SendPort?`, optional):
 &#47;&#47;&#47;   A [`SendPort`](dart:isolate) used to send the computed schema differences
-&#47;&#47;&#47;   back to the main isolate. If `null`, the function will print an error
+&#47;&#47;&#47;   back to the main isolate. If `null`, the function will Log.debug an error
 &#47;&#47;&#47;   and exit.
 &#47;&#47;&#47;
 &#47;&#47;&#47; ### Behavior
@@ -139,7 +139,7 @@ void runTableRegistry(
   SendPort? sendPort,
 ]) async {
   if (sendPort == null) {
-    print(
+    Log.debug(
         &quot;❌ Error: runTableRegistry must be called via the Flint CLI isolate.&quot;);
     Isolate.exit(); &#47;&#47; ← Add this
     &#47;&#47; return;
@@ -161,10 +161,10 @@ void runTableRegistry(
       }
     }
   } catch (e, st) {
-    print(&quot;⚠️ Error in table registry: $e\n$st&quot;);
+    Log.debug(&quot;⚠️ Error in table registry: $e\n$st&quot;);
   }
 
-  print(diffs);
+  Log.debug(diffs);
 
   &#47;&#47; ✅ Always send result back, even if empty
   sendPort.send(diffs);

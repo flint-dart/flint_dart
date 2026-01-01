@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
-  <meta name="description" content="API docs for the debugPrintStatus method from the WebSocketManager class, for the Dart programming language.">
-  <title>debugPrintStatus method - WebSocketManager class - flint_dart library - Dart API</title>
+  <meta name="description" content="API docs for the debugLog.debugStatus method from the WebSocketManager class, for the Dart programming language.">
+  <title>debugLog.debugStatus method - WebSocketManager class - flint_dart library - Dart API</title>
 
 
   
@@ -27,9 +27,9 @@
     <li><a href="../../index.html">flint_dart</a></li>
     <li><a href="../../flint_dart/">flint_dart.dart</a></li>
     <li><a href="../../flint_dart/WebSocketManager-class.html">WebSocketManager</a></li>
-    <li class="self-crumb">debugPrintStatus method</li>
+    <li class="self-crumb">debugLog.debugStatus method</li>
   </ol>
-  <div class="self-name">debugPrintStatus</div>
+  <div class="self-name">debugLog.debugStatus</div>
   <form class="search navbar-right" role="search">
     <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
   </form>
@@ -49,13 +49,13 @@
     data-above-sidebar="flint_dart&#47;WebSocketManager-class-sidebar.html"
     data-below-sidebar="">
     <div>
-<h1><span class="kind-method">debugPrintStatus</span> method 
+<h1><span class="kind-method">debugLog.debugStatus</span> method 
 </h1></div>
 
     <section class="multi-line-signature">
       
 <span class="returntype">void</span>
-<span class="name ">debugPrintStatus</span>(<wbr>)
+<span class="name ">debugLog.debugStatus</span>(<wbr>)
 
       
 
@@ -66,13 +66,13 @@
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
-  <pre class="language-dart"><code class="language-dart">void debugPrintStatus() {
-  print(&#39;=== WebSocketManager Debug ===&#39;);
-  print(&#39;Instance hash: ${identityHashCode(this)}&#39;);
-  print(&#39;Total clients: ${clients.length}&#39;);
-  print(&#39;Clients IDs: ${clients.keys.toList()}&#39;);
-  print(&#39;Rooms: ${rooms.keys.toList()}&#39;);
-  print(&#39;==============================&#39;);
+  <pre class="language-dart"><code class="language-dart">void debugLog.debugStatus() {
+  Log.debug(&#39;=== WebSocketManager Debug ===&#39;);
+  Log.debug(&#39;Instance hash: ${identityHashCode(this)}&#39;);
+  Log.debug(&#39;Total clients: ${clients.length}&#39;);
+  Log.debug(&#39;Clients IDs: ${clients.keys.toList()}&#39;);
+  Log.debug(&#39;Rooms: ${rooms.keys.toList()}&#39;);
+  Log.debug(&#39;==============================&#39;);
 }</code></pre>
 </section>
 
@@ -89,7 +89,7 @@
     <li><a href="../../index.html">flint_dart</a></li>
     <li><a href="../../flint_dart/">flint_dart</a></li>
     <li><a href="../../flint_dart/WebSocketManager-class.html">WebSocketManager</a></li>
-    <li class="self-crumb">debugPrintStatus method</li>
+    <li class="self-crumb">debugLog.debugStatus method</li>
 </ol>
 
     <h5>WebSocketManager class</h5>

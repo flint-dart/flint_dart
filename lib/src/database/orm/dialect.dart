@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:mysql_dart/exception.dart';
@@ -95,7 +96,7 @@ class MySQLDialect implements SQLDialect {
       if (e.message.contains("doesn't exist")) return null;
       rethrow;
     } catch (e) {
-      print('Error fetching MySQL table schema: $e');
+      Log.debug('Error fetching MySQL table schema: $e');
       return null;
     }
   }
@@ -220,7 +221,7 @@ class PostgresDialect implements SQLDialect {
 
       return Table(name: tableName, columns: columns);
     } catch (e) {
-      print('Error fetching PostgreSQL table schema: $e');
+      Log.debug('Error fetching PostgreSQL table schema: $e');
       return null;
     }
   }
@@ -239,7 +240,7 @@ class PostgresDialect implements SQLDialect {
           result.map((row) => row['attname'] as String).toList();
       return primaryKeys.contains(columnName);
     } catch (e) {
-      print('Error checking primary key: $e');
+      Log.debug('Error checking primary key: $e');
       return false;
     }
   }
@@ -357,7 +358,7 @@ extension ColumnSQL on Column {
         }
         return 'VARCHAR(50)'; // fallback if no options provided
       case ColumnType.json:
-        return 'TEXT';
+        return 'JSON';
     }
   }
 
@@ -401,7 +402,7 @@ Future<Table?> getTableSchema(String tableName) async {
         return PostgresDialect().getTableSchema(tableName);
     }
   } catch (e) {
-    print('Error in getTableSchema: $e');
+    Log.debug('Error in getTableSchema: $e');
     return null;
   }
 }

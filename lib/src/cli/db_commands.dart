@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:isolate';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/env_parser.dart';
@@ -12,58 +13,91 @@ class DBMigrateCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     final drop = args.contains('--drop');
+    final force = args.contains('--force');
 
-    print(drop
-        ? '🔁 Refreshing database (droping migrations)...'
+    Log.debug(drop
+        ? '🔁 Refreshing database (dropping migrations)...'
         : '🚀 Starting database migration...');
 
-    // --- Drop tables if --refresh is used ---
     if (drop) {
       await _dropAllTables();
-      print('🧹 All existing tables dropped.');
+      Log.debug('🧹 All existing tables dropped.');
       return;
     }
+
     try {
       await _runTableRegistry();
       await DB.autoConnect();
 
       if (_registeredSqlStrings.isEmpty) {
-        print('❗️ No tables were registered. Please call registerTables().');
+        Log.debug(
+            '❗️ No tables were registered. Please call registerTables().');
         return;
       }
 
-      print('Found ${_registeredSqlStrings.length} tables. Migrating...');
+      Log.debug('Found ${_registeredSqlStrings.length} tables. Migrating...');
 
       for (var sql in _registeredSqlStrings) {
-        // Inject timestamps
-        var finalSql = _injectTimestamps(sql);
+        try {
+          // --- Extract table name first ---
+          final tableName = _extractTableName(sql);
+          if (tableName == null) {
+            Log.debug(
+                '⚠️ Skipping SQL statement (could not extract table name): ${sql.substring(0, 50)}...');
+            continue;
+          }
 
-        // Normalize for PostgreSQL
-        if (DB.driver == DBDriver.postgres) {
-          finalSql = normalizeSqlForPostgres(finalSql);
-        }
+          Log.debug('   🔹 Processing table: $tableName');
 
-        await DB.execute(finalSql);
+          // --- Inject default columns ---
+          sql = _injectDefaultColumns(sql, tableName);
 
-        // Create PostgreSQL trigger safely
-        if (DB.driver == DBDriver.postgres) {
-          final tableName = _extractTableName(finalSql);
-          if (tableName != null) {
-            // wait briefly for table commit
+          // --- Normalize SQL for current driver ---
+          sql = _normalizeSqlForCurrentDriver(sql);
+
+          // --- Check if table exists ---
+          final exists = await _safeTableExists(tableName);
+
+          if (exists) {
+            if (force) {
+              Log.debug('   ♻️ Force recreating table: $tableName');
+              await _safeDropTable(tableName);
+              await DB.execute(sql);
+            } else {
+              // ALTER table: add missing columns
+              await _alterTableAddMissingColumns(tableName, sql);
+            }
+          } else {
+            // CREATE table
+            await DB.execute(sql);
+          }
+
+          // --- Create trigger for PostgreSQL updated_at ---
+          if (DB.driver == DBDriver.postgres) {
             await _safeCreateUpdatedAtTriggerForPostgres(tableName);
+          }
+
+          // --- Ensure timestamps ---
+          await ensureTimestampsOnExistingTable(tableName);
+
+          Log.debug('   ✅ Table "$tableName" migrated successfully.');
+        } catch (e, st) {
+          Log.debug('   ❌ Failed to migrate table.');
+          if (args.contains('--verbose')) {
+            Log.debug("❌ Failed to migrate table:", error: e, stackTrace: st);
           }
         }
       }
 
-      print('✅ Migration completed successfully.');
+      Log.debug('✅ Migration completed successfully.');
     } catch (e, st) {
-      print('❌ Migration failed: $e');
-      print(st);
+      Log.debug('❌ Migration failed: $e');
+      if (args.contains('--verbose')) {
+        Log.debug("❌ Migration failed:", error: e, stackTrace: st);
+      }
     } finally {
       await DB.close();
     }
-    await DB.close();
-    return;
   }
 
   Future<void> _runTableRegistry() async {
@@ -72,7 +106,9 @@ class DBMigrateCommand extends FlintCommand {
     final registryFile = File(registryPath);
 
     if (!await registryFile.exists()) {
-      throw Exception('❌ Could not find table_registry.dart.');
+      Log.debug('⚠️ Could not find table_registry.dart at $registryPath');
+      _registeredSqlStrings = [];
+      return;
     }
 
     final receivePort = ReceivePort();
@@ -87,118 +123,111 @@ class DBMigrateCommand extends FlintCommand {
 
       final sqlList = await receivePort.first as List<String>;
       _registeredSqlStrings = sqlList;
+      Log.debug('📋 Loaded ${sqlList.length} table definitions from registry.');
+    } catch (e) {
+      Log.debug('⚠️ Failed to load table registry: ', error: e);
+      _registeredSqlStrings = [];
     } finally {
-      receivePort.close(); // ← This is crucial
+      receivePort.close();
     }
-    return;
   }
 }
 
-/// --- Drop all tables (used for --refresh) ---
-Future<void> _dropAllTables() async {
-  print('🗑️ Dropping all tables...');
+/// --- Safe table existence check ---
+Future<bool> _safeTableExists(String tableName) async {
+  try {
+    if (DB.driver == DBDriver.mysql) {
+      final result = await DB.query(
+          "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+          positionalParams: [tableName]);
+      return (result.first['count'] as int) > 0;
+    } else if (DB.driver == DBDriver.postgres) {
+      final result = await DB.query(
+          "SELECT COUNT(*) as count FROM pg_tables WHERE schemaname = 'public' AND tablename = ?",
+          positionalParams: [tableName]);
+      return (result.first['count'] as int) > 0;
+    }
+    return false;
+  } catch (e) {
+    Log.debug('⚠️ Error checking if table exists ($tableName): $e');
+    return false;
+  }
+}
 
+/// --- Safe table drop ---
+Future<void> _safeDropTable(String tableName) async {
+  try {
+    if (DB.driver == DBDriver.mysql) {
+      await DB.execute('DROP TABLE IF EXISTS `$tableName`');
+    } else if (DB.driver == DBDriver.postgres) {
+      await DB.execute('DROP TABLE IF EXISTS "$tableName" CASCADE');
+    }
+  } catch (e) {
+    Log.debug('⚠️ Error dropping table $tableName: $e');
+  }
+}
+
+/// --- Drop all tables ---
+Future<void> _dropAllTables() async {
+  Log.debug('🗑️ Dropping all tables...');
   try {
     await DB.autoConnect();
 
     if (DB.driver == DBDriver.mysql) {
-      print('💾 MySQL detected — fetching table list...');
       final tables = await DB.query('SHOW TABLES');
-
-      if (tables.isEmpty) {
-        print('ℹ️ No tables found.');
-        return;
-      }
-
       for (final row in tables) {
         final tableName = row.values.first;
-        print('   🔹 Dropping `$tableName`...');
+        Log.debug('   🔹 Dropping `$tableName`...');
         await DB.execute('DROP TABLE IF EXISTS `$tableName`;');
       }
     } else if (DB.driver == DBDriver.postgres) {
-      print('🐘 PostgreSQL detected — fetching table list...');
       final tables = await DB.query(
-        "SELECT tablename FROM pg_tables WHERE schemaname = 'public';",
-      );
-
-      if (tables.isEmpty) {
-        print('ℹ️ No tables found.');
-        return;
-      }
-
+          "SELECT tablename FROM pg_tables WHERE schemaname = 'public';");
       await DB.execute('SET session_replication_role = replica;');
-
       for (final row in tables) {
         final tableName = row['tablename'];
-        print('   🔹 Dropping "$tableName"...');
+        Log.info('   🔹 Dropping "$tableName"...');
         await DB.execute('DROP TABLE IF EXISTS "$tableName" CASCADE;');
       }
-
       await DB.execute('SET session_replication_role = DEFAULT;');
     }
 
-    print('✅ All tables dropped successfully.');
-    return;
+    Log.info('✅ All tables dropped successfully.');
   } catch (e, st) {
-    print('❌ Failed to drop tables: $e');
-    print(st);
+    Log.debug("❌ Failed to drop tables: ", error: e, stackTrace: st);
   } finally {
     await DB.close();
   }
-  return;
 }
 
-/// --- Add created_at & updated_at columns if missing ---
-
-/// --- Add created_at, updated_at, provider, and provider_id columns if missing ---
-String _injectTimestamps(String sql) {
+/// --- Inject default columns into CREATE TABLE SQL ---
+String _injectDefaultColumns(String sql, String tableName) {
   if (!sql.trim().toUpperCase().startsWith('CREATE TABLE')) return sql;
 
   final insertIndex = sql.lastIndexOf(')');
   if (insertIndex == -1) return sql;
 
-  // --- Extract table name ---
-  final tableMatch = RegExp(r'CREATE TABLE\s+["`]?(\w+)["`]?').firstMatch(sql);
-  final tableName = tableMatch?.group(1) ?? '';
-
-  // --- ENV values ---
   final authTable = FlintEnv.get('AUTH_TABLE', "users");
   final providerCol = FlintEnv.get('AUTH_PROVIDER_COLUMN', "provider");
   final providerIdCol = FlintEnv.get('AUTH_PROVIDER_ID_COLUMN', "provider_id");
-
   final isAuthTable = tableName.toLowerCase() == authTable.toLowerCase();
-
-  // --- Driver checks ---
   final isPostgres = DB.driver == DBDriver.postgres;
   final q = isPostgres ? '"' : '`';
 
-  // --- Detect existing columns ---
-  bool hasCreatedAt = sql.contains('created_at');
-  bool hasUpdatedAt = sql.contains('updated_at');
-  bool hasProvider = sql.contains(providerCol);
-  bool hasProviderId = sql.contains(providerIdCol);
-  bool hasEmailVerifiedAt = sql.contains('email_verified_at');
-  bool hasIsVerified = sql.contains('is_verified');
+  final hasCreatedAt = sql.toLowerCase().contains('created_at');
+  final hasUpdatedAt = sql.toLowerCase().contains('updated_at');
+  final hasProvider = sql.toLowerCase().contains(providerCol.toLowerCase());
+  final hasProviderId = sql.toLowerCase().contains(providerIdCol.toLowerCase());
 
   final additions = <String>[];
 
-  // --- Add provider/provider_id if missing and is auth table ---
+  // Auth fields
   if (isAuthTable) {
     if (!hasProvider) additions.add('$q$providerCol$q VARCHAR(100)');
     if (!hasProviderId) additions.add('$q$providerIdCol$q VARCHAR(255)');
-    if (!hasEmailVerifiedAt) {
-      additions.add(isPostgres
-          ? '${q}email_verified_at$q TIMESTAMP NULL DEFAULT NULL'
-          : '${q}email_verified_at$q DATETIME NULL DEFAULT NULL');
-    }
-    if (!hasIsVerified) {
-      additions.add('${q}is_verified$q BOOLEAN DEFAULT FALSE');
-    }
   }
-  // --- Add auth-related verification fields ---
-  if (isAuthTable) {}
 
-  // --- Add timestamps if missing ---
+  // Timestamps
   if (!hasCreatedAt) {
     additions.add(isPostgres
         ? '${q}created_at$q TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
@@ -210,23 +239,70 @@ String _injectTimestamps(String sql) {
         : '${q}updated_at$q DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
   }
 
-  // --- If nothing to add, skip ---
   if (additions.isEmpty) return sql;
 
-  // --- Inject new columns before closing parenthesis ---
   final additionSql = ',\n  ${additions.join(',\n  ')}';
   return sql.substring(0, insertIndex) +
       additionSql +
       sql.substring(insertIndex);
 }
 
+/// --- Alter table to add missing columns (MySQL/Postgres) ---
+Future<void> _alterTableAddMissingColumns(String tableName, String sql) async {
+  // Extract column definitions from CREATE TABLE statement
+  final createTableMatch = RegExp(r'CREATE\s+TABLE\s+[^\(]+\((.*)\)',
+          caseSensitive: false, dotAll: true)
+      .firstMatch(sql);
+  if (createTableMatch == null) return;
+
+  final columnsSection = createTableMatch.group(1)!;
+  final columnRegex =
+      RegExp(r'["`]?(\w+)["`]?\s+([^\s,]+(?:\([^)]+\))?[^,]*)(?:,|$)');
+  final matches = columnRegex.allMatches(columnsSection);
+
+  for (final match in matches) {
+    final columnName = match.group(1)!;
+    var columnDef = match.group(2)!.trim();
+
+    // Skip if it's a constraint
+    if (columnName.toUpperCase().startsWith('PRIMARY') ||
+        columnName.toUpperCase().startsWith('FOREIGN') ||
+        columnName.toUpperCase().startsWith('UNIQUE') ||
+        columnName.toUpperCase().startsWith('CHECK')) {
+      continue;
+    }
+
+    final exists = await DB.columnExists(tableName, columnName);
+    if (!exists) {
+      final q = DB.driver == DBDriver.postgres ? '"' : '`';
+      try {
+        await DB.execute(
+            'ALTER TABLE $q$tableName$q ADD COLUMN $q$columnName$q $columnDef');
+        Log.info('   ➕ Added column `$columnName` to $tableName');
+      } catch (e) {
+        Log.debug('   ⚠️ Failed to add column `$columnName`: $e');
+      }
+    }
+  }
+}
+
+/// --- Normalize SQL for current driver ---
+String _normalizeSqlForCurrentDriver(String sql) {
+  if (DB.driver == DBDriver.postgres) {
+    return _normalizeSqlForPostgres(sql);
+  }
+  return sql;
+}
+
 /// --- Normalize SQL for PostgreSQL ---
-String normalizeSqlForPostgres(String sql) {
-  var normalized = sql;
-  normalized = normalized.replaceAll('`', '"');
-  normalized = normalized.replaceAll('DATETIME', 'TIMESTAMP');
+String _normalizeSqlForPostgres(String sql) {
+  var normalized = sql.replaceAll('`', '"');
+  normalized = normalized.replaceAllMapped(
+      RegExp(r'DATETIME(?:\([^)]+\))?', caseSensitive: false),
+      (match) => 'TIMESTAMP');
   normalized = normalized.replaceAll('MODIFY COLUMN', 'ALTER COLUMN');
 
+  // Handle AUTO_INCREMENT
   if (normalized.contains('AUTO_INCREMENT')) {
     normalized = normalized.replaceAll(
       'AUTO_INCREMENT',
@@ -234,58 +310,122 @@ String normalizeSqlForPostgres(String sql) {
     );
   }
 
+  // Handle ON UPDATE CURRENT_TIMESTAMP for MySQL compatibility
+  normalized = normalized.replaceAll('ON UPDATE CURRENT_TIMESTAMP', '');
+
   return normalized;
 }
 
-/// --- Extract table name from CREATE TABLE ---
+/// --- Extract table name from SQL ---
 String? _extractTableName(String sql) {
-  final regex = RegExp(r'CREATE TABLE\s+["`]?(\w+)["`]?', caseSensitive: false);
-  final match = regex.firstMatch(sql);
+  // Match CREATE TABLE or ALTER TABLE statements
+  final match = RegExp(
+    r'(?:CREATE\s+TABLE|ALTER\s+TABLE)\s+["`]?(\w+)["`]?',
+    caseSensitive: false,
+  ).firstMatch(sql);
+
   return match?.group(1);
 }
 
-/// --- Create updated_at trigger safely for PostgreSQL ---
+/// --- Create trigger for PostgreSQL updated_at ---
 Future<void> _safeCreateUpdatedAtTriggerForPostgres(String tableName) async {
-  // Check table exists first
-  final exists = await DB.tableExists(tableName);
-  if (!exists) {
-    return;
-  }
+  final exists = await _safeTableExists(tableName);
+  if (!exists) return;
 
-  final functionSql = '''
-  CREATE OR REPLACE FUNCTION update_${tableName}_timestamp()
-  RETURNS TRIGGER AS \$\$
-  BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-  END;
-  \$\$ LANGUAGE 'plpgsql';
-  ''';
-
-  final dropTriggerSql =
-      'DROP TRIGGER IF EXISTS ${tableName}_updated_at_trigger ON "$tableName";';
-
-  final createTriggerSql = '''
-  CREATE TRIGGER ${tableName}_updated_at_trigger
-  BEFORE UPDATE ON "$tableName"
-  FOR EACH ROW
-  EXECUTE PROCEDURE update_${tableName}_timestamp();
-  ''';
+  final functionName = 'update_${tableName}_timestamp';
+  final triggerName = '${tableName}_updated_at_trigger';
 
   try {
-    await DB.execute(functionSql);
-    await DB.execute(dropTriggerSql);
-    await DB.execute(createTriggerSql);
-  } catch (e) {
-    final error = e.toString().toLowerCase();
-    if (error.contains('permission denied') ||
-        error.contains('trigger') ||
-        error.contains('function')) {
-      print(
-          '⚠️ Warning: Could not create updated_at trigger for "$tableName".\n   Reason: ${e.toString().split('\n').first}');
-    } else {
-      print('⚠️ Skipped trigger for "$tableName" due to: $e');
+    // Check if function already exists
+    final funcResult = await DB.query(
+        "SELECT COUNT(*) as count FROM pg_proc WHERE proname = ?",
+        positionalParams: [functionName]);
+
+    if ((funcResult.first['count'] as int) == 0) {
+      final functionSql = '''
+CREATE OR REPLACE FUNCTION $functionName()
+RETURNS TRIGGER AS \$\$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+\$\$ LANGUAGE plpgsql;
+''';
+      await DB.execute(functionSql);
     }
+
+    // Drop existing trigger if exists
+    await DB.execute('DROP TRIGGER IF EXISTS $triggerName ON "$tableName";');
+
+    // Create new trigger
+    final createTriggerSql = '''
+CREATE TRIGGER $triggerName
+BEFORE UPDATE ON "$tableName"
+FOR EACH ROW
+EXECUTE FUNCTION $functionName();
+''';
+    await DB.execute(createTriggerSql);
+
+    Log.debug('   🔧 Created updated_at trigger for "$tableName"');
+  } catch (e) {
+    Log.debug('   ⚠️ Could not create updated_at trigger for "$tableName": $e');
   }
-  return;
+}
+
+/// Checks existing table SQL and injects missing timestamps
+Future<void> ensureTimestampsOnExistingTable(String tableName) async {
+  try {
+    final driver = DB.driver;
+    final q = driver == DBDriver.postgres ? '"' : '`';
+
+    // Get existing columns
+    final existingColumns = await _getTableColumns(tableName);
+
+    final additions = <String>[];
+
+    if (!existingColumns.contains('created_at')) {
+      additions.add(driver == DBDriver.postgres
+          ? '${q}created_at$q TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+          : '${q}created_at$q DATETIME DEFAULT CURRENT_TIMESTAMP');
+    }
+
+    if (!existingColumns.contains('updated_at')) {
+      additions.add(driver == DBDriver.postgres
+          ? '${q}updated_at$q TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+          : '${q}updated_at$q DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+    }
+
+    if (additions.isEmpty) return;
+
+    final alterSql =
+        'ALTER TABLE $q$tableName$q ADD COLUMN ${additions.join(', ADD COLUMN ')};';
+    await DB.execute(alterSql);
+
+    // For PostgreSQL, create trigger if updated_at was added
+    if (driver == DBDriver.postgres &&
+        !existingColumns.contains('updated_at')) {
+      await _safeCreateUpdatedAtTriggerForPostgres(tableName);
+    }
+
+    Log.info('   ✅ Timestamps ensured for table "$tableName"');
+  } catch (e) {
+    Log.debug('   ⚠️ Error ensuring timestamps for "$tableName": $e');
+  }
+}
+
+/// Get table columns
+Future<Set<String>> _getTableColumns(String tableName) async {
+  final driver = DB.driver;
+
+  if (driver == DBDriver.postgres) {
+    final result = await DB.query(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = ?",
+        positionalParams: [tableName]);
+    return result.map((row) => row['column_name'] as String).toSet();
+  } else if (driver == DBDriver.mysql) {
+    final result = await DB.query("SHOW COLUMNS FROM `$tableName`");
+    return result.map((row) => row['Field'] as String).toSet();
+  }
+
+  return {};
 }

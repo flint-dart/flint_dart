@@ -78,10 +78,10 @@ class Log {
     final consoleMessage =
         '$time [$levelName] $prefix $message${error != null ? '\n$error' : ''}${stackTrace != null ? '\n$stackTrace' : ''}';
 
-    // Print colored console log in dev
+    // Log.debug colored console log in dev
     if (consoleLogging) {
       final color = _levelColor(level);
-      print('$color$consoleMessage${ConsoleColor.reset}');
+      Log.debug('$color$consoleMessage${ConsoleColor.reset}');
     }
 
     // Always write JSON to file
@@ -91,7 +91,7 @@ class Log {
   static void _writeToFile(String message) async {
     await init();
     if (_logFile == null) return;
-    _logFile!.writeAsStringSync(message + '\n', mode: FileMode.append);
+    _logFile!.writeAsStringSync('$message\n', mode: FileMode.append);
   }
 
   // Helper methods

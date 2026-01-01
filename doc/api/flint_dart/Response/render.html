@@ -90,7 +90,7 @@
     raw.statusCode = 500;
     raw.headers.contentType = ContentType.text;
     raw.write(&#39;❌ Failed to render FlintWidget: ${e.runtimeType}&#39;);
-    print(&#39;[Flint] Render Error: $e&#39;);
+    Log.debug(&#39;[Flint] Render Error: $e&#39;);
   }
   close();
   return this;

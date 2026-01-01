@@ -97,7 +97,7 @@ The response <code>res</code> is sent automatically when the task completes.</p>
     await res.sendStreamed(response);
   } catch (e, stack) {
     res.status(500).respond({&#39;error&#39;: e.toString()});
-    print(&#39;IsolatePoolHelper.runRequest error: $e\n$stack&#39;);
+    Log.debug(&#39;IsolatePoolHelper.runRequest error: $e\n$stack&#39;);
   }
 }</code></pre>
 </section>

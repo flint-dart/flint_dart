@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flint_dart/logs.dart';
 import 'package:worker_manager/worker_manager.dart';
 
 /// Base class for tasks running in isolates
@@ -38,7 +39,7 @@ abstract class IsolateTask<T> {
         onError(e);
       } else {
         // Default error logging if no callback provided
-        print("IsolateTask error: $e");
+        Log.debug("IsolateTask error: $e");
       }
     }
   }

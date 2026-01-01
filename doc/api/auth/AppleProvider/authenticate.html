@@ -98,7 +98,7 @@
     try {
       parsedUserData = json.decode(userData) as Map&lt;String, dynamic&gt;;
     } catch (e) {
-      print(&#39;Failed to parse Apple user data: $e&#39;);
+      Log.debug(&#39;Failed to parse Apple user data: $e&#39;);
     }
   }
 

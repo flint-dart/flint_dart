@@ -249,7 +249,7 @@ abstract class Model<T extends Model<T>> {
       final loaderKey = '$className.$relationName';
 
       if (!relationLoaders.containsKey(loaderKey)) {
-        relationLoaders[loaderKey] = await _createRelationLoader(definition);
+        relationLoaders[loaderKey] = _createRelationLoader(definition);
       }
     }
   }

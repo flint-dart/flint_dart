@@ -124,7 +124,7 @@
     raw.statusCode = 500;
     raw.headers.contentType = ContentType.text;
     raw.write(&#39;❌ Failed to send response: ${e.runtimeType}&#39;);
-    print(&#39;[Flint] respond() Error: $e\n$stack&#39;);
+    Log.debug(&#39;[Flint] respond() Error: $e\n$stack&#39;);
   }
 
   await close();

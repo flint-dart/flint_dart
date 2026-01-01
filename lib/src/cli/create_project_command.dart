@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class CreateProjectCommand extends FlintCommand {
@@ -11,18 +12,18 @@ class CreateProjectCommand extends FlintCommand {
         args.isNotEmpty ? args.first.trim() : await _promptProjectName();
 
     if (projectName.isEmpty) {
-      print('❌ Project name cannot be empty.');
+      Log.debug('❌ Project name cannot be empty.');
       return;
     }
 
     final dir = Directory(projectName);
     if (await dir.exists()) {
-      print('❌ Error: Directory "$projectName" already exists.');
+      Log.debug('❌ Error: Directory "$projectName" already exists.');
       return;
     }
 
     // 🟦 2. Clone template
-    print('🚀 Creating project "$projectName"...');
+    Log.debug('🚀 Creating project "$projectName"...');
     final result = await Process.run(
       'git',
       [
@@ -35,7 +36,7 @@ class CreateProjectCommand extends FlintCommand {
     );
 
     if (result.exitCode != 0) {
-      print('❌ Failed to clone template:\n${result.stderr}');
+      Log.debug('❌ Failed to clone template:\n${result.stderr}');
       return;
     }
 
@@ -56,7 +57,7 @@ class CreateProjectCommand extends FlintCommand {
     await _updatePackageImports(dir.path, 'sample', projectName);
 
     // 🟦 6. Run pub get
-    print('⚙️ Running `dart pub get`...');
+    Log.debug('⚙️ Running `dart pub get`...');
     final pubGet =
         await Process.start('dart', ['pub', 'get'], workingDirectory: dir.path);
     await stdout.addStream(pubGet.stdout);
@@ -64,16 +65,16 @@ class CreateProjectCommand extends FlintCommand {
     final exitCode = await pubGet.exitCode;
 
     if (exitCode != 0) {
-      print('❌ Failed to install dependencies.');
+      Log.debug('❌ Failed to install dependencies.');
       return;
     }
 
     // 🟦 7. Success message
-    print('\n✅ Project "$projectName" created successfully!');
-    print('📂 Location: ${dir.absolute.path}');
-    print('\nTo get started:');
-    print('  cd $projectName');
-    print('  flint run');
+    Log.info('\n✅ Project "$projectName" created successfully!');
+    Log.info('📂 Location: ${dir.absolute.path}');
+    Log.info('\nTo get started:');
+    Log.info('  cd $projectName');
+    Log.info('  flint run');
   }
 
   /// Prompts the user for a project name.

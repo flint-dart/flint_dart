@@ -200,7 +200,7 @@ Flint UI widgets are **class-based**, **composable**, and **type-safe**, similar
 ```dart
 final button = FlintButton(
   text: "Click Me",
-  onClick: () => print("Button clicked!"),
+  onClick: () => Log.debug("Button clicked!"),
   style: ButtonStyle(color: "#0066FF"),
 );
 ````
@@ -307,7 +307,7 @@ final email = FlintContainer(
   ]),
 );
 
-print(email.toHtml());
+Log.debug(email.toHtml());
 ```
 
 #### Server-Side Rendering (SSR)
@@ -468,7 +468,7 @@ Flint now ships with an easy-to-use WebSocket engine with event-based communicat
 ```dart
 app.ws('/chat', (socket, params) {
   socket.on('message', (data) {
-    print('💬 ${socket.id} says: $data');
+    Log.debug('💬 ${socket.id} says: $data');
     socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
   });
 });
@@ -478,7 +478,7 @@ Client-side:
 
 ```dart
 final ws = FlintWebSocketClient("wss://api.example.com/chat");
-ws.on('message', (data) => print("📩 $data"));
+ws.on('message', (data) => Log.debug("📩 $data"));
 ws.emit('message', {'text': 'Hello World'});
 ```
 

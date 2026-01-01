@@ -85,7 +85,7 @@ Streams a file to the response, optionally with byte range.</p>
       await raw.addStream(rangeStream);
     }
   } catch (e) {
-    print(&#39;Error streaming file: $e&#39;);
+    Log.debug(&#39;Error streaming file: $e&#39;);
     if (!isClosed) {
       raw.statusCode = HttpStatus.internalServerError;
       raw.write(&#39;Error serving file&#39;);

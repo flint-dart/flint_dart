@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:path/path.dart' as path;
@@ -11,12 +12,12 @@ class MakeDockerCommand extends FlintCommand {
   Future<void> execute(List<String> args) async {
     final outputDir = args.isNotEmpty ? args.first : 'docker';
 
-    print('🐳 Creating Docker configuration...');
+    Log.debug('🐳 Creating Docker configuration...');
 
     // Create docker directory
     final dockerDir = Directory(outputDir);
     if (await dockerDir.exists()) {
-      print('📁 Docker directory already exists. Overwriting files...');
+      Log.debug('📁 Docker directory already exists. Overwriting files...');
     } else {
       dockerDir.createSync(recursive: true);
     }
@@ -47,10 +48,10 @@ class MakeDockerCommand extends FlintCommand {
     // Copy existing .env file to docker directory
     _copyExistingEnv(outputDir);
 
-    print('✅ Docker configuration created successfully!');
-    print('📁 Files created in: $outputDir/');
-    print('🚀 To deploy: cd $outputDir && ./deploy.sh');
-    print('💡 Using your existing .env configuration');
+    Log.info('✅ Docker configuration created successfully!');
+    Log.info('📁 Files created in: $outputDir/');
+    Log.info('🚀 To deploy: cd $outputDir && ./deploy.sh');
+    Log.info('💡 Using your existing .env configuration');
   }
 
   Map<String, String> _loadEnvVars() {
@@ -91,7 +92,7 @@ class MakeDockerCommand extends FlintCommand {
       envVars['CORS_ORIGIN'] =
           FlintEnv.get('CORS_ORIGIN', 'http://localhost:3000');
     } catch (e) {
-      print('⚠️  Could not load FlintEnv, using defaults: $e');
+      Log.debug('⚠️  Could not load FlintEnv, using defaults: $e');
       // Set defaults
       envVars.addAll({
         'DB_CONNECTION': 'postgres',
@@ -365,10 +366,10 @@ $outputDir/
   void _copyExistingEnv(String outputDir) async {
     final envFile = File('.env');
     if (await envFile.exists()) {
-      print('📄 Copying your existing .env file to docker directory...');
+      Log.debug('📄 Copying your existing .env file to docker directory...');
       envFile.copySync(path.join(outputDir, '.env'));
     } else {
-      print('⚠️  No .env file found. Please create one before deployment.');
+      Log.debug('⚠️  No .env file found. Please create one before deployment.');
       // Create a basic .env template
       _createEnvTemplate(outputDir);
     }

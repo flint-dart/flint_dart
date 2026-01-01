@@ -1,3 +1,4 @@
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/constants.dart';
 
 import 'commands.dart';
@@ -9,6 +10,6 @@ class VersionCommand extends FlintCommand {
 
   @override
   Future<void> execute(List<String> args) async {
-    print('🔥 Flint Dart CLI version: $flintVersion');
+    Log.debug('🔥 Flint Dart CLI version: $flintVersion');
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/build_command.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/create_project_command.dart';
@@ -50,7 +51,7 @@ final Map<String, String> aliasCommands = {
 
 void main(List<String> args) async {
   if (args.isEmpty) {
-    _printUsage();
+    debugUsage();
     return;
   }
 
@@ -58,21 +59,21 @@ void main(List<String> args) async {
   final firstArg = aliasCommands[args[0]] ?? args[0];
 
   if (!commands.containsKey(firstArg)) {
-    print('❌ Unknown command: ${args[0]}');
-    _printUsage();
+    Log.debug('❌ Unknown command: ${args[0]}');
+    debugUsage();
     exit(1);
   }
 
   try {
     await commands[firstArg]!.execute(args.sublist(1));
   } catch (e) {
-    print('Error: $e');
+    Log.debug('Error: $e');
     exitCode = 1;
   }
 }
 
-void _printUsage() {
-  print('''
+void debugUsage() {
+  Log.debug('''
 FlintDart CLI
 
 Usage: flint <command> [options]

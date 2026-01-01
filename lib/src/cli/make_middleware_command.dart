@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeMiddlewareCommand extends FlintCommand {
@@ -9,7 +10,7 @@ class MakeMiddlewareCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      print('❌ Please provide a middleware name.');
+      Log.debug('❌ Please provide a middleware name.');
       return;
     }
 
@@ -24,12 +25,12 @@ class MakeMiddlewareCommand extends FlintCommand {
 
     final file = File('${dir.path}/$fileName.dart');
     if (await file.exists()) {
-      print('⚠️ Middleware $fileName.dart already exists.');
+      Log.debug('⚠️ Middleware $fileName.dart already exists.');
       return;
     }
 
     await file.writeAsString(content);
-    print('✅ Middleware created: lib/middlewares/$fileName.dart');
+    Log.debug('✅ Middleware created: lib/middlewares/$fileName.dart');
   }
 
   String _capitalize(String str) =>

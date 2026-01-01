@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flint_dart/auth.dart';
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/orm/query_builder.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 
@@ -44,7 +45,7 @@ extension AuthVerification on Auth {
       'created_at': DateTime.now().toIso8601String(),
     });
 
-    print('📨 Verification code generated for $email');
+    Log.debug('📨 Verification code generated for $email');
 
     return code; // ⚠️ Return plain code to send via mail or SMS
   }
@@ -63,7 +64,7 @@ extension AuthVerification on Auth {
         .first();
 
     if (record == null) {
-      print('❌ Invalid or expired verification code for $email');
+      Log.debug('❌ Invalid or expired verification code for $email');
       return false;
     }
 
@@ -83,7 +84,7 @@ extension AuthVerification on Auth {
         .where('email', '=', email)
         .delete();
 
-    print('✅ Email verified successfully: $email');
+    Log.debug('✅ Email verified successfully: $email');
     return true;
   }
 
@@ -134,7 +135,7 @@ extension AuthVerification on Auth {
       'created_at': DateTime.now().toIso8601String(),
     });
 
-    print('📨 Password reset code generated for $email');
+    Log.debug('📨 Password reset code generated for $email');
 
     return code; // ⚠️ Return plain code to send via email/SMS
   }
@@ -162,7 +163,7 @@ extension AuthVerification on Auth {
         .first();
 
     if (record == null) {
-      print('❌ Invalid or expired password reset code for $email');
+      Log.debug('❌ Invalid or expired password reset code for $email');
       throw AuthException('Invalid or expired reset code.');
     }
 
@@ -182,7 +183,7 @@ extension AuthVerification on Auth {
         .where('email', '=', email)
         .delete();
 
-    print('✅ Password successfully reset for $email');
+    Log.debug('✅ Password successfully reset for $email');
     return true;
   }
 

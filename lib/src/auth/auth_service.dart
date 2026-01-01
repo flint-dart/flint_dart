@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:crypto/crypto.dart';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/auth/auth.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 
@@ -186,32 +187,36 @@ class AuthService {
       if (Auth.config.isGoogleConfigured) {
         urls['google'] = getGoogleAuthUrl(callbackUrl: callbackUrl);
       }
-    } catch (e) {
-      print('Error generating Google auth URL: $e');
+    } catch (e, stack) {
+      Log.error('Error generating Google auth URL: ',
+          error: e, stackTrace: stack);
     }
 
     try {
       if (Auth.config.isGitHubConfigured) {
         urls['github'] = getGitHubAuthUrl(callbackUrl: callbackUrl);
       }
-    } catch (e) {
-      print('Error generating GitHub auth URL: $e');
+    } catch (e, stack) {
+      Log.error('Error generating GitHub auth URL:',
+          error: e, stackTrace: stack);
     }
 
     try {
       if (Auth.config.isFacebookConfigured) {
         urls['facebook'] = getFacebookAuthUrl(callbackUrl: callbackUrl);
       }
-    } catch (e) {
-      print('Error generating Facebook auth URL: $e');
+    } catch (e, stack) {
+      Log.error('Error generating Facebook auth URL:',
+          error: e, stackTrace: stack);
     }
 
     try {
       if (Auth.config.isAppleConfigured) {
         urls['apple'] = getAppleAuthUrl(callbackUrl: callbackUrl);
       }
-    } catch (e) {
-      print('Error generating Apple auth URL: $e');
+    } catch (e, stack) {
+      Log.error('Error generating Apple auth URL:',
+          error: e, stackTrace: stack);
     }
 
     return urls;

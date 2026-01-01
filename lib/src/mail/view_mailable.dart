@@ -1,5 +1,6 @@
 // lib/mail/view_mailable.dart
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 
@@ -51,9 +52,10 @@ abstract class ViewMailable {
       if (bcc.isNotEmpty) mail.bccMany(bcc);
 
       await mail.sendMail();
-      print('✅ Email sent to: ${to.join(', ')}');
+      ('✅ Email sent with $data');
+      Log.debug('✅ Email sent to: ${to.join(', ')}');
     } catch (e) {
-      print('❌ Failed to send view mail: $e');
+      Log.debug('❌ Failed to send view mail: $e');
       rethrow;
     }
   }
@@ -69,9 +71,9 @@ abstract class ViewMailable {
       final mail = Mail().toMany(to).subject(subject).html(html).text(text);
 
       await mail.queue();
-      print('📬 View mail queued for: ${to.join(', ')}');
+      Log.debug('📬 View mail queued for: ${to.join(', ')}');
     } catch (e) {
-      print('❌ Failed to queue view mail: $e');
+      Log.debug('❌ Failed to queue view mail: $e');
       rethrow;
     }
   }

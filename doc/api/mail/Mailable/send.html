@@ -95,9 +95,9 @@
     &#47;&#47; }
 
     await mail.sendMail();
-    print(&#39;✅ Email sent to: ${to.join(&#39;, &#39;)}&#39;);
+    Log.debug(&#39;✅ Email sent to: ${to.join(&#39;, &#39;)}&#39;);
   } catch (e) {
-    print(&#39;❌ Failed to send email: $e&#39;);
+    Log.debug(&#39;❌ Failed to send email: $e&#39;);
     rethrow;
   }
 }</code></pre>

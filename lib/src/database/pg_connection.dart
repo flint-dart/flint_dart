@@ -1,6 +1,7 @@
 // pg_connection.dart
 import 'dart:async';
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:postgres/postgres.dart';
 
@@ -35,7 +36,7 @@ class PgConnectionWrapper implements DBWrapper {
 
       _connected = true;
       _lastError = null;
-      print("✅ PostgreSQL connected to $database@$host:$port");
+      Log.debug("✅ PostgreSQL connected to $database@$host:$port");
     } catch (e) {
       _connected = false;
       _lastError = e.toString();
@@ -277,7 +278,7 @@ class PgConnectionWrapper implements DBWrapper {
       await _connection?.close();
       _connected = false;
       _connection = null;
-      print("✅ PostgreSQL connection closed");
+      Log.debug("✅ PostgreSQL connection closed");
     } catch (e) {
       _lastError = e.toString();
       rethrow;

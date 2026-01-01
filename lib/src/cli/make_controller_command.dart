@@ -1,6 +1,7 @@
 // lib/cli/make_controller_command.dart
 import 'dart:io';
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeControllerCommand extends FlintCommand {
@@ -10,7 +11,7 @@ class MakeControllerCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      print('❌ Please provide a controller name.');
+      Log.debug('❌ Please provide a controller name.');
       return;
     }
 
@@ -27,12 +28,12 @@ class MakeControllerCommand extends FlintCommand {
 
     final file = File('${dir.path}/$fileName.dart');
     if (await file.exists()) {
-      print('⚠️ controllers $fileName.dart already exists.');
+      Log.debug('⚠️ controllers $fileName.dart already exists.');
       return;
     }
 
     await file.writeAsString(content);
-    print('✅ controller created: lib/controllers/$fileName.dart');
+    Log.info('✅ controller created: lib/controllers/$fileName.dart');
   }
 
   String _capitalize(String str) =>

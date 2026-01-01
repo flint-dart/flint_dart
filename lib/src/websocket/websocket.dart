@@ -2,6 +2,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:flint_dart/logs.dart';
+
 import 'ws_manager_instance.dart';
 
 /// Represents a connected WebSocket client
@@ -123,7 +125,7 @@ class FlintWebSocket {
         try {
           handler(data);
         } catch (e) {
-          print('Error in event handler for $event: $e');
+          Log.error('Error in event handler for $event:', error: e);
         }
       }
     }

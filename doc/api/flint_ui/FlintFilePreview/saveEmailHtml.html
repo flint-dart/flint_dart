@@ -107,7 +107,7 @@
 
   final file = File(filePath);
   await file.writeAsString(emailHtml);
-  print(&#39;✅ Email HTML saved: $filePath&#39;);
+  Log.debug(&#39;✅ Email HTML saved: $filePath&#39;);
   return file;
 }</code></pre>
 </section>

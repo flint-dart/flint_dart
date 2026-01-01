@@ -1,4 +1,5 @@
 // mysql_connection.dart
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 
@@ -29,7 +30,7 @@ class MySqlConnectionWrapper implements DBWrapper {
       await _conn.connect();
       _connected = true;
       _lastError = null;
-      print("✅ MySQL connected to $db@$host:$port");
+      Log.debug("✅ MySQL connected to $db@$host:$port");
     } catch (e) {
       _connected = false;
       _lastError = e.toString();
@@ -61,7 +62,7 @@ class MySqlConnectionWrapper implements DBWrapper {
       final result = await stmt.execute(finalParams);
       return result.rows.map((r) => r.assoc()).toList();
     } catch (e) {
-      print(e);
+      Log.debug("", error: e);
       _connected = _conn.connected;
       _lastError = e.toString();
       rethrow;
@@ -91,7 +92,7 @@ class MySqlConnectionWrapper implements DBWrapper {
       final stmt = await _conn.prepare(finalSql);
       await stmt.execute(finalParams);
     } catch (e) {
-      print(e);
+      Log.debug("", error: e);
 
       _connected = _conn.connected;
       _lastError = e.toString();
@@ -250,7 +251,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     try {
       await _conn.close();
       _connected = false;
-      print("✅ MySQL connection closed");
+      Log.debug("✅ MySQL connection closed");
     } catch (e) {
       _lastError = e.toString();
       rethrow;

@@ -2450,10 +2450,10 @@ if(q!=null)r.$1(q==="true")},
 dS:function dS(a){this.a=a},
 dP:function dP(a,b){this.a=a
 this.b=b},
-jM(a){if(typeof dartPrint=="function"){dartPrint(a)
+jM(a){if(typeof dartLog.debug=="function"){dartLog.debug(a)
 return}if(typeof console=="object"&&typeof console.log!="undefined"){console.log(a)
-return}if(typeof print=="function"){print(a)
-return}throw"Unable to print message: "+String(a)},
+return}if(typeof Log.debug=="function"){Log.debug(a)
+return}throw"Unable to Log.debug message: "+String(a)},
 jR(a){throw A.t(A.eO(a),new Error())},
 bn(){throw A.t(A.eO(""),new Error())},
 hz(a,b){var s,r,q,p,o,n

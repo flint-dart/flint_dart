@@ -1,3 +1,4 @@
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/websocket/websocket.dart';
 
 class WebSocketManager {
@@ -42,7 +43,7 @@ class WebSocketManager {
     final roomClients = _rooms[room];
     if (roomClients == null) return;
 
-    print('[WS] Emitting to room $room: $event');
+    Log.debug('[WS] Emitting to room $room: $event');
     for (final client in roomClients) {
       client.emit(event, data);
     }
@@ -66,12 +67,12 @@ class WebSocketManager {
   }
 
   void debugPrintStatus() {
-    print('=== WebSocketManager Debug ===');
-    print('Instance hash: ${identityHashCode(this)}');
-    print('Total clients: ${clients.length}');
-    print('Clients IDs: ${clients.keys.toList()}');
-    print('Rooms: ${rooms.keys.toList()}');
-    print('==============================');
+    Log.info('=== WebSocketManager info ===');
+    Log.info('Instance hash: ${identityHashCode(this)}');
+    Log.info('Total clients: ${clients.length}');
+    Log.info('Clients IDs: ${clients.keys.toList()}');
+    Log.info('Rooms: ${rooms.keys.toList()}');
+    Log.info('==============================');
   }
 
   static WebSocketManager get instance => _instance;

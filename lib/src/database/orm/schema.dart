@@ -195,45 +195,75 @@ class ForeignKey {
   }
 }
 
-// --- COMMON SQL DEFAULTS ---
 class Default {
-  // Current timestamp functions
+  // --- CURRENT TIMESTAMP / DATE / TIME ---
+  /// Returns a Dart DateTime object for runtime use
   static DateTime now() => DateTime.now();
-  static String currentTimestamp() => 'CURRENT_TIMESTAMP';
-  static String currentDate() => 'CURRENT_DATE';
-  static String currentTime() => 'CURRENT_TIME';
 
-  // UUID functions
+  /// Returns SQL for current timestamp depending on driver
+  static String currentTimestamp() {
+    if (DB.driver == DBDriver.mysql) {
+      return 'CURRENT_TIMESTAMP';
+    } else if (DB.driver == DBDriver.postgres) {
+      return 'NOW()';
+    } else {
+      // fallback: detect via env
+      return FlintEnv.get("DB_CONNECTION", '') == "mysql"
+          ? 'CURRENT_TIMESTAMP'
+          : 'NOW()';
+    }
+  }
+
+  /// Returns SQL for current date depending on driver
+  static String currentDate() {
+    if (DB.driver == DBDriver.mysql) {
+      return 'CURRENT_DATE';
+    } else if (DB.driver == DBDriver.postgres) {
+      return 'CURRENT_DATE';
+    }
+    return 'CURRENT_DATE';
+  }
+
+  /// Returns SQL for current time depending on driver
+  static String currentTime() {
+    if (DB.driver == DBDriver.mysql) {
+      return 'CURRENT_TIME';
+    } else if (DB.driver == DBDriver.postgres) {
+      return 'CURRENT_TIME';
+    }
+    return 'CURRENT_TIME';
+  }
+
+  // --- UUID ---
   static String uuid() {
-    var driver = DB.driver;
-    if (driver == DBDriver.mysql) {
+    if (DB.driver == DBDriver.mysql) {
       return 'UUID()';
-    } else if (driver == DBDriver.postgres) {
+    } else if (DB.driver == DBDriver.postgres) {
       return 'gen_random_uuid()';
     } else {
       return FlintEnv.get("DB_CONNECTION", '') == "mysql"
           ? 'UUID()'
           : 'gen_random_uuid()';
     }
-  } // PostgreSQL
+  }
 
-  // Math constants
+  // --- MATH CONSTANTS ---
   static double pi() => math.pi;
   static double e() => math.e;
 
-  // String defaults
+  // --- STRING DEFAULTS ---
   static String emptyString() => '';
   static String space() => ' ';
 
-  // JSON defaults
+  // --- JSON DEFAULTS ---
   static Map<String, dynamic> emptyJson() => {};
   static List<dynamic> emptyArray() => [];
 
-  // User context (useful for audit columns)
+  // --- USER CONTEXT (AUDIT) ---
   static String currentUser() => 'CURRENT_USER';
   static String sessionUser() => 'SESSION_USER';
 
-  // Versioning
+  // --- VERSIONING / NUMERIC DEFAULTS ---
   static int version1() => 1;
   static int zero() => 0;
   static int one() => 1;

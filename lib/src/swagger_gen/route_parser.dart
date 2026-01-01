@@ -89,19 +89,29 @@ class RouteParser {
   }
 
   bool _isPotentialRouteStart(String line) {
-    // Pattern 1: Variable name followed by dot and HTTP method
-    // Pattern 2: Just dot and HTTP method (for multi-line)
-    // Pattern 3: Any valid Dart identifier followed by HTTP method
-    final patterns = [
-      RegExp(r'\b(\w+)\s*\.\s*(get|post|put|delete|patch|options|head)\s*\('),
-      RegExp(r'\.\s*(get|post|put|delete|patch|options|head)\s*\('),
-      RegExp(r'(get|post|put|delete|patch|options|head)\s*\('),
-    ];
+    // Trim and check
+    final trimmed = line.trim();
 
-    for (var pattern in patterns) {
-      if (pattern.hasMatch(line)) {
-        return true;
-      }
+    // Pattern 1: Variable name followed by HTTP method
+    if (RegExp(r'^\w+\s*\.\s*(get|post|put|delete|patch|options|head)\s*\(')
+        .hasMatch(trimmed)) {
+      return true;
+    }
+
+    // Pattern 2: Just a dot with HTTP method (for continuation)
+    if (RegExp(r'^\.\s*(get|post|put|delete|patch|options|head)\s*\(')
+        .hasMatch(trimmed)) {
+      return true;
+    }
+
+    // Pattern 3: Just a common route variable name (app, router, etc.)
+    if (RegExp(r'^(app|router|myApp|api|routes)$').hasMatch(trimmed)) {
+      return true;
+    }
+
+    // Pattern 4: Just a dot (continuation of method chain)
+    if (trimmed.startsWith('.')) {
+      return true;
     }
 
     return false;

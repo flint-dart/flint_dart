@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/mail/smtp_factory.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
@@ -20,6 +22,7 @@ class Mail {
 
   // ---- Setup once ----
   static void setup({
+    required MailProvider provider,
     required String host,
     required int port,
     required String username,
@@ -29,17 +32,18 @@ class Mail {
     bool useSSL = false,
     bool useTLS = true,
   }) {
-    _server = SmtpServer(
-      host,
+    _server = SmtpFactory.create(
+      provider: provider,
+      host: host,
       port: port,
       username: username,
       password: password,
-      ssl: useSSL,
-      allowInsecure: false,
+      encryption: useSSL ? "ssl" : "tls",
     );
+
     _fromAddress = fromAddress;
     _fromName = fromName;
-    print('📧 Mail server configured for $_fromName <$_fromAddress>@$host');
+    Log.debug('📧 Mail server configured for $_fromName <$_fromAddress>@$host');
   }
 
   // ---- Chainable API ----
@@ -102,7 +106,7 @@ class Mail {
       throw Exception('From address not set. Call Mail.setup() first.');
     }
 
-    print('📧 Building message from $_fromName <$_fromAddress> to $_to');
+    Log.debug('📧 Building message from $_fromName <$_fromAddress> to $_to');
 
     final msg = Message()
       ..from = Address(_fromAddress!, _fromName ?? 'Flint Dart')
@@ -135,17 +139,17 @@ class Mail {
     try {
       final msg = _buildMessage();
       await send(msg, _server!);
-      print('✅ Mail sent to: ${_to.join(", ")}');
+      Log.debug('✅ Mail sent to: ${_to.join(", ")}');
     } on MailerException catch (e) {
-      print('❌ MailerException: $e');
+      Log.debug('❌ MailerException: $e');
       if (e.problems.isNotEmpty) {
         for (final problem in e.problems) {
-          print('  - ${problem.code}: ${problem.msg}');
+          Log.debug('  - ${problem.code}: ${problem.msg}');
         }
       }
       rethrow;
     } catch (e) {
-      print('❌ Failed to send mail: $e');
+      Log.debug('❌ Failed to send mail: $e');
       rethrow;
     }
   }
@@ -208,9 +212,9 @@ class Mail {
 
     try {
       await send(msg, server);
-      print('📬 [Queued] Mail sent to: ${msg.recipients.join(", ")}');
+      Log.debug('📬 [Queued] Mail sent to: ${msg.recipients.join(", ")}');
     } catch (e) {
-      print('⚠️ [Queued] Failed to send mail: $e');
+      Log.debug('⚠️ [Queued] Failed to send mail: $e');
     }
   }
 }

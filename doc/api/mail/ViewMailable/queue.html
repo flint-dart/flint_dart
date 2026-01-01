@@ -79,9 +79,9 @@
     final mail = Mail().toMany(to).subject(subject).html(html).text(text);
 
     await mail.queue();
-    print(&#39;📬 View mail queued for: ${to.join(&#39;, &#39;)}&#39;);
+    Log.debug(&#39;📬 View mail queued for: ${to.join(&#39;, &#39;)}&#39;);
   } catch (e) {
-    print(&#39;❌ Failed to queue view mail: $e&#39;);
+    Log.debug(&#39;❌ Failed to queue view mail: $e&#39;);
     rethrow;
   }
 }</code></pre>

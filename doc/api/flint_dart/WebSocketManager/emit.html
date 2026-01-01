@@ -73,7 +73,7 @@
   final roomClients = _rooms[room];
   if (roomClients == null) return;
 
-  print(&#39;[WS] Emitting to room $room: $event&#39;);
+  Log.debug(&#39;[WS] Emitting to room $room: $event&#39;);
   for (final client in roomClients) {
     client.emit(event, data);
   }

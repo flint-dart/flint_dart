@@ -63,7 +63,7 @@ and the value is a list of error messages for that field.</p>
     "email": "required|email",
   });
 } on ValidationException catch (e) {
-  print(e.errors); // { "email": ["The email field is required."] }
+  Log.debug(e.errors); // { "email": ["The email field is required."] }
 }
 </code></pre>
 </section>

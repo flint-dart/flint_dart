@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/template_engine/all_expression/base_run.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:flint_dart/src/template_engine/template_reader.dart';
@@ -46,7 +47,7 @@ class IncludeProcessor implements BaseExpression {
       } catch (e) {
         // If there's an error, keep the original include tag
         buffer.write(match.group(0));
-        print('Error processing include $filePath: $e');
+        Log.debug('Error processing include $filePath: $e');
       }
 
       lastIndex = match.end;

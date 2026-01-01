@@ -98,7 +98,7 @@ Useful for running isolates and returning pre-built Response</p>
 
     await raw.flush();
   } catch (e) {
-    print(&#39;[Flint] sendStreamed error: $e&#39;);
+    Log.debug(&#39;[Flint] sendStreamed error: $e&#39;);
     raw.statusCode = HttpStatus.internalServerError;
     raw.write(&#39;❌ Failed to send streamed response.&#39;);
   } finally {

@@ -145,7 +145,7 @@ final isValid = Hashing.verifyPassword('mySecret', hash);
 ```dart
 app.ws('/chat', (socket, params) {
   socket.on('message', (data) {
-    print('💬 ${socket.id} says: $data');
+    Log.debug('💬 ${socket.id} says: $data');
     socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
   });
 });
@@ -155,7 +155,7 @@ Client-side:
 
 ```dart
 final ws = FlintWebSocketClient("wss://api.example.com/chat");
-ws.on('message', (data) => print("📩 $data"));
+ws.on('message', (data) => Log.debug("📩 $data"));
 ws.emit('message', {'text': 'Hello World'});
 ```
 

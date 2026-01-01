@@ -75,7 +75,7 @@
   final html = FlintPreview.generatePreviewHtml(content);
   final file = File(filePath);
   await file.writeAsString(html);
-  print(&#39;✅ HTML saved: $filePath&#39;);
+  Log.debug(&#39;✅ HTML saved: $filePath&#39;);
   return file;
 }</code></pre>
 </section>

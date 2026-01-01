@@ -1,3 +1,4 @@
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'mysql_connection.dart';
@@ -339,7 +340,7 @@ class DB {
       }
       return false;
     } catch (e) {
-      print('⚠️ tableExists() failed: $e');
+      Log.debug('⚠️ tableExists() failed: $e');
       return false;
     }
   }
@@ -350,6 +351,32 @@ class DB {
       return offset != null ? 'LIMIT $limit OFFSET $offset' : 'LIMIT $limit';
     } else {
       return offset != null ? 'LIMIT $offset, $limit' : 'LIMIT $limit';
+    }
+  }
+
+  static Future<bool> columnExists(String tableName, String columnName) async {
+    if (driver == DBDriver.mysql) {
+      final results = await query('''
+        SELECT COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() 
+          AND TABLE_NAME = ?
+          AND COLUMN_NAME = ?;
+      ''', positionalParams: [tableName, columnName]);
+
+      return results.isNotEmpty;
+    } else if (driver == DBDriver.postgres) {
+      final results = await query('''
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = @table
+          AND column_name = @column;
+      ''', namedParams: {'table': tableName, 'column': columnName});
+
+      return results.isNotEmpty;
+    } else {
+      throw Exception('Unsupported DB driver');
     }
   }
 

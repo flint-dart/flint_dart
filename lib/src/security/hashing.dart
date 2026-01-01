@@ -21,6 +21,10 @@ class Hashing {
   }
 
   bool verify(String password, String hash) {
+    if (hash == "null" || hash.isEmpty) {
+      // Optionally: throw an exception or return false
+      return false;
+    }
     switch (algorithm) {
       case HashingAlgorithm.bcrypt:
         return BCrypt.checkpw(password, hash);

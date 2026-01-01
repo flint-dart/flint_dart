@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/logs.dart';
 import 'package:sample/src/middlewares/auth_middleware.dart';
 import 'package:sample/src/routes/auth_routes.dart';
 import 'package:sample/src/routes/post_routes.dart';
@@ -79,7 +80,7 @@ void main() {
   final Map<String, Set<String>> userRooms = {};
 
   app.websocket('/chat', (socket, params) {
-    print('👋 Client connected: ${socket.id}');
+    Log.debug('👋 Client connected: ${socket.id}');
 
     // Assign a random username
     final userName = 'User${socket.id.substring(0, 6)}';
@@ -107,7 +108,8 @@ void main() {
 
     // Handle incoming messages - BOTH raw text and JSON
     socket.onMessage((data) {
-      print('📨 Received from $userName: $data (type: ${data.runtimeType})');
+      Log.debug(
+          '📨 Received from $userName: $data (type: ${data.runtimeType})');
 
       // Try to parse as JSON first
       if (data is String) {
@@ -119,7 +121,7 @@ void main() {
           }
         } catch (e) {
           // If not JSON, treat as raw text message
-          print('📝 Treating as raw text message');
+          Log.debug('📝 Treating as raw text message');
           _handleRawMessage(socket, userName, data);
           return;
         }
@@ -172,7 +174,7 @@ void main() {
           'timestamp': DateTime.now().toIso8601String()
         });
 
-        print('🚪 $userName joined room: $roomName');
+        Log.debug('🚪 $userName joined room: $roomName');
       }
     });
 
@@ -194,13 +196,13 @@ void main() {
         socket.emit(
             'username_updated', {'newName': newName, 'status': 'success'});
 
-        print('📝 $oldName changed name to $newName');
+        Log.debug('📝 $oldName changed name to $newName');
       }
     });
 
     // Handle disconnection
     socket.onClose(() {
-      print('❌ $userName disconnected: ${socket.id}');
+      Log.debug('❌ $userName disconnected: ${socket.id}');
 
       // Remove from tracking
       userNames.remove(socket.id);
@@ -219,7 +221,7 @@ void main() {
 
     // Handle errors
     // socket.onError((error) {
-    //   print('❌ WebSocket error for $userName: $error');
+    //   Log.debug('❌ WebSocket error for $userName: $error');
     //   socket.emit('error', {
     //     'message': 'Connection error: $error',
     //     'timestamp': DateTime.now().toIso8601String()
@@ -258,7 +260,7 @@ void _handleJsonMessage(
   final event = data['event'];
   final eventData = data['data'];
 
-  print('🎯 JSON Event: $event from $userName');
+  Log.debug('🎯 JSON Event: $event from $userName');
 
   switch (event) {
     case 'send_message':
@@ -278,13 +280,13 @@ void _handleJsonMessage(
       break;
 
     default:
-      print('❓ Unknown JSON event: $event');
+      Log.debug('❓ Unknown JSON event: $event');
   }
 }
 
 // Handle raw text messages from web page
 void _handleRawMessage(FlintWebSocket socket, String userName, String message) {
-  print('📝 Raw message from $userName: $message');
+  Log.debug('📝 Raw message from $userName: $message');
   _broadcastMessage(socket, userName, message, 'general');
 }
 
@@ -303,5 +305,5 @@ void _broadcastMessage(
   // Broadcast to room as JSON event - MAKE SURE IT'S PROPERLY FORMATTED
   socket.emitToRoom(room, 'new_message', messageData);
 
-  print('📤 Broadcast message from $userName to room $room: $message');
+  Log.debug('📤 Broadcast message from $userName to room $room: $message');
 }

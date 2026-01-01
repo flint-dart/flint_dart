@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flint_dart/logs.dart';
+
 /// Base class for all Flint CLI commands.
 abstract class FlintCommand {
   final String name;
@@ -26,7 +28,7 @@ class RunServerCommand extends FlintCommand {
 
     // Graceful shutdown
     ProcessSignal.sigint.watch().listen((_) async {
-      print('\n[FLINT] Shutting down...');
+      Log.debug('\n[FLINT] Shutting down...');
       child.kill(ProcessSignal.sigint);
       await child.exitCode;
       exit(0);

@@ -1,5 +1,6 @@
 // providers/apple_provider.dart
 import 'dart:convert';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/auth/providers/base_provider.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 
@@ -29,7 +30,7 @@ class AppleProvider {
       try {
         parsedUserData = json.decode(userData) as Map<String, dynamic>;
       } catch (e) {
-        print('Failed to parse Apple user data: $e');
+        Log.debug('Failed to parse Apple user data: ', error: e);
       }
     }
 

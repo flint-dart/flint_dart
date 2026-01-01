@@ -78,7 +78,7 @@
       urls[&#39;google&#39;] = getGoogleAuthUrl(callbackUrl: callbackUrl);
     }
   } catch (e) {
-    print(&#39;Error generating Google auth URL: $e&#39;);
+    Log.debug(&#39;Error generating Google auth URL: $e&#39;);
   }
 
   try {
@@ -86,7 +86,7 @@
       urls[&#39;github&#39;] = getGitHubAuthUrl(callbackUrl: callbackUrl);
     }
   } catch (e) {
-    print(&#39;Error generating GitHub auth URL: $e&#39;);
+    Log.debug(&#39;Error generating GitHub auth URL: $e&#39;);
   }
 
   try {
@@ -94,7 +94,7 @@
       urls[&#39;facebook&#39;] = getFacebookAuthUrl(callbackUrl: callbackUrl);
     }
   } catch (e) {
-    print(&#39;Error generating Facebook auth URL: $e&#39;);
+    Log.debug(&#39;Error generating Facebook auth URL: $e&#39;);
   }
 
   try {
@@ -102,7 +102,7 @@
       urls[&#39;apple&#39;] = getAppleAuthUrl(callbackUrl: callbackUrl);
     }
   } catch (e) {
-    print(&#39;Error generating Apple auth URL: $e&#39;);
+    Log.debug(&#39;Error generating Apple auth URL: $e&#39;);
   }
 
   return urls;

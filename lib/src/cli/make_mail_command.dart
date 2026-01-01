@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
+
 import 'commands.dart';
 
 class MakeMailCommand extends FlintCommand {
@@ -9,15 +11,15 @@ class MakeMailCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      print('❌ Usage: flint make:mail <name>');
-      print('   Example: flint make:mail newsletter');
+      Log.debug('❌ Usage: flint make:mail <name>');
+      Log.debug('   Example: flint make:mail newsletter');
       return;
     }
 
     final rawName = args.first;
 
     if (!_isValidName(rawName)) {
-      print(
+      Log.debug(
           '❌ Invalid name. Use alphanumeric characters, underscores, or hyphens.');
       return;
     }
@@ -28,7 +30,7 @@ class MakeMailCommand extends FlintCommand {
     try {
       await _createHtmlMailFiles(name, className);
     } catch (e) {
-      print('❌ Error creating mail: $e');
+      Log.debug('❌ Error creating mail: $e');
     }
   }
 
@@ -44,15 +46,15 @@ class MakeMailCommand extends FlintCommand {
     final htmlFile = File('${htmlDir.path}/$name.flint.html');
 
     if (await mailFile.exists() || await htmlFile.exists()) {
-      print('⚠️  Mail "$name" already exists.');
+      Log.debug('⚠️  Mail "$name" already exists.');
       return;
     }
 
     await mailFile.writeAsString(_generateHtmlMailClass(name, className));
     await htmlFile.writeAsString(_generateHtmlView(className));
 
-    print('✅ Created: ${mailFile.path}');
-    print('✅ Created: ${htmlFile.path}');
+    Log.debug('✅ Created: ${mailFile.path}');
+    Log.debug('✅ Created: ${htmlFile.path}');
   }
 
   /// --- Generate Dart Mail class ---

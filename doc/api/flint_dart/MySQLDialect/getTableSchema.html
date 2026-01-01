@@ -117,7 +117,7 @@ Future&lt;Table?&gt; getTableSchema(String tableName) async {
     if (e.message.contains(&quot;doesn&#39;t exist&quot;)) return null;
     rethrow;
   } catch (e) {
-    print(&#39;Error fetching MySQL table schema: $e&#39;);
+    Log.debug(&#39;Error fetching MySQL table schema: $e&#39;);
     return null;
   }
 }</code></pre>

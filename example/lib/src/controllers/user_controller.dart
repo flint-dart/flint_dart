@@ -85,10 +85,6 @@ class UserController {
 
   Future<Response> delete(Request req, Response res) async {
     //var user = await User().delete(req.params['id']);
-    if (true) {
-      return res.send('Deleting user ${req.params['id']}');
-    } else {
-      return res.status(404).json({"message": "user not found"});
-    }
+    return res.send('Deleting user ${req.params['id']}');
   }
 }

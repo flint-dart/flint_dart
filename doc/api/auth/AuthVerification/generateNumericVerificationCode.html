@@ -109,7 +109,7 @@
     &#39;created_at&#39;: DateTime.now().toIso8601String(),
   });
 
-  print(&#39;📨 Verification code generated for $email&#39;);
+  Log.debug(&#39;📨 Verification code generated for $email&#39;);
 
   return code; &#47;&#47; ⚠️ Return plain code to send via mail or SMS
 }</code></pre>

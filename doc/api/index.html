@@ -196,14 +196,14 @@ Flint now ships with an easy-to-use WebSocket engine with event-based communicat
 ```dart
 app.ws('/chat', (socket, params) {
   socket.on('message', (data) {
-    print('💬 ${socket.id} says: $data');
+    Log.debug('💬 ${socket.id} says: $data');
     socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
   });
 });
 </code></pre>
 <p>Client-side:</p>
 <pre class="language-dart"><code class="language-dart">final ws = FlintWebSocketClient("wss://api.example.com/chat");
-ws.on('message', (data) =&gt; print("📩 $data"));
+ws.on('message', (data) =&gt; Log.debug("📩 $data"));
 ws.emit('message', {'text': 'Hello World'});
 </code></pre>
 <hr>

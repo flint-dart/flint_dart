@@ -76,7 +76,7 @@
         await DB.tableExists(&#39;email_verification_tokens&#39;);
 
     if (!passwordResetExists || !emailVerifyExists) {
-      print(&#39;🔄 Creating framework auth tables...&#39;);
+      Log.debug(&#39;🔄 Creating framework auth tables...&#39;);
       await _createFrameworkTables();
     }
 

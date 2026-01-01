@@ -84,7 +84,7 @@
         return PostgresDialect().getTableSchema(tableName);
     }
   } catch (e) {
-    print(&#39;Error in getTableSchema: $e&#39;);
+    Log.debug(&#39;Error in getTableSchema: $e&#39;);
     return null;
   }
 }</code></pre>

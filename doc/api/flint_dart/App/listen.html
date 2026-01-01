@@ -78,12 +78,12 @@ process using the <code>flintdart:hot_reload</code> entry point.</p>
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; listen(int port) async {
   if (!_dbInitialized) {
-    print(&#39;Warning: Database connection not established&#39;);
+    Log.debug(&#39;Warning: Database connection not established&#39;);
   }
 
   &#47;&#47; Hot reload bootloader (spawns a child process)
   if (Platform.environment[&#39;FLINT_HOT&#39;] != &#39;1&#39;) {
-    print(&#39;[FLINT] Starting with hot reload...&#39;);
+    Log.debug(&#39;[FLINT] Starting with hot reload...&#39;);
 
     await Process.start(
       &#39;dart&#39;,
@@ -96,7 +96,7 @@ process using the <code>flintdart:hot_reload</code> entry point.</p>
   }
 
   final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
-  print(&#39;Server running on http:&#47;&#47;localhost:$port&#39;);
+  Log.debug(&#39;Server running on http:&#47;&#47;localhost:$port&#39;);
 
   await for (var req in server) {
     final request = Request(req);

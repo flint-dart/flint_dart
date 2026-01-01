@@ -84,7 +84,7 @@
       .first();
 
   if (record == null) {
-    print(&#39;❌ Invalid or expired verification code for $email&#39;);
+    Log.debug(&#39;❌ Invalid or expired verification code for $email&#39;);
     return false;
   }
 
@@ -104,7 +104,7 @@
       .where(&#39;email&#39;, &#39;=&#39;, email)
       .delete();
 
-  print(&#39;✅ Email verified successfully: $email&#39;);
+  Log.debug(&#39;✅ Email verified successfully: $email&#39;);
   return true;
 }</code></pre>
 </section>

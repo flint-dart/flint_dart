@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/error/forbidden_exception.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';
@@ -33,7 +34,7 @@ class ExceptionMiddleware extends Middleware {
         final msg = e.message.toLowerCase();
 
         if (msg.contains('does not exist') || msg.contains('42703')) {
-          print('ℹ️ Ignoring internal column check error: $msg');
+          Log.debug('ℹ️ Ignoring internal column check error: $msg');
           return await next(req, res);
         }
 
@@ -44,7 +45,7 @@ class ExceptionMiddleware extends Middleware {
         if (msg.contains('unknown column') ||
             msg.contains('does not exist') ||
             msg.contains('42703')) {
-          print('ℹ️ Ignoring internal column check error: $msg');
+          Log.debug('ℹ️ Ignoring internal column check error: $msg');
           return await next(req, res);
         }
 
@@ -55,7 +56,7 @@ class ExceptionMiddleware extends Middleware {
         if (msg.contains('unknown column') ||
             msg.contains('does not exist') ||
             msg.contains('42703')) {
-          print('ℹ️ Ignoring internal column check error: $msg');
+          Log.debug('ℹ️ Ignoring internal column check error: $msg');
           return await next(req, res);
         }
 
@@ -68,7 +69,7 @@ class ExceptionMiddleware extends Middleware {
         if (msg.contains('unknown column') ||
             msg.contains('does not exist') ||
             msg.contains('42703')) {
-          print('ℹ️ Ignoring internal column check error: $msg');
+          Log.debug('ℹ️ Ignoring internal column check error: $msg');
           return await next(req, res);
         }
 
@@ -81,7 +82,7 @@ class ExceptionMiddleware extends Middleware {
           status: 500,
         );
       } catch (e, stack) {
-        print('[Flint] Unhandled error: $e\n$stack');
+        Log.debug('[Flint] Unhandled error: $e\n$stack');
         return res
             .json({"status": false, "message": e.toString()}, status: 500);
       }
@@ -93,10 +94,10 @@ class LoggerMiddleware extends Middleware {
   @override
   Handler handle(Handler next) {
     return (req, res) async {
-      print('[${req.method}] ${req.path}');
-      print(req.cookies);
-      print(req.ipAddress);
-      print("is isAuthenticated ${req.isAuthenticated}");
+      Log.debug('[${req.method}] ${req.path}');
+      Log.debug("${req.cookies}");
+      Log.debug(req.ipAddress);
+      Log.debug("is isAuthenticated ${req.isAuthenticated}");
       return await next(req, res);
     };
   }

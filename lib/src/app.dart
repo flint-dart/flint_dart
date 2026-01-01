@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/middleware/cookie_session_middleware.dart';
@@ -40,20 +41,20 @@ Future<String> _getFlintDartLibPath() async {
 //    // Resolve flint_dart's lib path
 //    final flintLibPath = await _getFlintDartLibPath();
 //    final swaggerDir = Directory(path.join(flintLibPath, 'swagger', 'swagger-ui'));
-//    print('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
+//    Log.debug('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
 
 //    // Serve swagger.json from sample project
 //    get('/swagger.json', (req, res) async {
 //      final file = File(path.join(Directory.current.path, 'docs', 'swagger.json'));
-//      print('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
+//      Log.debug('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
 //      if (await file.exists()) {
-//        print('[DEBUG] swagger.json found');
+//        Log.debug('[DEBUG] swagger.json found');
 //        final bytes = await file.readAsBytes();
 //        res.raw.headers.contentType = ContentType.json;
 //        await res.raw.addStream(Stream.fromIterable([bytes]));
 //        await res.raw.close();
 //      } else {
-//        print('[DEBUG] swagger.json not found');
+//        Log.debug('[DEBUG] swagger.json not found');
 //        res.raw.statusCode = 404;
 //        res.raw.write('swagger.json not found');
 //        await res.raw.close();
@@ -62,7 +63,7 @@ Future<String> _getFlintDartLibPath() async {
 
 //    // Check if swagger-ui directory exists
 //    if (!await swaggerDir.exists()) {
-//      print('[FLINT] ⚠️ Warning: Static directory not found: ${swaggerDir.absolute.path}');
+//      Log.debug('[FLINT] ⚠️ Warning: Static directory not found: ${swaggerDir.absolute.path}');
 //      return;
 //    }
 
@@ -72,15 +73,15 @@ Future<String> _getFlintDartLibPath() async {
 //    // Serve /docs
 //    get('/docs', (req, res) async {
 //      final file = File(path.join(swaggerDir.path, 'index.html'));
-//      print('[DEBUG] Checking for index.html at: ${file.absolute.path}');
+//      Log.debug('[DEBUG] Checking for index.html at: ${file.absolute.path}');
 //      if (await file.exists()) {
-//        print('[DEBUG] index.html found');
+//        Log.debug('[DEBUG] index.html found');
 //        final bytes = await file.readAsBytes();
 //        res.raw.headers.contentType = ContentType.html;
 //        await res.raw.addStream(Stream.fromIterable([bytes]));
 //        await res.raw.close();
 //      } else {
-//        print('[DEBUG] index.html not found');
+//        Log.debug('[DEBUG] index.html not found');
 //        res.raw.statusCode = 404;
 //        res.raw.write('Swagger UI not found in the framework');
 //        await res.raw.close();
@@ -147,21 +148,21 @@ class Flint {
     final flintLibPath = await _getFlintDartLibPath();
     final swaggerDir =
         Directory(path.join(flintLibPath, 'swagger', 'swagger-ui'));
-    print('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
+    Log.debug('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
 
     // Serve swagger.json from sample project
     get('/swagger.json', (req, res) async {
       final file =
           File(path.join(Directory.current.path, 'docs', 'swagger.json'));
-      print('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
+      Log.debug('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
       if (await file.exists()) {
-        print('[DEBUG] swagger.json found');
+        Log.debug('[DEBUG] swagger.json found');
         final bytes = await file.readAsBytes();
         res.raw.headers.contentType = ContentType.json;
         await res.raw.addStream(Stream.fromIterable([bytes]));
         await res.raw.close();
       } else {
-        print('[DEBUG] swagger.json not found');
+        Log.debug('[DEBUG] swagger.json not found');
         res.raw.statusCode = 404;
         res.raw.write('swagger.json not found');
         await res.raw.close();
@@ -171,7 +172,7 @@ class Flint {
 
     // Check if swagger-ui directory exists
     if (!await swaggerDir.exists()) {
-      print(
+      Log.debug(
           '[FLINT] ⚠️ Warning: Static directory not found: ${swaggerDir.absolute.path}');
       return;
     }
@@ -278,7 +279,8 @@ class Flint {
   void static(String urlPrefix, String directoryPath) async {
     final directory = Directory(directoryPath);
     if (!await directory.exists()) {
-      print('[FLINT] ⚠️ Warning: Static directory not found: $directoryPath');
+      Log.debug(
+          '[FLINT] ⚠️ Warning: Static directory not found: $directoryPath');
       return;
     }
 
@@ -453,7 +455,7 @@ class Flint {
         (FlintWebSocket client, Map<String, String> params) {
       // client.onClose(() {
       //   connectedClients.remove(client.id);
-      //   print('[FLINT] Client disconnected: ${client.id}');
+      //   Log.debug('[FLINT] Client disconnected: ${client.id}');
       // });
     });
   }
@@ -504,7 +506,7 @@ class Flint {
     if (hotReload) {
       _registerFlintTemReload();
       _registerHotReloadEndpoint();
-      print('[FLINT] ⚠️ Hot reload is ENABLED.');
+      Log.debug('[FLINT] ⚠️ Hot reload is ENABLED.');
     }
 
     // 2. THE LAUNCHER CHECK
@@ -521,7 +523,7 @@ class Flint {
 
   /// Handles the Process forking for hot reload
   Future<void> _startHotReloadLauncher(int port) async {
-    print('[FLINT] Starting Parent Launcher (PID: $pid)...');
+    Log.debug('[FLINT] Starting Parent Launcher (PID: $pid)...');
 
     final child = await Process.start(
       'dart',
@@ -538,7 +540,7 @@ class Flint {
     );
 
     ProcessSignal.sigint.watch().listen((_) async {
-      print('\n[FLINT] Shutting down launcher and child...');
+      Log.debug('\n[FLINT] Shutting down launcher and child...');
       child.kill(ProcessSignal.sigint);
       await child.exitCode;
       exit(0);
@@ -551,19 +553,19 @@ class Flint {
     try {
       server =
           await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
-      print(
+      Log.debug(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
 
       if (autoConnectDb) _connectDatabaseInBackground();
       MailConfig.load();
     } on SocketException catch (e) {
-      print('[FLINT] ❌ ERROR: Could not bind to port $port: ${e.message}');
+      Log.debug('[FLINT] ❌ ERROR: Could not bind to port $port: ${e.message}');
       exit(1);
     }
 
     // Handle graceful shutdown for the worker process
     ProcessSignal.sigint.watch().listen((_) async {
-      print('\n[FLINT] Worker shutting down...');
+      Log.debug('\n[FLINT] Worker shutting down...');
       await server?.close(force: true);
       exit(0);
     });
@@ -604,7 +606,7 @@ class Flint {
         response.raw.write('Internal Server Error: $e');
         await response.close();
       }
-      print('[FLINT] ❌ Handler error: $e\n$st');
+      Log.debug('[FLINT] ❌ Handler error: $e\n$st');
     }
   }
 
@@ -648,7 +650,7 @@ class Flint {
     try {
       DB.autoConnect();
       _dbInitialized = true;
-      print('[FLINT] Database auto-connected via .env');
+      Log.debug('[FLINT] Database auto-connected via .env');
     } catch (e) {
       Future.delayed(const Duration(seconds: 10), _connectDatabaseInBackground);
     }

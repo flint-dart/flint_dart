@@ -114,7 +114,7 @@ Future&lt;Table?&gt; getTableSchema(String tableName) async {
 
     return Table(name: tableName, columns: columns);
   } catch (e) {
-    print(&#39;Error fetching PostgreSQL table schema: $e&#39;);
+    Log.debug(&#39;Error fetching PostgreSQL table schema: $e&#39;);
     return null;
   }
 }</code></pre>

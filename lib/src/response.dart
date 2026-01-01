@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/flint_ui.dart' hide FlintTemplate;
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
@@ -132,7 +133,7 @@ class Response {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
       raw.write('❌ Failed to encode JSON response: ${e.runtimeType}');
-      print('[Flint] JSON Error: $e\n$stack');
+      Log.debug('[Flint] JSON Error: $e\n$stack');
     }
 
     await close();
@@ -189,7 +190,7 @@ class Response {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
       raw.write('❌ Failed to send response: ${e.runtimeType}');
-      print('[Flint] respond() Error: $e\n$stack');
+      Log.debug('[Flint] respond() Error: $e\n$stack');
     }
 
     await close();
@@ -242,7 +243,7 @@ class Response {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
       raw.write('❌ Failed to render FlintWidget: ${e.runtimeType}');
-      print('[Flint] Render Error: $e');
+      Log.debug('[Flint] Render Error: $e');
     }
     close();
     return this;
@@ -270,7 +271,7 @@ class Response {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
       raw.write('❌ Failed to render email: ${e.runtimeType}');
-      print('[Flint] Render Email Error: $e');
+      Log.debug('[Flint] Render Email Error: $e');
     }
 
     close();
@@ -303,7 +304,7 @@ class Response {
         await raw.addStream(rangeStream);
       }
     } catch (e) {
-      print('Error streaming file: $e');
+      Log.debug('Error streaming file: $e');
       if (!isClosed) {
         raw.statusCode = HttpStatus.internalServerError;
         raw.write('Error serving file');
@@ -370,7 +371,7 @@ class Response {
     } catch (e) {
       raw.statusCode = 500;
       raw.write('❌ Redirect failed: ${e.runtimeType}');
-      print('[Flint] Redirect Error: $e');
+      Log.debug('[Flint] Redirect Error: $e');
     }
     close();
     return this;

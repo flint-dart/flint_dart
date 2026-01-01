@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flint_dart/logs.dart';
+
 import "commands.dart";
 
 class UpdateCommand extends FlintCommand {
@@ -8,12 +10,12 @@ class UpdateCommand extends FlintCommand {
 
   @override
   Future<void> execute(List<String> args) async {
-    print('🔍 Checking for newer Flint package versions...');
+    Log.debug('🔍 Checking for newer Flint package versions...');
     final outdated = await Process.run('dart', ['pub', 'outdated', '--json']);
 
     if (outdated.exitCode != 0) {
-      print('❌ Failed to check for outdated dependencies.');
-      print(outdated.stderr);
+      Log.debug('❌ Failed to check for outdated dependencies.');
+      Log.debug(outdated.stderr);
       return;
     }
 
@@ -21,13 +23,13 @@ class UpdateCommand extends FlintCommand {
     final packages = data['packages'] as List?;
 
     if (packages == null || packages.isEmpty) {
-      print('✅ No outdated dependencies found.');
+      Log.debug('✅ No outdated dependencies found.');
       return;
     }
 
     final pubspec = File('pubspec.yaml');
     if (!(await pubspec.exists())) {
-      print('❌ No pubspec.yaml found in this directory.');
+      Log.debug('❌ No pubspec.yaml found in this directory.');
       return;
     }
 
@@ -46,23 +48,23 @@ class UpdateCommand extends FlintCommand {
           current != latest) {
         final regex = RegExp('$name:\\s*\\^?[$current\\+\\.0-9a-zA-Z-]*');
         content = content.replaceAll(regex, '$name: ^$latest');
-        print('⬆️  Updated $name: ^$current → ^$latest');
+        Log.debug('⬆️  Updated $name: ^$current → ^$latest');
         updatedAny = true;
       }
     }
 
     if (!updatedAny) {
-      print('✅ All Flint packages are already up to date.');
+      Log.debug('✅ All Flint packages are already up to date.');
       return;
     }
 
     await pubspec.writeAsString(content);
-    print('✅ pubspec.yaml updated successfully!');
-    print('📦 Running dart pub get...');
+    Log.debug('✅ pubspec.yaml updated successfully!');
+    Log.debug('📦 Running dart pub get...');
     await Process.run(
       'dart',
       ['pub', 'get'],
     );
-    print('✅ Flint dependencies synced successfully!');
+    Log.debug('✅ Flint dependencies synced successfully!');
   }
 }

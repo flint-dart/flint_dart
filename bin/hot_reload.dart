@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:path/path.dart' as p;
@@ -43,7 +44,7 @@ Future<bool> _notifyServerHotReload(
 }
 
 Future<bool> startServer() async {
-  print('🚀 Starting server...');
+  Log.debug('🚀 Starting server...');
   server = await Process.start(
     'dart',
     ['run', 'lib/main.dart'],
@@ -56,11 +57,11 @@ Future<bool> startServer() async {
   );
 
   if (exitCode != -1) {
-    print('⚠️ Server failed to start: $exitCode');
+    Log.debug('⚠️ Server failed to start: $exitCode');
     return false;
   }
 
-  print('✅ Server started');
+  Log.debug('✅ Server started');
 
   // Give server time to start
   await Future.delayed(Duration(seconds: 1));
@@ -69,7 +70,7 @@ Future<bool> startServer() async {
 
 Future<void> restartServer() async {
   if (server != null) {
-    print('♻️ Stopping old server...');
+    Log.debug('♻️ Stopping old server...');
     server!.kill(ProcessSignal.sigint);
     await server!.exitCode;
   }
@@ -110,13 +111,14 @@ void watchFiles(int serverPort) {
           // Render template
           final htmlContent = TemplateEngine().render(templateName);
 
-          print('[HOT-RELOAD] 🔄 Template changed: $templateName');
-          print('[HOT-RELOAD] 📁 File: ${event.path}');
+          Log.debug('[HOT-RELOAD] 🔄 Template changed: $templateName');
+          Log.debug('[HOT-RELOAD] 📁 File: ${event.path}');
 
           // Call HTTP endpoint instead of directly accessing wsManager
           await _notifyServerHotReload(templateName, htmlContent, serverPort);
-        } catch (e) {
-          print('[HOT-RELOAD] ❌ Error processing template: $e');
+        } catch (e, stack) {
+          Log.error('[HOT-RELOAD] ❌ Error processing template:',
+              error: e, stackTrace: stack);
         }
       });
     }
@@ -125,7 +127,7 @@ void watchFiles(int serverPort) {
     else if (ext == '.dart' || ext == '.env') {
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 500), () async {
-        print('[HOT-RELOAD] 🔄 Restarting server...');
+        Log.debug('[HOT-RELOAD] 🔄 Restarting server...');
         await restartServer();
       });
     }
@@ -137,11 +139,12 @@ Future<void> main(List<String> args) async {
 
   final results = parser.parse(args);
   _serverPort = int.tryParse(results['port']) ?? 3000;
-  print('🔥 Flint Hot Reload Watcher Started');
-  print('📂 Watching: lib/');
-  print('⏱️  Debounce: 300ms for templates, 500ms for server code');
-  print('📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload');
-  print('────────────────────────────────────────────────');
+  Log.debug('🔥 Flint Hot Reload Watcher Started');
+  Log.debug('📂 Watching: lib/');
+  Log.debug('⏱️  Debounce: 300ms for templates, 500ms for server code');
+  Log.debug(
+      '📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload');
+  Log.debug('────────────────────────────────────────────────');
 
   await restartServer();
   watchFiles(_serverPort);

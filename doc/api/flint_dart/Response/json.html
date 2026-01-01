@@ -122,7 +122,7 @@
     raw.statusCode = 500;
     raw.headers.contentType = ContentType.text;
     raw.write(&#39;❌ Failed to encode JSON response: ${e.runtimeType}&#39;);
-    print(&#39;[Flint] JSON Error: $e\n$stack&#39;);
+    Log.debug(&#39;[Flint] JSON Error: $e\n$stack&#39;);
   }
 
   await close();

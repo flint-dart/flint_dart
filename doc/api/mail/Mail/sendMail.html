@@ -74,17 +74,17 @@
   try {
     final msg = _buildMessage();
     await send(msg, _server!);
-    print(&#39;✅ Mail sent to: ${_to.join(&quot;, &quot;)}&#39;);
+    Log.debug(&#39;✅ Mail sent to: ${_to.join(&quot;, &quot;)}&#39;);
   } on MailerException catch (e) {
-    print(&#39;❌ MailerException: $e&#39;);
+    Log.debug(&#39;❌ MailerException: $e&#39;);
     if (e.problems.isNotEmpty) {
       for (final problem in e.problems) {
-        print(&#39;  - ${problem.code}: ${problem.msg}&#39;);
+        Log.debug(&#39;  - ${problem.code}: ${problem.msg}&#39;);
       }
     }
     rethrow;
   } catch (e) {
-    print(&#39;❌ Failed to send mail: $e&#39;);
+    Log.debug(&#39;❌ Failed to send mail: $e&#39;);
     rethrow;
   }
 }</code></pre>

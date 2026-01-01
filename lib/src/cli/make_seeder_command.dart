@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeSeederCommand extends FlintCommand {
@@ -8,7 +9,7 @@ class MakeSeederCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      print(
+      Log.debug(
           'Please provide a seeder name. Example: flint make:seeder UserSeeder');
       exit(1);
     }
@@ -25,7 +26,7 @@ class MakeSeederCommand extends FlintCommand {
 
     final seederFile = File('lib/seeders/$snakeCaseFileName.dart');
     if (seederFile.existsSync()) {
-      print('Seeder already exists!');
+      Log.debug('Seeder already exists!');
       return;
     }
 
@@ -35,13 +36,14 @@ class MakeSeederCommand extends FlintCommand {
 class $seederName {
   static Future<void> run() async {
     // TODO: Add seed data here
-    print('$seederName ran successfully!');
+    Log.debug('$seederName ran successfully!');
   }
 }
 ''';
 
     await seederFile.writeAsString(seederContent);
-    print('Seeder $seederName created at lib/seeders/$snakeCaseFileName.dart');
+    Log.debug(
+        'Seeder $seederName created at lib/seeders/$snakeCaseFileName.dart');
 
     // 2️⃣ Ensure seeder.dart exists
     final seederMainFile = File('lib/seeders/seeder.dart');
@@ -51,7 +53,7 @@ void main() async {
   // Seeders will be added here automatically
 }
 ''');
-      print('Seeder registry created at lib/seeders/seeder.dart');
+      Log.debug('Seeder registry created at lib/seeders/seeder.dart');
     }
 
     // 3️⃣ Update seeder.dart with new import and main() call
@@ -71,7 +73,7 @@ void main() async {
     }
 
     await seederMainFile.writeAsString(lines.join('\n'));
-    print('$seederName added to main() in seeder.dart');
+    Log.debug('$seederName added to main() in seeder.dart');
   }
 
   /// Converts CamelCase to snake_case

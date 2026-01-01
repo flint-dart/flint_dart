@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flint_dart/db.dart';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/security.dart';
 import 'package:flint_dart/src/auth/auth_config.dart';
 import 'package:flint_dart/src/auth/providers/google_provider.dart';
@@ -533,7 +534,7 @@ class Auth {
         return false;
       }
 
-      print('⚠️ Could not determine if column $columnName exists: $e');
+      Log.debug('⚠️ Could not determine if column $columnName exists: $e');
       return false;
     }
   }
@@ -618,7 +619,7 @@ class Auth {
           await DB.tableExists('email_verification_tokens');
 
       if (!passwordResetExists || !emailVerifyExists) {
-        print('🔄 Creating framework auth tables...');
+        Log.debug('🔄 Creating framework auth tables...');
         await _createFrameworkTables();
       }
 
@@ -672,8 +673,9 @@ class Auth {
     for (final sql in frameworkTables) {
       try {
         await DB.execute(sql);
-      } catch (e) {
-        print('⚠️ Failed to create framework table: $e');
+      } catch (e, stack) {
+        Log.warning('⚠️ Failed to create framework table: ',
+            error: e, stackTrace: stack);
         rethrow;
       }
     }
@@ -704,12 +706,13 @@ class Auth {
                 'CREATE INDEX $indexName ON $table($column(255))'); // note the (255)
           }
         }
-      } catch (e) {
-        print('⚠️ Failed to create framework index: $e');
+      } catch (e, stack) {
+        Log.error('⚠️ Failed to create framework index: ',
+            error: e, stackTrace: stack);
       }
     }
 
-    print('✅ Framework auth tables created successfully');
+    Log.debug('✅ Framework auth tables created successfully');
   }
 
   static Future<void> ensureMigrationsRun() async {}
@@ -732,7 +735,6 @@ class Auth {
     // Generate numeric code
     final rng = Random();
     final code = List.generate(length, (_) => rng.nextInt(10)).join('');
-
     // Hash code before storing
     final codeHash = Hashing().hash(code);
 
@@ -753,7 +755,7 @@ class Auth {
       'created_at': DateTime.now().toIso8601String(),
     });
 
-    print('📨 Verification code generated for $email');
+    Log.debug('📨 Verification code generated for $email');
 
     return code; // ⚠️ Return plain code to send via mail or SMS
   }
@@ -772,7 +774,7 @@ class Auth {
         .first();
 
     if (record == null) {
-      print('❌ Invalid or expired verification code for $email');
+      Log.warning('❌ Invalid or expired verification code for $email');
       return false;
     }
 
@@ -792,7 +794,7 @@ class Auth {
         .where('email', '=', email)
         .delete();
 
-    print('✅ Email verified successfully: $email');
+    Log.debug('✅ Email verified successfully: $email');
     return true;
   }
 
@@ -843,7 +845,7 @@ class Auth {
       'created_at': DateTime.now().toIso8601String(),
     });
 
-    print('📨 Password reset code generated for $email');
+    Log.debug('📨 Password reset code generated for $email');
 
     return code; // ⚠️ Return plain code to send via email/SMS
   }
@@ -871,7 +873,7 @@ class Auth {
         .first();
 
     if (record == null) {
-      print('❌ Invalid or expired password reset code for $email');
+      Log.debug('❌ Invalid or expired password reset code for $email');
       throw AuthException('Invalid or expired reset code.');
     }
 
@@ -891,7 +893,7 @@ class Auth {
         .where('email', '=', email)
         .delete();
 
-    print('✅ Password successfully reset for $email');
+    Log.debug('✅ Password successfully reset for $email');
     return true;
   }
 

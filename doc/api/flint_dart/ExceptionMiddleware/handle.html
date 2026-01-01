@@ -89,7 +89,7 @@ Handler handle(Handler next) {
       final msg = e.message.toLowerCase();
 
       if (msg.contains(&#39;does not exist&#39;) || msg.contains(&#39;42703&#39;)) {
-        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        Log.debug(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
         return await next(req, res);
       }
 
@@ -100,7 +100,7 @@ Handler handle(Handler next) {
       if (msg.contains(&#39;unknown column&#39;) ||
           msg.contains(&#39;does not exist&#39;) ||
           msg.contains(&#39;42703&#39;)) {
-        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        Log.debug(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
         return await next(req, res);
       }
 
@@ -111,7 +111,7 @@ Handler handle(Handler next) {
       if (msg.contains(&#39;unknown column&#39;) ||
           msg.contains(&#39;does not exist&#39;) ||
           msg.contains(&#39;42703&#39;)) {
-        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        Log.debug(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
         return await next(req, res);
       }
 
@@ -124,7 +124,7 @@ Handler handle(Handler next) {
       if (msg.contains(&#39;unknown column&#39;) ||
           msg.contains(&#39;does not exist&#39;) ||
           msg.contains(&#39;42703&#39;)) {
-        print(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
+        Log.debug(&#39;ℹ️ Ignoring internal column check error: $msg&#39;);
         return await next(req, res);
       }
 
@@ -137,7 +137,7 @@ Handler handle(Handler next) {
         status: 500,
       );
     } catch (e, stack) {
-      print(&#39;[Flint] Unhandled error: $e\n$stack&#39;);
+      Log.debug(&#39;[Flint] Unhandled error: $e\n$stack&#39;);
       return res
           .json({&quot;status&quot;: false, &quot;message&quot;: e.toString()}, status: 500);
     }

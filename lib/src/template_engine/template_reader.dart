@@ -4,42 +4,41 @@ import 'package:path/path.dart' as p;
 
 class FileTemplateReader {
   static String _resolveTemplatePath(String name) {
-    final currentDir = Directory.current.path;
+    final root = Directory.current.path;
 
-    // ✅ 1. If already an absolute or relative file path → use it directly
-    final directPath =
-        p.isAbsolute(name) ? name : p.normalize(p.join(currentDir, name));
+    final candidates = <String>[];
 
-    if (File(directPath).existsSync()) {
-      return directPath;
+    // 1️⃣ Absolute path
+    if (p.isAbsolute(name)) {
+      candidates.add(name);
     }
 
-    // ✅ 2. Otherwise treat it as a logical view name
+    // 2️⃣ Direct relative path
+    candidates.add(p.join(root, name));
+
+    // 3️⃣ Relative to lib/
+    candidates.add(p.join(root, 'lib', name));
+
+    // 4️⃣ Logical view resolution
     final normalized = name.replaceAll('.', Platform.pathSeparator);
 
-    final flintPath = p.join(
-      currentDir,
-      'lib',
-      'views',
-      '$normalized.flint.html',
-    );
+    candidates.addAll([
+      p.join(root, 'lib', 'views', '$normalized.flint.html'),
+      p.join(root, 'lib', 'views', '$normalized.html'),
+      p.join(root, 'lib', 'mail', 'views', '$normalized.flint.html'),
+      p.join(root, 'lib', 'mail', 'views', '$normalized.html'),
+    ]);
 
-    final htmlPath = p.join(
-      currentDir,
-      'lib',
-      'views',
-      '$normalized.html',
-    );
-
-    if (File(flintPath).existsSync()) {
-      return flintPath;
+    for (final path in candidates) {
+      if (File(path).existsSync()) {
+        return path;
+      }
     }
 
-    if (File(htmlPath).existsSync()) {
-      return htmlPath;
-    }
-
-    throw FileSystemException('Html template not found', name);
+    throw FileSystemException(
+      'Html template not found. Tried:\n${candidates.join('\n')}',
+      name,
+    );
   }
 
   String read(String template) {

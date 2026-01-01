@@ -91,7 +91,7 @@
     raw.statusCode = 500;
     raw.headers.contentType = ContentType.text;
     raw.write(&#39;❌ Failed to render email: ${e.runtimeType}&#39;);
-    print(&#39;[Flint] Render Email Error: $e&#39;);
+    Log.debug(&#39;[Flint] Render Email Error: $e&#39;);
   }
 
   close();

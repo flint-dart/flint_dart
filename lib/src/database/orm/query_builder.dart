@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/helper.dart';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/db.dart';
 
 /// A simple SQL query builder for MySQL/PostgreSQL in Flint Dart.
@@ -507,7 +508,7 @@ class QueryBuilder {
       // Load relations if requested
       return await _eagerLoadRelations(results);
     } catch (e) {
-      print(e.toString());
+      Log.debug("", error: e);
       rethrow;
     }
   }

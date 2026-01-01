@@ -1,6 +1,7 @@
-import 'dart:convert';
+import "dart:convert";
 
-/// Parses documentation annotations
+import "package:flint_dart/logs.dart";
+
 class DocParser {
   Map<String, dynamic> parse(List<String> docs) {
     final result = <String, dynamic>{};
@@ -10,26 +11,47 @@ class DocParser {
     final servers = <String>[];
 
     for (var line in docs) {
-      if (line.startsWith('@prefix')) {
-        result['prefix'] = line.replaceFirst('@prefix', '').trim();
-      } else if (line.startsWith('@auth')) {
-        final value = line.replaceFirst('@auth', '').trim();
-        result['auth'] = value.isEmpty ? 'bearer' : value;
-      } else if (line.startsWith('@server')) {
-        servers.add(line.replaceFirst('@server', '').trim());
-      } else if (line.startsWith('@summary')) {
-        result['summary'] = line.replaceFirst('@summary', '').trim();
-      } else if (line.startsWith('@response')) {
-        final parts = line.split(' ');
-        if (parts.length >= 3) {
-          responses[parts[1]] = {"description": parts.sublist(2).join(' ')};
+      final trimmedLine = line.trim();
+
+      // Handle @prefix
+      if (trimmedLine.startsWith('@prefix')) {
+        result['prefix'] = _extractValue(trimmedLine, '@prefix');
+      }
+      // Handle @auth
+      else if (trimmedLine.startsWith('@auth')) {
+        result['auth'] =
+            _extractValue(trimmedLine, '@auth', defaultValue: 'bearer');
+      }
+      // Handle @server
+      else if (trimmedLine.startsWith('@server')) {
+        servers.add(_extractValue(trimmedLine, '@server'));
+      }
+      // Handle @summary
+      else if (trimmedLine.startsWith('@summary')) {
+        result['summary'] = _extractValue(trimmedLine, '@summary');
+      }
+      // Handle @response
+      else if (trimmedLine.startsWith('@response')) {
+        final value = _extractValue(trimmedLine, '@response');
+        final parts = value.split(' ');
+        if (parts.isNotEmpty) {
+          final code = parts[0];
+          final description =
+              parts.length > 1 ? parts.sublist(1).join(' ') : 'No description';
+          responses[code] = {"description": description};
         }
-      } else if (line.startsWith('@param')) {
-        _parseParameter(line, parameters);
-      } else if (line.startsWith('@query')) {
-        _parseQueryParameter(line, queryParameters);
-      } else if (line.startsWith('@body')) {
-        _parseRequestBody(line, result);
+      }
+      // Handle @param
+      else if (trimmedLine.startsWith('@param')) {
+        _parseParameter(trimmedLine, parameters);
+      }
+      // Handle @query
+      else if (trimmedLine.startsWith('@query')) {
+        _parseQueryParameter(trimmedLine, queryParameters);
+      }
+      // Handle @body
+      else if (trimmedLine.startsWith('@body')) {
+        _parseRequestBody(trimmedLine, result);
       }
     }
 
@@ -42,14 +64,25 @@ class DocParser {
     return result;
   }
 
+  String _extractValue(String line, String annotation,
+      {String defaultValue = ''}) {
+    // Remove the annotation and trim
+    final value = line.substring(annotation.length).trim();
+    return value.isEmpty ? defaultValue : value;
+  }
+
   void _parseParameter(String line, List<Map<String, dynamic>> parameters) {
-    final parts = line.split(' ');
-    if (parts.length >= 5) {
-      final name = parts[1];
-      final location = parts[2];
-      final type = parts[3];
-      final required = parts[4].toLowerCase() == "required";
-      final description = parts.sublist(5).join(' ');
+    // Remove @param and split by whitespace
+    final content = line.substring(6).trim();
+    final parts = content.split(' ');
+
+    if (parts.length >= 4) {
+      final name = parts[0];
+      final location = parts[1];
+      final type = parts[2];
+      final required = parts[3].toLowerCase() == "required";
+      final description = parts.length > 4 ? parts.sublist(4).join(' ') : '';
+
       parameters.add({
         "name": name,
         "in": location,
@@ -62,12 +95,16 @@ class DocParser {
 
   void _parseQueryParameter(
       String line, List<Map<String, dynamic>> queryParameters) {
-    final parts = line.split(' ');
-    if (parts.length >= 4) {
-      final name = parts[1];
-      final type = parts[2];
-      final required = parts[3].toLowerCase() == "required";
-      final description = parts.sublist(4).join(' ');
+    // Remove @query and split by whitespace
+    final content = line.substring(6).trim();
+    final parts = content.split(' ');
+
+    if (parts.length >= 3) {
+      final name = parts[0];
+      final type = parts[1];
+      final required = parts[2].toLowerCase() == "required";
+      final description = parts.length > 3 ? parts.sublist(3).join(' ') : '';
+
       queryParameters.add({
         "name": name,
         "in": "query",
@@ -79,23 +116,27 @@ class DocParser {
   }
 
   void _parseRequestBody(String line, Map<String, dynamic> result) {
-    final jsonStr = line.replaceFirst('@body', '').trim();
     try {
-      final Map<String, dynamic> bodySchema =
-          jsonDecode(jsonStr) as Map<String, dynamic>;
-      result['requestBody'] = {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": bodySchema.map((k, v) => MapEntry(k, {"type": v}))
+      final jsonStr = line.substring(5).trim(); // Remove @body
+      if (jsonStr.isNotEmpty) {
+        final Map<String, dynamic> bodySchema =
+            jsonDecode(jsonStr) as Map<String, dynamic>;
+        result['requestBody'] = {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": bodySchema.map((k, v) => MapEntry(k, {"type": v}))
+              }
             }
           }
-        }
-      };
+        };
+      }
     } catch (e) {
-      print("[FLINT] ⚠️ Invalid @body JSON: $jsonStr ($e)");
+      Log.error(
+          "[FLINT] ⚠️ Invalid @body JSON: ${line.substring(5).trim()} ($e)",
+          error: e);
     }
   }
 }

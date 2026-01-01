@@ -1,6 +1,7 @@
 // lib/cli/make_model_command.dart
 import 'dart:io';
 
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeModelCommand extends FlintCommand {
@@ -9,7 +10,7 @@ class MakeModelCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      print('❌ Please provide a model name.');
+      Log.debug('❌ Please provide a model name.');
       return;
     }
 
@@ -24,12 +25,12 @@ class MakeModelCommand extends FlintCommand {
 
     final file = File('${dir.path}/$fileName.dart');
     if (await file.exists()) {
-      print('⚠️ Model $fileName.dart already exists.');
+      Log.debug('⚠️ Model $fileName.dart already exists.');
       return;
     }
 
     await file.writeAsString(content);
-    print('✅ Model created: lib/models/$fileName.dart');
+    Log.debug('✅ Model created: lib/models/$fileName.dart');
   }
 
   String _capitalize(String str) =>

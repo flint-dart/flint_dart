@@ -1,5 +1,6 @@
 import 'package:flint_dart/auth.dart';
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/logs.dart';
 
 class AuthController {
   Future<Response> register(Request req, Response res) async {
@@ -92,9 +93,9 @@ class AuthController {
   //   try {
   //     Mail().to(user["email"]).subject("Welcome").text("testing").sendMail();
 
-  //     print('✅ Welcome email sent to ${user['email']}');
+  //     Log.debug('✅ Welcome email sent to ${user['email']}');
   //   } catch (e) {
-  //     print('⚠️ Failed to send welcome email: $e');
+  //     Log.debug('⚠️ Failed to send welcome email: $e');
   //     // Don't throw - email failure shouldn't break registration
   //   }
   // }
@@ -103,9 +104,9 @@ class AuthController {
     try {
       final resetUrl = 'https://yourapp.com/reset-password?token=$resetToken';
 
-      print('✅ $resetUrl Password reset email sent to $email');
+      Log.debug('✅ $resetUrl Password reset email sent to $email');
     } catch (e) {
-      print('⚠️ Failed to send password reset email: $e');
+      Log.debug('⚠️ Failed to send password reset email: $e');
     }
   }
 
@@ -134,9 +135,9 @@ class AuthController {
       final verificationUrl =
           'https://yourapp.com/verify-email?token=$verificationToken';
 
-      print('✅ link:$verificationUrl Verification email sent to $email');
+      Log.debug('✅ link:$verificationUrl Verification email sent to $email');
     } catch (e) {
-      print('⚠️ Failed to send verification email: $e');
+      Log.debug('⚠️ Failed to send verification email: $e');
     }
   }
 }

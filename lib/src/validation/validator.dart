@@ -10,7 +10,7 @@
 ///     "email": "required|email",
 ///   });
 /// } on ValidationException catch (e) {
-///   print(e.errors); // { "email": ["The email field is required."] }
+///   Log.debug(e.errors); // { "email": ["The email field is required."] }
 /// }
 /// ```
 class ValidationException implements Exception {

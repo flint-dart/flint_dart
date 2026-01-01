@@ -1,5 +1,6 @@
 // lib/flint_ui/preview/file_preview.dart
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/flint_ui/core/flint_widget.dart';
 import 'package:flint_dart/src/flint_ui/preview/html_preview.dart';
 import 'package:path/path.dart' as path;
@@ -24,7 +25,7 @@ class FlintFilePreview {
       Process.run('xdg-open', [previewFile.path]);
     }
 
-    print('📧 Preview generated: ${previewFile.path}');
+    Log.debug('📧 Preview generated: ${previewFile.path}');
   }
 
   /// Save as HTML file
@@ -32,7 +33,7 @@ class FlintFilePreview {
     final html = FlintPreview.generatePreviewHtml(content);
     final file = File(filePath);
     await file.writeAsString(html);
-    print('✅ HTML saved: $filePath');
+    Log.debug('✅ HTML saved: $filePath');
     return file;
   }
 
@@ -73,7 +74,7 @@ class FlintFilePreview {
 
     final file = File(filePath);
     await file.writeAsString(emailHtml);
-    print('✅ Email HTML saved: $filePath');
+    Log.debug('✅ Email HTML saved: $filePath');
     return file;
   }
 }

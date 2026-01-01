@@ -136,7 +136,7 @@
   final Map&lt;String, Set&lt;String&gt;&gt; userRooms = {};
 
   app.websocket(&#39;&#47;chat&#39;, (socket, params) {
-    print(&#39;👋 Client connected: ${socket.id}&#39;);
+    Log.debug(&#39;👋 Client connected: ${socket.id}&#39;);
 
     &#47;&#47; Assign a random username
     final userName = &#39;User${socket.id.substring(0, 6)}&#39;;
@@ -164,7 +164,7 @@
 
     &#47;&#47; Handle incoming messages - BOTH raw text and JSON
     socket.onMessage((data) {
-      print(&#39;📨 Received from $userName: $data (type: ${data.runtimeType})&#39;);
+      Log.debug(&#39;📨 Received from $userName: $data (type: ${data.runtimeType})&#39;);
 
       &#47;&#47; Try to parse as JSON first
       if (data is String) {
@@ -176,7 +176,7 @@
           }
         } catch (e) {
           &#47;&#47; If not JSON, treat as raw text message
-          print(&#39;📝 Treating as raw text message&#39;);
+          Log.debug(&#39;📝 Treating as raw text message&#39;);
           _handleRawMessage(socket, userName, data);
           return;
         }
@@ -229,7 +229,7 @@
           &#39;timestamp&#39;: DateTime.now().toIso8601String()
         });
 
-        print(&#39;🚪 $userName joined room: $roomName&#39;);
+        Log.debug(&#39;🚪 $userName joined room: $roomName&#39;);
       }
     });
 
@@ -251,13 +251,13 @@
         socket.emit(
             &#39;username_updated&#39;, {&#39;newName&#39;: newName, &#39;status&#39;: &#39;success&#39;});
 
-        print(&#39;📝 $oldName changed name to $newName&#39;);
+        Log.debug(&#39;📝 $oldName changed name to $newName&#39;);
       }
     });
 
     &#47;&#47; Handle disconnection
     socket.onClose(() {
-      print(&#39;❌ $userName disconnected: ${socket.id}&#39;);
+      Log.debug(&#39;❌ $userName disconnected: ${socket.id}&#39;);
 
       &#47;&#47; Remove from tracking
       userNames.remove(socket.id);
@@ -276,7 +276,7 @@
 
     &#47;&#47; Handle errors
     &#47;&#47; socket.onError((error) {
-    &#47;&#47;   print(&#39;❌ WebSocket error for $userName: $error&#39;);
+    &#47;&#47;   Log.debug(&#39;❌ WebSocket error for $userName: $error&#39;);
     &#47;&#47;   socket.emit(&#39;error&#39;, {
     &#47;&#47;     &#39;message&#39;: &#39;Connection error: $error&#39;,
     &#47;&#47;     &#39;timestamp&#39;: DateTime.now().toIso8601String()

@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:flint_dart/logs.dart';
+
 import 'commands.dart';
 
 class MakeIsolateCommand extends FlintCommand {
@@ -7,15 +9,15 @@ class MakeIsolateCommand extends FlintCommand {
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      print('❌ Usage: flint make:isolate <TaskName>');
-      print('   Example: flint make:isolate send_email');
+      Log.error('❌ Usage: flint make:isolate <TaskName>');
+      Log.error('   Example: flint make:isolate send_email');
       return;
     }
 
     final rawName = args.first;
 
     if (!_isValidName(rawName)) {
-      print('❌ Invalid name. Use letters, numbers, _ or -');
+      Log.error('❌ Invalid name. Use letters, numbers, _ or -');
       return;
     }
 
@@ -30,13 +32,13 @@ class MakeIsolateCommand extends FlintCommand {
     final file = File('${dir.path}/$fileName');
 
     if (file.existsSync()) {
-      print('⚠️  Isolate task already exists.');
+      Log.debug('⚠️  Isolate task already exists.');
       return;
     }
 
     await file.writeAsString(_generateTask(className));
 
-    print('✅ Created isolate task: ${file.path}');
+    Log.info('✅ Created isolate task: ${file.path}');
   }
 
   String _generateTask(String className) {
@@ -49,7 +51,7 @@ class $className extends IsolateTask<void> {
     // Heavy or blocking logic here
     // Example: email sending, PDF generation, hashing, etc.
 
-    print('$className running in isolate');
+    Log.debug('$className running in isolate');
   }
 }
 ''';
