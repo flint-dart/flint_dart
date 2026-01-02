@@ -736,11 +736,11 @@ class Auth {
     final rng = Random();
     final code = List.generate(length, (_) => rng.nextInt(10)).join('');
     // Hash code before storing
-    final codeHash = Hashing().hash(code);
 
     // Expire after 10 minutes
     final expiresAt =
         DateTime.now().add(Duration(minutes: 10)).toIso8601String();
+    final codeHash = Hashing().hash(code);
 
     // 🧹 Delete any previous unused codes for this email
     await QueryBuilder(table: 'email_verification_tokens')
@@ -764,12 +764,9 @@ class Auth {
   static Future<bool> verifyNumericCode(String email, String code) async {
     await Auth.ensureFrameworkTablesExist();
 
-    final codeHash = Hashing().hash(code);
-
     // Find matching valid record
     final record = await QueryBuilder(table: 'email_verification_tokens')
         .where('email', '=', email)
-        .where('token', '=', codeHash)
         .where('expires_at', '>', DateTime.now().toIso8601String())
         .first();
 
@@ -778,6 +775,12 @@ class Auth {
       return false;
     }
 
+    final isValid = Hashing().verify(code, record['token']);
+
+    if (!isValid) {
+      Log.warning('❌ Invalid verification code for $email');
+      return false;
+    }
     // Mark email as verified
     final emailVerifiedAtExists =
         await Auth.columnExists(Auth.config.table, 'email_verified_at');
@@ -863,12 +866,9 @@ class Auth {
           'Password must be at least ${Auth.config.passwordMinLength} characters.');
     }
 
-    final codeHash = Hashing().hash(code);
-
     // Look for valid code
     final record = await QueryBuilder(table: 'password_reset_tokens')
         .where('email', '=', email)
-        .where('token', '=', codeHash)
         .where('expires_at', '>', DateTime.now().toIso8601String())
         .first();
 
@@ -876,7 +876,12 @@ class Auth {
       Log.debug('❌ Invalid or expired password reset code for $email');
       throw AuthException('Invalid or expired reset code.');
     }
+    final isValid = Hashing().verify(code, record['token']);
 
+    if (!isValid) {
+      Log.warning('❌ Invalid verification code for $email');
+      return false;
+    }
     // Hash new password
     final newHashedPassword = Hashing().hash(newPassword);
 

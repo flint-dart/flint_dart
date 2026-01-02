@@ -78,10 +78,10 @@ class Log {
     final consoleMessage =
         '$time [$levelName] $prefix $message${error != null ? '\n$error' : ''}${stackTrace != null ? '\n$stackTrace' : ''}';
 
-    // Log.debug colored console log in dev
+    // Print colored console log in dev
     if (consoleLogging) {
       final color = _levelColor(level);
-      Log.debug('$color$consoleMessage${ConsoleColor.reset}');
+      print('$color$consoleMessage${ConsoleColor.reset}');
     }
 
     // Always write JSON to file
