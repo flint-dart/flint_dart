@@ -104,7 +104,18 @@ extension ModelQuery<T extends Model<T>> on Model<T> {
   }
 
   /// ORDER BY clause - chainable
-  T orderBy(String field, [String direction = 'ASC']) {
+  /// Chainable orderBy with both `asc` and `descending` options
+  T orderBy(String field, {bool? asc, bool? descending}) {
+    String direction;
+
+    if (asc != null) {
+      direction = asc ? 'ASC' : 'DESC';
+    } else if (descending != null) {
+      direction = descending ? 'DESC' : 'ASC';
+    } else {
+      direction = 'DESC'; // default if nothing passed
+    }
+
     qb.orderBy(field, direction);
     return this as T;
   }

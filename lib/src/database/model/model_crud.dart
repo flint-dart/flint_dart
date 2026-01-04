@@ -164,8 +164,12 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
   /// Update existing record using the helper method
   Future<T?> update([dynamic id, Map<String, dynamic>? data]) async {
     final currentId = this.id ?? id;
-    if (currentId == null) {
-      throw Exception("Cannot update: $primaryKey is null");
+    final hasWhere = qb.hasWhereClause; // 👈 we add this flag in QueryBuilder
+
+    if (currentId == null && !hasWhere) {
+      throw Exception(
+        "Cannot update: no primary key and no where clause provided",
+      );
     }
     bool isUpdate = (data == null || data.isEmpty);
     final updateMap = isUpdate ? asMap() : data;
@@ -196,14 +200,22 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
         return value;
       });
     }
-
+    var sql;
+    var params;
     // Use backticks for column names to handle reserved words
     final setClause = updateData.keys.map((k) => '`$k` = :$k').join(', ');
 
-    final sql =
-        'UPDATE `${table.name}` SET $setClause WHERE `$primaryKey` = :id';
-    final params = {...updateData, 'id': currentId};
+    if (currentId != null) {
+      // ✅ PK-based update (old behavior)
+      sql = 'UPDATE `${table.name}` SET $setClause WHERE `$primaryKey` = :id';
+      params = {...updateData, 'id': currentId};
+    } else {
+      // ✅ WHERE-based update (new behavior)
+      final whereSql = qb.compileWhereSql();
+      params = {...updateData, ...qb.whereParams};
 
+      sql = 'UPDATE `${table.name}` SET $setClause $whereSql';
+    }
     await _executeQuery(sql, namedParams: params);
 
     return await refresh(currentId);
@@ -218,6 +230,69 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     } else {
       return await update();
     }
+  }
+
+  Future<T?> upsert({
+    required Map<String, dynamic> where,
+    required Map<String, dynamic> data,
+  }) async {
+    if (where.isEmpty) {
+      throw Exception('Upsert requires a where condition');
+    }
+
+    // 1️⃣ Try to find existing record
+    var query = resetQuery();
+    where.forEach((key, value) {
+      query.qb.where(key, '=', value);
+    });
+
+    final existing = await query.first();
+
+    // 2️⃣ UPDATE if exists
+    if (existing != null) {
+      await existing.update(null, data);
+    }
+
+    // 3️⃣ INSERT if not exists
+    final insertData = {...where, ...data};
+    return await create(insertData);
+  }
+
+  Future<List<T?>> upsertMany({
+    required List<Map<String, dynamic>> records,
+    required List<String> uniqueBy,
+  }) async {
+    if (records.isEmpty) return [];
+
+    if (uniqueBy.isEmpty) {
+      throw Exception('upsertMany requires at least one unique column');
+    }
+
+    final results = <T?>[];
+
+    for (final record in records) {
+      final where = <String, dynamic>{};
+
+      for (final key in uniqueBy) {
+        if (!record.containsKey(key)) {
+          throw Exception(
+            'Missing unique key "$key" in record: $record',
+          );
+        }
+        where[key] = record[key];
+      }
+
+      final model = await resetQuery().upsert(
+        where: where,
+        data: record,
+      );
+
+      if (model != null) {
+        results.add(model);
+      }
+    }
+
+    return results;
   }
 
   /// Delete this model

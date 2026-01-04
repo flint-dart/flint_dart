@@ -25,7 +25,13 @@ class QueryBuilder {
   List<String> get withRelations => List.from(_withRelations);
   Map<String, dynamic> get modelContext => Map.from(_modelContext);
   Map<String, List<String>> get withColumns => Map.from(_withColumns);
+  bool get hasWhereClause => _wheres.isNotEmpty;
+  String compileWhereSql() {
+    if (_wheres.isEmpty) return '';
+    return 'WHERE ${_wheres.join(' AND ')}';
+  }
 
+  Map<String, dynamic> get whereParams => Map.from(_bindings);
   int? _limit;
   int? _offset;
   int _paramIndex = 1;
