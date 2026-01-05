@@ -14,9 +14,13 @@ class MakeSeederCommand extends FlintCommand {
       exit(1);
     }
 
-    final seederName = args[0];
+    final seederraw = args[0];
 
     // Convert CamelCase class name to snake_case file name
+
+    var seederName = seederraw.toLowerCase().endsWith("seeder")
+        ? seederraw
+        : "${seederraw}Seeder";
     final snakeCaseFileName = _toSnakeCase(seederName);
 
     final seedersDir = Directory('lib/seeders');
@@ -32,6 +36,7 @@ class MakeSeederCommand extends FlintCommand {
 
     // 1️⃣ Create the seeder file
     final seederContent = '''
+import 'package:flint_dart/logs.dart';
 
 class $seederName {
   static Future<void> run() async {

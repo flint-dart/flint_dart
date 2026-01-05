@@ -4,6 +4,7 @@ import 'package:flint_dart/src/cli/build_command.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/create_project_command.dart';
 import 'package:flint_dart/src/cli/db_commands.dart';
+import 'package:flint_dart/src/cli/db_seed_command.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/cli/make_controller_command.dart';
 import 'package:flint_dart/src/cli/make_docker_command.dart';
@@ -11,6 +12,8 @@ import 'package:flint_dart/src/cli/make_isolate_command.dart';
 import 'package:flint_dart/src/cli/make_mail_command.dart';
 import 'package:flint_dart/src/cli/make_middleware_command.dart';
 import 'package:flint_dart/src/cli/make_model_command.dart';
+import 'package:flint_dart/src/cli/make_resource_command.dart';
+import 'package:flint_dart/src/cli/make_route_command.dart';
 import 'package:flint_dart/src/cli/make_seeder_command.dart';
 import 'package:flint_dart/src/cli/update_command.dart';
 import 'package:flint_dart/src/cli/upgrade_command.dart';
@@ -29,11 +32,13 @@ final Map<String, FlintCommand> commands = {
   'make:isolate': MakeIsolateCommand(), // ✅ Add here
   'docs:generate': GenerateDocsCommand(),
   'make:seeder': MakeSeederCommand(), // <-- Add here
-
+  'seed': DbSeedCommand(), // <-- Add here
   'make:mail': MakeMailCommand(),
   'update': UpdateCommand(),
   'upgrade': UpgradeCommand(),
   'version': VersionCommand(),
+  'make:resource': MakeResourceCommand(),
+  'route': MakeRouteCommand(),
   '--v': VersionCommand(),
 };
 
@@ -42,11 +47,16 @@ final Map<String, String> aliasCommands = {
   '--make-mail': 'make:mail',
   '--make-model': 'make:model',
   '--make-controller': 'make:controller',
+  '--make-resource': 'make:resource',
   '--make-middleware': 'make:middleware',
   '--make-docker': 'make:docker',
   '--make-isolate': 'make:isolate',
   "--docs-generate": 'docs:generate',
   '--make-seeder': 'make:seeder', // <-- Add alias here
+  '--seed': 'seed', // <-- Add alias here
+  '--build': 'build', // <-- Add alias here
+  '--update': 'update', // <-- Add alias here
+  '--upgrade': 'upgrade', // <-- Add alias here
 };
 
 void main(List<String> args) async {

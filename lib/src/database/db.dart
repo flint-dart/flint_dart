@@ -1,4 +1,5 @@
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/database/db_transaction.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'mysql_connection.dart';
@@ -247,7 +248,7 @@ class DB {
   }
 
   /// Execute a query with parameters.
-  static Future<List<Map<dynamic, dynamic>>> query(
+  static Future<List<Map<String, dynamic>>> query(
     String sql, {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
@@ -291,6 +292,27 @@ class DB {
     } else {
       final result = await query("SELECT LAST_INSERT_ID() as id");
       return _convertDatabaseId(result.first['id']);
+    }
+  }
+
+  static Future<T> transaction<T>(
+    Future<T> Function(DBTransaction trx) callback,
+  ) async {
+    await _ensureConnected();
+    final connection = instance;
+
+    await connection.beginTransaction();
+
+    try {
+      final trx = DBTransaction(connection);
+      final result = await callback(trx);
+
+      await connection.commit();
+      return result;
+    } catch (e, stack) {
+      await connection.rollback();
+      Log.error('❌ Transaction failed', error: e, stackTrace: stack);
+      rethrow;
     }
   }
 

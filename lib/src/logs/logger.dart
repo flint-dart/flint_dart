@@ -119,4 +119,9 @@ class Log {
           {String? tag, Object? error, StackTrace? stackTrace}) =>
       log(LogLevel.critical, message,
           tag: tag, error: error, stackTrace: stackTrace);
+
+  static void success(String message,
+          {String? tag, Object? error, StackTrace? stackTrace}) =>
+      log(LogLevel.debug, message,
+          tag: tag, error: error, stackTrace: stackTrace);
 }

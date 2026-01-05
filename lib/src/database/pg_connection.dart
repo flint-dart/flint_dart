@@ -215,6 +215,7 @@ class PgConnectionWrapper implements DBWrapper {
   }
 
   /// Start a transaction
+  @override
   Future<void> beginTransaction() async {
     if (!isConnected) {
       throw Exception("PostgreSQL not connected. Last error: $_lastError");
@@ -229,6 +230,7 @@ class PgConnectionWrapper implements DBWrapper {
   }
 
   /// Commit a transaction
+  @override
   Future<void> commit() async {
     if (!isConnected) {
       throw Exception("PostgreSQL not connected. Last error: $_lastError");
@@ -243,6 +245,7 @@ class PgConnectionWrapper implements DBWrapper {
   }
 
   /// Rollback a transaction
+  @override
   Future<void> rollback() async {
     if (!isConnected) {
       throw Exception("PostgreSQL not connected. Last error: $_lastError");

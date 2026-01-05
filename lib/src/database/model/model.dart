@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flint_dart/db.dart';
 import 'package:flint_dart/schema.dart';
+import 'package:flint_dart/src/database/db_transaction.dart';
 import 'package:flint_dart/src/database/model/_model_helper.dart';
 import 'package:flint_dart/src/database/relations/relation_config.dart';
 import 'package:flint_dart/src/database/relations/relation_definition.dart';
@@ -11,6 +12,12 @@ abstract class Model<T extends Model<T>> {
   final Map<String, dynamic> _attributes = {};
   final T Function() _factory;
   QueryBuilder? _queryBuilder;
+  DBTransaction? _trx;
+
+  T useTransaction(DBTransaction trx) {
+    _trx = trx;
+    return this as T;
+  }
 
   Model(this._factory) {
     _registerRelationLoaders();
@@ -25,6 +32,8 @@ abstract class Model<T extends Model<T>> {
     if (value == null) return null;
     if (value is R) return value;
     if (R == dynamic) return value;
+
+    // List of typed items
 
     // DateTime parsing
     if (R == DateTime && value is String) {
@@ -573,5 +582,45 @@ abstract class Model<T extends Model<T>> {
       }
     }
     return converted;
+  }
+
+  /// Internal: execute query (transaction-aware)
+  Future<List<Map<String, dynamic>>> runQuery(
+    String sql, {
+    List<dynamic>? positionalParams,
+    Map<String, dynamic>? namedParams,
+  }) {
+    if (_trx != null) {
+      return _trx!.query(
+        sql,
+        positionalParams: positionalParams,
+        namedParams: namedParams,
+      );
+    }
+    return DB.query(
+      sql,
+      positionalParams: positionalParams,
+      namedParams: namedParams,
+    );
+  }
+
+  /// Internal: execute command (transaction-aware)
+  Future<void> runExecute(
+    String sql, {
+    List<dynamic>? positionalParams,
+    Map<String, dynamic>? namedParams,
+  }) {
+    if (_trx != null) {
+      return _trx!.execute(
+        sql,
+        positionalParams: positionalParams,
+        namedParams: namedParams,
+      );
+    }
+    return DB.execute(
+      sql,
+      positionalParams: positionalParams,
+      namedParams: namedParams,
+    );
   }
 }

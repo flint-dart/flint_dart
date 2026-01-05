@@ -19,7 +19,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
     if (DB.driver == DBDriver.mysql) {
       // For MySQL, use positional parameters
-      final result = await DB.query(
+      final result = await runQuery(
         'SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1',
         positionalParams: [currentId],
       );
@@ -27,7 +27,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
       return fromMap(_convertDatabaseTypes(result.first));
     } else {
       // For PostgreSQL, use named parameters
-      final result = await DB.query(
+      final result = await runQuery(
         'SELECT * FROM ${table.name} WHERE $primaryKey = :id LIMIT 1',
         namedParams: {'id': currentId},
       );
@@ -67,7 +67,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     if (insertMap.isEmpty) {
       throw Exception("No data provided for creation");
     }
-
+    insertMap["updated_at"] = DateTime.now();
     // --- ✅ Convert bool → 1/0 for MySQL ---
     insertMap.updateAll((key, value) {
       final column = table.columns.firstWhere(
@@ -94,7 +94,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
       RETURNING *
       ''';
 
-      final result = await DB.query(sql, namedParams: insertMap);
+      final result = await runQuery(sql, namedParams: insertMap);
       return fromMap(_convertDatabaseTypes(result.first));
     } else {
       // MySQL - use positional parameters
@@ -105,12 +105,12 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
       VALUES ($placeholders)
       ''';
 
-      await DB.query(sql, positionalParams: insertMap.values.toList());
+      await runQuery(sql, positionalParams: insertMap.values.toList());
 
       if (idColumn.isAutoIncrement) {
         // Fetch using last inserted ID
         final lastId = await DB.getLastInsertId(table.name, idColumn.name);
-        final result = await DB.query(
+        final result = await runQuery(
           'SELECT * FROM ${table.name} WHERE ${idColumn.name} = ?',
           positionalParams: [lastId],
         );
@@ -118,7 +118,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
       } else {
         // Fetch using UUID we just inserted
         final insertedId = insertMap[idColumn.name];
-        final result = await DB.query(
+        final result = await runQuery(
           'SELECT * FROM ${table.name} WHERE ${idColumn.name} = ?',
           positionalParams: [insertedId],
         );
@@ -147,13 +147,13 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
           paramList.add(paramValue);
           return '?';
         });
-        await DB.execute(processedSql, positionalParams: paramList);
+        await runExecute(processedSql, positionalParams: paramList);
       } else {
-        await DB.execute(sql, positionalParams: positionalParams);
+        await runExecute(sql, positionalParams: positionalParams);
       }
     } else {
       // PostgreSQL supports named parameters natively
-      await DB.execute(
+      await runExecute(
         sql,
         positionalParams: positionalParams,
         namedParams: namedParams,
@@ -302,13 +302,13 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
     if (DB.driver == DBDriver.mysql) {
       // For MySQL, use positional parameters
-      await DB.execute(
+      await runExecute(
         'DELETE FROM ${table.name} WHERE $primaryKey = ?',
         positionalParams: [currentId],
       );
     } else {
       // For PostgreSQL, use named parameters
-      await DB.execute(
+      await runExecute(
         'DELETE FROM ${table.name} WHERE $primaryKey = :id',
         namedParams: {'id': currentId},
       );
@@ -319,7 +319,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
   /// Get all records
   Future<List<T>> all() async {
-    final result = await DB.query('SELECT * FROM ${table.name}');
+    final result = await runQuery('SELECT * FROM ${table.name}');
     return result.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
   }
 
@@ -333,14 +333,14 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
     if (DB.driver == DBDriver.mysql) {
       // For MySQL, use positional parameters
-      final result = await DB.query(
+      final result = await runQuery(
         'SELECT * FROM ${table.name} WHERE $field = ?',
         positionalParams: [value],
       );
       return result.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
     } else {
       // For PostgreSQL, use named parameters
-      final result = await DB.query(
+      final result = await runQuery(
         'SELECT * FROM ${table.name} WHERE $field = :value',
         namedParams: {'value': value},
       );
@@ -364,7 +364,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     if (DB.driver == DBDriver.mysql) {
       // --- MySQL: use positional parameters ---
       final placeholders = List.generate(values.length, (_) => '?').join(', ');
-      final result = await DB.query(
+      final result = await runQuery(
         'SELECT * FROM ${table.name} WHERE $field IN ($placeholders)',
         positionalParams: values,
       );
@@ -378,7 +378,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
           'value$i': values[i] is Enum ? values[i].name : values[i],
       };
 
-      final result = await DB.query(
+      final result = await runQuery(
         'SELECT * FROM ${table.name} WHERE $field IN ($placeholders)',
         namedParams: params,
       );
@@ -388,7 +388,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
   /// Count all records
   Future<int> countAll() async {
-    final result = await DB.query(
+    final result = await runQuery(
       'SELECT COUNT(*) as count FROM ${table.name}',
     );
 
@@ -408,7 +408,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
       if (value is Enum) value = value.name; // enum → string
     }
 
-    final result = await DB.query(
+    final result = await runQuery(
       'SELECT COUNT(*) as count FROM ${table.name} WHERE $field = :value',
       namedParams: {'value': value},
     );
@@ -423,9 +423,9 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
   /// Truncate table
   Future<void> truncate() async {
     if (DB.driver == DBDriver.postgres) {
-      await DB.execute('TRUNCATE TABLE ${table.name} RESTART IDENTITY');
+      await runExecute('TRUNCATE TABLE ${table.name} RESTART IDENTITY');
     } else {
-      await DB.execute('TRUNCATE TABLE ${table.name}');
+      await runExecute('TRUNCATE TABLE ${table.name}');
     }
   }
 

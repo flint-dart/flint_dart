@@ -189,6 +189,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   }
 
   /// Start a transaction
+  @override
   Future<void> beginTransaction() async {
     if (!isConnected) {
       throw Exception("MySQL not connected. Last error: $_lastError");
@@ -203,6 +204,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   }
 
   /// Commit a transaction
+  @override
   Future<void> commit() async {
     if (!isConnected) {
       throw Exception("MySQL not connected. Last error: $_lastError");
@@ -217,6 +219,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   }
 
   /// Rollback a transaction
+  @override
   Future<void> rollback() async {
     if (!isConnected) {
       throw Exception("MySQL not connected. Last error: $_lastError");
