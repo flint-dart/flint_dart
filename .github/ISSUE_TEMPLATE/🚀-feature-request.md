@@ -2,7 +2,7 @@
 name: "\U0001F680 Feature Request"
 about: Suggest an idea or improvement for Flint Dart
 title: ''
-labels: ''
+labels: enhancement
 assignees: ''
 
 ---
