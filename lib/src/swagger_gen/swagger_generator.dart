@@ -37,33 +37,34 @@ class SwaggerGenerator {
       "responses": responses,
     };
 
-    // Add requestBody if defined
+    // Add requestBody if provided
     if (requestBody != null) {
       operation['requestBody'] = requestBody;
     }
 
-    // Combine all parameter types
-    final allParameters = <Map<String, dynamic>>[];
+    // 1️⃣ Extract path parameters from the URL
+    final pathParams = _extractPathParams(fullPath);
 
-    // Auto-extract path parameters
-    final autoPathParams = _extractPathParams(fullPath);
-    allParameters.addAll(autoPathParams);
+    // 2️⃣ Combine all parameters: path first, then query, then manual
+    final allParameters = [
+      ...pathParams,
+      if (queryParameters != null) ...queryParameters,
+      if (parameters != null) ...parameters,
+    ];
 
-    // Add query parameters from @query
-    if (queryParameters != null) {
-      allParameters.addAll(queryParameters);
+    // 3️⃣ Make parameters unique by `in:name`
+    final uniqueParamsMap = <String, Map<String, dynamic>>{};
+    for (var p in allParameters) {
+      final key = '${p["in"]}:${p["name"]}';
+      uniqueParamsMap[key] = p;
     }
 
-    // Add manual parameters from @param
-    if (parameters != null) {
-      allParameters.addAll(parameters);
+    // 4️⃣ Assign the unique parameters to operation
+    if (uniqueParamsMap.isNotEmpty) {
+      operation['parameters'] = uniqueParamsMap.values.toList();
     }
 
-    if (allParameters.isNotEmpty) {
-      operation['parameters'] = allParameters;
-    }
-
-    // Add authentication/security
+    // 5️⃣ Add authentication/security if provided
     if (auth != null) {
       operation['security'] = [
         {auth: []}

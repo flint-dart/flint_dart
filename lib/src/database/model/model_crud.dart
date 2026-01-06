@@ -38,7 +38,8 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
   /// Insert new record (works for both PostgreSQL and MySQL)
   Future<T?> create([Map<String, dynamic>? data]) async {
-    final insertMap = data ?? asMap();
+    final Map<String, dynamic> insertMap =
+        Map<String, dynamic>.from(data ?? asMap());
 
     final idColumn = table.columns.firstWhere((c) => c.isPrimaryKey,
         orElse: () => Column(

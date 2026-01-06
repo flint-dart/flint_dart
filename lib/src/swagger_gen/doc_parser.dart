@@ -10,58 +10,70 @@ class DocParser {
     final queryParameters = <Map<String, dynamic>>[];
     final servers = <String>[];
 
-    for (var line in docs) {
-      final trimmedLine = line.trim();
+    for (int i = 0; i < docs.length; i++) {
+      final trimmedLine = docs[i].trim();
 
-      // Handle @prefix
       if (trimmedLine.startsWith('@prefix')) {
         result['prefix'] = _extractValue(trimmedLine, '@prefix');
-      }
-      // Handle @auth
-      else if (trimmedLine.startsWith('@auth')) {
+      } else if (trimmedLine.startsWith('@auth')) {
         result['auth'] =
             _extractValue(trimmedLine, '@auth', defaultValue: 'bearer');
-      }
-      // Handle @server
-      else if (trimmedLine.startsWith('@server')) {
+      } else if (trimmedLine.startsWith('@server')) {
         servers.add(_extractValue(trimmedLine, '@server'));
-      }
-      // Handle @summary
-      else if (trimmedLine.startsWith('@summary')) {
+      } else if (trimmedLine.startsWith('@summary')) {
         result['summary'] = _extractValue(trimmedLine, '@summary');
-      }
-      // Handle @response
-      else if (trimmedLine.startsWith('@response')) {
+      } else if (trimmedLine.startsWith('@response')) {
         final value = _extractValue(trimmedLine, '@response');
         final parts = value.split(' ');
-        if (parts.isNotEmpty) {
-          final code = parts[0];
-          final description =
-              parts.length > 1 ? parts.sublist(1).join(' ') : 'No description';
-          responses[code] = {"description": description};
-        }
-      }
-      // Handle @param
-      else if (trimmedLine.startsWith('@param')) {
+        final code = parts[0];
+        final description =
+            parts.length > 1 ? parts.sublist(1).join(' ') : 'No description';
+
+        responses[code] = {"description": description};
+      } else if (trimmedLine.startsWith('@param')) {
         _parseParameter(trimmedLine, parameters);
-      }
-      // Handle @query
-      else if (trimmedLine.startsWith('@query')) {
+      } else if (trimmedLine.startsWith('@query')) {
         _parseQueryParameter(trimmedLine, queryParameters);
-      }
-      // Handle @body
-      else if (trimmedLine.startsWith('@body')) {
-        _parseRequestBody(trimmedLine, result);
+      } else if (trimmedLine.startsWith('@body')) {
+        final buffer = StringBuffer();
+        var bodyLine = trimmedLine.substring(5).trim();
+
+        int braceCount = 0;
+
+        // First line
+        if (bodyLine.isNotEmpty) {
+          buffer.writeln(bodyLine);
+          braceCount += _countBraces(bodyLine);
+        }
+
+        // Read until braces are balanced
+        while (braceCount > 0 && i + 1 < docs.length) {
+          i++;
+          final next = docs[i].replaceAll('///', '').trim();
+          buffer.writeln(next);
+          braceCount += _countBraces(next);
+        }
+
+        final json = buffer.toString().trim();
+
+        if (json.startsWith('{') && json.endsWith('}')) {
+          _parseRequestBody(json, result);
+        } else {
+          Log.error('[FLINT] ⚠️ Incomplete @body JSON:\n$json');
+        }
       }
     }
 
-    // Add collections only if not empty
     if (responses.isNotEmpty) result['responses'] = responses;
     if (parameters.isNotEmpty) result['parameters'] = parameters;
     if (queryParameters.isNotEmpty) result['queryParameters'] = queryParameters;
     if (servers.isNotEmpty) result['servers'] = servers;
 
     return result;
+  }
+
+  int _countBraces(String line) {
+    return '{'.allMatches(line).length - '}'.allMatches(line).length;
   }
 
   String _extractValue(String line, String annotation,
@@ -78,18 +90,31 @@ class DocParser {
 
     if (parts.length >= 4) {
       final name = parts[0];
-      final location = parts[1];
+      final location = parts[1]; // "path", "query", etc.
       final type = parts[2];
       final required = parts[3].toLowerCase() == "required";
       final description = parts.length > 4 ? parts.sublist(4).join(' ') : '';
 
-      parameters.add({
+      // Create the parameter object
+      final param = {
         "name": name,
         "in": location,
         "schema": {"type": type},
         "required": location == "path" ? true : required,
         "description": description
-      });
+      };
+
+      // Check if a parameter with the same "in:name" already exists
+      final existingIndex = parameters.indexWhere(
+        (p) => p["name"] == name && p["in"] == location,
+      );
+
+      if (existingIndex >= 0) {
+        // Overwrite the existing one (user-defined takes priority)
+        parameters[existingIndex] = param;
+      } else {
+        parameters.add(param);
+      }
     }
   }
 
@@ -115,28 +140,85 @@ class DocParser {
     }
   }
 
-  void _parseRequestBody(String line, Map<String, dynamic> result) {
+  void _parseRequestBody(String jsonStr, Map<String, dynamic> result) {
     try {
-      final jsonStr = line.substring(5).trim(); // Remove @body
-      if (jsonStr.isNotEmpty) {
-        final Map<String, dynamic> bodySchema =
-            jsonDecode(jsonStr) as Map<String, dynamic>;
-        result['requestBody'] = {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": bodySchema.map((k, v) => MapEntry(k, {"type": v}))
-              }
+      // Log.info(jsonStr);
+
+      final Map<String, dynamic> bodySchema = jsonDecode(jsonStr);
+
+      result['requestBody'] = {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": bodySchema.map(
+                (k, v) => MapEntry(k, _dartValueToSwaggerSchema(v)),
+              )
             }
           }
-        };
-      }
+        }
+      };
+      // Log.debug("${bodySchema.map(
+      //   (k, v) => MapEntry(k, {"type": v}),
+      // )}");
+      // Log.info("$bodySchema");
     } catch (e) {
       Log.error(
-          "[FLINT] ⚠️ Invalid @body JSON: ${line.substring(5).trim()} ($e)",
-          error: e);
+        "[FLINT] ⚠️ Invalid @body JSON: $jsonStr",
+        error: e,
+      );
     }
+  }
+
+  Map<String, dynamic> _dartValueToSwaggerSchema(dynamic v) {
+    // 1️⃣ User explicitly defined type
+    if (v is String) {
+      final typeStr = v.toLowerCase().trim();
+
+      // Handle array types like "string[]" or "integer[]"
+      final arrayMatch = RegExp(r'^(\w+)\[\]$').firstMatch(typeStr);
+      if (arrayMatch != null) {
+        return {
+          "type": "array",
+          "items": {"type": arrayMatch.group(1)}
+        };
+      }
+
+      // Known OpenAPI types
+      const openApiTypes = [
+        'string',
+        'integer',
+        'number',
+        'boolean',
+        'object',
+        'array'
+      ];
+      if (openApiTypes.contains(typeStr)) {
+        return {"type": typeStr};
+      }
+    }
+
+    // 2️⃣ Null
+    if (v == null) return {"type": "string", "nullable": true};
+
+    // 3️⃣ Runtime inference for actual values
+    if (v is int) return {"type": "integer"};
+    if (v is double) return {"type": "number"};
+    if (v is bool) return {"type": "boolean"};
+    if (v is List && v.isNotEmpty) {
+      return {"type": "array", "items": _dartValueToSwaggerSchema(v.first)};
+    }
+    if (v is List) return {"type": "array", "items": {}};
+    if (v is Map<String, dynamic>) {
+      return {
+        "type": "object",
+        "properties":
+            v.map((k, val) => MapEntry(k, _dartValueToSwaggerSchema(val)))
+      };
+    }
+
+    // 4️⃣ Fallback
+    return {"type": "string"};
   }
 }
