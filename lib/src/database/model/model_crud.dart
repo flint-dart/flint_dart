@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:flint_dart/helper.dart';
+import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/database/model/_model_helper.dart';
@@ -244,16 +245,15 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     // 1️⃣ Try to find existing record
     var query = resetQuery();
     where.forEach((key, value) {
-      query.qb.where(key, '=', value);
+      query.query().where(key, "=", value);
     });
 
     final existing = await query.first();
 
     // 2️⃣ UPDATE if exists
     if (existing != null) {
-      await existing.update(null, data);
+      return await existing.update(null, data);
     }
-
     // 3️⃣ INSERT if not exists
     final insertData = {...where, ...data};
     return await create(insertData);
