@@ -500,12 +500,39 @@ class Flint {
     });
   }
 
-  // ===== MIDDLEWARE =====
-
-  /// Adds a [middleware] to the application.
+  /// Adds a global [middleware] to the application.
   ///
-  /// Middlewares run for every incoming request in the order
-  /// they are registered.
+  /// Middlewares registered with this method are executed for **every
+  /// incoming HTTP request**, in the exact order they are added.
+  /// Each middleware can inspect, modify, or short-circuit the request
+  /// and response lifecycle.
+  ///
+  /// Middlewares are typically used for:
+  /// - Authentication and authorization
+  /// - Logging and request tracing
+  /// - Error handling
+  /// - Request/response transformation
+  ///
+  /// ### Execution order
+  /// ```
+  /// Global middlewares (registered via use())
+  /// → RouteGroup middlewares
+  /// → Route-specific middlewares
+  /// → Route handler
+  /// ```
+  ///
+  /// ### Example
+  /// ```dart
+  /// app.use(LoggerMiddleware());
+  /// app.use(AuthMiddleware());
+  /// ```
+  ///
+  /// ### Notes
+  /// - Middleware order matters; earlier middlewares wrap later ones.
+  /// - Use route-specific middleware when logic should not apply globally.
+  ///
+  /// ### Parameters
+  /// - [middleware]: The middleware to register globally.
   void use(Middleware middleware) => _middlewares.add(middleware);
 
   // ===== MOUNTING =====
