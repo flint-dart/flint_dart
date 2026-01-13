@@ -734,6 +734,7 @@ class Flint {
       _registerHotReloadEndpoint();
       Log.debug('[FLINT] ⚠️ Hot reload is ENABLED.');
     }
+    Log.debug('FLINT_HOT=${Platform.environment['FLINT_HOT']}');
 
     // 2. THE LAUNCHER CHECK
     // If we are in the Parent Process, start the watcher and STOP here.

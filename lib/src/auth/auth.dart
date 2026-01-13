@@ -487,19 +487,7 @@ class Auth {
 
   /// Generate JWT token from user data
   static String generateToken(Map<String, dynamic> userData) {
-    final payload = {
-      'id': userData['id'],
-      'email': userData[config.emailColumn],
-      'name': userData[config.nameColumn],
-      'provider': userData[config.providerColumn],
-      'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'exp': DateTime.now()
-              .add(const Duration(hours: 24))
-              .millisecondsSinceEpoch ~/
-          1000,
-    };
-
-    return FlintJwt(config.jwtSecret!).generateToken(payload);
+    return FlintJwt(config.jwtSecret!).generateToken(userData);
   }
 
   /// Verify JWT token

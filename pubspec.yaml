@@ -24,6 +24,7 @@ dependencies:
   flint_client: any
   worker_manager: ^7.2.7
   args: ^2.7.0
+  watcher: ^1.2.1
 
 
 

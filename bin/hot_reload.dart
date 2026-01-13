@@ -6,6 +6,7 @@ import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:path/path.dart' as p;
 import 'package:args/args.dart'; // Add this dependency to pubspec.yaml
+import 'package:watcher/watcher.dart';
 
 Process? server;
 Timer? _debounce;
@@ -83,12 +84,12 @@ Future<void> generateSwaggerDocs() async {
 }
 
 void watchFiles(int serverPort) {
-  final watcher = Directory('lib').watch(recursive: true);
+  final watcher = DirectoryWatcher('lib'); // automatically recursive
   final Map<String, DateTime> lastModified = {};
 
-  watcher.listen((event) async {
+  watcher.events.listen((event) async {
     final ext = p.extension(event.path);
-    if (event.type != FileSystemEvent.modify) return;
+    if (event.type != ChangeType.MODIFY) return;
 
     // Debounce: ignore rapid successive changes
     final now = DateTime.now();

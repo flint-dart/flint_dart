@@ -1,0 +1,212 @@
+{"timestamp":"2026-01-13T19:30:40.967498","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:40.982489","level":"DEBUG","tag":"","message":"FLINT_HOT=null","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:40.985740","level":"DEBUG","tag":"","message":"[FLINT] Starting Parent Launcher (PID: 27155)...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:41.147632","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:44.765007","level":"DEBUG","tag":"","message":"🔥 Flint Hot Reload Watcher Started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:44.820845","level":"DEBUG","tag":"","message":"📂 Watching: lib/","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:44.821972","level":"DEBUG","tag":"","message":"⏱️  Debounce: 300ms for templates, 500ms for server code","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:44.822411","level":"DEBUG","tag":"","message":"📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:44.822783","level":"DEBUG","tag":"","message":"────────────────────────────────────────────────","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:44.825449","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:46.928102","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:52.450458","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:52.469928","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:52.530550","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 27252)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:52.572622","level":"DEBUG","tag":"","message":"[FLINT] Database auto-connected via .env","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:52.574810","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:30:52.575217","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:09.853424","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:09.865117","level":"DEBUG","tag":"","message":"FLINT_HOT=null","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:09.867988","level":"DEBUG","tag":"","message":"[FLINT] Starting Parent Launcher (PID: 27640)...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:10.028274","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:11.499514","level":"DEBUG","tag":"","message":"🔥 Flint Hot Reload Watcher Started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:11.539899","level":"DEBUG","tag":"","message":"📂 Watching: lib/","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:11.540739","level":"DEBUG","tag":"","message":"⏱️  Debounce: 300ms for templates, 500ms for server code","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:11.541047","level":"DEBUG","tag":"","message":"📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:11.541317","level":"DEBUG","tag":"","message":"────────────────────────────────────────────────","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:11.543106","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:13.613125","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:19.682326","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:19.705457","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:19.760339","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 27756)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:19.778537","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:19.778889","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:32:19.848100","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:21.198239","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:21.198705","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:21.275231","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:23.291700","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:28.751071","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:28.767533","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:28.801287","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 27937)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:28.819698","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:28.820110","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:28.913263","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:42.349696","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:42.351179","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:42.482445","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:44.495671","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:49.753628","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:49.763918","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:49.796858","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 28127)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:49.816214","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:49.816744","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:33:49.905294","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:19.444455","level":"DEBUG","tag":"","message":"\n[FLINT] Shutting down...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:32.079266","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:32.104937","level":"DEBUG","tag":"","message":"FLINT_HOT=null","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:32.114909","level":"DEBUG","tag":"","message":"[FLINT] Starting Parent Launcher (PID: 28612)...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:32.282064","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:33.682173","level":"DEBUG","tag":"","message":"🔥 Flint Hot Reload Watcher Started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:33.711580","level":"DEBUG","tag":"","message":"📂 Watching: lib/","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:33.712071","level":"DEBUG","tag":"","message":"⏱️  Debounce: 300ms for templates, 500ms for server code","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:33.712305","level":"DEBUG","tag":"","message":"📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:33.712481","level":"DEBUG","tag":"","message":"────────────────────────────────────────────────","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:33.713465","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:35.780740","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:40.549821","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:40.565476","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:40.609718","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 28742)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:40.636826","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:40.637459","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:40.770448","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:45.517150","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:45.518157","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:45.659228","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:47.678664","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:53.088594","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:53.111327","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:53.169302","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 28879)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:53.188986","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:53.189490","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:38:53.275079","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:04.082722","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:04.083536","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:04.219092","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:06.246705","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:11.543667","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:11.568550","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:11.630333","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 29069)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:11.648472","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:11.649212","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:11.721291","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:56.018727","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:56.019626","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:56.148849","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:39:58.166620","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:03.154749","level":"DEBUG","tag":"","message":"\n[FLINT] Shutting down launcher and child...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:03.161411","level":"DEBUG","tag":"","message":"\n[FLINT] Shutting down...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:13.569515","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:13.580322","level":"DEBUG","tag":"","message":"FLINT_HOT=null","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:13.583507","level":"DEBUG","tag":"","message":"[FLINT] Starting Parent Launcher (PID: 29443)...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:13.812268","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:15.132495","level":"DEBUG","tag":"","message":"🔥 Flint Hot Reload Watcher Started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:15.163307","level":"DEBUG","tag":"","message":"📂 Watching: lib/","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:15.163851","level":"DEBUG","tag":"","message":"⏱️  Debounce: 300ms for templates, 500ms for server code","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:15.164099","level":"DEBUG","tag":"","message":"📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:15.164392","level":"DEBUG","tag":"","message":"────────────────────────────────────────────────","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:15.165899","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:17.235127","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:25.122436","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:25.140772","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:25.192894","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 29570)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:25.222261","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:25.222889","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:25.342444","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:36.539105","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:36.539558","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:36.612367","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:38.628583","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:45.336079","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:45.346476","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:45.373101","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 29917)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:45.387955","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:45.388310","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:40:45.460234","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:22.610805","level":"DEBUG","tag":"","message":"\n[FLINT] Shutting down...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:46.230030","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:46.252983","level":"DEBUG","tag":"","message":"FLINT_HOT=null","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:46.258487","level":"DEBUG","tag":"","message":"[FLINT] Starting Parent Launcher (PID: 30762)...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:46.395011","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:47.458593","level":"DEBUG","tag":"","message":"🔥 Flint Hot Reload Watcher Started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:47.499894","level":"DEBUG","tag":"","message":"📂 Watching: lib/","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:47.500692","level":"DEBUG","tag":"","message":"⏱️  Debounce: 300ms for templates, 500ms for server code","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:47.500936","level":"DEBUG","tag":"","message":"📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:47.501164","level":"DEBUG","tag":"","message":"────────────────────────────────────────────────","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:47.502815","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:49.579248","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:53.631408","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:53.652513","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:53.704747","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 30841)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:53.729657","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:53.729207","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:48:53.794506","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:15.405227","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:15.406159","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:15.567277","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:17.586","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:41.725119","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:41.747493","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:41.818269","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 30990)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:41.845742","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:41.847180","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:49:41.930248","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:51:33.043414","level":"DEBUG","tag":"","message":"\n[FLINT] Shutting down...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:52:41.935702","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:52:41.975212","level":"DEBUG","tag":"","message":"FLINT_HOT=null","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:52:41.986169","level":"DEBUG","tag":"","message":"[FLINT] Starting Parent Launcher (PID: 31618)...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:52:42.156563","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:03.120726","level":"DEBUG","tag":"","message":"🔥 Flint Hot Reload Watcher Started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:03.158057","level":"DEBUG","tag":"","message":"📂 Watching: lib/","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:03.158875","level":"DEBUG","tag":"","message":"⏱️  Debounce: 300ms for templates, 500ms for server code","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:03.159229","level":"DEBUG","tag":"","message":"📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:03.159527","level":"DEBUG","tag":"","message":"────────────────────────────────────────────────","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:03.161580","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:05.273046","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:30.119387","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:30.137936","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:30.185239","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 31886)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:30.210406","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:30.211007","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:53:30.292263","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:22.330127","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:22.331213","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:22.478323","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:24.506997","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:50.559292","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:50.571273","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:50.602716","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 32425)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:50.620150","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:50.620620","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:54:50.692439","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:55:36.517755","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:55:36.518566","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:55:36.656381","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:55:38.672955","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:56:02.491215","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:56:02.501406","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:56:02.528714","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 32780)","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:56:02.544256","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:56:02.544628","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:56:02.616592","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:57:33.489390","level":"DEBUG","tag":"","message":"\n[FLINT] Shutting down...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:24.262277","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:24.281329","level":"DEBUG","tag":"","message":"FLINT_HOT=null","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:24.286774","level":"DEBUG","tag":"","message":"[FLINT] Starting Parent Launcher (PID: 33616)...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:24.484546","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:45.372198","level":"DEBUG","tag":"","message":"🔥 Flint Hot Reload Watcher Started","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:45.414462","level":"DEBUG","tag":"","message":"📂 Watching: lib/","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:45.415029","level":"DEBUG","tag":"","message":"⏱️  Debounce: 300ms for templates, 500ms for server code","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:45.415462","level":"DEBUG","tag":"","message":"📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:45.415675","level":"DEBUG","tag":"","message":"────────────────────────────────────────────────","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:45.417706","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T19:59:47.497397","level":"DEBUG","tag":"","message":"✅ Server started","error":null,"stack":null}
+{"timestamp":"2026-01-13T20:00:12.962120","level":"DEBUG","tag":"","message":"[FLINT] ⚠️ Hot reload is ENABLED.","error":null,"stack":null}
+{"timestamp":"2026-01-13T20:00:12.984231","level":"DEBUG","tag":"","message":"FLINT_HOT=1","error":null,"stack":null}
+{"timestamp":"2026-01-13T20:00:13.043458","level":"DEBUG","tag":"","message":"[FLINT] Server Worker running on http://localhost:3001 (PID: 34026)","error":null,"stack":null}
+{"timestamp":"2026-01-13T20:00:13.063357","level":"DEBUG","tag":"","message":"📧 Mail server configured for Eulogia Technologies <youremail@gmail.com>@sandbox.smtp.mailtrap.io","error":null,"stack":null}
+{"timestamp":"2026-01-13T20:00:13.063842","level":"INFO","tag":"","message":"📧 Mail configured using provider: smtp","error":null,"stack":null}
+{"timestamp":"2026-01-13T20:00:13.186693","level":"DEBUG","tag":"","message":"[DEBUG] Swagger UI directory: /home/aim/Projects/eulogia/flint/flint_dart/lib/swagger/swagger-ui","error":null,"stack":null}
+{"timestamp":"2026-01-13T21:03:25.352369","level":"DEBUG","tag":"","message":"[HOT-RELOAD] 🔄 Restarting server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T21:03:25.353996","level":"DEBUG","tag":"","message":"♻️ Stopping old server...","error":null,"stack":null}
+{"timestamp":"2026-01-13T21:03:25.458852","level":"DEBUG","tag":"","message":"🚀 Starting server...","error":null,"stack":null}
