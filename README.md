@@ -228,6 +228,31 @@ Made with ❤️ by the Flint Dart community.
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Dee-08">
+        <img src="https://github.com/Dee-08.png" width="100;" alt="Daniel DAVID"/><br />
+        <sub><b>Daniel DAVID</b></sub>
+      </a><br />
+      <sub>🖥️📖</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/EulogiaTechnologies">
+        <img src="https://github.com/EulogiaTechnologies.png" width="100;" alt="Eulogia Technologies"/><br />
+        <sub><b>Eulogia Technologies</b></sub>
+      </a><br />
+      <sub>⚙️🖥️</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Hybiekay">
+        <img src="https://github.com/Hybiekay.png" width="100;" alt="Samuel Adeoye"/><br />
+        <sub><b>Samuel Adeoye</b></sub>
+      </a><br />
+      <sub>🖥️📖⚙️</sub>
+    </td>
+  </tr>
+</table>
 <!-- markdownlint-restore -->
 <!-- prettier-ignore-end -->
 <!-- ALL-CONTRIBUTORS-LIST:END -->
