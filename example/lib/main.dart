@@ -13,7 +13,7 @@ void main() {
   final app = Flint(
     withDefaultMiddleware: true,
     enableSwaggerDocs: true,
-    autoConnectDb: true,
+    autoConnectDb: false,
     viewPath: 'lib/views',
   );
 
