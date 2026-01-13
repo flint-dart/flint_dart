@@ -212,43 +212,242 @@ class Flint {
   bool get isDatabaseConnected => _dbInitialized;
 
   // ===== HTTP ROUTES =====
-
-  /// Registers a GET route.
+  /// Registers a **GET** HTTP route on the application.
+  ///
+  /// This method maps an incoming HTTP GET request at the given [path]
+  /// to the provided [handler]. The handler will be executed when a
+  /// request with method `GET` matches the path.
+  ///
+  /// Internally, this creates a [RouteBuilder], registers the route
+  /// with the application's router, and returns the builder for
+  /// further configuration such as attaching middleware.
+  ///
+  /// ### Example
+  /// ```dart
+  /// app.get('/users', (req, res) async {
+  ///   return res.json({'message': 'All users'});
+  /// });
+  /// ```
+  ///
+  /// ### Chaining middleware
+  /// ```dart
+  /// app.get('/profile', handler)
+  ///    .use(AuthMiddleware());
+  /// ```
+  ///
+  /// ### Parameters
+  /// - [path]: The URL path to match (e.g. `/`, `/users`, `/posts/:id`)
+  /// - [handler]: The function that handles the request
+  ///
+  /// ### Returns
+  /// A [RouteBuilder] instance that can be used to attach
+  /// route-specific middleware or additional configuration.
   RouteBuilder get(String path, Handler handler) {
     final rb = RouteBuilder(_router, 'GET', path, handler);
     rb.register();
     return rb;
   }
 
-  /// Registers a POST route.
+  /// Registers a **POST** HTTP route on the application.
+  ///
+  /// This method maps an incoming HTTP POST request at the given [path]
+  /// to the provided [handler]. The handler is typically used to process
+  /// request bodies such as form data or JSON payloads.
+  ///
+  /// Internally, this creates a [RouteBuilder], registers the route
+  /// with the application's router, and returns the builder to allow
+  /// further configuration such as attaching route-specific middleware.
+  ///
+  /// ### Example
+  /// ```dart
+  /// app.post('/users', (req, res) async {
+  ///   final data = await req.json();
+  ///   return res.json({
+  ///     'success': true,
+  ///     'user': data,
+  ///   });
+  /// });
+  /// ```
+  ///
+  /// ### Chaining middleware
+  /// ```dart
+  /// app.post('/login', handler)
+  ///    .use(ValidateBodyMiddleware())
+  ///    .use(AuthMiddleware());
+  /// ```
+  ///
+  /// ### Parameters
+  /// - [path]: The URL path to match (e.g. `/users`, `/login`)
+  /// - [handler]: The function that handles the incoming request
+  ///
+  /// ### Returns
+  /// A [RouteBuilder] instance for attaching middleware or
+  /// performing additional route configuration.
   RouteBuilder post(String path, Handler handler) {
     final rb = RouteBuilder(_router, 'POST', path, handler);
     rb.register();
     return rb;
   }
 
-  /// Registers a PUT route.
+  /// Registers a **PUT** HTTP route on the application.
+  ///
+  /// This method maps an incoming HTTP PUT request at the given [path]
+  /// to the provided [handler]. PUT requests are typically used to
+  /// **update or replace** an existing resource.
+  ///
+  /// Internally, this creates a [RouteBuilder], registers the route
+  /// with the application's router, and returns the builder to allow
+  /// further configuration such as attaching route-specific middleware.
+  ///
+  /// ### Example
+  /// ```dart
+  /// app.put('/users/:id', (req, res) async {
+  ///   final id = req.params['id'];
+  ///   final data = await req.json();
+  ///
+  ///   return res.json({
+  ///     'updated': true,
+  ///     'id': id,
+  ///     'data': data,
+  ///   });
+  /// });
+  /// ```
+  ///
+  /// ### Chaining middleware
+  /// ```dart
+  /// app.put('/profile/:id', handler)
+  ///    .use(AuthMiddleware());
+  /// ```
+  ///
+  /// ### Parameters
+  /// - [path]: The URL path to match (e.g. `/users/:id`)
+  /// - [handler]: The function that handles the incoming request
+  ///
+  /// ### Returns
+  /// A [RouteBuilder] instance for attaching middleware or
+  /// performing additional route configuration.
   RouteBuilder put(String path, Handler handler) {
     final rb = RouteBuilder(_router, 'PUT', path, handler);
     rb.register();
     return rb;
   }
 
-  /// Registers a DELETE route.
+  /// Registers a **DELETE** HTTP route on the application.
+  ///
+  /// This method maps an incoming HTTP DELETE request at the given [path]
+  /// to the provided [handler]. DELETE routes are typically used to
+  /// **remove a resource** identified by the request path.
+  ///
+  /// Internally, this creates a [RouteBuilder], registers the route
+  /// with the application's router, and returns the builder to allow
+  /// further configuration such as attaching route-specific middleware.
+  ///
+  /// ### Example
+  /// ```dart
+  /// app.delete('/users/:id', (req, res) async {
+  ///   final id = req.params['id'];
+  ///
+  ///   return res.json({
+  ///     'deleted': true,
+  ///     'id': id,
+  ///   });
+  /// });
+  /// ```
+  ///
+  /// ### Chaining middleware
+  /// ```dart
+  /// app.delete('/posts/:id', handler)
+  ///    .use(AuthMiddleware());
+  /// ```
+  ///
+  /// ### Parameters
+  /// - [path]: The URL path to match (e.g. `/users/:id`)
+  /// - [handler]: The function that handles the incoming request
+  ///
+  /// ### Returns
+  /// A [RouteBuilder] instance for attaching middleware or
+  /// performing additional route configuration.
   RouteBuilder delete(String path, Handler handler) {
     final rb = RouteBuilder(_router, 'DELETE', path, handler);
     rb.register();
     return rb;
   }
 
-  /// Registers a PATCH route.
+  /// Registers a **PATCH** HTTP route on the application.
+  ///
+  /// This method maps an incoming HTTP PATCH request at the given [path]
+  /// to the provided [handler]. PATCH routes are typically used to
+  /// **partially update** an existing resource.
+  ///
+  /// Internally, this creates a [RouteBuilder], registers the route
+  /// with the application's router, and returns the builder to allow
+  /// further configuration such as attaching route-specific middleware.
+  ///
+  /// ### Example
+  /// ```dart
+  /// app.patch('/users/:id', (req, res) async {
+  ///   final id = req.params['id'];
+  ///   final updates = await req.json();
+  ///
+  ///   return res.json({
+  ///     'patched': true,
+  ///     'id': id,
+  ///     'updates': updates,
+  ///   });
+  /// });
+  /// ```
+  ///
+  /// ### Chaining middleware
+  /// ```dart
+  /// app.patch('/settings', handler)
+  ///    .use(AuthMiddleware());
+  /// ```
+  ///
+  /// ### Parameters
+  /// - [path]: The URL path to match (e.g. `/users/:id`)
+  /// - [handler]: The function that handles the incoming request
+  ///
+  /// ### Returns
+  /// A [RouteBuilder] instance for attaching middleware or
+  /// performing additional route configuration.
   RouteBuilder patch(String path, Handler handler) {
     final rb = RouteBuilder(_router, 'PATCH', path, handler);
     rb.register();
     return rb;
   }
 
-  /// Registers a route for a custom HTTP method.
+  /// Registers a route for a **custom HTTP method** on the application.
+  ///
+  /// This method allows you to define routes using HTTP methods that are
+  /// not covered by the standard helpers (`get`, `post`, `put`, etc.),
+  /// such as `OPTIONS`, `HEAD`, or any custom or extension method.
+  ///
+  /// Internally, this creates a [RouteBuilder], registers the route
+  /// with the application's router, and returns the builder to allow
+  /// further configuration such as attaching route-specific middleware.
+  ///
+  /// ### Example
+  /// ```dart
+  /// app.route('OPTIONS', '/users', (req, res) async {
+  ///   res.raw.headers.add('Allow', 'GET, POST, PUT, DELETE');
+  ///   return res.send('');
+  /// });
+  /// ```
+  ///
+  /// ### Chaining middleware
+  /// ```dart
+  /// app.route('HEAD', '/health', handler)
+  ///    .use(AuthMiddleware());
+  /// ```
+  ///
+  /// ### Parameters
+  /// - [method]: The HTTP method to match (e.g. `OPTIONS`, `HEAD`)
+  /// - [path]: The URL path to match
+  /// - [handler]: The function that handles the incoming request
+  ///
+  /// ### Returns
+  /// A [RouteBuilder] instance for attaching middleware or
+  /// performing additional route configuration.
   RouteBuilder route(String method, String path, Handler handler) {
     final rb = RouteBuilder(_router, method, path, handler);
     rb.register();
