@@ -54,7 +54,7 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
 <span class="name ">send</span>(<wbr>)
 
       
@@ -83,6 +83,7 @@
     if (bcc.isNotEmpty) mail.bccMany(bcc);
 
     await mail.sendMail();
+    (&#39;✅ Email sent with $data&#39;);
     Log.debug(&#39;✅ Email sent to: ${to.join(&#39;, &#39;)}&#39;);
   } catch (e) {
     Log.debug(&#39;❌ Failed to send view mail: $e&#39;);
@@ -116,7 +117,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

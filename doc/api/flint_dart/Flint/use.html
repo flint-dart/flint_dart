@@ -63,9 +63,37 @@
     </section>
     
 <section class="desc markdown">
-  <p>Adds a <code>middleware</code> to the application.</p>
-<p>Middlewares run for every incoming request in the order
-they are registered.</p>
+  <p>Adds a global <code>middleware</code> to the application.</p>
+<p>Middlewares registered with this method are executed for <strong>every
+incoming HTTP request</strong>, in the exact order they are added.
+Each middleware can inspect, modify, or short-circuit the request
+and response lifecycle.</p>
+<p>Middlewares are typically used for:</p>
+<ul>
+<li>Authentication and authorization</li>
+<li>Logging and request tracing</li>
+<li>Error handling</li>
+<li>Request/response transformation</li>
+</ul>
+<h3 id="execution-order">Execution order</h3>
+<pre class="language-dart"><code>Global middlewares (registered via use())
+→ RouteGroup middlewares
+→ Route-specific middlewares
+→ Route handler
+</code></pre>
+<h3 id="example">Example</h3>
+<pre class="language-dart"><code class="language-dart">app.use(LoggerMiddleware());
+app.use(AuthMiddleware());
+</code></pre>
+<h3 id="notes">Notes</h3>
+<ul>
+<li>Middleware order matters; earlier middlewares wrap later ones.</li>
+<li>Use route-specific middleware when logic should not apply globally.</li>
+</ul>
+<h3 id="parameters">Parameters</h3>
+<ul>
+<li><code>middleware</code>: The middleware to register globally.</li>
+</ul>
 </section>
 
 
@@ -100,7 +128,7 @@ they are registered.</p>
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

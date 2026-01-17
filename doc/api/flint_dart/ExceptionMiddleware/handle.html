@@ -56,7 +56,7 @@
       
   <div>
     <ol class="annotation-list">
-        <li>@<a href="https://api.dart.dev/stable/3.9.2/dart-core/override-constant.html">override</a></li>
+        <li>@<a href="https://api.dart.dev/stable/3.10.7/dart-core/override-constant.html">override</a></li>
     </ol>
   </div>
 <span class="returntype"><a href="../../flint_dart/Handler.html">Handler</a></span>
@@ -118,6 +118,15 @@ Handler handle(Handler next) {
       return res.json({&quot;status&quot;: false, &quot;message&quot;: e.message}, status: 500);
     } on ForbiddenErorr catch (e) {
       return res.json({&quot;status&quot;: false, &quot;message&quot;: e.message}, status: 500);
+    } on AuthException catch (e) {
+      return res.json(
+        {
+          &quot;status&quot;: false,
+          &quot;error&quot;: &quot;Unauthorized&quot;,
+          &quot;message&quot;: e.message,
+        },
+        status: 401,
+      );
     } on Exception catch (e) {
       final msg = e.toString().toLowerCase();
 
@@ -170,7 +179,7 @@ Handler handle(Handler next) {
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

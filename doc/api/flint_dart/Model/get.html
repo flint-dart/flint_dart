@@ -54,31 +54,28 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.7/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span>
 <span class="name ">get</span>(<wbr>)
 
       
 
     </section>
     
-<section class="desc markdown">
-  <p>Execute the query and get results</p>
-</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;List&lt;T&gt;&gt; get() async {
-  final rows = await _qb.get();
-
+  final results = await qb.get();
   final models =
-      rows.map((map) =&gt; fromMap(_convertDatabaseTypes(map))).toList();
+      results.map((map) =&gt; fromMap(_convertDatabaseTypes(map))).toList();
 
-  if (_qb.relations.isNotEmpty) {
-    await _loadRelations(models, _qb.relations);
+  &#47;&#47; If we have requested relations, load them
+  if (qb.withRelations.isNotEmpty) {
+    await _loadRelationsForModels(models);
   }
-  _resetQuery();
+
   return models;
 }</code></pre>
 </section>
@@ -108,7 +105,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

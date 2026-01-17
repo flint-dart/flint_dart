@@ -54,25 +54,29 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
 <span class="name ">first</span>(<wbr>)
 
       
 
     </section>
     
-<section class="desc markdown">
-  <p>Get first result</p>
-</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;T?&gt; first() async {
-  final result = await _qb.first();
-  _resetQuery();
-  return result != null ? fromMap(_convertDatabaseTypes(result)) : null;
+  final result = await qb.first();
+  if (result == null) return null;
+  final model = fromMap(_convertDatabaseTypes(result));
+
+  &#47;&#47; If we have requested relations, load them
+  if (qb.withRelations.isNotEmpty) {
+    await _loadRelationsForModels([model]);
+  }
+
+  return model;
 }</code></pre>
 </section>
 
@@ -101,7 +105,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>
