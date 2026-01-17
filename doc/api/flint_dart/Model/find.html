@@ -54,7 +54,7 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">T?</span>&gt;</span></span>
 <span class="name ">find</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="find-param-id"><span class="type-annotation">dynamic</span> <span class="parameter-name">id</span></span></li>
 </ol>)
 
@@ -62,34 +62,15 @@
 
     </section>
     
-<section class="desc markdown">
-  <p>Find by ID</p>
-</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Future&lt;T?&gt; find(dynamic id) async {
-  if (DB.driver == DBDriver.mysql) {
-    &#47;&#47; Use positional parameters for MySQL
-    final result = await DB.query(
-      &#39;SELECT * FROM ${table.name} WHERE $primaryKey = ? LIMIT 1&#39;,
-      positionalParams: [id],
-    );
-    return result.isNotEmpty
-        ? fromMap(_convertDatabaseTypes(result.first))
-        : null;
-  } else {
-    &#47;&#47; Use named parameters for PostgreSQL
-    final result = await DB.query(
-      &#39;SELECT * FROM ${table.name} WHERE $primaryKey = :id LIMIT 1&#39;,
-      namedParams: {&#39;id&#39;: id},
-    );
-    return result.isNotEmpty
-        ? fromMap(_convertDatabaseTypes(result.first))
-        : null;
-  }
+  final map = await qb.where(primaryKey, &quot;=&quot;, id).first();
+  if (map == null) return null;
+  return fromMap(_convertDatabaseTypes(map));
 }</code></pre>
 </section>
 
@@ -118,7 +99,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

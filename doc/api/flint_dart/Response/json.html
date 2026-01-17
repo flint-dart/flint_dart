@@ -54,9 +54,9 @@
 
     <section class="multi-line-signature">
       
-<span class="returntype"><a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../flint_dart/Response-class.html">Response</a></span>&gt;</span></span>
+<span class="returntype"><a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../flint_dart/Response-class.html">Response</a></span>&gt;</span></span>
 <span class="name ">json</span>(<wbr><ol class="parameter-list"> <li><span class="parameter" id="json-param-data"><span class="type-annotation">dynamic</span> <span class="parameter-name">data</span>, {</span></li>
-<li><span class="parameter" id="json-param-status"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">status</span>, </span></li>
+<li><span class="parameter" id="json-param-status"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/int-class.html">int</a>?</span> <span class="parameter-name">status</span>, </span></li>
 </ol>})
 
       
@@ -64,7 +64,7 @@
     </section>
     
 <section class="desc markdown">
-  <p>Sends a JSON response with a <a href="https://api.dart.dev/stable/3.9.2/dart-core/Map-class.html">Map</a> or <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a>.</p>
+  <p>Sends a JSON response with a <a href="https://api.dart.dev/stable/3.10.7/dart-core/Map-class.html">Map</a> or <a href="https://api.dart.dev/stable/3.10.7/dart-core/List-class.html">List</a>.</p>
 <p>Automatically sets the <code>Content-Type</code> header to <code>application/json</code>.
 <code>status</code> can be provided to override the HTTP status code.</p>
 </section>
@@ -112,6 +112,12 @@
       return value; &#47;&#47; primitives or unsupported objects
     }
 
+    if (data is Exception) {
+      data = {
+        &#39;error&#39;: data.runtimeType.toString(),
+        &#39;message&#39;: data.toString(),
+      };
+    }
     final safeData = await sanitize(data);
     final encoded = jsonEncode(safeData);
 
@@ -155,7 +161,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

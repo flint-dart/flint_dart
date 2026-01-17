@@ -61,92 +61,45 @@
 
     </section>
     
+<section class="desc markdown">
+  <p>Call this once during app bootstrap
+or anywhere you need to reconfigure mail.</p>
+</section>
 
 
     
 <section class="summary source-code" id="source">
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">static void load() {
-  final provider = FlintEnv.get(&#39;MAIL_PROVIDER&#39;, &#39;smtp&#39;);
+  final providerStr = FlintEnv.get(&#39;MAIL_PROVIDER&#39;, &#39;custom&#39;).toLowerCase();
+
+  final provider = _parseProvider(providerStr);
+
   final host = FlintEnv.get(&#39;MAIL_HOST&#39;, &#39;localhost&#39;);
   final port = FlintEnv.getInt(&#39;MAIL_PORT&#39;, 25);
   final username = FlintEnv.get(&#39;MAIL_USERNAME&#39;, &#39;&#39;);
   final password = FlintEnv.get(&#39;MAIL_PASSWORD&#39;, &#39;&#39;);
-  final encryption = FlintEnv.get(&#39;MAIL_ENCRYPTION&#39;, &#39;tls&#39;);
-  final fromEmail = FlintEnv.get(&#39;MAIL_FROM_ADDRESS&#39;, &#39;tls&#39;);
-  final fromName = FlintEnv.get(&quot;MAIL_FROM_NAME&quot;, &quot;Flint dart&quot;);
-  final useSSL = encryption.toLowerCase() == &#39;ssl&#39;;
-  final useTLS = encryption.toLowerCase() == &#39;tls&#39;;
+  final encryption = FlintEnv.get(&#39;MAIL_ENCRYPTION&#39;, &#39;tls&#39;).toLowerCase();
 
-  switch (provider) {
-    case &#39;gmail&#39;:
-      Mail.setup(
-          host: host,
-          port: port,
-          username: username,
-          password: password,
-          fromAddress: fromEmail,
-          fromName: fromName,
-          useSSL: useSSL,
-          useTLS: useTLS);
-      break;
-    case &#39;outlook&#39;:
-      Mail.setup(
-          host: host,
-          port: port,
-          username: username,
-          password: password,
-          useSSL: useSSL,
-          fromAddress: fromEmail,
-          fromName: fromName,
-          useTLS: useTLS);
-      break;
-    case &#39;zoho&#39;:
-      Mail.setup(
-          host: host,
-          port: port,
-          username: username,
-          password: password,
-          fromAddress: fromEmail,
-          fromName: fromName,
-          useSSL: useSSL,
-          useTLS: useTLS);
-      break;
-    case &#39;mailgun&#39;:
-      Mail.setup(
-          host: host,
-          port: port,
-          username: username,
-          password: password,
-          fromAddress: fromEmail,
-          fromName: fromName,
-          useSSL: useSSL,
-          useTLS: useTLS);
-      break;
-    case &#39;sendgrid&#39;:
-      Mail.setup(
-          host: host,
-          port: port,
-          username: username,
-          password: password,
-          fromAddress: fromEmail,
-          fromName: fromName,
-          useSSL: useSSL,
-          useTLS: useTLS);
-      break;
-    default:
-      Mail.setup(
-          host: host,
-          port: port,
-          username: username,
-          password: password,
-          fromAddress: fromEmail,
-          fromName: fromName,
-          useSSL: useSSL,
-          useTLS: useTLS);
-  }
+  final fromAddress = FlintEnv.get(&#39;MAIL_FROM_ADDRESS&#39;, &#39;noreply@localhost&#39;);
+  final fromName = FlintEnv.get(&#39;MAIL_FROM_NAME&#39;, &#39;Flint Dart&#39;);
 
-  Log.debug(&#39;📧 Mail configured automatically for provider: $provider&#39;);
+  final useSSL = encryption == &#39;ssl&#39;;
+  final useTLS = encryption == &#39;tls&#39;;
+
+  Mail.setup(
+    provider: provider,
+    host: host,
+    port: port,
+    username: username,
+    password: password,
+    fromAddress: fromAddress,
+    fromName: fromName,
+    useSSL: useSSL,
+    useTLS: useTLS,
+  );
+
+  Log.info(&#39;📧 Mail configured using provider: $providerStr&#39;);
 }</code></pre>
 </section>
 
@@ -175,7 +128,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

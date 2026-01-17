@@ -116,12 +116,20 @@
   Describes a column in a database table.
 </dd>
 
-          <dt id="CookieMiddleware">
-  <span class="name "><a href="../flint_dart/CookieMiddleware-class.html">CookieMiddleware</a></span> 
+          <dt id="CookieSessionMiddleware">
+  <span class="name "><a href="../flint_dart/CookieSessionMiddleware-class.html">CookieSessionMiddleware</a></span> 
 
 </dt>
 <dd>
-  🍪 Cookie Middleware (Cleaner)
+  ================= Middleware Example =================
+</dd>
+
+          <dt id="CorsMiddleware">
+  <span class="name "><a href="../flint_dart/CorsMiddleware-class.html">CorsMiddleware</a></span> 
+
+</dt>
+<dd>
+  
 </dd>
 
           <dt id="Default">
@@ -134,6 +142,14 @@
 
           <dt id="ExceptionMiddleware">
   <span class="name "><a href="../flint_dart/ExceptionMiddleware-class.html">ExceptionMiddleware</a></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
+          <dt id="FileRange">
+  <span class="name "><a href="../flint_dart/FileRange-class.html">FileRange</a></span> 
 
 </dt>
 <dd>
@@ -202,7 +218,7 @@ support for JSON, file uploads/downloads, progress tracking, caching, and retrie
 
 </dt>
 <dd>
-  Represents a foreign key constraint between tables.
+  
 </dd>
 
           <dt id="GeminiChatCandidate">
@@ -357,6 +373,30 @@ support for JSON, file uploads/downloads, progress tracking, caching, and retrie
   ---------------- Postgres ----------------
 </dd>
 
+          <dt id="RelationConfig">
+  <span class="name "><a href="../flint_dart/RelationConfig-class.html">RelationConfig</a></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
+          <dt id="RelationDefinition">
+  <span class="name "><a href="../flint_dart/RelationDefinition-class.html">RelationDefinition</a><span class="signature">&lt;<wbr><span class="type-parameter">T extends <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
+          <dt id="Relations">
+  <span class="name "><a href="../flint_dart/Relations-class.html">Relations</a></span> 
+
+</dt>
+<dd>
+  Clean, static helper methods for defining relations
+</dd>
+
           <dt id="Request">
   <span class="name "><a href="../flint_dart/Request-class.html">Request</a></span> 
 
@@ -370,7 +410,7 @@ support for JSON, file uploads/downloads, progress tracking, caching, and retrie
 
 </dt>
 <dd>
-  A wrapper around <a href="https://api.dart.dev/stable/3.9.2/dart-io/HttpResponse-class.html">HttpResponse</a> for sending HTTP responses in Flint Dart.
+  A wrapper around <a href="https://api.dart.dev/stable/3.10.7/dart-io/HttpResponse-class.html">HttpResponse</a> for sending HTTP responses in Flint Dart.
 </dd>
 
           <dt id="RetryConfig">
@@ -411,6 +451,14 @@ support for JSON, file uploads/downloads, progress tracking, caching, and retrie
 </dt>
 <dd>
   Base dialect interface
+</dd>
+
+          <dt id="StaticFileMiddleware">
+  <span class="name "><a href="../flint_dart/StaticFileMiddleware-class.html">StaticFileMiddleware</a></span> 
+
+</dt>
+<dd>
+  
 </dd>
 
           <dt id="Table">
@@ -468,8 +516,24 @@ Enum representing supported column types for a table schema.
   Enum representing the type of response returned by the Flint client.
 </dd>
 
+          <dt id="ForeignKeyAction">
+  <span class="name "><a href="../flint_dart/ForeignKeyAction.html">ForeignKeyAction</a></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
           <dt id="HashingAlgorithm">
   <span class="name "><a href="../flint_dart/HashingAlgorithm.html">HashingAlgorithm</a></span> 
+
+</dt>
+<dd>
+  
+</dd>
+
+          <dt id="RelationType">
+  <span class="name "><a href="../flint_dart/RelationType.html">RelationType</a></span> 
 
 </dt>
 <dd>
@@ -512,7 +576,7 @@ Enum representing supported column types for a table schema.
 
           <dt id="FirstWhereOrNullExtension">
   <span class="name "><a href="../flint_dart/FirstWhereOrNullExtension.html">FirstWhereOrNullExtension</a></span>
-  on <a href="https://api.dart.dev/stable/3.9.2/dart-core/Iterable-class.html">Iterable</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
+  on <a href="https://api.dart.dev/stable/3.10.7/dart-core/Iterable-class.html">Iterable</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
   
 
 </dt>
@@ -532,7 +596,17 @@ Enum representing supported column types for a table schema.
 
           <dt id="FutureModelListExtension">
   <span class="name "><a href="../flint_dart/FutureModelListExtension.html">FutureModelListExtension</a></span>
-  on <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>
+  on <a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.7/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span></span>&gt;</span>
+  
+
+</dt>
+<dd>
+  
+</dd>
+
+          <dt id="ModelCrud">
+  <span class="name "><a href="../flint_dart/ModelCrud.html">ModelCrud</a></span>
+  on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
   
 
 </dt>
@@ -542,7 +616,7 @@ Enum representing supported column types for a table schema.
 
           <dt id="ModelListExtension">
   <span class="name "><a href="../flint_dart/ModelListExtension.html">ModelListExtension</a></span>
-  on <a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
+  on <a href="https://api.dart.dev/stable/3.10.7/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
   
 
 </dt>
@@ -550,16 +624,24 @@ Enum representing supported column types for a table schema.
   
 </dd>
 
-          <dt id="ModelRelationships">
-  <span class="name "><a href="../flint_dart/ModelRelationships.html">ModelRelationships</a></span>
-  on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span>
+          <dt id="ModelQuery">
+  <span class="name "><a href="../flint_dart/ModelQuery.html">ModelQuery</a></span>
+  on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
   
 
 </dt>
 <dd>
-  Relationships extension using factory constructors for each related model.
-Usage examples (in model classes):
-Defines a one-to-one inverse relationship between models.
+  
+</dd>
+
+          <dt id="ModelRelations">
+  <span class="name "><a href="../flint_dart/ModelRelations.html">ModelRelations</a></span>
+  on <a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter">T</span>&gt;</span>
+  
+
+</dt>
+<dd>
+  Relation methods for Model
 </dd>
 
           <dt id="OAuthResponse">
@@ -586,13 +668,30 @@ Defines a one-to-one inverse relationship between models.
     </section>
 
 
+    <section class="summary offset-anchor" id="properties">
+      <h2>Properties</h2>
+      <dl class="properties">
+          <dt id="relationLoaders" class="property">
+  <span class="name"><a href="../model/relationLoaders.html">relationLoaders</a></span>
+  <span class="signature">&#8594; <a href="https://api.dart.dev/stable/3.10.7/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span>, <span class="type-parameter">dynamic</span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+      </dl>
+    </section>
 
     <section class="summary offset-anchor" id="functions">
       <h2>Functions</h2>
       <dl class="callables">
           <dt id="getTableSchema" class="callable">
-  <span class="name"><a href="../flint_dart/getTableSchema.html">getTableSchema</a></span><span class="signature">(<wbr><span class="parameter" id="getTableSchema-param-tableName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span> <span class="parameter-name">tableName</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Table-class.html">Table</a>?</span>&gt;</span></span>
+  <span class="name"><a href="../flint_dart/getTableSchema.html">getTableSchema</a></span><span class="signature">(<wbr><span class="parameter" id="getTableSchema-param-tableName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span> <span class="parameter-name">tableName</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Table-class.html">Table</a>?</span>&gt;</span></span>
   </span>
   
 
@@ -603,9 +702,35 @@ Defines a one-to-one inverse relationship between models.
 
 </dd>
 
+          <dt id="loadRelations" class="callable">
+  <span class="name"><a href="../flint_dart/loadRelations.html">loadRelations</a></span><span class="signature">(<wbr><span class="parameter" id="loadRelations-param-parents"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">parents</span>, </span><span class="parameter" id="loadRelations-param-relations"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">relations</span>, </span><span class="parameter" id="loadRelations-param-modelClassName"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span> <span class="parameter-name">modelClassName</span>, </span><span class="parameter" id="loadRelations-param-relationConfigs"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="../flint_dart/RelationConfig-class.html">RelationConfig</a></span>&gt;</span>?</span> <span class="parameter-name">relationConfigs</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Load relations for a list of parent models
+  
+
+</dd>
+
+          <dt id="looksLikeDateTime" class="callable">
+  <span class="name"><a href="../flint_dart/looksLikeDateTime.html">looksLikeDateTime</a></span><span class="signature">(<wbr><span class="parameter" id="looksLikeDateTime-param-value"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span> <span class="parameter-name">value</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.7/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  
+  
+
+</dd>
+
           <dt id="parseInt" class="callable">
   <span class="name"><a href="../flint_dart/parseInt.html">parseInt</a></span><span class="signature">(<wbr><span class="parameter" id="parseInt-param-value"><span class="type-annotation">dynamic</span> <span class="parameter-name">value</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a>?</span>
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.7/dart-core/int-class.html">int</a>?</span>
   </span>
   
 
@@ -618,7 +743,7 @@ Defines a one-to-one inverse relationship between models.
 
           <dt id="parseMySQLType" class="callable">
   <span class="name"><a href="../flint_dart/parseMySQLType.html">parseMySQLType</a></span><span class="signature">(<wbr><span class="parameter" id="parseMySQLType-param-rawType"><span class="type-annotation">dynamic</span> <span class="parameter-name">rawType</span></span>)
-    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.9.2/dart-core/String-class.html">String</a></span>
+    <span class="returntype parameter">&#8594; <a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span>
   </span>
   
 
@@ -630,7 +755,7 @@ Defines a one-to-one inverse relationship between models.
 </dd>
 
           <dt id="runTableRegistry" class="callable">
-  <span class="name"><a href="../flint_dart/runTableRegistry.html">runTableRegistry</a></span><span class="signature">(<wbr><span class="parameter" id="runTableRegistry-param-tables"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Table-class.html">Table</a></span>&gt;</span></span> <span class="parameter-name">tables</span>, [</span><span class="parameter" id="runTableRegistry-param-_"><span class="type-annotation">dynamic</span> <span class="parameter-name">_</span>, </span><span class="parameter" id="runTableRegistry-param-sendPort"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/worker_manager/SendPort-class.html">SendPort</a>?</span> <span class="parameter-name">sendPort</span></span>])
+  <span class="name"><a href="../flint_dart/runTableRegistry.html">runTableRegistry</a></span><span class="signature">(<wbr><span class="parameter" id="runTableRegistry-param-tables"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Table-class.html">Table</a></span>&gt;</span></span> <span class="parameter-name">tables</span>, [</span><span class="parameter" id="runTableRegistry-param-_"><span class="type-annotation">dynamic</span> <span class="parameter-name">_</span>, </span><span class="parameter" id="runTableRegistry-param-sendPort"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/worker_manager/SendPort-class.html">SendPort</a>?</span> <span class="parameter-name">sendPort</span></span>])
     <span class="returntype parameter">&#8594; void</span>
   </span>
   
@@ -665,7 +790,7 @@ Defines a one-to-one inverse relationship between models.
           
   <dt id="Handler" class="callable">
     <span class="name"><a href="../flint_dart/Handler.html">Handler</a></span><span class="signature">
-      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.9.2/dart-async/FutureOr-class.html">FutureOr</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Response-class.html">Response</a>?</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-req"><span class="type-annotation"><a href="../flint_dart/Request-class.html">Request</a></span> <span class="parameter-name">req</span>, </span><span class="parameter" id="param-res"><span class="type-annotation"><a href="../flint_dart/Response-class.html">Response</a></span> <span class="parameter-name">res</span></span>)</span></span>
+      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.10.7/dart-async/FutureOr-class.html">FutureOr</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Response-class.html">Response</a>?</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-req"><span class="type-annotation"><a href="../flint_dart/Request-class.html">Request</a></span> <span class="parameter-name">req</span>, </span><span class="parameter" id="param-res"><span class="type-annotation"><a href="../flint_dart/Response-class.html">Response</a></span> <span class="parameter-name">res</span></span>)</span></span>
     </span>
     
 
@@ -693,7 +818,7 @@ Defines a one-to-one inverse relationship between models.
           
   <dt id="ProgressCallback" class="callable">
     <span class="name"><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/ProgressCallback.html">ProgressCallback</a></span><span class="signature">
-      <span class="returntype parameter">= void Function<span class="signature">(<span class="parameter" id="param-sent"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">sent</span>, </span><span class="parameter" id="param-total"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">total</span></span>)</span></span>
+      <span class="returntype parameter">= void Function<span class="signature">(<span class="parameter" id="param-sent"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/int-class.html">int</a></span> <span class="parameter-name">sent</span>, </span><span class="parameter" id="param-total"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/int-class.html">int</a></span> <span class="parameter-name">total</span></span>)</span></span>
     </span>
     
 
@@ -702,20 +827,6 @@ Defines a one-to-one inverse relationship between models.
     Callback type to track upload or download progress.
 <code>sent</code> is the number of bytes sent or received.
 <code>total</code> is the total number of bytes.
-    
-
-  </dd>
-
-          
-  <dt id="RelationLoader" class="callable">
-    <span class="name"><a href="../flint_dart/RelationLoader.html">RelationLoader</a></span><span class="signature">
-      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-parents"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../flint_dart/Model-class.html">Model</a></span>&gt;</span></span>&gt;</span></span> <span class="parameter-name">parents</span></span>)</span></span>
-    </span>
-    
-
-  </dt>
-  <dd>
-    
     
 
   </dd>
@@ -737,7 +848,7 @@ Defines a one-to-one inverse relationship between models.
           
   <dt id="RequestInterceptor" class="callable">
     <span class="name"><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/RequestInterceptor.html">RequestInterceptor</a></span><span class="signature">
-      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-request"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-io/HttpClientRequest-class.html">HttpClientRequest</a></span> <span class="parameter-name">request</span></span>)</span></span>
+      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-request"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-io/HttpClientRequest-class.html">HttpClientRequest</a></span> <span class="parameter-name">request</span></span>)</span></span>
     </span>
     
 
@@ -751,7 +862,7 @@ Defines a one-to-one inverse relationship between models.
           
   <dt id="ResponseInterceptor" class="callable">
     <span class="name"><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/ResponseInterceptor.html">ResponseInterceptor</a></span><span class="signature">
-      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.9.2/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-response"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-io/HttpClientResponse-class.html">HttpClientResponse</a></span> <span class="parameter-name">response</span></span>)</span></span>
+      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.10.7/dart-core/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span> Function<span class="signature">(<span class="parameter" id="param-response"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-io/HttpClientResponse-class.html">HttpClientResponse</a></span> <span class="parameter-name">response</span></span>)</span></span>
     </span>
     
 
@@ -765,7 +876,7 @@ Defines a one-to-one inverse relationship between models.
           
   <dt id="RetryEvaluator" class="callable">
     <span class="name"><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/RetryEvaluator.html">RetryEvaluator</a></span><span class="signature">
-      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.9.2/dart-core/bool-class.html">bool</a> Function<span class="signature">(<span class="parameter" id="param-error"><span class="type-annotation"><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/FlintError-class.html">FlintError</a></span> <span class="parameter-name">error</span>, </span><span class="parameter" id="param-attempt"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.9.2/dart-core/int-class.html">int</a></span> <span class="parameter-name">attempt</span></span>)</span></span>
+      <span class="returntype parameter">= <a href="https://api.dart.dev/stable/3.10.7/dart-core/bool-class.html">bool</a> Function<span class="signature">(<span class="parameter" id="param-error"><span class="type-annotation"><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/FlintError-class.html">FlintError</a></span> <span class="parameter-name">error</span>, </span><span class="parameter" id="param-attempt"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/int-class.html">int</a></span> <span class="parameter-name">attempt</span></span>)</span></span>
     </span>
     
 
@@ -818,12 +929,14 @@ Defines a one-to-one inverse relationship between models.
       <li class="section-title">Libraries</li>
       <li><a href="../auth/">auth</a></li>
       <li><a href="../cache/">cache</a></li>
-      <li><a href="../core_helpers/">core\helpers</a></li>
+      <li><a href="../core_helpers/">core/helpers</a></li>
       <li><a href="../db/">db</a></li>
+      <li><a href="../exception/">exception</a></li>
       <li><a href="../flint_dart/">flint_dart</a></li>
       <li><a href="../flint_ui/">flint_ui</a></li>
       <li><a href="../helper/">helper</a></li>
       <li><a href="../isolate/">isolate</a></li>
+      <li><a href="../logs/">logs</a></li>
       <li><a href="../mail/">mail</a></li>
       <li><a href="../middlewares/">middlewares</a></li>
       <li><a href="../model/">model</a></li>
@@ -842,7 +955,7 @@ Defines a one-to-one inverse relationship between models.
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>

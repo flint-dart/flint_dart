@@ -6,9 +6,11 @@
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/CachedResponse-class.html">CachedResponse</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/CacheStore-class.html">CacheStore</a></li>
         <li><a href="flint_dart/Column-class.html">Column</a></li>
-        <li><a href="flint_dart/CookieMiddleware-class.html">CookieMiddleware</a></li>
+        <li><a href="flint_dart/CookieSessionMiddleware-class.html">CookieSessionMiddleware</a></li>
+        <li><a href="flint_dart/CorsMiddleware-class.html">CorsMiddleware</a></li>
         <li><a href="flint_dart/Default-class.html">Default</a></li>
         <li><a href="flint_dart/ExceptionMiddleware-class.html">ExceptionMiddleware</a></li>
+        <li><a href="flint_dart/FileRange-class.html">FileRange</a></li>
         <li><a href="flint_dart/Flint-class.html">Flint</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/FlintClient-class.html">FlintClient</a></li>
         <li><a href="flint_dart/FlintEnv-class.html">FlintEnv</a></li>
@@ -36,6 +38,9 @@
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/OpenAIProvider-class.html">OpenAIProvider</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/OpenAIResponse-class.html">OpenAIResponse</a></li>
         <li><a href="flint_dart/PostgresDialect-class.html">PostgresDialect</a></li>
+        <li><a href="flint_dart/RelationConfig-class.html">RelationConfig</a></li>
+        <li><a href="flint_dart/RelationDefinition-class.html">RelationDefinition</a></li>
+        <li><a href="flint_dart/Relations-class.html">Relations</a></li>
         <li><a href="flint_dart/Request-class.html">Request</a></li>
         <li><a href="flint_dart/Response-class.html">Response</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/RetryConfig-class.html">RetryConfig</a></li>
@@ -43,6 +48,7 @@
         <li><a href="flint_dart/RouteGroup-class.html">RouteGroup</a></li>
         <li><a href="flint_dart/Router-class.html">Router</a></li>
         <li><a href="flint_dart/SQLDialect-class.html">SQLDialect</a></li>
+        <li><a href="flint_dart/StaticFileMiddleware-class.html">StaticFileMiddleware</a></li>
         <li><a href="flint_dart/Table-class.html">Table</a></li>
         <li><a href="flint_dart/UploadedFile-class.html">UploadedFile</a></li>
         <li><a href="flint_dart/Validator-class.html">Validator</a></li>
@@ -51,16 +57,22 @@
       <li class="section-title"><a href="flint_dart/#enums">Enums</a></li>
         <li><a href="flint_dart/ColumnType.html">ColumnType</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/FlintResponseType.html">FlintResponseType</a></li>
+        <li><a href="flint_dart/ForeignKeyAction.html">ForeignKeyAction</a></li>
         <li><a href="flint_dart/HashingAlgorithm.html">HashingAlgorithm</a></li>
+        <li><a href="flint_dart/RelationType.html">RelationType</a></li>
         <li><a href="flint_dart/RespondType.html">RespondType</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/WebSocketConnectionState.html">WebSocketConnectionState</a></li>
 
 
 
 
+      <li class="section-title"><a href="flint_dart/#properties">Properties</a></li>
+        <li><a href="model/relationLoaders.html">relationLoaders</a></li>
 
       <li class="section-title"><a href="flint_dart/#functions">Functions</a></li>
         <li><a href="flint_dart/getTableSchema.html">getTableSchema</a></li>
+        <li><a href="flint_dart/loadRelations.html">loadRelations</a></li>
+        <li><a href="flint_dart/looksLikeDateTime.html">looksLikeDateTime</a></li>
         <li><a href="flint_dart/parseInt.html">parseInt</a></li>
         <li><a href="flint_dart/parseMySQLType.html">parseMySQLType</a></li>
         <li><a href="flint_dart/runTableRegistry.html">runTableRegistry</a></li>
@@ -70,7 +82,6 @@
         <li><a href="flint_dart/Handler.html">Handler</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/JsonParser.html">JsonParser</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/ProgressCallback.html">ProgressCallback</a></li>
-        <li><a href="flint_dart/RelationLoader.html">RelationLoader</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/RequestDoneCallback.html">RequestDoneCallback</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/RequestInterceptor.html">RequestInterceptor</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/ResponseInterceptor.html">ResponseInterceptor</a></li>
@@ -85,8 +96,10 @@
         <li><a href="flint_dart/FirstWhereOrNullExtension.html">FirstWhereOrNullExtension</a></li>
         <li><a href="https://pub.dev/documentation/flint_client/0.0.1+5/flint_client/FlintClientFileSaver.html">FlintClientFileSaver</a></li>
         <li><a href="flint_dart/FutureModelListExtension.html">FutureModelListExtension</a></li>
+        <li><a href="flint_dart/ModelCrud.html">ModelCrud</a></li>
         <li><a href="flint_dart/ModelListExtension.html">ModelListExtension</a></li>
-        <li><a href="flint_dart/ModelRelationships.html">ModelRelationships</a></li>
+        <li><a href="flint_dart/ModelQuery.html">ModelQuery</a></li>
+        <li><a href="flint_dart/ModelRelations.html">ModelRelations</a></li>
         <li><a href="flint_dart/OAuthResponse.html">OAuthResponse</a></li>
         <li><a href="flint_dart/TableSQL.html">TableSQL</a></li>
 </ol>

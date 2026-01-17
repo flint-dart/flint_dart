@@ -43,7 +43,12 @@
   <div id="dartdoc-main-content" class="main-content">
       
 <section class="desc markdown">
-  <h1 id="flint-dart-">Flint Dart 🔥</h1>
+  <p>Perfect! Here’s a <strong>fully updated README.md</strong> for Flint Dart with a polished <strong>contributors section</strong> added at the end. I’ve also cleaned up minor formatting issues so it’s consistent and professional.</p>
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+<p><a href="#contributors-"><img src="https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square" alt="All Contributors"></a></p>
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+<hr>
+<h1 id="flint-dart-">Flint Dart 🔥</h1>
 <h3 id="-flint-dart">🚀 <strong>Flint Dart</strong></h3>
 <p><strong>Flint Dart</strong> is a high-performance, expressive, and extensible server-side framework built entirely with Dart.
 Designed for developers who demand speed and simplicity, it delivers everything you need to build RESTful APIs, authentication systems, and scalable backend services — all with clean, modern syntax and hot-reload precision.</p>
@@ -124,20 +129,16 @@ Flint Dart gives you the freedom to create powerful applications without the lim
 </ul>
 <hr>
 <h2 id="-getting-started">🚀 Getting Started</h2>
-<h3 id="1--install-as-a-global-package">1.  Install as a Global Package</h3>
-<p>If you want to quickly create and run apps without adding Flint as a dependency, install it globally:</p>
+<h3 id="1-install-as-a-global-package">1. Install as a Global Package</h3>
 <pre class="language-bash"><code class="language-bash">dart pub global activate flint_dart
 </code></pre>
 <pre class="language-bash"><code class="language-bash">flint create new_app   # Create a new Flint project
 flint run              # Run the project
 </code></pre>
 <h3 id="2-add-as-a-project-dependency">2. Add as a Project Dependency</h3>
-<p>If you prefer Flint to be part of your project’s dependencies:</p>
 <pre class="language-bash"><code class="language-bash">dart pub add flint_dart
 </code></pre>
-<pre class="language-bash"><code class="language-bash">dart run 
-</code></pre>
-<pre class="language-bash"><code class="language-bash">import 'package:flint_dart/flint_dart.dart';
+<pre class="language-dart"><code class="language-dart">import 'package:flint_dart/flint_dart.dart';
 
 void main() {
   final app = Flint();
@@ -149,17 +150,14 @@ void main() {
   app.listen(3000);
 }
 </code></pre>
-<h3 id="3-run-with-hot-reload">3. Run with hot reload</h3>
-<pre class="language-bash"><code class="language-bash">
-
-app.get('/hello', (req, res) async {
+<h3 id="3-run-with-hot-reload">3. Run with Hot Reload</h3>
+<pre class="language-dart"><code class="language-dart">app.get('/hello', (req, res) async {
   return res.json({'message': 'Hello, world!'});
 });
-
 </code></pre>
-<h3 id="middleware">Middleware</h3>
-<pre class="language-bash"><code class="language-bash">
-import 'package:flint_dart/flint_dart.dart';
+<hr>
+<h2 id="middleware">Middleware</h2>
+<pre class="language-dart"><code class="language-dart">import 'package:flint_dart/flint_dart.dart';
 
 class AuthMiddleware extends Middleware {
   @override
@@ -167,34 +165,29 @@ class AuthMiddleware extends Middleware {
     return (Request req, Response res) async {
       final token = req.bearerToken;
       if (token == null || token != "expected_token") {
-      return  res.status(401).send("Unauthorized");
+        return res.status(401).send("Unauthorized");
       }
-   return await next(req, res);
+      return await next(req, res);
     };
   }
+}
 </code></pre>
-<pre class="language-bash"><code class="language-bash">
-  app.put('/:id', AuthMiddleware().handle(controller.update));
+<pre class="language-dart"><code class="language-dart">app.put('/:id', AuthMiddleware().handle(controller.update));
 </code></pre>
-<h3 id="jwt-authentication">JWT Authentication</h3>
-<pre class="language-bash"><code class="language-bash">final token = JwtUtil.generateToken({'userId': 123});
+<hr>
+<h2 id="jwt-authentication">JWT Authentication</h2>
+<pre class="language-dart"><code class="language-dart">final token = JwtUtil.generateToken({'userId': 123});
 final payload = JwtUtil.verifyToken(token);
-
 </code></pre>
-<h3 id="password-hashing">Password Hashing</h3>
-<pre class="language-bash"><code class="language-bash">final hash = Hashing.hashPassword('mySecret');
+<hr>
+<h2 id="password-hashing">Password Hashing</h2>
+<pre class="language-dart"><code class="language-dart">final hash = Hashing.hashPassword('mySecret');
 final isValid = Hashing.verifyPassword('mySecret', hash);
-
-
-
-
-## 🧩 WebSocket System (Major Upgrade)
-
-### 🔁 Socket.IO–like API
-Flint now ships with an easy-to-use WebSocket engine with event-based communication:
-
-```dart
-app.ws('/chat', (socket, params) {
+</code></pre>
+<hr>
+<h2 id="-websocket-system">🧩 WebSocket System</h2>
+<h3 id="-socketiolike-api">🔁 Socket.IO–like API</h3>
+<pre class="language-dart"><code class="language-dart">app.ws('/chat', (socket, params) {
   socket.on('message', (data) {
     Log.debug('💬 ${socket.id} says: $data');
     socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
@@ -207,21 +200,20 @@ ws.on('message', (data) =&gt; Log.debug("📩 $data"));
 ws.emit('message', {'text': 'Hello World'});
 </code></pre>
 <hr>
-<h3 id="-core-features">💬 Core Features</h3>
+<h2 id="-core-features">💬 Core Features</h2>
 <ul>
 <li><strong><code>.emit(event, data)</code></strong> → Send named events easily</li>
 <li><strong><code>.on(event, callback)</code></strong> → Listen for specific events</li>
 <li><strong><code>.onMessage()</code></strong> and <strong><code>.onJsonMessage()</code></strong> remain supported for backward compatibility</li>
 <li><strong><code>.join(room)</code></strong> and <strong><code>.leave(room)</code></strong> for group messaging</li>
 <li><strong><code>.broadcast()</code></strong> and <strong><code>.broadcastToRoom()</code></strong> for real-time updates</li>
-<li><strong>Auto Reconnect</strong> on the client when connection drops</li>
-<li><strong>JWT Support</strong> using the same middleware chain as HTTP routes</li>
-<li><strong>Auth Middleware</strong> can now</li>
+<li>Auto Reconnect on the client when connection drops</li>
+<li>JWT Support using the same middleware chain as HTTP routes</li>
+<li>Auth Middleware now works for WebSockets too</li>
 </ul>
-<pre class="language-dart"><code>  ### 📁 Project Structure
-
-```bash
-lib/
+<hr>
+<h2 id="-project-structure">📁 Project Structure</h2>
+<pre class="language-bash"><code class="language-bash">lib/
 ├── main.dart
 ├── src/
 │   ├── app.dart
@@ -233,17 +225,57 @@ lib/
 │       ├── jwt_util.dart
 │       └── hashing.dart
 </code></pre>
-<p>📮 Contact &amp; Support
-🌐 Website: flintdart.eulogia.net</p>
-<p>📧 Email: <a href="mailto:eulogiatechnologies@gmail.com">eulogiatechnologies@gmail.com</a></p>
-<p>🐙 GitHub: github.com/eulogiatechnologies/flint_dart</p>
-<p>🛠 Contributing
-We welcome contributions! To get started:</p>
+<hr>
+<h2 id="-contact--support">📮 Contact &amp; Support</h2>
+<p>🌐 Website: <a href="https://flintdart.eulogia.net">flintdart.eulogia.net</a>
+📧 Email: <a href="mailto:eulogiatechnologies@gmail.com"></a><a href="mailto:eulogiatechnologies@gmail.com">eulogiatechnologies@gmail.com</a>
+🐙 GitHub: <a href="https://github.com/eulogiatechnologies/flint_dart">github.com/eulogiatechnologies/flint_dart</a></p>
+<hr>
+<h2 id="-contributing">🛠 Contributing</h2>
+<p>We welcome contributions! To get started:</p>
 <pre class="language-bash"><code class="language-bash">git clone https://github.com/eulogiatechnologies/flint_dart.git
 cd flint_dart
 dart pub get
 </code></pre>
 <p>Then feel free to submit issues or pull requests.</p>
+<hr>
+<h2 id="-contributors">👥 Contributors</h2>
+<a href="https://github.com/flint-dart/flint_dart/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=flint-dart/flint_dart">
+</a>
+<p>Made with ❤️ by the Flint Dart community.</p>
+<h2 id="contributors-">Contributors ✨</h2>
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody><tr>
+    <td align="center">
+      <a href="https://github.com/Dee-08">
+        <img src="https://github.com/Dee-08.png" width="100;" alt="Daniel DAVID"><br>
+        <sub><b>Daniel DAVID</b></sub>
+      </a><br>
+      <sub>🖥️📖</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/EulogiaTechnologies">
+        <img src="https://github.com/EulogiaTechnologies.png" width="100;" alt="Eulogia Technologies"><br>
+        <sub><b>Eulogia Technologies</b></sub>
+      </a><br>
+      <sub>⚙️🖥️</sub>
+    </td>
+    <td align="center">
+      <a href="https://github.com/Hybiekay">
+        <img src="https://github.com/Hybiekay.png" width="100;" alt="Samuel Adeoye"><br>
+        <sub><b>Samuel Adeoye</b></sub>
+      </a><br>
+      <sub>🖥️📖⚙️</sub>
+    </td>
+  </tr>
+</tbody></table>
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 </section>
 
 
@@ -265,7 +297,7 @@ dart pub get
 </dd>
 
           <dt id="helpers">
-  <span class="name"><a href="core_helpers/">core\helpers</a></span> 
+  <span class="name"><a href="core_helpers/">core/helpers</a></span> 
 
 </dt>
 <dd>
@@ -273,6 +305,13 @@ dart pub get
 
           <dt id="db">
   <span class="name"><a href="db/">db</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="exception">
+  <span class="name"><a href="exception/">exception</a></span> 
 
 </dt>
 <dd>
@@ -301,6 +340,13 @@ dart pub get
 
           <dt id="isolate">
   <span class="name"><a href="isolate/">isolate</a></span> 
+
+</dt>
+<dd>
+</dd>
+
+          <dt id="logs">
+  <span class="name"><a href="logs/">logs</a></span> 
 
 </dt>
 <dd>
@@ -381,12 +427,14 @@ dart pub get
       <li class="section-title">Libraries</li>
       <li><a href="auth/">auth</a></li>
       <li><a href="cache/">cache</a></li>
-      <li><a href="core_helpers/">core\helpers</a></li>
+      <li><a href="core_helpers/">core/helpers</a></li>
       <li><a href="db/">db</a></li>
+      <li><a href="exception/">exception</a></li>
       <li><a href="flint_dart/">flint_dart</a></li>
       <li><a href="flint_ui/">flint_ui</a></li>
       <li><a href="helper/">helper</a></li>
       <li><a href="isolate/">isolate</a></li>
+      <li><a href="logs/">logs</a></li>
       <li><a href="mail/">mail</a></li>
       <li><a href="middlewares/">middlewares</a></li>
       <li><a href="model/">model</a></li>
@@ -404,7 +452,7 @@ dart pub get
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+24
+      1.0.0+26
   </span>
   
 </footer>
