@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flint_dart/flint_dart.dart';
 
-import 'base_http_error.dart';
+import 'base_exception.dart';
 
-class RedirectError extends BaseHttpResponseErorr {
+class RedirectError extends BaseException {
   RedirectError({
     super.message,
     super.code = HttpStatus.found,

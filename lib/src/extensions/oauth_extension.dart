@@ -38,7 +38,7 @@ extension OAuthResponse on Response {
         authUrl = AuthService.getAppleAuthUrl(callbackUrl: callbackUrl);
         break;
       default:
-        throw AuthException('Unsupported OAuth provider: $provider');
+        throw AuthException(message: 'Unsupported OAuth provider: $provider');
     }
     return redirect(authUrl);
   }

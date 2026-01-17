@@ -15,7 +15,7 @@ class GoogleProvider {
     required String redirectBase,
   }) async {
     if (clientId == null || clientSecret == null) {
-      throw AuthException('Google OAuth is not configured');
+      throw AuthException(message: 'Google OAuth is not configured');
     }
 
     Map<String, dynamic> profile;
@@ -24,7 +24,8 @@ class GoogleProvider {
       profile = await verifyIdToken(idToken, clientId: clientId);
     } else if (code != null) {
       if (callbackPath == null) {
-        throw AuthException('callbackPath is required when using code');
+        throw AuthException(
+            message: 'callbackPath is required when using code');
       }
 
       final tokens = await _exchangeCodeForToken(
@@ -39,10 +40,10 @@ class GoogleProvider {
         profile = await verifyIdToken(idTokenFromGoogle as String,
             clientId: clientId);
       } else {
-        throw AuthException('No ID token received from Google');
+        throw AuthException(message: 'No ID token received from Google');
       }
     } else {
-      throw AuthException('Either idToken or code must be provided');
+      throw AuthException(message: 'Either idToken or code must be provided');
     }
 
     return AuthProvider.formatUserData(
@@ -69,7 +70,7 @@ class GoogleProvider {
     final resp = await req.close();
 
     if (resp.statusCode != 200) {
-      throw AuthException('Invalid Google ID token');
+      throw AuthException(message: 'Invalid Google ID token');
     }
 
     final body = await resp.transform(utf8.decoder).join();
@@ -79,7 +80,7 @@ class GoogleProvider {
 
     // Verify audience
     if (clientId != null && profile['aud'] != clientId) {
-      throw AuthException('Invalid token audience');
+      throw AuthException(message: 'Invalid token audience');
     }
 
     return profile;
@@ -112,7 +113,7 @@ class GoogleProvider {
     client.close();
 
     if (resp.statusCode != 200) {
-      throw AuthException('Failed to exchange code for token');
+      throw AuthException(message: 'Failed to exchange code for token');
     }
 
     return json.decode(responseBody) as Map<String, dynamic>;

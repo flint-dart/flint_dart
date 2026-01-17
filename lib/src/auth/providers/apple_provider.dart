@@ -18,7 +18,7 @@ class AppleProvider {
         teamId == null ||
         keyId == null ||
         privateKey == null) {
-      throw AuthException('Apple Sign In is not properly configured');
+      throw AuthException(message: 'Apple Sign In is not properly configured');
     }
 
     // Verify the identity token
@@ -62,7 +62,7 @@ class AppleProvider {
       // Simple verification - decode and check basic claims
       final parts = identityToken.split('.');
       if (parts.length != 3) {
-        throw AuthException('Invalid Apple identity token format');
+        throw AuthException(message: 'Invalid Apple identity token format');
       }
 
       final payload = parts[1];
@@ -75,24 +75,24 @@ class AppleProvider {
       // Verify issuer
       final iss = claims['iss'] as String?;
       if (iss != 'https://appleid.apple.com') {
-        throw AuthException('Invalid Apple token issuer');
+        throw AuthException(message: 'Invalid Apple token issuer');
       }
 
       // Verify audience
       final aud = claims['aud'] as String?;
       if (aud != clientId) {
-        throw AuthException('Invalid Apple token audience');
+        throw AuthException(message: 'Invalid Apple token audience');
       }
 
       // Verify expiration
       final exp = claims['exp'] as int?;
       if (exp == null || DateTime.now().millisecondsSinceEpoch ~/ 1000 > exp) {
-        throw AuthException('Apple token has expired');
+        throw AuthException(message: 'Apple token has expired');
       }
 
       return claims;
     } catch (e) {
-      throw AuthException('Failed to verify Apple identity token: $e');
+      throw AuthException(message: 'Failed to verify Apple identity token: $e');
     }
   }
 

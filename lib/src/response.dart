@@ -123,6 +123,12 @@ class Response {
         return value; // primitives or unsupported objects
       }
 
+      if (data is Exception) {
+        data = {
+          'error': data.runtimeType.toString(),
+          'message': data.toString(),
+        };
+      }
       final safeData = await sanitize(data);
       final encoded = jsonEncode(safeData);
 

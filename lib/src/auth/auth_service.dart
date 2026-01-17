@@ -19,7 +19,7 @@ class AuthService {
     final clientId = Auth.config.googleClientId;
     if (clientId == null || clientId.isEmpty) {
       throw AuthException(
-          'Google OAuth is not configured. Set GOOGLE_CLIENT_ID.');
+          message: 'Google OAuth is not configured. Set GOOGLE_CLIENT_ID.');
     }
 
     final state = _generateState(callbackUrl);
@@ -48,7 +48,7 @@ class AuthService {
     final clientId = Auth.config.githubClientId;
     if (clientId == null || clientId.isEmpty) {
       throw AuthException(
-          'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID.');
+          message: 'GitHub OAuth is not configured. Set GITHUB_CLIENT_ID.');
     }
 
     final state = _generateState(callbackUrl);
@@ -71,7 +71,7 @@ class AuthService {
     final clientId = Auth.config.facebookClientId;
     if (clientId == null || clientId.isEmpty) {
       throw AuthException(
-          'Facebook OAuth is not configured. Set FACEBOOK_CLIENT_ID.');
+          message: 'Facebook OAuth is not configured. Set FACEBOOK_CLIENT_ID.');
     }
 
     final state = _generateState(callbackUrl);
@@ -95,7 +95,7 @@ class AuthService {
     final clientId = Auth.config.appleClientId;
     if (clientId == null || clientId.isEmpty) {
       throw AuthException(
-          'Apple Sign In is not configured. Set APPLE_CLIENT_ID.');
+          message: 'Apple Sign In is not configured. Set APPLE_CLIENT_ID.');
     }
 
     final state = _generateState(callbackUrl);

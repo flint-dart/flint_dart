@@ -26,6 +26,11 @@ abstract class Model<T extends Model<T>> {
   /// Relations definition
   Map<String, RelationDefinition> get relations => {};
 
+  /// Set multiple attributes at once
+  void setAttributes(Map<String, dynamic> attrs) {
+    _attributes.addAll(attrs);
+  }
+
   /// Read raw attribute
   R? getAttribute<R>(String key) {
     final value = _attributes[key];

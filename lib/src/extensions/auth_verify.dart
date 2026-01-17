@@ -18,7 +18,7 @@ extension AuthVerification on Auth {
         .where(Auth.config.emailColumn, '=', email)
         .first();
     if (user == null) {
-      throw AuthException('No account found for this email.');
+      throw AuthException(message: 'No account found for this email.');
     }
 
     // Generate numeric code
@@ -108,7 +108,7 @@ extension AuthVerification on Auth {
         .where(Auth.config.emailColumn, '=', email)
         .first();
     if (user == null) {
-      throw AuthException('No account found for this email.');
+      throw AuthException(message: 'No account found for this email.');
     }
 
     // Generate numeric OTP code
@@ -150,7 +150,8 @@ extension AuthVerification on Auth {
 
     if (newPassword.length < Auth.config.passwordMinLength) {
       throw AuthException(
-          'Password must be at least ${Auth.config.passwordMinLength} characters.');
+          message:
+              'Password must be at least ${Auth.config.passwordMinLength} characters.');
     }
 
     final codeHash = Hashing().hash(code);
@@ -164,7 +165,7 @@ extension AuthVerification on Auth {
 
     if (record == null) {
       Log.debug('❌ Invalid or expired password reset code for $email');
-      throw AuthException('Invalid or expired reset code.');
+      throw AuthException(message: 'Invalid or expired reset code.');
     }
 
     // Hash new password
