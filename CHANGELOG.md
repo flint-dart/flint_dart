@@ -1,5 +1,5 @@
 # 🚀 Flint Dart Changelog
----## [1.0.0+25]
+---## [1.0.0+26]
  -  Hot Reload fixed on Linux
 ---## [1.0.0+25]
 All notable changes to Flint Dart will be documented in this file.
