@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'base_http_error.dart';
+import 'base_exception.dart';
 
-class ValidationError extends BaseHttpResponseErorr {
+class ValidationError extends BaseException {
   ValidationError({
     required super.message,
     super.code = HttpStatus.unprocessableEntity,

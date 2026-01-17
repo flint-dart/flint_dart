@@ -19,3 +19,4 @@ export 'src/websocket/websocket_manager.dart';
 
 export 'package:flint_client/flint_client.dart';
 export 'src/routing/route_group.dart';
+export 'middlewares.dart';

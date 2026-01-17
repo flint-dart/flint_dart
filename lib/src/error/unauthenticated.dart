@@ -1,10 +1,9 @@
 import 'dart:io';
 
-import 'base_http_error.dart';
+import 'package:flint_dart/src/error/auth_exception.dart';
 
-class Unauthenticated extends BaseHttpResponseErorr {
-  Unauthenticated(
-      {required super.message,
-      super.code = HttpStatus.unauthorized,
-      super.responseType});
+import 'base_exception.dart';
+
+class Unauthenticated extends AuthException {
+  Unauthenticated({super.code = HttpStatus.unauthorized});
 }

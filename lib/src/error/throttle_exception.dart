@@ -1,6 +1,6 @@
-import 'base_http_error.dart';
+import 'base_exception.dart';
 
-class ThrottleError extends BaseHttpResponseErorr {
+class ThrottleError extends BaseException {
   final Map<String, String>? headers;
 
   ThrottleError({

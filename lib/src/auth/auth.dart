@@ -76,18 +76,18 @@ class Auth {
         await qb.where(_config.emailColumn, '=', email).limit(1).first();
 
     if (user == null) {
-      throw AuthException('Invalid email or password');
+      throw AuthException(message: 'Invalid email or password');
     }
 
     final hashedPassword = user[_config.passwordColumn] as String;
     final isMatch = Hashing().verify(password, hashedPassword);
 
     if (!isMatch) {
-      throw AuthException('Invalid email or password');
+      throw AuthException(message: 'Invalid email or password');
     }
 
     if (_config.requireEmailVerification && user['email_verified_at'] == null) {
-      throw AuthException('Email verification required.');
+      throw AuthException(message: 'Email verification required.');
     }
 
     final cleanUser = _sanitizeUserData(user);
@@ -122,12 +122,13 @@ class Auth {
     final existing = await qb.where(config.emailColumn, '=', email).first();
 
     if (existing != null) {
-      throw AuthException('User already exists with this email');
+      throw AuthException(message: 'User already exists with this email');
     }
 
     if (password.length < _config.passwordMinLength) {
       throw AuthException(
-        'Password must be at least ${_config.passwordMinLength} characters long.',
+        message:
+            'Password must be at least ${_config.passwordMinLength} characters long.',
       );
     }
     // Hash password
@@ -149,7 +150,8 @@ class Auth {
         .first();
 
     if (user == null) {
-      throw AuthException('User could not be retrieved after registration.');
+      throw AuthException(
+          message: 'User could not be retrieved after registration.');
     }
 
     return _sanitizeUserData(user);
@@ -190,7 +192,8 @@ class Auth {
   }) async {
     if (newPassword.length < _config.passwordMinLength) {
       throw AuthException(
-        'Password must be at least ${_config.passwordMinLength} characters long.',
+        message:
+            'Password must be at least ${_config.passwordMinLength} characters long.',
       );
     }
     ensureFrameworkTablesExist();
@@ -235,7 +238,7 @@ class Auth {
 
     // Check if already verified
     if (user['email_verified_at'] != null) {
-      throw AuthException('Email already verified');
+      throw AuthException(message: 'Email already verified');
     }
 
     // Generate verification token
@@ -613,7 +616,7 @@ class Auth {
 
       _frameworkTablesEnsured = true;
     } catch (e) {
-      throw AuthException('Framework table setup failed: $e');
+      throw AuthException(message: 'Framework table setup failed: $e');
     }
   }
 
@@ -717,7 +720,7 @@ class Auth {
         .where(Auth.config.emailColumn, '=', email)
         .first();
     if (user == null) {
-      throw AuthException('No account found for this email.');
+      throw AuthException(message: 'No account found for this email.');
     }
 
     // Generate numeric code
@@ -809,7 +812,7 @@ class Auth {
         .where(Auth.config.emailColumn, '=', email)
         .first();
     if (user == null) {
-      throw AuthException('No account found for this email.');
+      throw AuthException(message: 'No account found for this email.');
     }
 
     // Generate numeric OTP code
@@ -851,7 +854,8 @@ class Auth {
 
     if (newPassword.length < Auth.config.passwordMinLength) {
       throw AuthException(
-          'Password must be at least ${Auth.config.passwordMinLength} characters.');
+          message:
+              'Password must be at least ${Auth.config.passwordMinLength} characters.');
     }
 
     // Look for valid code
@@ -862,7 +866,7 @@ class Auth {
 
     if (record == null) {
       Log.debug('❌ Invalid or expired password reset code for $email');
-      throw AuthException('Invalid or expired reset code.');
+      throw AuthException(message: 'Invalid or expired reset code.');
     }
     final isValid = Hashing().verify(code, record['token']);
 
