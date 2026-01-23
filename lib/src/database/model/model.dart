@@ -83,7 +83,8 @@ abstract class Model<T extends Model<T>> {
     for (final key in conceal) {
       map.remove(key);
     }
-    return map;
+
+    return _convertDatabaseTypes(map);
   }
 
   String toJson() => jsonEncode(toMap());
@@ -560,6 +561,8 @@ abstract class Model<T extends Model<T>> {
             try {
               converted[key] = jsonDecode(value);
             } catch (_) {
+              print(
+                  "Warning: Failed to decode JSON for key '$key'. Keeping original string.");
               converted[key] = value;
             }
           } else if (value is List<int>) {

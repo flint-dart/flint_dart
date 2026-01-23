@@ -234,27 +234,55 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     }
   }
 
-  Future<T?> upsert({
+  Future<T?> firstOrCreate({
     required Map<String, dynamic> where,
+    required Map<String, dynamic> values,
+  }) async {
+    var query = resetQuery();
+    where.forEach((key, value) {
+      query.query().where(key, '=', value);
+    });
+    // 1️⃣ Try to find existing
+    final existing = await query.first();
+    if (existing != null) return existing;
+
+    // 2️⃣ Merge where + values to create
+    final newData = {...where, ...values};
+    final created = await create(newData);
+
+    return created;
+  }
+
+  /// Universal upsert for Flint Dart
+  /// Either `uniqueBy` or `where` must be provided
+  Future<T?> upsert({
+    Map<String, dynamic>? where,
+    List<String>? uniqueBy,
     required Map<String, dynamic> data,
   }) async {
-    if (where.isEmpty) {
-      throw Exception('Upsert requires a where condition');
+    // Build `where` from `uniqueBy` if not provided
+    if (where == null) {
+      if (uniqueBy == null || uniqueBy.isEmpty) {
+        throw Exception('upsert requires either where or uniqueBy');
+      }
+
+      where = {for (var key in uniqueBy) key: data[key]};
     }
 
     // 1️⃣ Try to find existing record
     var query = resetQuery();
     where.forEach((key, value) {
-      query.query().where(key, "=", value);
+      query.query().where(key, '=', value);
     });
 
     final existing = await query.first();
 
-    // 2️⃣ UPDATE if exists
+    // 2️⃣ Update if exists
     if (existing != null) {
       return await existing.update(null, data);
     }
-    // 3️⃣ INSERT if not exists
+
+    // 3️⃣ Insert if not exists
     final insertData = {...where, ...data};
     return await create(insertData);
   }
