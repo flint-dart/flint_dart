@@ -91,6 +91,12 @@ extension ModelQuery<T extends Model<T>> on Model<T> {
     return this as T;
   }
 
+  /// OR WHERE with custom operator (full method)
+  T orWhereOperator(String field, String operator, dynamic value) {
+    qb.orWhere(field, operator, value);
+    return this as T;
+  }
+
   /// WHERE NULL clause - chainable
   T whereNull(String field) {
     qb.whereNull(field);
@@ -105,13 +111,13 @@ extension ModelQuery<T extends Model<T>> on Model<T> {
 
   /// ORDER BY clause - chainable
   /// Chainable orderBy with both `asc` and `descending` options
-  T orderBy(String field, {bool? asc, bool? descending}) {
+  T orderBy(String field, {bool? asc, bool? desc}) {
     String direction;
 
     if (asc != null) {
       direction = asc ? 'ASC' : 'DESC';
-    } else if (descending != null) {
-      direction = descending ? 'DESC' : 'ASC';
+    } else if (desc != null) {
+      direction = desc ? 'DESC' : 'ASC';
     } else {
       direction = 'DESC'; // default if nothing passed
     }

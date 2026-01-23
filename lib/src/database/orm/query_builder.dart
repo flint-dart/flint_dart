@@ -460,11 +460,8 @@ class QueryBuilder {
       }
 
       if (_orWheres.isNotEmpty) {
-        if (_wheres.isNotEmpty) {
-          whereParts.add('(${_orWheres.join(' OR ')})');
-        } else {
-          whereParts.add(_orWheres.join(' OR '));
-        }
+        // 🔥 ALWAYS GROUP OR CONDITIONS
+        whereParts.add('(${_orWheres.join(' OR ')})');
       }
 
       whereClause = ' WHERE ${whereParts.join(' AND ')}';

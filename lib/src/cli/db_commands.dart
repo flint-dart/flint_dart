@@ -140,12 +140,14 @@ Future<bool> _safeTableExists(String tableName) async {
       final result = await DB.query(
           "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
           positionalParams: [tableName]);
-      return (result.first['count'] as int) > 0;
+      final count = result.first['count'];
+      return (count is int ? count : int.parse(count.toString())) > 0;
     } else if (DB.driver == DBDriver.postgres) {
       final result = await DB.query(
           "SELECT COUNT(*) as count FROM pg_tables WHERE schemaname = 'public' AND tablename = ?",
           positionalParams: [tableName]);
-      return (result.first['count'] as int) > 0;
+      final count = result.first['count'];
+      return (count is int ? count : int.parse(count.toString())) > 0;
     }
     return false;
   } catch (e) {

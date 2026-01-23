@@ -412,6 +412,11 @@ class DB {
     _pg = null;
   }
 
+  // Helper to check if string looks like a DateTime
+  static bool looksLikeDateTime(String value) {
+    return RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(value);
+  }
+
   /// Convert Dart types to DB-compatible types.
   /// This function now automatically handles:
   /// - List → JSON string
@@ -424,8 +429,24 @@ class DB {
     // Null stays null
     if (value == null) return null;
 
-    // DateTime → ISO8601 text (works for MySQL & Postgres)
-    if (value is DateTime) return value.toIso8601String();
+    // ✅ DateTime (driver-aware)
+    if (value is DateTime) {
+      return _driver == DBDriver.mysql
+          ? (value)
+          : value.toIso8601String(); // Postgres is fine with ISO
+    }
+
+    // ✅ ISO DateTime string from JS / APIs
+    if (value is String && looksLikeDateTime(value)) {
+      try {
+        final dt = DateTime.parse(value);
+        return _driver == DBDriver.mysql
+            ? toMySqlDateTime(dt)
+            : dt.toIso8601String();
+      } catch (_) {
+        return value; // not actually a datetime
+      }
+    }
 
     // Enums → store enum name
     if (value is Enum) return value.name;
@@ -475,6 +496,30 @@ class DB {
       if (candidate is JsonFn) return candidate;
     } catch (_) {}
     return null;
+  }
+
+  static String? toMySqlDateTime(dynamic value) {
+    if (value == null) return null;
+
+    DateTime dt;
+
+    if (value is DateTime) {
+      dt = value.toUtc();
+    } else if (value is String) {
+      try {
+        dt = DateTime.parse(value).toUtc();
+      } catch (_) {
+        // Not a date string, return as-is
+        return value;
+      }
+    } else {
+      return value.toString();
+    }
+
+    return dt
+        .toIso8601String()
+        .replaceFirst('T', ' ')
+        .replaceAll(RegExp(r'\.\d+Z?$'), '');
   }
 }
 
