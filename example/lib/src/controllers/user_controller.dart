@@ -24,7 +24,7 @@ class UserController {
     final String userId = req.params['id']!;
     final body = await req.json();
 
-    await User().update(userId, body);
+    await User().update(id: userId, data: body);
 
     return res.send('Creating user...');
   }
@@ -63,7 +63,7 @@ class UserController {
       }
       // Update the user in the database
       if (updateData.isNotEmpty) {
-        await userToUpdate!.update(updateData);
+        await userToUpdate!.update(data: updateData);
       }
 
       final updatedUser = await User().find(userId);

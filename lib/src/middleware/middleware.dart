@@ -1,6 +1,6 @@
 // File: lib/src/middleware.dart
 
-import '../routing/router.dart';
+import '../context.dart';
 
 abstract class Middleware {
   Handler handle(Handler next);

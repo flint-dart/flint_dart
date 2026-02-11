@@ -16,7 +16,10 @@ bool evaluateExpression(String expression, Map<String, dynamic> context) {
     return _compare(leftVal, rightVal, op);
   }
 
-  final singleVal = _evalArithmetic(expression, context);
+  // final singleVal = _evalArithmetic(expression, context);
+  // 🔥 FIX: resolve dot-notation FIRST
+  final singleVal =
+      resolveValue(expression, context) ?? _evalArithmetic(expression, context);
 
   if (singleVal is bool) return singleVal;
   if (singleVal is num) return singleVal != 0;
@@ -47,6 +50,7 @@ dynamic _evalArithmetic(String expr, Map<String, dynamic> ctx) {
 
   final asInt = int.tryParse(expr);
   if (asInt != null) return asInt;
+
   final asDouble = double.tryParse(expr);
   if (asDouble != null) return asDouble;
 
@@ -63,8 +67,9 @@ dynamic _evalArithmetic(String expr, Map<String, dynamic> ctx) {
     return _doArithmetic(leftVal, rightVal, op);
   }
 
-  final valFromContext = ctx[expr];
-  if (valFromContext != null) return valFromContext;
+  // 🔥 FIX: dot-path support
+  final resolved = resolveValue(expr, ctx);
+  if (resolved != null) return resolved;
 
   if (expr.toLowerCase() == 'true') return true;
   if (expr.toLowerCase() == 'false') return false;
@@ -142,4 +147,18 @@ bool _compare(dynamic leftVal, dynamic rightVal, String op) {
     }
   }
   return false;
+}
+
+dynamic resolveValue(String path, Map<String, dynamic> context) {
+  final parts = path.split('.');
+  dynamic value = context;
+
+  for (final part in parts) {
+    if (value is Map<String, dynamic> && value.containsKey(part)) {
+      value = value[part];
+    } else {
+      return null;
+    }
+  }
+  return value;
 }

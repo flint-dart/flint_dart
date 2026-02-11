@@ -31,5 +31,5 @@ void registerUserRoutes(Flint app) {
 
   /// @prefix /users
   /// @auth basicAuth
-  app.delete('/:id', AuthMiddleware().handle(controller.delete));
+  app.delete('/:id', controller.delete).useMiddleware(AuthMiddleware());
 }

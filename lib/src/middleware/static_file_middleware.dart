@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
+import 'package:flint_dart/src/context.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart' show Response;
-import 'package:flint_dart/src/routing/router.dart' show Handler;
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as path;
 
@@ -26,20 +26,25 @@ class StaticFileMiddleware extends Middleware {
 
   @override
   Handler handle(Handler next) {
-    return (Request req, Response res) async {
+    return (ctx) async {
+      final res = ctx.res;
+      if (res == null) {
+        return await next(ctx);
+      }
+      final req = ctx.req;
       // Only handle GET/HEAD requests
       if (req.method != 'GET' && req.method != 'HEAD') {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Ignore known non-static routes
       if (_shouldSkip(req.path)) {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Only static files have extensions
       if (!req.path.contains('.') && req.path != '/') {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Handle root path
@@ -55,7 +60,7 @@ class StaticFileMiddleware extends Middleware {
       final file = File(filePath);
 
       if (!await file.exists()) {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Get file stats
@@ -63,8 +68,7 @@ class StaticFileMiddleware extends Middleware {
 
       // Check file size limit
       if (fileStat.size > maxFileSize) {
-        res.status(413).send('File too large');
-        return res;
+        return res.status(413).send('File too large');
       }
 
       // Cache headers

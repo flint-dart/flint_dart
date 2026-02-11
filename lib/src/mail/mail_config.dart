@@ -4,8 +4,9 @@ import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/mail/smtp_factory.dart';
 
 class MailConfig {
-  /// Call this once during app bootstrap
-  /// or anywhere you need to reconfigure mail.
+  /// Load mail configuration from `.env`.
+  /// Call this once during app bootstrap or anywhere you need to reconfigure.
+  /// Safe to call from an isolate before sending queued mail.
   static void load() {
     final providerStr = FlintEnv.get('MAIL_PROVIDER', 'custom').toLowerCase();
 

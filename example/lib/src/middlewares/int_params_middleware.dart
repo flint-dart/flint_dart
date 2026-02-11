@@ -4,12 +4,12 @@ import 'package:flint_dart/logs.dart';
 class IntParamsMiddleware extends Middleware {
   @override
   Handler handle(Handler next) {
-    return (Request req, Response res) async {
+    return (ctx) async {
       // Add your middleware logic here
       Log.debug('IntParamsMiddleware executed');
 
       // Call the next middleware/handler
-      return await next(req, res);
+      return await next(ctx);
     };
   }
 }

@@ -16,7 +16,7 @@ import '../../flint_dart.dart';
 ///
 ///   app.routes(AuthRoutes());
 ///
-///   app.listen(3000);
+///   app.listen(port: 3000);
 /// }
 /// ```
 ///

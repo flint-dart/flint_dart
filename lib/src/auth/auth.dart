@@ -1,6 +1,8 @@
 // auth.dart
 import 'dart:math';
+import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:flint_dart/db.dart';
 import 'package:flint_dart/logs.dart';
@@ -931,5 +933,104 @@ class Auth {
       default:
         throw UnimplementedError('Provider "$provider" not implemented');
     }
+  }
+}
+
+class TotpService {
+  static const int _defaultDigits = 6;
+  static const int _timeStepSeconds = 30;
+  static const String _alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+  static String generateSecret({int length = 20}) {
+    final rand = Random.secure();
+    final bytes = List<int>.generate(length, (_) => rand.nextInt(256));
+    return _base32Encode(Uint8List.fromList(bytes));
+  }
+
+  static String buildOtpAuthUrl({
+    required String secret,
+    required String email,
+    String issuer = 'EucloudHost',
+  }) {
+    final encIssuer = Uri.encodeComponent(issuer);
+    final label = Uri.encodeComponent('$issuer:$email');
+    return 'otpauth://totp/$label?secret=$secret&issuer=$encIssuer&digits=$_defaultDigits&period=$_timeStepSeconds';
+  }
+
+  static bool verifyCode({
+    required String secret,
+    required String code,
+    int window = 1,
+  }) {
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final timeCounter = now ~/ _timeStepSeconds;
+    for (var i = -window; i <= window; i++) {
+      final otp = _hotp(secret, timeCounter + i);
+      if (otp == code) return true;
+    }
+    return false;
+  }
+
+  static String _hotp(String secret, int counter) {
+    final key = _base32Decode(secret);
+    final counterBytes = Uint8List(8);
+    final bd = ByteData.view(counterBytes.buffer);
+    bd.setInt64(0, counter, Endian.big);
+
+    final hmac = Hmac(sha1, key);
+    final digest = hmac.convert(counterBytes).bytes;
+
+    final offset = digest.last & 0x0f;
+    final binary = ((digest[offset] & 0x7f) << 24) |
+        ((digest[offset + 1] & 0xff) << 16) |
+        ((digest[offset + 2] & 0xff) << 8) |
+        (digest[offset + 3] & 0xff);
+
+    final otp = binary % pow(10, _defaultDigits) as int;
+    return otp.toString().padLeft(_defaultDigits, '0');
+  }
+
+  static String _base32Encode(Uint8List data) {
+    final output = StringBuffer();
+    int buffer = 0;
+    int bitsLeft = 0;
+
+    for (final byte in data) {
+      buffer = (buffer << 8) | byte;
+      bitsLeft += 8;
+      while (bitsLeft >= 5) {
+        final index = (buffer >> (bitsLeft - 5)) & 0x1f;
+        bitsLeft -= 5;
+        output.write(_alphabet[index]);
+      }
+    }
+
+    if (bitsLeft > 0) {
+      final index = (buffer << (5 - bitsLeft)) & 0x1f;
+      output.write(_alphabet[index]);
+    }
+
+    return output.toString();
+  }
+
+  static Uint8List _base32Decode(String input) {
+    final cleaned = input.replaceAll('=', '').toUpperCase();
+    int buffer = 0;
+    int bitsLeft = 0;
+    final out = <int>[];
+
+    for (final ch in cleaned.split('')) {
+      final index = _alphabet.indexOf(ch);
+      if (index < 0) continue;
+      buffer = (buffer << 5) | index;
+      bitsLeft += 5;
+      if (bitsLeft >= 8) {
+        bitsLeft -= 8;
+        final byte = (buffer >> bitsLeft) & 0xff;
+        out.add(byte);
+      }
+    }
+
+    return Uint8List.fromList(out);
   }
 }

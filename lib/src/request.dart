@@ -41,6 +41,22 @@ class Request {
   /// Route parameters matched by the router (e.g. `/user/:id`).
   final Map<String, String> params;
 
+  /// Route parameters matched by the router
+  /// (e.g. `/user/:id`).
+  /// param() returns the value of a route parameter.
+  String? param(String key) => params[key];
+
+  String? queryParam(String key) => query[key];
+
+  /// Access route parameters using bracket notation.
+  String? operator [](String key) {
+    return params[key] ?? query[key];
+  }
+
+  String? input(String key) {
+    return params[key] ?? query[key];
+  }
+
   /// Internal storage for request-scoped data
   final Map<String, dynamic> _storage = {};
 
@@ -444,19 +460,77 @@ class Request {
     return {};
   }
 
+  // ==================== FILE STORAGE HELPERS ====================
+
+  /// Save a single uploaded file to disk and return the saved path.
+  ///
+  /// Defaults to `public/uploads` and preserves the original filename.
+  /// Returns null if the file field does not exist.
+  Future<String?> storeFile(
+    String fieldName, {
+    String directory = 'public/uploads',
+    String? filename,
+  }) async {
+    final upload = await file(fieldName);
+    if (upload == null) return null;
+
+    final safeName = (filename ?? upload.filename).replaceAll('/', '_');
+    final dir = Directory(directory);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    final path = '${dir.path}/$safeName';
+    await upload.saveTo(path);
+    return path;
+  }
+
+  /// Save multiple uploaded files to disk and return their saved paths.
+  ///
+  /// Defaults to `public/uploads` and preserves original filenames.
+  Future<List<String>> storeFiles(
+    String fieldName, {
+    String directory = 'public/uploads',
+  }) async {
+    final uploads = await files(fieldName);
+    if (uploads.isEmpty) return [];
+
+    final dir = Directory(directory);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    final List<String> paths = [];
+    for (final upload in uploads) {
+      if (upload == null) continue;
+      final safeName = upload.filename.replaceAll('/', '_');
+      final path = '${dir.path}/$safeName';
+      await upload.saveTo(path);
+      paths.add(path);
+    }
+
+    return paths;
+  }
+
   // ==================== VALIDATION ====================
 
   /// Validates the request body against specified validation rules
-  Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
+  Future<Map<String, dynamic>> validate(
+    Map<String, String> rules, {
+    Map<String, String>? messages,
+  }) async {
     final body = await json();
-    await Validator.validate(body, rules);
+    await Validator.validate(body, rules, messages: messages);
     return body;
   }
 
   /// Validates form data against specified rules
-  Future<Map<String, String>> validateForm(Map<String, String> rules) async {
+  Future<Map<String, String>> validateForm(
+    Map<String, String> rules, {
+    Map<String, String>? messages,
+  }) async {
     final formData = await form();
-    await Validator.validate(formData, rules);
+    await Validator.validate(formData, rules, messages: messages);
     return formData;
   }
 }

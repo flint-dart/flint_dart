@@ -9,25 +9,31 @@ import 'dart:async';
 class ExceptionMiddleware extends Middleware {
   @override
   Handler handle(Handler next) {
-    return (Request req, Response res) async {
+    return (ctx) async {
+      final res = ctx.res;
       try {
-        return await next(req, res);
+        return await next(ctx);
       } on ValidationException catch (e) {
+        if (res == null) rethrow;
         return res.json({"status": false, "errors": e.errors}, status: 400);
       } on FormatException catch (e) {
+        if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on TimeoutException catch (e) {
+        if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on ArgumentError catch (e) {
+        if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on PgException catch (e) {
         final msg = e.message.toLowerCase();
 
         if (msg.contains('does not exist') || msg.contains('42703')) {
           Log.debug('ℹ️ Ignoring internal column check error: $msg');
-          return await next(req, res);
+          return await next(ctx);
         }
 
+        if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on MySQLClientException catch (e) {
         final msg = e.message.toLowerCase();
@@ -36,9 +42,10 @@ class ExceptionMiddleware extends Middleware {
             msg.contains('does not exist') ||
             msg.contains('42703')) {
           Log.debug('ℹ️ Ignoring internal column check error: $msg');
-          return await next(req, res);
+          return await next(ctx);
         }
 
+        if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on MySQLException catch (e) {
         final msg = e.message.toLowerCase();
@@ -47,13 +54,16 @@ class ExceptionMiddleware extends Middleware {
             msg.contains('does not exist') ||
             msg.contains('42703')) {
           Log.debug('ℹ️ Ignoring internal column check error: $msg');
-          return await next(req, res);
+          return await next(ctx);
         }
 
+        if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on ForbiddenErorr catch (e) {
+        if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on AuthException catch (e) {
+        if (res == null) rethrow;
         return res.json(
           {
             "status": false,
@@ -69,9 +79,10 @@ class ExceptionMiddleware extends Middleware {
             msg.contains('does not exist') ||
             msg.contains('42703')) {
           Log.debug('ℹ️ Ignoring internal column check error: $msg');
-          return await next(req, res);
+          return await next(ctx);
         }
 
+        if (res == null) rethrow;
         return res.json(
           {
             "status": false,
@@ -82,8 +93,9 @@ class ExceptionMiddleware extends Middleware {
         );
       } catch (e, stack) {
         Log.debug('[Flint] Unhandled error: $e\n$stack');
-        return res
-            .json({"status": false, "message": e.toString()}, status: 500);
+        if (res == null) rethrow;
+        return res.json({"status": false, "message": e.toString()},
+            status: 500);
       }
     };
   }

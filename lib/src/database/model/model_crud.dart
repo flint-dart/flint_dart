@@ -6,9 +6,6 @@ import 'package:flint_dart/helper.dart';
 import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
 import 'package:flint_dart/src/database/db.dart';
-import 'package:flint_dart/src/database/model/_model_helper.dart';
-
-import 'model.dart';
 
 extension ModelCrud<T extends Model<T>> on Model<T> {
   // ========== ORIGINAL CRUD METHODS (Preserved) ==========
@@ -164,7 +161,10 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
   }
 
   /// Update existing record using the helper method
-  Future<T?> update([dynamic id, Map<String, dynamic>? data]) async {
+  Future<T?> update({
+    dynamic id,
+    Map<String, dynamic>? data,
+  }) async {
     final currentId = this.id ?? id;
     final hasWhere = qb.hasWhereClause; // 👈 we add this flag in QueryBuilder
 
@@ -202,8 +202,8 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
         return value;
       });
     }
-    var sql;
-    var params;
+    String sql;
+    Map<String, dynamic> params;
     // Use backticks for column names to handle reserved words
     final setClause = updateData.keys.map((k) => '`$k` = :$k').join(', ');
 
@@ -253,6 +253,11 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     return created;
   }
 
+  @Deprecated('Use update(id: ..., data: ...) instead')
+  Future<T?> updateLegacy([dynamic id, Map<String, dynamic>? data]) {
+    return update(id: id, data: data);
+  }
+
   /// Universal upsert for Flint Dart
   /// Either `uniqueBy` or `where` must be provided
   Future<T?> upsert({
@@ -279,7 +284,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
     // 2️⃣ Update if exists
     if (existing != null) {
-      return await existing.update(null, data);
+      return await existing.update(data: data);
     }
 
     // 3️⃣ Insert if not exists
