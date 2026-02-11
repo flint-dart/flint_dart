@@ -198,7 +198,7 @@ class Auth {
             'Password must be at least ${_config.passwordMinLength} characters long.',
       );
     }
-    ensureFrameworkTablesExist();
+    await ensureFrameworkTablesExist();
 
     final tokenHash = Hashing().hash(token);
     final qb = QueryBuilder(table: 'password_reset_tokens');
@@ -880,12 +880,17 @@ class Auth {
     final newHashedPassword = Hashing().hash(newPassword);
 
     // Update user password
+    final updateData = <String, dynamic>{
+      Auth.config.passwordColumn: newHashedPassword,
+    };
+    final updatedAtExists = await Auth.columnExists(Auth.config.table, 'updated_at');
+    if (updatedAtExists) {
+      updateData['updated_at'] = DateTime.now().toIso8601String();
+    }
+
     await QueryBuilder(table: Auth.config.table)
         .where(Auth.config.emailColumn, '=', email)
-        .update({
-      Auth.config.passwordColumn: newHashedPassword,
-      'updated_at': DateTime.now().toIso8601String(),
-    });
+        .update(updateData);
 
     // 🧹 Remove used reset token
     await QueryBuilder(table: 'password_reset_tokens')

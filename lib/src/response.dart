@@ -44,10 +44,11 @@ enum RespondType {
 class Response {
   /// The underlying raw [HttpResponse] object.
   final HttpResponse raw;
+  final Request? request;
   bool _closed = false;
 
   /// Creates a new [Response] instance with the given [HttpResponse].
-  Response(this.raw);
+  Response(this.raw, {this.request});
   bool get isClosed => _closed;
 
   Future<void> close() async {
@@ -372,16 +373,51 @@ class Response {
     try {
       raw.statusCode = status;
       raw.headers.set(HttpHeaders.locationHeader, location);
-      raw.write(
-          '<html><body><a href="$location">Redirecting to $location...</a></body></html>');
     } catch (e) {
       raw.statusCode = 500;
       raw.write('❌ Redirect failed: ${e.runtimeType}');
       Log.debug('[Flint] Redirect Error: $e');
     }
-    close();
     return this;
   }
+
+  /// Redirects the user to the previous page using the Referer header.
+  /// Falls back to [fallback] when Referer is missing.
+  Response back({
+    String fallback = '/',
+    int status = HttpStatus.found,
+  }) {
+    final refererHeader =
+        request?.headers['referer'] ?? request?.headers['Referer'];
+    final location = (refererHeader != null && refererHeader.trim().isNotEmpty)
+        ? refererHeader
+        : fallback;
+    return redirect(location, status: status);
+  }
+
+  /// Adds a flash message to the next view render.
+  Response withFlash(
+    String key,
+    String message, {
+    int maxAgeSeconds = 120,
+  }) {
+    final normalizedKey = key.trim().toLowerCase();
+    if (normalizedKey.isEmpty) return this;
+    final cookieName = _flashCookieName(normalizedKey);
+    return setCookie(
+      cookieName,
+      Uri.encodeComponent(message),
+      maxAge: maxAgeSeconds,
+      path: '/',
+      httpOnly: true,
+    );
+  }
+
+  /// Shortcut for success flash.
+  Response withSuccess(String message) => withFlash('success', message);
+
+  /// Shortcut for error flash.
+  Response withError(String message) => withFlash('error', message);
 
   /// Sends a predefined HTTP status message and closes the response.
   ///
@@ -424,8 +460,22 @@ class Response {
 
     String content;
     try {
+      final flash = _readFlashFromCookies();
+      final mergedData = <String, dynamic>{...(data ?? const {})};
+      if (flash.isNotEmpty) {
+        mergedData['flash'] = flash;
+        for (final entry in flash.entries) {
+          mergedData[entry.key] = entry.value;
+        }
+        TemplateEngine().sessions.addAll(flash);
+      }
+
       // Render template using TemplateEngine
-      content = TemplateEngine().render(templateName, data ?? {});
+      content = TemplateEngine().render(templateName, mergedData);
+
+      for (final key in flash.keys) {
+        clearCookie(_flashCookieName(key));
+      }
     } catch (e) {
       // Fallback to raw file content if template rendering fails
       content = await file.readAsString();
@@ -700,6 +750,22 @@ connectHotReload();
       '$name=; Path=$path; Expires=Thu, 01 Jan 1970 00:00:00 GMT;',
     );
     return this;
+  }
+
+  static String _flashCookieName(String key) => 'FLINT_FLASH_$key';
+
+  Map<String, String> _readFlashFromCookies() {
+    final cookies = request?.cookies ?? const <String, String>{};
+    final flash = <String, String>{};
+    for (final entry in cookies.entries) {
+      const prefix = 'FLINT_FLASH_';
+      if (!entry.key.startsWith(prefix)) continue;
+      final key = entry.key.substring(prefix.length).trim().toLowerCase();
+      if (key.isEmpty) continue;
+      final value = Uri.decodeComponent(entry.value);
+      flash[key] = value;
+    }
+    return flash;
   }
 }
 

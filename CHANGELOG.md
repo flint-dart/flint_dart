@@ -1,30 +1,40 @@
-# 🚀 Flint Dart Changelog
-## [1.0.1] - 2026-02-11
+# Flint Dart Changelog
 
-### Stable Release
-- Flint Dart `v1.0.1` is now marked as the stable release.
+All notable changes to this project are documented in this file.
+
+## [1.0.0+27] - 2026-02-11
+
+### Release Status
+- Internal rollout build for server/docs/eucloudhost deployment.
+- Public stable release `1.0.1` is planned for a later date.
 
 ### Added
-- New docs screens in `flint_docs`: **What’s New** and **Changelog**.
-- Changelog page now auto-loads framework release notes from `flint_dart/CHANGELOG.md`.
+- Added new documentation screens in `flint_docs`: `What's New` and `Changelog`.
+- Added automatic loading of framework release notes from `flint_dart/CHANGELOG.md` in the changelog page.
 
 ### Changed
-- Documentation is now Context-first across guides and API examples (`(Context ctx)`).
-- WebSocket route examples now focus on route middleware usage.
+- Updated documentation to a context-first handler style using `(Context ctx)` examples.
+- Refined WebSocket route examples to emphasize route-level middleware usage.
 
 ### Improved
-- Changelog UI now renders one card per version for better readability.
-- Clarified handler return behavior: route handlers can return serializable objects directly.
+- Improved changelog UI readability with one card per version.
+- Clarified route handler return behavior for serializable values.
 
 ### Fixed
-- Response lifecycle handling avoids duplicate header write crashes in error paths.
-- WebSocket route flow simplified by relying on middleware at route level.
+- Fixed response lifecycle handling to avoid duplicate header-write crashes in error paths.
+- Simplified WebSocket route flow by relying on route-level middleware execution.
 
----## [1.0.0+26]
- -  Hot Reload fixed on Linux
----## [1.0.0+25]
-All notable changes to Flint Dart will be documented in this file.
----## [1.0.0+24] - 2025-12-20
+## [1.0.0+26] - 2025-12-20
+
+### Fixed
+- Fixed hot reload behavior on Linux.
+
+## [1.0.0+25] - 2025-12-20
+
+### Notes
+- Maintenance release.
+
+## [1.0.0+24] - 2025-12-20
 
 ### Added
 - Live hot reload for `.flint.html` templates without restarting the server.
@@ -37,9 +47,6 @@ All notable changes to Flint Dart will be documented in this file.
 
 ### Fixed
 - Hot reload disconnect issues when the server restarts.
-
-
-
 
 ## [1.0.0+23] - 2025-12-17
 ### Added
