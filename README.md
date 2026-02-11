@@ -3,7 +3,7 @@
 A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
 
 - Website: flintdart.eulogia.net
-- Status: Stable (v1.0.1)
+- Status: Internal Build (v1.0.0+27)
 - Maintainers: Eulogia Technologies
 
 ---
@@ -113,11 +113,23 @@ app.websocket('/chat', (Context ctx) {
 - `ctx.res?.json({...})`
 - `ctx.res?.view('home', data: {...})`
 - `ctx.res?.respond(data)` — auto‑detects type
+- `ctx.res?.back(fallback: '/settings')` — redirect to previous URL
+- `ctx.res?.withSuccess('Saved')` / `ctx.res?.withError('Failed')` — flash messages for next template render
 
 You can also return data directly from a handler. Flint will serialize:
 - `Map` / `List` as JSON
 - primitives as text/auto response
 - custom objects that implement `toMap()` or `toJson()`
+
+```dart
+app.post('/settings', (Context ctx) async {
+  final data = await ctx.req.validate({'name': 'required|string|min:2'});
+  // ... persist data
+  return ctx.res
+      ?.withSuccess('Settings updated successfully.')
+      .back(fallback: '/settings');
+});
+```
 
 ```dart
 class UserDto {

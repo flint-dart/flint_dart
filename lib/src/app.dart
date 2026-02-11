@@ -825,7 +825,7 @@ class Flint {
 
     // ===== HTTP Request handling =====
     final request = Request(req);
-    final response = Response(req.response);
+    final response = Response(req.response, request: request);
 
     final normalizedPath = normalizePath(request.path);
 

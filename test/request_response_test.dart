@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:test/test.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';
+import 'package:flint_dart/src/template_engine/template_engine.dart';
 
 import 'helpers/fakes.dart';
 
@@ -94,6 +95,115 @@ void main() {
       expect(raw.headers.contentType?.mimeType, 'application/json');
       expect(raw.buffer.toString(), '{"ok":true}');
       expect(raw.closed, true);
+    });
+
+    test('back redirects to referer header', () {
+      final headers = FakeHttpHeaders()
+        ..set(HttpHeaders.refererHeader, 'http://localhost/previous');
+      final raw = FakeHttpResponse();
+      final fakeReq = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('http://localhost/current'),
+        headers: headers,
+        response: raw,
+      );
+      final req = Request(fakeReq);
+      final res = Response(raw, request: req);
+
+      res.back();
+
+      expect(raw.statusCode, HttpStatus.found);
+      expect(raw.headers.value(HttpHeaders.locationHeader),
+          'http://localhost/previous');
+      expect(raw.closed, false);
+    });
+
+    test('back uses fallback when referer is missing', () {
+      final raw = FakeHttpResponse();
+      final fakeReq = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('http://localhost/current'),
+        response: raw,
+      );
+      final req = Request(fakeReq);
+      final res = Response(raw, request: req);
+
+      res.back(fallback: '/fallback');
+
+      expect(raw.statusCode, HttpStatus.found);
+      expect(raw.headers.value(HttpHeaders.locationHeader), '/fallback');
+    });
+
+    test('withSuccess and withError set flash cookies', () {
+      final raw = FakeHttpResponse();
+      final res = Response(raw);
+
+      res.withSuccess('Saved successfully');
+      res.withError('Something went wrong');
+
+      final setCookie = raw.headers['set-cookie'] ?? const <String>[];
+      expect(setCookie.any((v) => v.contains('FLINT_FLASH_success=')), true);
+      expect(setCookie.any((v) => v.contains('Saved%20successfully')), true);
+      expect(setCookie.any((v) => v.contains('FLINT_FLASH_error=')), true);
+      expect(setCookie.any((v) => v.contains('Something%20went%20wrong')), true);
+    });
+  });
+
+  group('Template Session Helpers', () {
+    test('hasSession and session render correctly inside if blocks', () {
+      final engine = TemplateEngine();
+      engine.sessions['success'] = 'Saved successfully';
+
+      final rendered = engine.renderString('''
+{{ if hasSession('success') }}
+OK: {{ session('success') }}
+{{ else }}
+NO
+{{ endif }}
+''', {});
+
+      expect(rendered.contains('OK:'), true);
+      expect(rendered.contains('Saved successfully'), true);
+      expect(rendered.contains('NO'), false);
+    });
+
+    test('session missing key renders empty string', () {
+      final engine = TemplateEngine();
+      final rendered = engine.renderString("Value: {{ session('missing') }}", {});
+      expect(rendered.trim(), 'Value:');
+    });
+
+    test('hasSession missing key evaluates to false', () {
+      final engine = TemplateEngine();
+      final rendered = engine.renderString('''
+{{ if hasSession('missing') }}
+YES
+{{ else }}
+NO
+{{ endif }}
+''', {});
+
+      expect(rendered.contains('YES'), false);
+      expect(rendered.contains('NO'), true);
+    });
+
+    test('include with inline JSON data renders partial correctly', () {
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint-include-test-');
+      final partial = File('${tempDir.path}/card.flint.html')
+        ..writeAsStringSync('<h3>{{ title }}</h3><p>{{ body }}</p>');
+
+      final safePath = partial.path.replaceAll("'", "\\'");
+      final template =
+          "{{ include('$safePath', { \"title\": \"Hello\", \"body\": \"...\" }) }}";
+
+      final engine = TemplateEngine();
+      final rendered = engine.renderString(template, {});
+
+      expect(rendered.contains('<h3>Hello</h3>'), true);
+      expect(rendered.contains('<p>...</p>'), true);
+
+      tempDir.deleteSync(recursive: true);
     });
   });
 }
