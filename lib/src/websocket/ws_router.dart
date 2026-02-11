@@ -1,17 +1,14 @@
-import 'package:flint_dart/src/websocket/ws_helper.dart';
-
-// typedef WsHandler = void Function(
-//     FlintWebSocket client, Map<String, String> params);
-// typedef WsAuthMiddleware = Future<bool> Function(HttpRequest req);
+import 'package:flint_dart/src/context.dart';
+import 'package:flint_dart/src/middleware/middleware.dart';
 
 class WsRoute {
   final String path;
-  final WsHandler handler;
-  final WsAuthMiddleware? auth;
+  final Handler handler;
+  final List<Middleware> middlewares;
   late final RegExp _regex;
   late final List<String> _params;
 
-  WsRoute(this.path, this.handler, this.auth) {
+  WsRoute(this.path, this.handler, [this.middlewares = const []]) {
     final paramNames = <String>[];
     final regexPattern = path.replaceAllMapped(
       RegExp(r':(\w+)'),

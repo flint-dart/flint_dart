@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:path/path.dart' as p;
 import 'package:args/args.dart'; // Add this dependency to pubspec.yaml
@@ -11,7 +12,7 @@ import 'package:watcher/watcher.dart';
 Process? server;
 Timer? _debounce;
 HttpClient? _httpClient;
-int _serverPort = 3000;
+int _serverPort = FlintEnv.getInt('PORT', 3001);
 
 /// Make HTTP call to server's internal endpoint
 Future<bool> _notifyServerHotReload(
@@ -48,7 +49,7 @@ Future<bool> startServer() async {
   Log.debug('🚀 Starting server...');
   server = await Process.start(
     'dart',
-    ['run', 'lib/main.dart'],
+    ['run', 'lib/main.dart', _serverPort.toString()],
     mode: ProcessStartMode.inheritStdio,
   );
 
@@ -136,7 +137,12 @@ void watchFiles(int serverPort) {
 }
 
 Future<void> main(List<String> args) async {
-  final parser = ArgParser()..addOption('port', abbr: 'p', defaultsTo: '3000');
+  final parser = ArgParser()
+    ..addOption(
+      'port',
+      abbr: 'p',
+      defaultsTo: FlintEnv.getInt('PORT', 3001).toString(),
+    );
 
   final results = parser.parse(args);
   _serverPort = int.tryParse(results['port']) ?? 3000;
@@ -144,7 +150,7 @@ Future<void> main(List<String> args) async {
   Log.debug('📂 Watching: lib/');
   Log.debug('⏱️  Debounce: 300ms for templates, 500ms for server code');
   Log.debug(
-      '📡 Server endpoint: http://localhost:3000/_flint/internal/hot-reload');
+      '📡 Server endpoint: http://localhost:$_serverPort/_flint/internal/hot-reload');
   Log.debug('────────────────────────────────────────────────');
 
   await restartServer();

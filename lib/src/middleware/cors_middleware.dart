@@ -20,7 +20,12 @@ class CorsMiddleware extends Middleware {
 
   @override
   Handler handle(Handler next) {
-    return (Request req, Response res) async {
+    return (ctx) async {
+      final res = ctx.res;
+      if (res == null) {
+        return await next(ctx);
+      }
+
       res.raw.headers
           .add('Access-Control-Allow-Origin', allowedOrigins.join(','));
       res.raw.headers
@@ -30,13 +35,13 @@ class CorsMiddleware extends Middleware {
       res.raw.headers.add('Access-Control-Allow-Credentials', 'true');
 
       // Respond to OPTIONS preflight requests immediately
-      if (req.method == 'OPTIONS') {
+      if (ctx.req.method == 'OPTIONS') {
         res.raw.statusCode = 204;
-        await res.raw.close();
-        return res;
+        await res.close();
+        return null;
       }
 
-      return next(req, res);
+      return await next(ctx);
     };
   }
 }

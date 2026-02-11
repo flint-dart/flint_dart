@@ -1,75 +1,53 @@
-Perfect! Here’s a **fully updated README.md** for Flint Dart with a polished **contributors section** added at the end. I’ve also cleaned up minor formatting issues so it’s consistent and professional.
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
+# Flint Dart
+
+A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
+
+- Website: flintdart.eulogia.net
+- Status: Stable (v1.0.1)
+- Maintainers: Eulogia Technologies
 
 ---
 
-# Flint Dart 🔥
+## Why Flint Dart
 
-### 🚀 **Flint Dart**
-
-**Flint Dart** is a high-performance, expressive, and extensible server-side framework built entirely with Dart.
-Designed for developers who demand speed and simplicity, it delivers everything you need to build RESTful APIs, authentication systems, and scalable backend services — all with clean, modern syntax and hot-reload precision.
-
-> ⚡ **Build fast. Scale effortlessly.**
-> Flint Dart gives you the freedom to create powerful applications without the limits of rigid frameworks.
-
-Developed and maintained by **[Eulogia Technologies](https://flintdart.eulogia.net)**.
-
----
-
-## 📚 Table of Contents
-
-| Topic                                                                        | Description                                     |
-| ---------------------------------------------------------------------------- | ----------------------------------------------- |
-| [🚀 Getting Started](https://www.flintdart.eulogia.net/docs/getting-started) | Set up Flint in your project                    |
-| [🛣️ Routing](https://www.flintdart.eulogia.net/docs/routing)                | Define routes for your Flint Dart app           |
-| [🛡 Middleware](https://www.flintdart.eulogia.net/docs/middleware)           | Protect and modify requests with middleware     |
-| [🗄 ORM & Models](https://www.flintdart.eulogia.net/docs/orm)                | Work with databases using Flint Dart ORM        |
-| [💾 Database & Migrations](https://www.flintdart.eulogia.net/docs/database)  | Manage your database schema and migrations      |
-| [🔑 Authentication](https://www.flintdart.eulogia.net/docs/auth)             | Built-in authentication and Google Auth support |
-| [✅ Validation](https://www.flintdart.eulogia.net/docs/validation)            | Validate input like Laravel                     |
-| [♻️ Hot Reload](https://www.flintdart.eulogia.net/docs/hot-reload)           | Instant feedback while developing               |
-| [💾 Storage](https://www.flintdart.eulogia.net/docs/storage)                 | Storage Flint Dart to production                |
-| [🚢 Deployment](https://www.flintdart.eulogia.net/docs/deployment)           | Deploy Flint Dart to production                 |
-| [📖 API Docs](https://www.flintdart.eulogia.net/docs/swagger-docs)           | Best-in-class API documentation with Swagger UI |
+- **Fast, clean routing** for REST APIs
+- **Middleware-first** design for security and control
+- **Built‑in ORM** for MySQL and PostgreSQL
+- **Auth helpers** (JWT + social providers)
+- **Validation** on requests (JSON + form)
+- **Views** with a simple template engine
+- **Swagger UI** auto‑docs from route annotations
+- **CLI** to scaffold projects and files
 
 ---
 
-## ✨ Features
+## Installation
 
-* 🧱 Simple and intuitive routing
-* 🛡️ Middleware support
-* 🔐 Built-in JWT authentication
-* 🔒 Secure password hashing
-* ♻️ Hot reload support for rapid development
-* 🧪 Modular structure for scalable projects
-* 💡 Clean API design inspired by Flutter's widget philosophy
-* ORM for MySQL/Postgres
-* CLI for migrations, models, etc.
-* Swagger docs
-
----
-
-## 🚀 Getting Started
-
-### 1. Install as a Global Package
+### 1) Install CLI globally
 
 ```bash
+# Activate CLI
+
 dart pub global activate flint_dart
+
+# Create a new project
+flint create my_app
+cd my_app
+
+# Run the app
+flint run
 ```
 
-```bash
-flint create new_app   # Create a new Flint project
-flint run              # Run the project
-```
-
-### 2. Add as a Project Dependency
+### 2) Add to an existing project
 
 ```bash
+
 dart pub add flint_dart
 ```
+
+---
+
+## Hello World
 
 ```dart
 import 'package:flint_dart/flint_dart.dart';
@@ -77,19 +55,81 @@ import 'package:flint_dart/flint_dart.dart';
 void main() {
   final app = Flint();
 
-  app.get('/', (req, res) async {
-    return res.send('Welcome to Flint Dart!');
+  app.get('/', (Context ctx) async {
+    return ctx.res?.send('Welcome to Flint Dart!');
   });
 
-  app.listen(3000);
+  app.listen(port: 3000);
 }
 ```
 
-### 3. Run with Hot Reload
+---
+
+## Routing
 
 ```dart
-app.get('/hello', (req, res) async {
-  return res.json({'message': 'Hello, world!'});
+app.get('/users/:id', (Context ctx) async {
+  final id = ctx.req.param('id');
+  return ctx.res?.json({'id': id});
+});
+
+app.post('/users', (Context ctx) async {
+  final body = await ctx.req.json();
+  return ctx.res?.json({'created': true, 'data': body});
+});
+```
+
+### Unified Context handlers
+
+Flint uses a unified `Context` object for route handlers.
+
+- `ctx.req` is always available.
+- `ctx.res` is available for HTTP routes.
+- `ctx.socket` is available for WebSocket routes.
+
+```dart
+app.get('/health', (Context ctx) {
+  return ctx.res?.json({'ok': true});
+});
+
+app.websocket('/chat', (Context ctx) {
+  ctx.socket?.on('ping', (_) {
+    ctx.socket?.emit('pong', {'ok': true});
+  });
+});
+```
+
+### Request helpers
+
+- `ctx.req.param('id')` — route parameter
+- `ctx.req.queryParam('page')` — query parameter
+- `ctx.req.body()` — raw body string
+- `ctx.req.json()` — JSON body (Map)
+- `ctx.req.form()` — form data (Map)
+
+### Response helpers
+
+- `ctx.res?.send('text')`
+- `ctx.res?.json({...})`
+- `ctx.res?.view('home', data: {...})`
+- `ctx.res?.respond(data)` — auto‑detects type
+
+You can also return data directly from a handler. Flint will serialize:
+- `Map` / `List` as JSON
+- primitives as text/auto response
+- custom objects that implement `toMap()` or `toJson()`
+
+```dart
+class UserDto {
+  final int id;
+  final String email;
+  UserDto(this.id, this.email);
+
+  Map<String, dynamic> toMap() => {'id': id, 'email': email};
+}
+
+app.get('/me', (Context ctx) async {
+  return UserDto(1, 'ada@example.com'); // auto JSON via toMap()
 });
 ```
 
@@ -97,162 +137,334 @@ app.get('/hello', (req, res) async {
 
 ## Middleware
 
-```dart
-import 'package:flint_dart/flint_dart.dart';
+### Global middleware
 
-class AuthMiddleware extends Middleware {
+```dart
+app.use(AuthMiddleware());
+```
+
+### Route middleware
+
+```dart
+app.get('/admin', handler).use(AuthMiddleware());
+```
+
+### Route group middleware
+
+```dart
+class AdminRoutes extends RouteGroup {
   @override
-  Handler handle(Handler next) {
-    return (Request req, Response res) async {
-      final token = req.bearerToken;
-      if (token == null || token != "expected_token") {
-        return res.status(401).send("Unauthorized");
-      }
-      return await next(req, res);
-    };
+  String get prefix => '/admin';
+
+  @override
+  List<Middleware> get middlewares => [AuthMiddleware()];
+
+  @override
+  void register(Flint app) {
+    app.get('/users', (Context ctx) async => ctx.res?.json([]));
   }
 }
 ```
 
-```dart
-app.put('/:id', AuthMiddleware().handle(controller.update));
-```
+Built‑in middleware:
+- `ExceptionMiddleware` — error handling
+- `CookieSessionMiddleware` — cookies/sessions
+- `CorsMiddleware` — CORS headers
+- `LoggerMiddleware` — request logging
+- `StaticFileMiddleware` — static files
 
 ---
 
-## JWT Authentication
+## Validation
 
 ```dart
-final token = JwtUtil.generateToken({'userId': 123});
-final payload = JwtUtil.verifyToken(token);
-```
-
----
-
-## Password Hashing
-
-```dart
-final hash = Hashing.hashPassword('mySecret');
-final isValid = Hashing.verifyPassword('mySecret', hash);
-```
-
----
-
-## 🧩 WebSocket System
-
-### 🔁 Socket.IO–like API
-
-```dart
-app.ws('/chat', (socket, params) {
-  socket.on('message', (data) {
-    Log.debug('💬 ${socket.id} says: $data');
-    socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
+app.post('/register', (Context ctx) async {
+  final data = await ctx.req.validate({
+    'name': 'required|string|min:3',
+    'email': 'required|email',
+    'password': 'required|string|min:8',
+  }, messages: {
+    'email.required': 'Email is required.',
+    'password.min': 'Password must be at least :min characters.',
   });
+
+  return ctx.res?.json({'ok': true, 'data': data});
 });
 ```
 
-Client-side:
+---
+
+## Views & Templates
+
+Flint’s view engine uses `.flint.html` templates with a small set of processors. Views live in
+`lib/views` and can extend layouts, include partials, loop, and render variables.
+
+### Render a view
 
 ```dart
-final ws = FlintWebSocketClient("wss://api.example.com/chat");
-ws.on('message', (data) => Log.debug("📩 $data"));
-ws.emit('message', {'text': 'Hello World'});
+app.get('/', (Context ctx) async {
+  return ctx.res?.view('home', data: {'title': 'Flint Docs'});
+});
+```
+
+### Layouts, sections, and yield
+
+```html
+<!-- lib/views/layouts/app.flint.html -->
+<!doctype html>
+<html>
+  <head>
+    <title>{{ title ?? 'Flint' }}</title>
+  </head>
+  <body>
+    {{ yield('content') }}
+  </body>
+</html>
+```
+
+```html
+<!-- lib/views/home.flint.html -->
+{{ extends('layouts.app') }}
+
+{{ section('content') }}
+  <h1>{{ title }}</h1>
+{{ endsection }}
+```
+
+### Includes (partials)
+
+```html
+{{ include('partials.nav') }}
+```
+
+### Variables
+
+```html
+<h2>{{ user.name }}</h2>
+```
+
+### Conditionals
+
+```html
+{{ if user }}
+  <p>Welcome back, {{ user.name }}</p>
+{{ endif }}
+```
+
+### Loops
+
+```html
+<ul>
+  {{ for item in items }}
+    <li>{{ item }}</li>
+  {{ endfor }}
+</ul>
+```
+
+### Switch / Case
+
+```html
+{{ switch status }}
+  {{ case 'paid' }}<span>Paid</span>{{ endcase }}
+  {{ case 'pending' }}<span>Pending</span>{{ endcase }}
+  {{ default }}<span>Unknown</span>{{ enddefault }}
+{{ endswitch }}
+```
+
+### Built‑in Processors
+
+- `extends` — layout inheritance
+- `section` / `yield` — slot content into layouts
+- `include` — partials/partials with data
+- `variables` — `{{ ... }}` interpolation
+- `if_statement` — `if/endif`
+- `for_loop` — `for/endfor`
+- `switch_cases` — `switch/case/default`
+- `comment` — template comments
+- `assets` — asset helper tags
+- `session` — session/error helpers in templates
+- `old_processor` — legacy tags support
+
+---
+
+## ORM (CRUD)
+
+```dart
+// READ
+final user = await User().find(1);
+final users = await User()
+  .where('email', 'test@example.com')
+  .orderBy('created_at', desc: true)
+  .limit(10)
+  .get();
+
+// CREATE
+final created = await User().create({
+  'name': 'Ada',
+  'email': 'ada@example.com',
+  'password': 'secret',
+});
+
+// UPDATE
+await User()
+  .where('id', 1)
+  .update(data: {'name': 'Ada Lovelace'});
+
+// DELETE
+await User().delete(1);
+```
+
+### Extra ORM helpers
+
+- `save()` — create/update based on PK
+- `firstOrCreate(where, data)`
+- `upsert(where, data)` / `upsertMany([...])`
+- `countAll()` / `countWhere(field, value)`
+
+---
+
+## Models & Tables
+
+```dart
+class User extends Model<User> {
+  User() : super(() => User());
+
+  String get name => getAttribute('name');
+  String get email => getAttribute('email');
+
+  @override
+  Table get table => Table(
+        name: 'users',
+        columns: [
+          Column(name: 'name', type: ColumnType.string, length: 255),
+          Column(name: 'email', type: ColumnType.string, length: 255),
+        ],
+      );
+}
 ```
 
 ---
 
-## 💬 Core Features
+## Relations
 
-* **`.emit(event, data)`** → Send named events easily
-* **`.on(event, callback)`** → Listen for specific events
-* **`.onMessage()`** and **`.onJsonMessage()`** remain supported for backward compatibility
-* **`.join(room)`** and **`.leave(room)`** for group messaging
-* **`.broadcast()`** and **`.broadcastToRoom()`** for real-time updates
-* Auto Reconnect on the client when connection drops
-* JWT Support using the same middleware chain as HTTP routes
-* Auth Middleware now works for WebSockets too
+```dart
+class User extends Model<User> {
+  @override
+  Map<String, RelationDefinition> get relations => {
+        'posts': Relations.hasMany('posts', () => Post()),
+      };
+}
+
+class Post extends Model<Post> {
+  @override
+  Map<String, RelationDefinition> get relations => {
+        'author': Relations.belongsTo('author', () => User()),
+      };
+}
+
+final posts = await Post().withRelation('author').get();
+```
 
 ---
 
-## 📁 Project Structure
+## Auth (JWT + Providers)
+
+### Register / Login
+
+```dart
+final user = await Auth.register(
+  email: data['email'],
+  password: data['password'],
+  name: data['name'],
+  additionalData: {'role': 'admin'},
+);
+
+final result = await Auth.login(data['email'], data['password']);
+```
+
+### OAuth Providers
+
+```dart
+final url = Auth.providerRedirectUrl(
+  provider: 'google',
+  redirectPath: '/auth/google/callback',
+);
+```
+
+Supported providers: Google, GitHub, Facebook, Apple.
+
+---
+
+## File Uploads & Storage
+
+```dart
+final upload = await ctx.req.file('avatar');
+if (upload != null) {
+  final path = await ctx.req.storeFile('avatar', directory: 'public/uploads');
+}
+```
+
+---
+
+## Swagger UI (Auto Docs)
+
+Enable docs and visit:
+
+```
+http://localhost:3000/docs
+```
+
+Flint parses annotations above your routes:
+
+```dart
+/// @summary Create a new user
+/// @auth bearer
+/// @response 201 Created
+/// @query page integer optional Page
+/// @body {"name": "string", "email": "string"}
+app.post('/users', controller.create);
+```
+
+---
+
+## Database
+
+Configure `.env`:
 
 ```bash
-lib/
-├── main.dart
-├── src/
-│   ├── app.dart
-│   ├── router.dart
-│   ├── request.dart
-│   ├── response.dart
-│   ├── middleware.dart
-│   └── security/
-│       ├── jwt_util.dart
-│       └── hashing.dart
+DB_CONNECTION=mysql
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=flint
+DB_USER=root
+DB_PASSWORD=secret
+DB_SECURE=false
 ```
 
----
-
-## 📮 Contact & Support
-
-🌐 Website: [flintdart.eulogia.net](https://flintdart.eulogia.net)
-📧 Email: [eulogiatechnologies@gmail.com](mailto:eulogiatechnologies@gmail.com)
-🐙 GitHub: [github.com/eulogiatechnologies/flint_dart](https://github.com/eulogiatechnologies/flint_dart)
+Auto‑connect runs on server start. You can disable it and call `DB.connect()` manually.
 
 ---
 
-## 🛠 Contributing
-
-We welcome contributions! To get started:
+## CLI
 
 ```bash
-git clone https://github.com/eulogiatechnologies/flint_dart.git
-cd flint_dart
-dart pub get
+flint create my_app
+flint run
+flint build
+flint docs:generate
+flint make:model User
+flint make:controller UserController
+flint make:middleware AuthMiddleware
 ```
-
-Then feel free to submit issues or pull requests.
 
 ---
 
-## 👥 Contributors
+## Contributing
 
-<a href="https://github.com/flint-dart/flint_dart/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=flint-dart/flint_dart" />
-</a>
+Contributions are welcome. Open issues, suggest improvements, or submit PRs.
 
-Made with ❤️ by the Flint Dart community.
+---
 
+## License
 
-## Contributors ✨
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/Dee-08">
-        <img src="https://github.com/Dee-08.png" width="100;" alt="Daniel DAVID"/><br />
-        <sub><b>Daniel DAVID</b></sub>
-      </a><br />
-      <sub>🖥️📖</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/EulogiaTechnologies">
-        <img src="https://github.com/EulogiaTechnologies.png" width="100;" alt="Eulogia Technologies"/><br />
-        <sub><b>Eulogia Technologies</b></sub>
-      </a><br />
-      <sub>⚙️🖥️</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/Hybiekay">
-        <img src="https://github.com/Hybiekay.png" width="100;" alt="Samuel Adeoye"/><br />
-        <sub><b>Samuel Adeoye</b></sub>
-      </a><br />
-      <sub>🖥️📖⚙️</sub>
-    </td>
-  </tr>
-</table>
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+MIT

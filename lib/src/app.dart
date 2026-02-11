@@ -2,20 +2,20 @@ import 'dart:io';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/middlewares.dart';
+import 'package:flint_dart/model.dart';
 import 'package:flint_dart/src/database/db.dart';
-import 'package:flint_dart/src/middleware/cookie_session_middleware.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
 
-import 'package:flint_dart/src/websocket/ws_helper.dart';
+import 'context.dart';
 import 'package:flint_dart/src/websocket/ws_manager_instance.dart';
 import 'package:mime/mime.dart';
-import 'middleware/middleware.dart';
 import 'request.dart';
 import 'response.dart';
 import 'routing/router.dart';
 import 'websocket/websocket.dart'; // FlintWebSocket and wsManager
-import 'websocket/ws_router.dart'; // _WsRoute, WsHandler, WsAuthMiddleware typedefs
+import 'websocket/ws_router.dart'; // WsRoute
 import 'package:path/path.dart' as path;
 import 'package:package_config/package_config.dart';
 
@@ -93,7 +93,7 @@ Future<String> _getFlintDartLibPath() async {
 ///
 /// Provides:
 /// - HTTP route handling (`get`, `post`, `put`, etc.)
-/// - WebSocket routing with optional authentication
+/// - WebSocket routing
 /// - Static file serving
 /// - Middleware support
 /// - Mounting of sub-applications
@@ -120,6 +120,7 @@ class Flint {
   ///   This is useful for very minimal or fully customized setups.
   final bool withDefaultMiddleware;
   final bool enableSwaggerDocs;
+  final bool autoConnectMail;
 
   /// Creates a new Flint application instance.
   ///
@@ -129,6 +130,7 @@ class Flint {
       {this.rootPath = "lib",
       String? viewPath,
       this.autoConnectDb = true,
+      this.autoConnectMail = true,
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false}) {
     if (withDefaultMiddleware) {
@@ -243,8 +245,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance that can be used to attach
   /// route-specific middleware or additional configuration.
-  RouteBuilder get(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'GET', path, handler);
+  RouteBuilder get(String path, Object handler) {
+    final rb = RouteBuilder(_router, 'GET', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -284,8 +286,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder post(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'POST', path, handler);
+  RouteBuilder post(String path, Object handler) {
+    final rb = RouteBuilder(_router, 'POST', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -327,8 +329,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder put(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'PUT', path, handler);
+  RouteBuilder put(String path, Object handler) {
+    final rb = RouteBuilder(_router, 'PUT', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -368,8 +370,9 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder delete(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'DELETE', path, handler);
+  RouteBuilder delete(String path, Object handler) {
+    final rb =
+        RouteBuilder(_router, 'DELETE', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -411,8 +414,9 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder patch(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'PATCH', path, handler);
+  RouteBuilder patch(String path, Object handler) {
+    final rb =
+        RouteBuilder(_router, 'PATCH', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -449,8 +453,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder route(String method, String path, Handler handler) {
-    final rb = RouteBuilder(_router, method, path, handler);
+  RouteBuilder route(String method, String path, Object handler) {
+    final rb = RouteBuilder(_router, method, path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -461,11 +465,16 @@ class Flint {
   /// Registers a WebSocket route.
   ///
   /// [path] is the WebSocket endpoint (e.g. `/chat`).
-  /// [handler] is the callback for connected clients.
-  /// [auth] is an optional authentication middleware that runs
-  /// before upgrading the connection.
-  void websocket(String path, WsHandler handler, {WsAuthMiddleware? auth}) {
-    _wsRoutes.add(WsRoute(path, handler, auth));
+  /// [handler] is the callback for connected clients and receives
+  /// the [Request] built from the upgrade handshake.
+  void websocket(
+    String path,
+    Object handler, {
+    List<Middleware> middlewares = const [],
+  }) {
+    _wsRoutes.add(
+      WsRoute(path, _coerceWebSocketHandler(handler), middlewares),
+    );
   }
 
   // ===== STATIC FILES =====
@@ -598,7 +607,9 @@ class Flint {
       final fullWsPath =
           cleanPrefix == '/' ? cleanWsPath : '$cleanPrefix$cleanWsPath';
 
-      _wsRoutes.add(WsRoute(fullWsPath, wsRoute.handler, wsRoute.auth));
+      _wsRoutes.add(
+        WsRoute(fullWsPath, wsRoute.handler, wsRoute.middlewares),
+      );
     }
   }
 
@@ -678,8 +689,7 @@ class Flint {
   }
 
   _registerFlintTemReload() {
-    websocket('/flint_reload',
-        (FlintWebSocket client, Map<String, String> params) {
+    websocket('/flint_reload', (Request req, FlintWebSocket client) {
       // client.onClose(() {
       //   connectedClients.remove(client.id);
       //   Log.debug('[FLINT] Client disconnected: ${client.id}');
@@ -722,13 +732,15 @@ class Flint {
     });
   }
 
-  /// Starts the HTTP & WebSocket server on [port].
+  /// Starts the HTTP & WebSocket server.
   ///
   /// - Attempts to auto-connect to the database via `.env` unless already connected.
   /// - Runs with hot reload during development unless hotReload is set to true in listen.
   /// - Handles both HTTP and WebSocket upgrade requests.
-  /// Starts the HTTP & WebSocket server on [port].
-  Future<void> listen(int port, {bool hotReload = true}) async {
+  ///
+  /// If [port] is not provided, it will use `env('PORT', 3001)`.
+  Future<void> listen({int? port, bool hotReload = true}) async {
+    final resolvedPort = port ?? (env('PORT', 3001) as int);
     // 1. Register hot reload websocket route if enabled
     if (hotReload) {
       _registerFlintTemReload();
@@ -740,13 +752,13 @@ class Flint {
     // 2. THE LAUNCHER CHECK
     // If we are in the Parent Process, start the watcher and STOP here.
     if (hotReload && Platform.environment['FLINT_HOT'] != '1') {
-      await _startHotReloadLauncher(port);
+      await _startHotReloadLauncher(resolvedPort);
       return; // CRITICAL: Parent process returns here and never runs the server.
     }
 
     // 3. THE ACTUAL SERVER (Worker Process)
     // If we reach here, we are either in the child process or hot reload is off.
-    await _runServer(port);
+    await _runServer(resolvedPort);
   }
 
   /// Handles the Process forking for hot reload
@@ -785,7 +797,7 @@ class Flint {
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
 
       if (autoConnectDb) _connectDatabaseInBackground();
-      MailConfig.load();
+      if (autoConnectMail) MailConfig.load();
     } on SocketException catch (e) {
       Log.debug('[FLINT] ❌ ERROR: Could not bind to port $port: ${e.message}');
       exit(1);
@@ -804,7 +816,7 @@ class Flint {
   }
 
   /// Dispatches requests to WebSockets or HTTP Routes
-  void _handleIncomingRequest(HttpRequest req) async {
+  Future<void> _handleIncomingRequest(HttpRequest req) async {
     // ===== WebSocket check =====
     if (WebSocketTransformer.isUpgradeRequest(req)) {
       await _handleWebSocketUpgrade(req);
@@ -815,27 +827,65 @@ class Flint {
     final request = Request(req);
     final response = Response(req.response);
 
-    final handler = _router.match(request.method, request.path, request.params);
+    final normalizedPath = normalizePath(request.path);
+
+    final handler =
+        _router.match(request.method, normalizedPath, request.params);
 
     final pipeline = _middlewares.fold<Handler>(
-      handler ?? ((req, res) async => res.send('404 Not Found', status: 404)),
+      handler ??
+          ((ctx) async {
+            final res = ctx.res;
+            if (res == null) return null;
+            return res.send('404 Not Found', status: 404);
+          }),
       (prev, middleware) => middleware.handle(prev),
     );
 
+    final ctx = Context(req: request, res: response);
+
     try {
-      await pipeline(request, response);
+      final result = await pipeline(ctx);
+      if (!response.isClosed && result != null) {
+        await _applyHandlerResult(result, response);
+      }
       if (!response.isClosed) {
         await response.close();
-        await req.response.close();
       }
     } catch (e, st) {
       if (!response.isClosed) {
-        response.raw.statusCode = 500;
-        response.raw.write('Internal Server Error: $e');
-        await response.close();
+        try {
+          response.raw.statusCode = HttpStatus.internalServerError;
+          response.raw.write('Internal Server Error: $e');
+        } on StateError {
+          // Headers were already sent; best effort is to close the response.
+        }
+        try {
+          await response.close();
+        } on StateError {
+          // Underlying response was already closed externally.
+        }
       }
       Log.debug('[FLINT] ❌ Handler error: $e\n$st');
     }
+  }
+
+  /// Handles a single request through the full Flint pipeline.
+  /// Intended for testing and internal tooling.
+  Future<void> handleRequest(HttpRequest req) async {
+    await _handleIncomingRequest(req);
+  }
+
+  String normalizePath(String path) {
+    // Collapse multiple slashes: /// → /
+    path = path.replaceAll(RegExp(r'/+'), '/');
+
+    // Remove trailing slash (except root)
+    if (path.length > 1 && path.endsWith('/')) {
+      path = path.substring(0, path.length - 1);
+    }
+
+    return path;
   }
 
   /// Specialized handler for WebSocket Upgrades
@@ -847,14 +897,7 @@ class Flint {
       if (params != null) {
         matched = true;
 
-        if (route.auth != null) {
-          final allowed = await route.auth!(req);
-          if (!allowed) {
-            req.response.statusCode = HttpStatus.unauthorized;
-            await req.response.close();
-            return;
-          }
-        }
+        final wsRequest = Request(req, params: params);
 
         final socket = await WebSocketTransformer.upgrade(req);
         final clientId = DateTime.now().microsecondsSinceEpoch.toString();
@@ -863,7 +906,21 @@ class Flint {
         final client = FlintWebSocket(socket, clientId);
         wsManager.addClient(clientId, client);
 
-        route.handler(client, params);
+        final handlerWithRouteMiddleware = route.middlewares.fold<Handler>(
+          route.handler,
+          (prev, middleware) => middleware.handle(prev),
+        );
+
+        final pipeline = _middlewares.fold<Handler>(
+          handlerWithRouteMiddleware,
+          (prev, middleware) => middleware.handle(prev),
+        );
+
+        try {
+          await pipeline(Context(req: wsRequest, socket: client));
+        } catch (e, st) {
+          Log.debug('[FLINT] ❌ WebSocket handler error: $e\n$st');
+        }
         return;
       }
     }
@@ -882,5 +939,52 @@ class Flint {
     } catch (e) {
       Future.delayed(const Duration(seconds: 10), _connectDatabaseInBackground);
     }
+  }
+
+  Future<void> _applyHandlerResult(Object result, Response res) async {
+    if (result is Response) return;
+    if (result is Model || _hasToMapOrToJson(result)) {
+      await res.json(result);
+      return;
+    }
+    await res.respond(result);
+  }
+
+  bool _hasToMapOrToJson(Object value) {
+    try {
+      final dynamic dyn = value;
+      final toMapMethod = dyn.toMap;
+      if (toMapMethod is Function) return true;
+      final toJsonMethod = dyn.toJson;
+      if (toJsonMethod is Function) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  Handler _coerceHttpHandler(Object handler) {
+    if (handler is Handler) return handler;
+    if (handler is LegacyHandler) return adaptHttp(handler);
+    if (handler is Function) {
+      return (ctx) async {
+        final res = ctx.res;
+        if (res == null) return null;
+        final result = Function.apply(handler, [ctx.req, res]);
+        if (result is Future) {
+          return await result;
+        }
+        return result;
+      };
+    }
+    throw ArgumentError(
+      'HTTP handler must be a Handler or LegacyHandler',
+    );
+  }
+
+  Handler _coerceWebSocketHandler(Object handler) {
+    if (handler is Handler) return handler;
+    if (handler is WsHandler) return adaptWebSocket(handler);
+    throw ArgumentError(
+      'WebSocket handler must be a Handler or WsHandler',
+    );
   }
 }

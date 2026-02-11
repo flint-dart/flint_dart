@@ -29,7 +29,7 @@ class PostController {
       'subTitle': 'required|string|min:3'
     });
     // PostModel().create(body);
-    await PostModel().update(id, body);
+    await PostModel().update(id: id, data: body);
     return res.json({'message': 'PostController  updated', 'data': body});
   }
 

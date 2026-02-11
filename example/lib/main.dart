@@ -9,7 +9,7 @@ import 'package:sample/src/routes/post_routes.dart';
 import 'package:sample/src/routes/user_routes.dart';
 import 'package:sample/src/views/welcome.dart';
 
-void main() {
+void main(List<String> args) {
   final app = Flint(
     withDefaultMiddleware: true,
     enableSwaggerDocs: true,
@@ -19,7 +19,7 @@ void main() {
 
   app.use(LoggerMiddleware());
 
-  app.get('/', (req, res) async {
+  app.get('/', (Request req, Response res) async {
     return res.render(Welcome());
   });
   app.mount("/post", postRoute);
@@ -66,12 +66,12 @@ void main() {
 
   //   return res.renderEmail(mail);
   // });
-  app.get('/login', (req, res) async {
+  app.get('/login', (Request req, Response res) async {
     return res.oAuthRedirect("google", callback: "/api/auth/google/callback");
   });
   app.mount("/users", registerUserRoutes);
 
-  app.get('/profile', (req, res) async {
+  app.get('/profile', (Request req, Response res) async {
     return res.json({'msg': 'This is a protected route'});
   }).useMiddleware(AuthMiddleware());
 
@@ -79,7 +79,7 @@ void main() {
   final Map<String, String> userNames = {};
   final Map<String, Set<String>> userRooms = {};
 
-  app.websocket('/chat', (socket, params) {
+  app.websocket('/chat', (Request req, FlintWebSocket socket) {
     Log.debug('👋 Client connected: ${socket.id}');
 
     // Assign a random username
@@ -251,7 +251,8 @@ void main() {
   });
 
   app.mount("/auth", authRoutes);
-  app.listen(3001, hotReload: true);
+  final portArg = args.isNotEmpty ? int.tryParse(args.first) : null;
+  app.listen(port: portArg, hotReload: true);
 }
 
 // Handle JSON messages from Flutter app

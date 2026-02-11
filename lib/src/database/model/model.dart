@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flint_dart/db.dart';
 import 'package:flint_dart/schema.dart';
-import 'package:flint_dart/src/database/db_transaction.dart';
 import 'package:flint_dart/src/database/model/_model_helper.dart';
 import 'package:flint_dart/src/database/relations/relation_config.dart';
 import 'package:flint_dart/src/database/relations/relation_definition.dart';

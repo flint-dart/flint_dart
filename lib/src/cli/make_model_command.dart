@@ -92,9 +92,8 @@ class $className extends Model<$className> {
         // Insert after the last import
         final lastImport = imports.last;
         final insertPosition = lastImport.end;
-        content = content.substring(0, insertPosition) +
-            '\n$importLine' +
-            content.substring(insertPosition);
+        content =
+            '${content.substring(0, insertPosition)}\n$importLine${content.substring(insertPosition)}';
       } else {
         // No imports found, add at the beginning
         content = '$importLine\n$content';

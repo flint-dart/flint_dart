@@ -222,3 +222,37 @@ class FlintEnv {
     return result;
   }
 }
+
+/// Top-level helper for reading env values with optional type coercion.
+///
+/// If [defaultValue] is provided, the return type follows that type.
+/// Supported types: String, int, double, bool.
+/// If [defaultValue] is omitted or null, this will try to auto-parse
+/// bool → int → double, and fall back to String.
+dynamic env(String key, [dynamic defaultValue]) {
+  final raw = FlintEnv.get(key, defaultValue?.toString() ?? '');
+
+  if (defaultValue is bool) {
+    return FlintEnv.getBool(key, defaultValue);
+  }
+  if (defaultValue is int) {
+    return FlintEnv.getInt(key, defaultValue);
+  }
+  if (defaultValue is double) {
+    final v = FlintEnv.get(key, defaultValue.toString());
+    return double.tryParse(v) ?? defaultValue;
+  }
+  if (defaultValue is String) {
+    return raw;
+  }
+
+  if (raw.isEmpty) return defaultValue;
+
+  final lower = raw.toLowerCase();
+  if (lower == 'true' || lower == 'false') return lower == 'true';
+  final asInt = int.tryParse(raw);
+  if (asInt != null) return asInt;
+  final asDouble = double.tryParse(raw);
+  if (asDouble != null) return asDouble;
+  return raw;
+}

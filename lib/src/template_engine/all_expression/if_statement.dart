@@ -221,6 +221,21 @@ class IfStatementProcessor implements BaseExpression {
   }
 }
 
+dynamic resolveValue(String path, Map<String, dynamic> context) {
+  final parts = path.split('.');
+  dynamic value = context;
+
+  for (final part in parts) {
+    if (value is Map<String, dynamic> && value.containsKey(part)) {
+      value = value[part];
+    } else {
+      return null;
+    }
+  }
+  return value;
+}
+
+
 class _ConditionalSegment {
   final String condition;
   final String content;

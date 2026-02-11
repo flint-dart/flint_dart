@@ -55,9 +55,9 @@
     <section class="multi-line-signature">
       
 <span class="returntype"><a href="../../flint_dart/Handler.html">Handler</a>?</span>
-<span class="name ">match</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="match-param-method"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span> <span class="parameter-name">method</span>, </span></li>
-<li><span class="parameter" id="match-param-pathToMatch"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span> <span class="parameter-name">pathToMatch</span>, </span></li>
-<li><span class="parameter" id="match-param-paramsOut"><span class="type-annotation"><a href="https://api.dart.dev/stable/3.10.7/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.dart.dev/stable/3.10.7/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">paramsOut</span></span></li>
+<span class="name ">match</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="match-param-method"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">method</span>, </span></li>
+<li><span class="parameter" id="match-param-pathToMatch"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">pathToMatch</span>, </span></li>
+<li><span class="parameter" id="match-param-paramsOut"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">paramsOut</span></span></li>
 </ol>)
 
       
@@ -71,53 +71,61 @@
   <h2><span>Implementation</span></h2>
   <pre class="language-dart"><code class="language-dart">Handler? match(
     String method, String pathToMatch, Map&lt;String, String&gt; paramsOut) {
-  &#47;&#47; First pass: try to find exact matches or parameterized routes
-  for (final route in routes) {
-    if (route.method != method) continue;
+  final normalizedMethod = method.toUpperCase();
 
-    &#47;&#47; Skip wildcard routes in first pass
-    if (route.path.endsWith(&#39;&#47;*&#39;)) continue;
+  &#47;&#47; 1) Exact&#47;param matches (no wildcard)
+  final direct = _matchForMethod(
+    normalizedMethod,
+    pathToMatch,
+    paramsOut,
+    includeWildcard: false,
+  );
+  if (direct != null) return direct;
 
-    final routeParts = route.path.split(&#39;&#47;&#39;);
-    final pathParts = pathToMatch.split(&#39;&#47;&#39;);
+  &#47;&#47; 2) Wildcard matches (only if no direct match)
+  final wildcard = _matchForMethod(
+    normalizedMethod,
+    pathToMatch,
+    paramsOut,
+    includeWildcard: true,
+  );
+  if (wildcard != null) return wildcard;
 
-    if (routeParts.length != pathParts.length) continue;
-
-    final params = &lt;String, String&gt;{};
-    var matched = true;
-
-    for (int i = 0; i &lt; routeParts.length; i++) {
-      final routeSegment = routeParts[i];
-      final pathSegment = pathParts[i];
-
-      if (routeSegment.startsWith(&#39;:&#39;)) {
-        final key = routeSegment.substring(1);
-        params[key] = pathSegment;
-      } else if (routeSegment != pathSegment) {
-        matched = false;
-        break;
-      }
-    }
-
-    if (matched) {
-      paramsOut.addAll(params);
-      return _wrapWithMiddlewares(route.handler, route.middlewares);
-    }
+  &#47;&#47; 3) Auto HEAD from GET
+  if (normalizedMethod == &#39;HEAD&#39;) {
+    final headFromGet = _matchForMethod(
+      &#39;GET&#39;,
+      pathToMatch,
+      paramsOut,
+      includeWildcard: false,
+    );
+    if (headFromGet != null) return headFromGet;
+    final headFromGetWildcard = _matchForMethod(
+      &#39;GET&#39;,
+      pathToMatch,
+      paramsOut,
+      includeWildcard: true,
+    );
+    if (headFromGetWildcard != null) return headFromGetWildcard;
   }
 
-  &#47;&#47; Second pass: check wildcard routes (only if no exact match found)
-  for (final route in routes) {
-    if (route.method != method) continue;
+  &#47;&#47; 4) OPTIONS &#47; 405 handling
+  final allowedMethods = _allowedMethods(pathToMatch);
+  if (allowedMethods.isEmpty) return null;
 
-    if (route.path.endsWith(&#39;&#47;*&#39;)) {
-      final prefix = route.path.substring(0, route.path.length - 1);
-      if (pathToMatch.startsWith(prefix)) {
-        return _wrapWithMiddlewares(route.handler, route.middlewares);
-      }
-    }
+  final allowHeader = _formatAllowHeader(allowedMethods);
+
+  if (normalizedMethod == &#39;OPTIONS&#39;) {
+    return (req, res) async {
+      res.raw.headers.set(&#39;Allow&#39;, allowHeader);
+      return res.status(204).send(&#39;&#39;);
+    };
   }
 
-  return null; &#47;&#47; No match
+  return (req, res) async {
+    res.raw.headers.set(&#39;Allow&#39;, allowHeader);
+    return res.status(405).send(&#39;Method Not Allowed&#39;);
+  };
 }</code></pre>
 </section>
 
@@ -146,7 +154,7 @@
 <footer>
   <span class="no-break">
     flint_dart
-      1.0.0+26
+      1.0.1
   </span>
   
 </footer>

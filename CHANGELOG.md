@@ -1,4 +1,25 @@
 # 🚀 Flint Dart Changelog
+## [1.0.1] - 2026-02-11
+
+### Stable Release
+- Flint Dart `v1.0.1` is now marked as the stable release.
+
+### Added
+- New docs screens in `flint_docs`: **What’s New** and **Changelog**.
+- Changelog page now auto-loads framework release notes from `flint_dart/CHANGELOG.md`.
+
+### Changed
+- Documentation is now Context-first across guides and API examples (`(Context ctx)`).
+- WebSocket route examples now focus on route middleware usage.
+
+### Improved
+- Changelog UI now renders one card per version for better readability.
+- Clarified handler return behavior: route handlers can return serializable objects directly.
+
+### Fixed
+- Response lifecycle handling avoids duplicate header write crashes in error paths.
+- WebSocket route flow simplified by relying on middleware at route level.
+
 ---## [1.0.0+26]
  -  Hot Reload fixed on Linux
 ---## [1.0.0+25]
