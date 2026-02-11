@@ -318,6 +318,11 @@ String _normalizeSqlForPostgres(String sql) {
   return normalized;
 }
 
+/// Exposed for testing migrate SQL normalization without requiring DB access.
+String dbMigrateNormalizeSqlForPostgres(String sql) {
+  return _normalizeSqlForPostgres(sql);
+}
+
 /// --- Extract table name from SQL ---
 String? _extractTableName(String sql) {
   // Match CREATE TABLE or ALTER TABLE statements
@@ -327,6 +332,11 @@ String? _extractTableName(String sql) {
   ).firstMatch(sql);
 
   return match?.group(1);
+}
+
+/// Exposed for testing migrate table-name extraction without DB access.
+String? dbMigrateExtractTableName(String sql) {
+  return _extractTableName(sql);
 }
 
 /// --- Create trigger for PostgreSQL updated_at ---
