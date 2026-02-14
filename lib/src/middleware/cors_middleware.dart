@@ -26,8 +26,22 @@ class CorsMiddleware extends Middleware {
         return await next(ctx);
       }
 
-      res.raw.headers
-          .add('Access-Control-Allow-Origin', allowedOrigins.join(','));
+      final requestOrigin = ctx.req.raw.headers.value('origin');
+      String? allowOrigin;
+
+      if (allowedOrigins.contains('*')) {
+        // CORS requires a single origin value, not a comma-separated list.
+        allowOrigin = requestOrigin ?? '*';
+      } else if (requestOrigin != null &&
+          allowedOrigins.contains(requestOrigin)) {
+        allowOrigin = requestOrigin;
+      }
+
+      if (allowOrigin != null) {
+        res.raw.headers.add('Access-Control-Allow-Origin', allowOrigin);
+        res.raw.headers.add('Vary', 'Origin');
+      }
+
       res.raw.headers
           .add('Access-Control-Allow-Methods', allowedMethods.join(','));
       res.raw.headers
