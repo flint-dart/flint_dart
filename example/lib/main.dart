@@ -1,8 +1,10 @@
 // import 'dart:convert';
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/mail.dart';
 import 'package:sample/src/middlewares/auth_middleware.dart';
 import 'package:sample/src/routes/auth_routes.dart';
 import 'package:sample/src/routes/post_routes.dart';
@@ -23,49 +25,73 @@ void main(List<String> args) {
     return res.render(Welcome());
   });
   app.mount("/post", postRoute);
-// In your preview server routes
-  // app.get('/preview/email/:type', (req, res) async {
-  //   final type = req.params['type'];
+  app.get('/preview/email', (Request req, Response res) async {
+    final templates = _discoverEmailTemplates();
+    if (templates.isEmpty) {
+      return res.status(404).json({
+        'message': 'No email templates found.',
+        'hint': 'Create templates in lib/mail/views/*.flint.html'
+      });
+    }
 
-  //   Mailable mail;
+    final links = templates.keys
+        .map((name) => '<li><a href="/preview/email/$name">$name</a></li>')
+        .join('\n');
 
-  //   switch (type) {
-  //     case 'welcome':
-  //       mail = WelcomeMail(
-  //         recipientName: 'Preview User',
-  //         recipientEmail: 'preview@example.com',
-  //         verificationUrl: 'https://example.com/verify/preview',
-  //         loginUrl: 'https://example.com/login',
-  //       );
-  //       break;
+    final html = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Preview</title>
+</head>
+<body>
+  <h2>Available Email Templates</h2>
+  <p>Open any link to preview the rendered email template.</p>
+  <ul>
+    $links
+  </ul>
+</body>
+</html>
+''';
 
-  //     case 'password-reset':
-  //       mail = PasswordResetMail(
-  //         recipientName: 'Preview User',
-  //         recipientEmail: 'preview@example.com',
-  //         resetUrl: 'https://example.com/reset/preview',
-  //       );
-  //       break;
+    return res.send(html, contentType: 'text/html');
+  });
 
-  //     case 'order-confirmation':
-  //       mail = OrderConfirmationMail(
-  //         recipientName: 'Preview User',
-  //         recipientEmail: 'preview@example.com',
-  //         orderNumber: 'PREVIEW-123',
-  //         orderDate: DateTime.now(),
-  //         orderTotal: 99.99,
-  //         items: [
-  //           OrderItem(name: 'Preview Product', quantity: 1, price: 99.99),
-  //         ],
-  //       );
-  //       break;
+  app.get('/preview/email/:name', (Request req, Response res) async {
+    final name = req.params['name'];
+    if (name == null || name.trim().isEmpty) {
+      return res.status(400).json({'message': 'Missing template name.'});
+    }
 
-  //     default:
-  //       return res.status(404).json({'error': 'Template not found'});
-  //   }
+    final templates = _discoverEmailTemplates();
+    final templatePath = templates[name];
+    if (templatePath == null) {
+      return res.status(404).json({
+        'message': 'Template "$name" not found.',
+        'available': templates.keys.toList(),
+      });
+    }
 
-  //   return res.renderEmail(mail);
-  // });
+    final previewData = <String, dynamic>{
+      'subject': 'Preview: $name',
+      'recipientName': req.queryParam('recipientName') ?? 'Preview User',
+      'recipientEmail': req.queryParam('recipientEmail') ?? 'preview@example.com',
+      'appName': 'Flint Example',
+      'currentYear': DateTime.now().year,
+      'preview': true,
+    };
+
+    final mailable = _EmailTemplatePreviewMail(
+      subjectLine: 'Preview: $name',
+      templateViewPath: templatePath,
+      payload: previewData,
+    );
+
+    return res.renderEmail(mailable);
+  });
+
   app.get('/login', (Request req, Response res) async {
     return res.oAuthRedirect("google", callback: "/api/auth/google/callback");
   });
@@ -307,4 +333,64 @@ void _broadcastMessage(
   socket.emitToRoom(room, 'new_message', messageData);
 
   Log.debug('📤 Broadcast message from $userName to room $room: $message');
+}
+
+Map<String, String> _discoverEmailTemplates() {
+  final roots = <String>[
+    'lib/mail/views',
+    'example/lib/mail/views',
+  ];
+
+  final templates = <String, String>{};
+
+  for (final root in roots) {
+    final dir = Directory(root);
+    if (!dir.existsSync()) continue;
+
+    for (final entry in dir.listSync(recursive: true)) {
+      if (entry is! File) continue;
+
+      final path = entry.path.replaceAll('\\', '/');
+      final isEmailTemplate =
+          path.endsWith('.flint.html') || path.endsWith('.html');
+      if (!isEmailTemplate) continue;
+
+      final fileName = path.split('/').last;
+      var name = fileName;
+      if (name.endsWith('.flint.html')) {
+        name = name.substring(0, name.length - '.flint.html'.length);
+      } else if (name.endsWith('.html')) {
+        name = name.substring(0, name.length - '.html'.length);
+      }
+
+      templates.putIfAbsent(name, () => entry.path);
+    }
+  }
+
+  final sortedKeys = templates.keys.toList()..sort();
+  return {for (final key in sortedKeys) key: templates[key]!};
+}
+
+class _EmailTemplatePreviewMail extends ViewMailable {
+  final String subjectLine;
+  final String templateViewPath;
+  final Map<String, dynamic> payload;
+
+  _EmailTemplatePreviewMail({
+    required this.subjectLine,
+    required this.templateViewPath,
+    required this.payload,
+  });
+
+  @override
+  String get subject => subjectLine;
+
+  @override
+  String get view => templateViewPath;
+
+  @override
+  Map<String, dynamic> get data => payload;
+
+  @override
+  List<String> get to => [payload['recipientEmail'] as String? ?? 'preview@example.com'];
 }

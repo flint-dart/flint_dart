@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:path/path.dart' as path;
+import 'package:package_config/package_config.dart';
 
 class BuildCommand extends FlintCommand {
   BuildCommand() : super('build', 'Builds the application for production');
@@ -93,6 +94,8 @@ class BuildCommand extends FlintCommand {
     Log.debug('📦 Copying non-Dart resources...');
     await _copyNonDartFilesWithSpinner(
         Directory.current, buildDirectory, buildDir);
+    _copySwaggerSpec(buildDir);
+    await _copySwaggerUiAssets(buildDir);
 
     // Create start scripts
     _createStartScripts(buildDir, exeName, targetPlatform);
@@ -232,14 +235,93 @@ class BuildCommand extends FlintCommand {
     }
   }
 
+  void _copySwaggerSpec(String buildDir) {
+    final candidates = [
+      File(path.join('docs', 'swagger.json')),
+      File('swagger.json'),
+    ];
+
+    File? source;
+    for (final candidate in candidates) {
+      if (candidate.existsSync()) {
+        source = candidate;
+        break;
+      }
+    }
+
+    if (source == null) {
+      Log.debug('ℹ️  No swagger.json found (checked docs/swagger.json, swagger.json).');
+      return;
+    }
+
+    final target = File(path.join(buildDir, 'docs', 'swagger.json'));
+    target.parent.createSync(recursive: true);
+    source.copySync(target.path);
+    Log.debug('📚 Copied Swagger spec: ${source.path} -> ${target.path}');
+  }
+
+  Future<void> _copySwaggerUiAssets(String buildDir) async {
+    final source = await _resolveSwaggerUiSourceDir();
+    if (source == null) {
+      Log.debug(
+          'ℹ️  No swagger-ui assets found (checked package and local framework paths).');
+      return;
+    }
+
+    final targetDir = Directory(path.join(buildDir, 'swagger-ui'));
+    if (!targetDir.existsSync()) {
+      targetDir.createSync(recursive: true);
+    }
+
+    _copyDirectoryContents(source, targetDir);
+    Log.debug(
+        '📚 Copied Swagger UI assets: ${source.path} -> ${targetDir.path}');
+  }
+
+  Future<Directory?> _resolveSwaggerUiSourceDir() async {
+    final candidates = <String>[
+      path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'),
+      path.join(Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'),
+      path.join(Directory.current.path, '..', 'flint_dart', 'lib', 'swagger', 'swagger-ui'),
+    ];
+
+    try {
+      final packageConfig = await findPackageConfig(Directory.current);
+      final flintPackage = packageConfig?['flint_dart'];
+      if (flintPackage != null) {
+        candidates.insert(
+            0,
+            path.join(flintPackage.root.toFilePath(windows: Platform.isWindows),
+                'lib', 'swagger', 'swagger-ui'));
+      }
+    } catch (_) {
+      // Ignore package resolution errors and continue with local fallbacks.
+    }
+
+    for (final dirPath in candidates) {
+      final dir = Directory(dirPath);
+      if (await dir.exists()) return dir;
+    }
+    return null;
+  }
+
+  void _copyDirectoryContents(Directory source, Directory target) {
+    for (final entity in source.listSync(recursive: false)) {
+      final name = path.basename(entity.path);
+      final targetPath = path.join(target.path, name);
+      if (entity is File) {
+        File(targetPath).parent.createSync(recursive: true);
+        entity.copySync(targetPath);
+      } else if (entity is Directory) {
+        final subDir = Directory(targetPath)..createSync(recursive: true);
+        _copyDirectoryContents(entity, subDir);
+      }
+    }
+  }
+
   void _createLinuxStartScript(String buildDir, String exeName) {
     final content = '''#!/bin/bash
 echo "🚀 Starting Flint Application..."
-if [ -f .env ]; then
-    set -a
-    source .env
-    set +a
-fi
 ./$exeName
 ''';
     final file = File(path.join(buildDir, 'start.sh'));
@@ -251,11 +333,6 @@ fi
     final content = '''
 @echo off
 echo 🚀 Starting Flint Application...
-if exist .env (
-    for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
-        set "%%A=%%B"
-    )
-)
 $exeName
 ''';
     File(path.join(buildDir, 'start.bat')).writeAsStringSync(content);
