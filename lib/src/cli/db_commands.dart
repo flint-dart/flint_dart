@@ -38,6 +38,7 @@ class DBMigrateCommand extends FlintCommand {
       Log.debug('Found ${_registeredSqlStrings.length} tables. Migrating...');
 
       for (var sql in _registeredSqlStrings) {
+        String? currentTableName;
         try {
           // --- Extract table name first ---
           final tableName = _extractTableName(sql);
@@ -46,6 +47,7 @@ class DBMigrateCommand extends FlintCommand {
                 '⚠️ Skipping SQL statement (could not extract table name): ${sql.substring(0, 50)}...');
             continue;
           }
+          currentTableName = tableName;
 
           Log.debug('   🔹 Processing table: $tableName');
 
@@ -82,10 +84,12 @@ class DBMigrateCommand extends FlintCommand {
 
           Log.debug('   ✅ Table "$tableName" migrated successfully.');
         } catch (e, st) {
-          Log.debug('   ❌ Failed to migrate table.');
+          final failedTable = currentTableName ?? 'unknown';
+          Log.debug('   ❌ Failed to migrate table "$failedTable".');
           if (args.contains('--verbose')) {
             Log.debug("❌ Failed to migrate table:", error: e, stackTrace: st);
           }
+          rethrow;
         }
       }
 
