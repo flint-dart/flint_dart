@@ -19,23 +19,24 @@ import 'websocket/ws_router.dart'; // WsRoute
 import 'package:path/path.dart' as path;
 import 'package:package_config/package_config.dart';
 
-Future<String> _getFlintDartLibPath() async {
-  // Load the package configuration from the sample project
-  final packageConfig = await findPackageConfig(Directory.current);
-  if (packageConfig == null) {
-    throw Exception(
-        'Could not find package configuration in ${Directory.current.path}');
-  }
+Future<String?> _getFlintDartLibPath() async {
+  try {
+    final packageConfig = await findPackageConfig(Directory.current);
+    if (packageConfig == null) {
+      return null;
+    }
 
-  // Find the flint_dart package
-  final flintPackage = packageConfig['flint_dart'];
-  if (flintPackage == null) {
-    throw Exception('flint_dart package not found in dependencies');
-  }
+    final flintPackage = packageConfig['flint_dart'];
+    if (flintPackage == null) {
+      return null;
+    }
 
-  // Return the path to flint_dart's lib folder
-  return path.join(
-      flintPackage.root.toFilePath(windows: Platform.isWindows), 'lib');
+    return path.join(
+        flintPackage.root.toFilePath(windows: Platform.isWindows), 'lib');
+  } catch (e) {
+    Log.debug('[FLINT] Swagger package path resolution failed: $e');
+    return null;
+  }
 }
 
 //  void _registerSwaggerDocs() async {
@@ -147,63 +148,93 @@ class Flint {
   }
 
   void _registerSwaggerDocs() async {
-    // Resolve flint_dart's lib path
-    final flintLibPath = await _getFlintDartLibPath();
-    final swaggerDir =
-        Directory(path.join(flintLibPath, 'swagger', 'swagger-ui'));
-    Log.debug('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
-
-    // Serve swagger.json from sample project
+    // Always register swagger.json so apps can serve API spec even without UI assets.
     get('/swagger.json', (req, res) async {
-      final file =
-          File(path.join(Directory.current.path, 'docs', 'swagger.json'));
-      Log.debug('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
-      if (await file.exists()) {
-        Log.debug('[DEBUG] swagger.json found');
-        final bytes = await file.readAsBytes();
-        res.raw.headers.contentType = ContentType.json;
-        await res.raw.addStream(Stream.fromIterable([bytes]));
-        await res.raw.close();
-      } else {
-        Log.debug('[DEBUG] swagger.json not found');
-        res.raw.statusCode = 404;
-        res.raw.write('swagger.json not found');
-        await res.raw.close();
+      final candidates = <File>[
+        File(path.join(Directory.current.path, 'docs', 'swagger.json')),
+        File(path.join(Directory.current.path, 'swagger.json')),
+      ];
+
+      for (final file in candidates) {
+        Log.debug('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          res.raw.headers.contentType = ContentType.json;
+          await res.raw.addStream(Stream.fromIterable([bytes]));
+          await res.raw.close();
+          return;
+        }
       }
-      return;
-    });
 
-    // Check if swagger-ui directory exists
-    if (!await swaggerDir.exists()) {
-      Log.debug(
-          '[FLINT] ⚠️ Warning: Static directory not found: ${swaggerDir.absolute.path}');
-      return;
-    }
-
-    // Serve static Swagger UI files
-    static('/swagger-ui', swaggerDir.path);
-
-    // Serve /docs
-    get('/docs', (req, res) async {
-      final file = File(path.join(swaggerDir.path, 'index.html'));
-      if (await file.exists()) {
-        var content = await file.readAsString();
-
-        // Rewrite asset paths so they load correctly
-        content = content.replaceAll('href="./', 'href="/swagger-ui/');
-        content = content.replaceAll('src="./', 'src="/swagger-ui/');
-        // Replace default Petstore spec with /swagger.json
-
-        res.raw.headers.contentType = ContentType.html;
-        res.raw.write(content);
-        return;
-      } else {
-        res.raw.statusCode = 404;
-        res.raw.write('Swagger UI not found');
-      }
+      res.raw.statusCode = 404;
+      res.raw.write('swagger.json not found');
       await res.raw.close();
       return;
     });
+
+    try {
+      final swaggerDir = await _resolveSwaggerUiDir();
+      if (swaggerDir == null) {
+        Log.debug(
+            '[FLINT] ⚠️ Warning: Swagger UI directory not found. /swagger.json remains available.');
+        get('/docs', (req, res) async {
+          res.raw.statusCode = 404;
+          res.raw.write(
+              'Swagger UI not found. Use /swagger.json or provide swagger-ui assets.');
+          await res.raw.close();
+          return;
+        });
+        return;
+      }
+
+      Log.debug('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
+      static('/swagger-ui', swaggerDir.path);
+
+      get('/docs', (req, res) async {
+        final file = File(path.join(swaggerDir.path, 'index.html'));
+        if (await file.exists()) {
+          var content = await file.readAsString();
+          content = content.replaceAll('href="./', 'href="/swagger-ui/');
+          content = content.replaceAll('src="./', 'src="/swagger-ui/');
+          content = content.replaceAll('href="index.css"', 'href="/swagger-ui/index.css"');
+
+          res.raw.headers.contentType = ContentType.html;
+          res.raw.write(content);
+        } else {
+          res.raw.statusCode = 404;
+          res.raw.write('Swagger UI not found');
+        }
+        await res.raw.close();
+        return;
+      });
+    } catch (e) {
+      Log.debug(
+          '[FLINT] ⚠️ Swagger docs bootstrap failed: $e. /swagger.json may still be available.');
+    }
+  }
+
+  Future<Directory?> _resolveSwaggerUiDir() async {
+    final candidates = <String>[];
+    final flintLibPath = await _getFlintDartLibPath();
+    if (flintLibPath != null) {
+      candidates.add(path.join(flintLibPath, 'swagger', 'swagger-ui'));
+    }
+
+    // Fallbacks for local/dev monorepo layouts.
+    candidates.add(path.join(Directory.current.path, 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'));
+    candidates.add(path.join(
+        Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'));
+    candidates.add(path.join(
+        Directory.current.path, '..', 'flint_dart', 'lib', 'swagger', 'swagger-ui'));
+
+    for (final dirPath in candidates) {
+      final dir = Directory(dirPath);
+      if (await dir.exists()) {
+        return dir;
+      }
+    }
+    return null;
   }
 
   final Router _router = Router();
@@ -741,17 +772,24 @@ class Flint {
   /// If [port] is not provided, it will use `env('PORT', 3001)`.
   Future<void> listen({int? port, bool hotReload = true}) async {
     final resolvedPort = port ?? (env('PORT', 3001) as int);
+    final hotFlag = env('FLINT_HOT', '').toString().toLowerCase().trim();
+    final hotReloadDisabled = hotFlag == '0' || hotFlag == 'false';
+    final isHotReloadWorker = hotFlag == '1';
+    final shouldUseHotReload = hotReload && !hotReloadDisabled;
+
     // 1. Register hot reload websocket route if enabled
-    if (hotReload) {
+    if (shouldUseHotReload) {
       _registerFlintTemReload();
       _registerHotReloadEndpoint();
       Log.debug('[FLINT] ⚠️ Hot reload is ENABLED.');
+    } else {
+      Log.debug('[FLINT] Hot reload is DISABLED.');
     }
-    Log.debug('FLINT_HOT=${Platform.environment['FLINT_HOT']}');
+    Log.debug('FLINT_HOT=$hotFlag');
 
     // 2. THE LAUNCHER CHECK
     // If we are in the Parent Process, start the watcher and STOP here.
-    if (hotReload && Platform.environment['FLINT_HOT'] != '1') {
+    if (shouldUseHotReload && !isHotReloadWorker) {
       await _startHotReloadLauncher(resolvedPort);
       return; // CRITICAL: Parent process returns here and never runs the server.
     }

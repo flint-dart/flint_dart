@@ -4,7 +4,9 @@ import 'package:flint_dart/src/cli/build_command.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/create_project_command.dart';
 import 'package:flint_dart/src/cli/db_commands.dart';
+import 'package:flint_dart/src/cli/db_admin_commands.dart';
 import 'package:flint_dart/src/cli/db_seed_command.dart';
+import 'package:flint_dart/src/cli/deploy_globe_command.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/cli/make_controller_command.dart';
 import 'package:flint_dart/src/cli/make_docker_command.dart';
@@ -25,7 +27,11 @@ final Map<String, FlintCommand> commands = {
   'run': RunServerCommand(),
   'build': BuildCommand(),
   'make:docker': MakeDockerCommand(),
+  'deploy-globe': DeployGlobeCommand(),
   'migrate': DBMigrateCommand(),
+  'db:create': DBCreateCommand(),
+  'db:user:create': DBUserCreateCommand(),
+  'db:export': DBExportCommand(),
   'make:model': MakeModelCommand(),
   'make:controller': MakeControllerCommand(),
   'make:middleware': MakeMiddlewareCommand(),
@@ -50,10 +56,14 @@ final Map<String, String> aliasCommands = {
   '--make-resource': 'make:resource',
   '--make-middleware': 'make:middleware',
   '--make-docker': 'make:docker',
+  '--deploy-globe': 'deploy-globe',
   '--make-isolate': 'make:isolate',
   "--docs-generate": 'docs:generate',
   '--make-seeder': 'make:seeder', // <-- Add alias here
   '--seed': 'seed', // <-- Add alias here
+  '--db-create': 'db:create',
+  '--db-user-create': 'db:user:create',
+  '--db-export': 'db:export',
   '--build': 'build', // <-- Add alias here
   '--update': 'update', // <-- Add alias here
   '--upgrade': 'upgrade', // <-- Add alias here
