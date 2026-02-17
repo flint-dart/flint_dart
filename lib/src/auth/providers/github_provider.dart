@@ -36,11 +36,31 @@ class GitHubProvider {
     String? email = profile['email'];
     if (email == null || email.isEmpty) {
       final emails = await _fetchUserEmails(accessToken);
-      final primaryEmail = emails.firstWhere(
-        (e) => e['primary'] == true,
-        orElse: () => emails.firstWhere((e) => e['verified'] == true),
-      );
-      email = primaryEmail['email'];
+      Map<String, dynamic>? selected;
+
+      for (final entry in emails) {
+        if (entry is Map<String, dynamic> && entry['primary'] == true) {
+          selected = entry;
+          break;
+        }
+      }
+      selected ??= emails
+          .whereType<Map<String, dynamic>>()
+          .cast<Map<String, dynamic>>()
+          .firstWhere(
+            (e) => e['verified'] == true,
+            orElse: () => <String, dynamic>{},
+          );
+      selected = selected.isNotEmpty
+          ? selected
+          : emails.whereType<Map<String, dynamic>>().isNotEmpty
+              ? emails.whereType<Map<String, dynamic>>().first
+              : null;
+
+      email = selected?['email']?.toString();
+      if (email == null || email.isEmpty) {
+        throw AuthException(message: 'No usable email found for GitHub user');
+      }
     }
 
     return AuthProvider.formatUserData(

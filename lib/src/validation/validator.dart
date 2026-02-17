@@ -40,7 +40,7 @@ class ValidationException implements Exception {
 /// - `regex:<pattern>`: Value must match the given regular expression.
 /// - `list`: Value must be a list.
 /// - `list:<type>`: All items in the list must match the given type
-///   (`string`, `int`, `bool`).
+///   (`string`, `int`, `double`, `bool`).
 /// - `min:<n>`: Minimum length (for strings/lists) or value (for numbers).
 /// - `max:<n>`: Maximum length (for strings/lists) or value (for numbers).
 ///
@@ -75,24 +75,10 @@ class Validator {
   /// You can also use `:field`, `:min`, `:max`, and `:value` placeholders
   /// in custom messages.
   ///
-  /// A utility class for validating input data against a set of rules.
-  ///
-  /// The rules use a pipe-separated format (e.g., `"required|string|min:3"`)
-  /// and support the following checks:
-  ///
-  /// - `required`: Field must be present and not empty.
-  /// - `string`: Value must be a string.
-  /// - `int`: Value must be an integer.
-  /// - `double`: Value must be an integer.
-  /// - `bool`: Value must be a boolean.
-  /// - `email`: Must be a valid email address.
-  /// - `regex:<pattern>`: Value must match the given regular expression.
-  /// - `list`: Value must be a list.
-  /// - `list:<type>`: All items in the list must match the given type
-  ///   (`string`, `int`, `bool`).
-  /// - `confirmed` — Field must have a matching confirmation field (`confirm_field` or `field_confirmation`).
-  /// - `min:<n>`: Minimum length (for strings/lists) or value (for numbers).
-  /// - `max:<n>`: Maximum length (for strings/lists) or value (for numbers).
+  /// Supported rules include:
+  /// `required`, `string`, `int`, `double`, `bool`, `email`,
+  /// `regex:<pattern>`, `list`, `list:<type>`, `confirmed`, `date`,
+  /// `in:<a,b,c>`, `not_in:<a,b,c>`, `min:<n>`, and `max:<n>`.
   ///
   /// Example:
   /// ```dart
@@ -148,7 +134,7 @@ class Validator {
       return null;
     }
 
-    void _addError(
+    void addError(
       String field,
       String ruleKey,
       String defaultMessage, {
@@ -174,13 +160,13 @@ class Validator {
       errors.putIfAbsent(field, () => []).add(message);
     }
 
-    // 🔹 1. Check for unknown fields
+    // 1. Check for unknown fields
     for (final key in data.keys) {
       // Skip confirmation fields like "password_confirmation" or "confirm_password"
       if (key.endsWith('_confirmation') || key.startsWith('confirm_')) continue;
 
       if (!rules.containsKey(key)) {
-        _addError(
+        addError(
           key,
           'unknown',
           'The field "$key" is not allowed.',
@@ -208,7 +194,7 @@ class Validator {
       for (var part in ruleParts) {
         if (part == 'required') {
           if (value == null || (value is String && value.isEmpty)) {
-            _addError(
+            addError(
               field,
               'required',
               'The $field field is required.',
@@ -217,7 +203,7 @@ class Validator {
           }
         } else if (part == 'string') {
           if (value != null && !isString(value)) {
-            _addError(
+            addError(
               field,
               'string',
               'The $field must be a string.',
@@ -226,7 +212,7 @@ class Validator {
           }
         } else if (part == 'int') {
           if (value != null && !isInt(value)) {
-            _addError(
+            addError(
               field,
               'int',
               'The $field must be an integer.',
@@ -235,16 +221,16 @@ class Validator {
           }
         } else if (part == 'double') {
           if (value != null && !isDouble(value)) {
-            _addError(
+            addError(
               field,
               'double',
-              'The $field must be an double.',
+              'The $field must be a double.',
               value: value,
             );
           }
         } else if (part == 'bool') {
           if (value != null && !isBool(value)) {
-            _addError(
+            addError(
               field,
               'bool',
               'The $field must be a boolean.',
@@ -256,7 +242,7 @@ class Validator {
               value != null &&
                   isString(value) &&
                   !RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) {
-            _addError(
+            addError(
               field,
               'email',
               'The $field must be a valid email address.',
@@ -268,7 +254,7 @@ class Validator {
           try {
             regex = RegExp(pattern);
             if (value != null && isString(value) && !regex.hasMatch(value)) {
-              _addError(
+              addError(
                 field,
                 'regex',
                 'The $field format is invalid.',
@@ -276,7 +262,7 @@ class Validator {
               );
             }
           } catch (e) {
-            _addError(
+            addError(
               field,
               'regex',
               'Invalid regex pattern for $field.',
@@ -286,7 +272,7 @@ class Validator {
         } else if (part == 'list') {
           isListType = true;
           if (value != null && !isList(value)) {
-            _addError(
+            addError(
               field,
               'list',
               'The $field must be a list.',
@@ -299,7 +285,7 @@ class Validator {
           if (value != null && isList(value)) {
             for (var item in value) {
               if (listItemType == 'string' && item is! String) {
-                _addError(
+                addError(
                   field,
                   'list:$listItemType',
                   'All items in $field must be strings.',
@@ -308,7 +294,7 @@ class Validator {
                 break;
               }
               if (listItemType == 'int' && item is! int) {
-                _addError(
+                addError(
                   field,
                   'list:$listItemType',
                   'All items in $field must be integers.',
@@ -317,16 +303,16 @@ class Validator {
                 break;
               }
               if (listItemType == 'double' && item is! double) {
-                _addError(
+                addError(
                   field,
                   'list:$listItemType',
-                  'All items in $field must be double.',
+                  'All items in $field must be doubles.',
                   value: value,
                 );
                 break;
               }
               if (listItemType == 'bool' && item is! bool) {
-                _addError(
+                addError(
                   field,
                   'list:$listItemType',
                   'All items in $field must be booleans.',
@@ -350,16 +336,16 @@ class Validator {
 
           // When confirmation field does not exist
           if (!data.containsKey(confirmField)) {
-            _addError(
+            addError(
               field,
               'confirmed',
               'The $confirmField field is required for confirmation.',
               value: value,
             );
           }
-          // When it exists but doesn’t match
+          // When it exists but doesn't match
           else if (data[confirmField] != value) {
-            _addError(
+            addError(
               field,
               'confirmed',
               'The $field confirmation does not match.',
@@ -372,7 +358,7 @@ class Validator {
               try {
                 DateTime.parse(value.toString());
               } catch (_) {
-                _addError(
+                addError(
                   field,
                   'date',
                   'The $field must be a valid date.',
@@ -382,11 +368,11 @@ class Validator {
             }
           }
         }
-        // ✅ NEW: in:<a,b,c>
+        // in:<a,b,c>
         else if (part.startsWith('in:')) {
           final allowed = part.substring(3).split(',');
           if (value != null && !allowed.contains(value.toString())) {
-            _addError(
+            addError(
               field,
               'in',
               'The $field must be one of: ${allowed.join(', ')}.',
@@ -396,7 +382,7 @@ class Validator {
         } else if (part.startsWith('not_in:')) {
           final options = part.split(':')[1].split(',');
           if (options.contains(value.toString())) {
-            _addError(
+            addError(
               field,
               'not_in',
               'The $field must not be one of: ${options.join(', ')}.',
@@ -409,7 +395,7 @@ class Validator {
       if (value != null) {
         if (isListType && value is List) {
           if (minLength != null && value.length < minLength) {
-            _addError(
+            addError(
               field,
               'min',
               'The $field list must have at least $minLength items.',
@@ -418,7 +404,7 @@ class Validator {
             );
           }
           if (maxLength != null && value.length > maxLength) {
-            _addError(
+            addError(
               field,
               'max',
               'The $field list must have at most $maxLength items.',
@@ -428,7 +414,7 @@ class Validator {
           }
         } else if (value is String) {
           if (minLength != null && value.length < minLength) {
-            _addError(
+            addError(
               field,
               'min',
               'The $field must be at least $minLength characters.',
@@ -437,7 +423,7 @@ class Validator {
             );
           }
           if (maxLength != null && value.length > maxLength) {
-            _addError(
+            addError(
               field,
               'max',
               'The $field must be at most $maxLength characters.',
@@ -447,7 +433,7 @@ class Validator {
           }
         } else if (value is num) {
           if (minLength != null && value < minLength) {
-            _addError(
+            addError(
               field,
               'min',
               'The $field must be at least $minLength.',
@@ -456,7 +442,7 @@ class Validator {
             );
           }
           if (maxLength != null && value > maxLength) {
-            _addError(
+            addError(
               field,
               'max',
               'The $field must be at most $maxLength.',

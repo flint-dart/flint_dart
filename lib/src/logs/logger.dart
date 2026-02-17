@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../env_parser.dart';
+
 class ConsoleColor {
   static const reset = '\x1B[0m';
   static const red = '\x1B[31m';
@@ -18,15 +20,54 @@ class Log {
   static bool enabled = true;
   static LogLevel minLevel = LogLevel.debug;
   static bool consoleLogging = true; // controls colored console output
+  static bool fileLogging = false; // disabled by default
+  static String logDirectory = 'logs';
 
-  static final Directory logDir = Directory('logs');
+  static bool _configured = false;
+  static bool _initialized = false;
   static File? _logFile;
+
+  static Directory get _logDir => Directory(logDirectory);
+
+  static void _configureFromEnv() {
+    if (_configured) return;
+    _configured = true;
+
+    enabled = FlintEnv.getBool('LOG_ENABLED', enabled);
+    consoleLogging = FlintEnv.getBool('LOG_TO_CONSOLE', consoleLogging);
+    fileLogging = FlintEnv.getBool('LOG_TO_FILE', fileLogging);
+    logDirectory = FlintEnv.get('LOG_DIR', logDirectory).trim();
+    if (logDirectory.isEmpty) {
+      logDirectory = 'logs';
+    }
+
+    final level = FlintEnv.get('LOG_LEVEL', '').toLowerCase().trim();
+    const levels = {
+      'debug': LogLevel.debug,
+      'info': LogLevel.info,
+      'warning': LogLevel.warning,
+      'error': LogLevel.error,
+      'critical': LogLevel.critical,
+    };
+    final parsed = levels[level];
+    if (parsed != null) {
+      minLevel = parsed;
+    }
+  }
 
   // Initialize logger
   static Future<void> init() async {
-    if (!await logDir.exists()) await logDir.create(recursive: true);
+    _configureFromEnv();
+    if (_initialized) return;
+    _initialized = true;
+
+    if (!fileLogging) {
+      return;
+    }
+
+    if (!await _logDir.exists()) await _logDir.create(recursive: true);
     final fileName = _getLogFileName();
-    _logFile = File('${logDir.path}/$fileName');
+    _logFile = File('${_logDir.path}/$fileName');
     if (!await _logFile!.exists()) await _logFile!.create();
   }
 
@@ -58,6 +99,7 @@ class Log {
     String? tag,
     bool asJson = true, // default true for structured logging
   }) {
+    _configureFromEnv();
     if (!enabled || level.index < minLevel.index) return;
 
     final time = DateTime.now().toIso8601String();
@@ -84,11 +126,12 @@ class Log {
       print('$color$consoleMessage${ConsoleColor.reset}');
     }
 
-    // Always write JSON to file
+    // Optionally write JSON to file
     _writeToFile(jsonLog);
   }
 
   static void _writeToFile(String message) async {
+    if (!fileLogging) return;
     await init();
     if (_logFile == null) return;
     _logFile!.writeAsStringSync('$message\n', mode: FileMode.append);

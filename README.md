@@ -394,6 +394,45 @@ final user = await Auth.register(
 final result = await Auth.login(data['email'], data['password']);
 ```
 
+### Access + Refresh Tokens (Optional)
+
+Refresh token support is opt-in and disabled by default to keep framework behavior flexible.
+
+```dart
+final tokens = await Auth.loginWithTokens(
+  data['email'],
+  data['password'],
+  throttleKey: req.ipAddress, // optional
+  ipAddress: req.ipAddress,   // optional metadata
+  userAgent: req.headers['user-agent'],
+  deviceName: 'web',
+);
+
+final rotated = await Auth.refreshAccessToken(
+  tokens['refreshToken'],
+  rotateRefreshToken: true,
+);
+```
+
+Revoke helpers:
+
+```dart
+await Auth.revokeRefreshToken(refreshToken);
+await Auth.revokeAllRefreshTokensForUser(userId);
+```
+
+### Login Throttle (Optional)
+
+Login throttle/lockout is also opt-in and disabled by default.
+
+```dart
+final result = await Auth.login(
+  data['email'],
+  data['password'],
+  throttleKey: req.ipAddress, // optional (ip/device/etc)
+);
+```
+
 ### OAuth Providers
 
 ```dart
@@ -404,6 +443,25 @@ final url = Auth.providerRedirectUrl(
 ```
 
 Supported providers: Google, GitHub, Facebook, Apple.
+
+### Auth Environment Options
+
+```bash
+# Existing
+JWT_SECRET=change-me-to-a-strong-secret
+JWT_EXPIRY_HOURS=24
+PASSWORD_MIN_LENGTH=6
+
+# Optional refresh-token flow
+AUTH_ENABLE_REFRESH_TOKENS=false
+AUTH_ACCESS_TOKEN_MINUTES=60
+AUTH_REFRESH_TOKEN_DAYS=30
+
+# Optional login throttle
+AUTH_ENABLE_LOGIN_THROTTLE=false
+AUTH_LOGIN_MAX_ATTEMPTS=5
+AUTH_LOGIN_LOCK_MINUTES=15
+```
 
 ---
 
@@ -454,6 +512,25 @@ DB_SECURE=false
 ```
 
 Auto‑connect runs on server start. You can disable it and call `DB.connect()` manually.
+
+---
+
+## Logging
+
+By default, Flint logs to console and does not create log files.
+
+Use `.env` to control logging:
+
+```bash
+LOG_ENABLED=true
+LOG_TO_CONSOLE=true
+LOG_TO_FILE=false
+LOG_DIR=logs
+LOG_LEVEL=debug
+```
+
+- `LOG_TO_FILE=false` prevents creating log files on user systems.
+- Set `LOG_TO_FILE=true` only when you want persisted log files.
 
 ---
 

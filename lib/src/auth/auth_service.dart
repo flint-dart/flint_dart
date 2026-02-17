@@ -234,7 +234,7 @@ class AuthService {
 
   static String _generateState(String callbackUrl) {
     final random = _generateRandomString(32);
-    return '${Uri.encodeComponent(random)}|${Uri.encodeComponent(callbackUrl)}';
+    return Uri.encodeComponent(random);
   }
 
   static String _generateCodeVerifier() {

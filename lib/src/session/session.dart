@@ -86,11 +86,7 @@ class SessionManager {
         throw Exception('Unknown SESSION_DRIVER: $driver');
     }
 
-    // Set secure cookie
-    response.cookies.add(Cookie('FLINTSESSID', id)
-      ..path = '/'
-      ..httpOnly = true
-      ..secure = false);
+    _setSessionCookie(response, id);
 
     return id;
   }
@@ -169,12 +165,7 @@ class SessionManager {
         break;
     }
 
-    // Delete cookie
-    response.cookies.add(
-      Cookie('FLINTSESSID', '')
-        ..path = '/'
-        ..maxAge = 0,
-    );
+    _clearSessionCookie(response);
   }
 
   // ===================================================
@@ -208,7 +199,7 @@ class SessionManager {
     await DB.query('''
       CREATE TABLE IF NOT EXISTS $dbTable (
         id VARCHAR(128) PRIMARY KEY,
-        user_id VARCHAR(128) NOT NULL,
+        user_id VARCHAR(128),
         data $jsonType NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP
@@ -235,5 +226,28 @@ class SessionManager {
       return Duration(hours: int.parse(ttl.replaceAll('h', '')));
     }
     return Duration(days: 7);
+  }
+
+  void _setSessionCookie(HttpResponse response, String sessionId) {
+    final appEnv = FlintEnv.get('APP_ENV', 'development').toLowerCase();
+    final secureDefault = appEnv == 'production';
+    final secure = FlintEnv.getBool('SESSION_COOKIE_SECURE', secureDefault);
+    final httpOnly = FlintEnv.getBool('SESSION_COOKIE_HTTP_ONLY', true);
+    final sameSite = FlintEnv.get('SESSION_COOKIE_SAMESITE', 'Lax');
+    final path = FlintEnv.get('SESSION_COOKIE_PATH', '/');
+
+    final cookie = StringBuffer()..write('FLINTSESSID=$sessionId; Path=$path;');
+    if (httpOnly) cookie.write(' HttpOnly;');
+    if (secure) cookie.write(' Secure;');
+    if (sameSite.isNotEmpty) cookie.write(' SameSite=$sameSite;');
+    response.headers.add('Set-Cookie', cookie.toString());
+  }
+
+  void _clearSessionCookie(HttpResponse response) {
+    final path = FlintEnv.get('SESSION_COOKIE_PATH', '/');
+    response.headers.add(
+      'Set-Cookie',
+      'FLINTSESSID=; Path=$path; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0;',
+    );
   }
 }

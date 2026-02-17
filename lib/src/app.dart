@@ -215,18 +215,26 @@ class Flint {
 
   Future<Directory?> _resolveSwaggerUiDir() async {
     final candidates = <String>[];
-    final flintLibPath = await _getFlintDartLibPath();
-    if (flintLibPath != null) {
-      candidates.add(path.join(flintLibPath, 'swagger', 'swagger-ui'));
+    final explicitDir = Platform.environment['FLINT_SWAGGER_UI_DIR'];
+    if (explicitDir != null && explicitDir.trim().isNotEmpty) {
+      candidates.add(explicitDir.trim());
     }
 
-    // Fallbacks for local/dev monorepo layouts.
+    // Prefer project-local UI assets first (dev/build output).
     candidates.add(path.join(Directory.current.path, 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'build', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, '..', 'swagger-ui'));
     candidates.add(path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'));
     candidates.add(path.join(
         Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'));
     candidates.add(path.join(
         Directory.current.path, '..', 'flint_dart', 'lib', 'swagger', 'swagger-ui'));
+
+    // Final fallback: framework-bundled assets from package cache.
+    final flintLibPath = await _getFlintDartLibPath();
+    if (flintLibPath != null) {
+      candidates.add(path.join(flintLibPath, 'swagger', 'swagger-ui'));
+    }
 
     for (final dirPath in candidates) {
       final dir = Directory(dirPath);

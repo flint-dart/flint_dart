@@ -9,8 +9,14 @@ extension OAuthResponse on Response {
     // Handle callback parameter with proper URL construction
     String callbackUrl;
     if (callback != null) {
-      if (callback.startsWith('http')) {
-        // Full URL provided
+      if (callback.startsWith('http://') || callback.startsWith('https://')) {
+        final base = Uri.parse(Auth.config.redirectBase);
+        final requested = Uri.parse(callback);
+        if (base.host != requested.host || base.scheme != requested.scheme) {
+          throw AuthException(
+              message:
+                  'OAuth callback must use the same origin as REDIRECT_BASE.');
+        }
         callbackUrl = callback;
       } else if (callback.startsWith('/')) {
         // Path provided - construct full URL

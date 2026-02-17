@@ -29,6 +29,12 @@ class AuthConfig {
 
   // Security settings
   final int jwtExpiryHours;
+  final int accessTokenExpiryMinutes;
+  final bool enableRefreshTokens;
+  final int refreshTokenExpiryDays;
+  final bool enableLoginThrottle;
+  final int loginMaxAttempts;
+  final int loginLockMinutes;
   final bool requireEmailVerification;
   final int passwordMinLength;
 
@@ -65,6 +71,12 @@ class AuthConfig {
 
     // Security settings
     this.jwtExpiryHours = 24,
+    this.accessTokenExpiryMinutes = 60,
+    this.enableRefreshTokens = false,
+    this.refreshTokenExpiryDays = 30,
+    this.enableLoginThrottle = false,
+    this.loginMaxAttempts = 5,
+    this.loginLockMinutes = 15,
     this.requireEmailVerification = false,
     this.passwordMinLength = 6,
   });
@@ -171,6 +183,12 @@ class AuthConfig {
     String? redirectBase,
     String? jwtSecret,
     int? jwtExpiryHours,
+    int? accessTokenExpiryMinutes,
+    bool? enableRefreshTokens,
+    int? refreshTokenExpiryDays,
+    bool? enableLoginThrottle,
+    int? loginMaxAttempts,
+    int? loginLockMinutes,
     bool? requireEmailVerification,
     int? passwordMinLength,
   }) {
@@ -194,6 +212,14 @@ class AuthConfig {
       redirectBase: redirectBase ?? this.redirectBase,
       jwtSecret: jwtSecret ?? this.jwtSecret,
       jwtExpiryHours: jwtExpiryHours ?? this.jwtExpiryHours,
+      accessTokenExpiryMinutes:
+          accessTokenExpiryMinutes ?? this.accessTokenExpiryMinutes,
+      enableRefreshTokens: enableRefreshTokens ?? this.enableRefreshTokens,
+      refreshTokenExpiryDays:
+          refreshTokenExpiryDays ?? this.refreshTokenExpiryDays,
+      enableLoginThrottle: enableLoginThrottle ?? this.enableLoginThrottle,
+      loginMaxAttempts: loginMaxAttempts ?? this.loginMaxAttempts,
+      loginLockMinutes: loginLockMinutes ?? this.loginLockMinutes,
       requireEmailVerification:
           requireEmailVerification ?? this.requireEmailVerification,
       passwordMinLength: passwordMinLength ?? this.passwordMinLength,
@@ -223,6 +249,12 @@ AuthConfig {
   redirectBase: $redirectBase,
   jwtSecret: ${jwtSecret != null ? '***' : 'null'},
   jwtExpiryHours: $jwtExpiryHours,
+  accessTokenExpiryMinutes: $accessTokenExpiryMinutes,
+  enableRefreshTokens: $enableRefreshTokens,
+  refreshTokenExpiryDays: $refreshTokenExpiryDays,
+  enableLoginThrottle: $enableLoginThrottle,
+  loginMaxAttempts: $loginMaxAttempts,
+  loginLockMinutes: $loginLockMinutes,
   requireEmailVerification: $requireEmailVerification,
   passwordMinLength: $passwordMinLength,
   configuredProviders: $configuredProviders
