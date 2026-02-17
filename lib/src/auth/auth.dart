@@ -1,4 +1,5 @@
 // auth.dart
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -17,6 +18,10 @@ import 'package:flint_dart/src/error/auth_exception.dart';
 
 class Auth {
   static final AuthConfig _config = _loadConfig();
+  static const String _defaultJwtSecret =
+      'your-default-jwt-secret-change-in-production';
+  static const String _refreshTokensTable = 'auth_refresh_tokens';
+  static final Map<String, _LoginThrottleState> _loginThrottle = {};
 
   static AuthConfig get config => _config;
 
@@ -32,6 +37,16 @@ class Auth {
         FlintEnv.getBool("REQUIRE_EMAIL_VERIFICATION", false);
     final passwordMinLength = FlintEnv.getInt('PASSWORD_MIN_LENGTH', 6);
     final jwtExpiryHours = FlintEnv.getInt('JWT_EXPIRY_HOURS', 24);
+    final accessTokenExpiryMinutes =
+        FlintEnv.getInt('AUTH_ACCESS_TOKEN_MINUTES', jwtExpiryHours * 60);
+    final enableRefreshTokens =
+        FlintEnv.getBool('AUTH_ENABLE_REFRESH_TOKENS', false);
+    final refreshTokenExpiryDays =
+        FlintEnv.getInt('AUTH_REFRESH_TOKEN_DAYS', 30);
+    final enableLoginThrottle =
+        FlintEnv.getBool('AUTH_ENABLE_LOGIN_THROTTLE', false);
+    final loginMaxAttempts = FlintEnv.getInt('AUTH_LOGIN_MAX_ATTEMPTS', 5);
+    final loginLockMinutes = FlintEnv.getInt('AUTH_LOGIN_LOCK_MINUTES', 15);
     final googleClientId = FlintEnv.get('GOOGLE_CLIENT_ID', '');
     final googleClientSecret = FlintEnv.get('GOOGLE_CLIENT_SECRET', '');
     final githubClientId = FlintEnv.get('GITHUB_CLIENT_ID', '');
@@ -44,8 +59,7 @@ class Auth {
     final applePrivateKey = FlintEnv.get('APPLE_PRIVATE_KEY', '');
 
     final redirectBase = FlintEnv.get('REDIRECT_BASE', 'http://localhost:3000');
-    final jwtSecret = FlintEnv.get(
-        'JWT_SECRET', 'your-default-jwt-secret-change-in-production');
+    final jwtSecret = FlintEnv.get('JWT_SECRET', _defaultJwtSecret);
 
     return AuthConfig(
         table: table,
@@ -67,17 +81,29 @@ class Auth {
         redirectBase: redirectBase,
         jwtSecret: jwtSecret,
         jwtExpiryHours: jwtExpiryHours,
+        accessTokenExpiryMinutes: accessTokenExpiryMinutes,
+        enableRefreshTokens: enableRefreshTokens,
+        refreshTokenExpiryDays: refreshTokenExpiryDays,
+        enableLoginThrottle: enableLoginThrottle,
+        loginMaxAttempts: loginMaxAttempts,
+        loginLockMinutes: loginLockMinutes,
         passwordMinLength: passwordMinLength,
         requireEmailVerification: requireEmailVerification);
   }
 
   static Future<Map<String, dynamic>> login(
-      String email, String password) async {
+    String email,
+    String password, {
+    String? throttleKey,
+  }) async {
+    _validateLoginThrottle(email, throttleKey: throttleKey);
+
     final qb = QueryBuilder(table: _config.table);
     final user =
         await qb.where(_config.emailColumn, '=', email).limit(1).first();
 
     if (user == null) {
+      _registerLoginFailure(email, throttleKey: throttleKey);
       throw AuthException(message: 'Invalid email or password');
     }
 
@@ -85,6 +111,7 @@ class Auth {
     final isMatch = Hashing().verify(password, hashedPassword);
 
     if (!isMatch) {
+      _registerLoginFailure(email, throttleKey: throttleKey);
       throw AuthException(message: 'Invalid email or password');
     }
 
@@ -92,22 +119,58 @@ class Auth {
       throw AuthException(message: 'Email verification required.');
     }
 
+    _registerLoginSuccess(email, throttleKey: throttleKey);
     final cleanUser = _sanitizeUserData(user);
-
-    // ✅ Create JWT token with expiry
-    final jwt = JWT({
-      'id': cleanUser['id'],
-      'email': cleanUser[_config.emailColumn],
-    });
-
-    final token = jwt.sign(
-      SecretKey(_config.jwtSecret!),
-      expiresIn: Duration(hours: _config.jwtExpiryHours),
-    );
+    _ensureJwtSecretConfigured();
+    final token = _issueAccessToken(cleanUser);
 
     return {
       'user': cleanUser,
       'token': token,
+    };
+  }
+
+  /// Login and issue an access token + optional refresh token.
+  ///
+  /// Refresh tokens are disabled by default and enabled with:
+  /// `AUTH_ENABLE_REFRESH_TOKENS=true`.
+  static Future<Map<String, dynamic>> loginWithTokens(
+    String email,
+    String password, {
+    String? throttleKey,
+    String? ipAddress,
+    String? userAgent,
+    String? deviceName,
+  }) async {
+    final result = await login(
+      email,
+      password,
+      throttleKey: throttleKey,
+    );
+
+    final user = result['user'] as Map<String, dynamic>;
+    final accessToken = result['token'] as String;
+
+    if (!_config.enableRefreshTokens) {
+      return {
+        'user': user,
+        'accessToken': accessToken,
+        'token': accessToken,
+      };
+    }
+
+    final refreshToken = await _createRefreshTokenRecord(
+      userId: user['id'],
+      ipAddress: ipAddress,
+      userAgent: userAgent,
+      deviceName: deviceName,
+    );
+
+    return {
+      'user': user,
+      'accessToken': accessToken,
+      'token': accessToken,
+      'refreshToken': refreshToken,
     };
   }
 
@@ -492,16 +555,107 @@ class Auth {
 
   /// Generate JWT token from user data
   static String generateToken(Map<String, dynamic> userData) {
+    _ensureJwtSecretConfigured();
     return FlintJwt(config.jwtSecret!).generateToken(userData);
   }
 
   /// Verify JWT token
   static Map<String, dynamic>? verifyToken(String token) {
+    _ensureJwtSecretConfigured();
     try {
       return FlintJwt(config.jwtSecret!).verifyToken(token);
     } catch (e) {
       return null;
     }
+  }
+
+  /// Exchange a refresh token for a new access token and optional rotated refresh token.
+  ///
+  /// Returns `null` when refresh token is invalid/expired/revoked.
+  static Future<Map<String, dynamic>?> refreshAccessToken(
+    String refreshToken, {
+    bool rotateRefreshToken = true,
+    String? ipAddress,
+    String? userAgent,
+    String? deviceName,
+  }) async {
+    if (!_config.enableRefreshTokens) return null;
+    await ensureFrameworkTablesExist();
+
+    final tokenHash = _hashRefreshToken(refreshToken);
+    final rows = await DB.query(
+      'SELECT id, user_id, expires_at, revoked_at FROM $_refreshTokensTable WHERE token_hash = ? LIMIT 1',
+      positionalParams: [tokenHash],
+    );
+    if (rows.isEmpty) return null;
+
+    final row = rows.first;
+    if (row['revoked_at'] != null) return null;
+
+    final expiresAtRaw = row['expires_at']?.toString();
+    if (expiresAtRaw == null) return null;
+    final expiresAt = DateTime.tryParse(expiresAtRaw);
+    if (expiresAt == null || expiresAt.isBefore(DateTime.now())) {
+      return null;
+    }
+
+    final userId = row['user_id']?.toString();
+    if (userId == null || userId.isEmpty) return null;
+
+    final user = await QueryBuilder(table: _config.table)
+        .where('id', '=', userId)
+        .limit(1)
+        .first();
+    if (user == null) return null;
+
+    final cleanUser = _sanitizeUserData(user);
+    final accessToken = _issueAccessToken(cleanUser);
+
+    if (!rotateRefreshToken) {
+      return {
+        'user': cleanUser,
+        'accessToken': accessToken,
+        'token': accessToken,
+      };
+    }
+
+    await DB.query(
+      'UPDATE $_refreshTokensTable SET revoked_at = ? WHERE id = ?',
+      positionalParams: [DateTime.now().toIso8601String(), row['id']],
+    );
+
+    final newRefreshToken = await _createRefreshTokenRecord(
+      userId: userId,
+      ipAddress: ipAddress,
+      userAgent: userAgent,
+      deviceName: deviceName,
+    );
+
+    return {
+      'user': cleanUser,
+      'accessToken': accessToken,
+      'token': accessToken,
+      'refreshToken': newRefreshToken,
+    };
+  }
+
+  static Future<void> revokeRefreshToken(String refreshToken) async {
+    if (!_config.enableRefreshTokens) return;
+    await ensureFrameworkTablesExist();
+    final tokenHash = _hashRefreshToken(refreshToken);
+    await DB.query(
+      'UPDATE $_refreshTokensTable SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL',
+      positionalParams: [DateTime.now().toIso8601String(), tokenHash],
+    );
+  }
+
+  static Future<void> revokeAllRefreshTokensForUser(Object? userId) async {
+    if (!_config.enableRefreshTokens || userId == null) return;
+    await ensureFrameworkTablesExist();
+    await DB.query(
+      'UPDATE $_refreshTokensTable SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL',
+      positionalParams: [DateTime.now().toIso8601String(), userId.toString()],
+    );
   }
 
   /// Remove sensitive data from user object
@@ -610,8 +764,9 @@ class Auth {
       final passwordResetExists = await DB.tableExists('password_reset_tokens');
       final emailVerifyExists =
           await DB.tableExists('email_verification_tokens');
+      final refreshTokenExists = await DB.tableExists(_refreshTokensTable);
 
-      if (!passwordResetExists || !emailVerifyExists) {
+      if (!passwordResetExists || !emailVerifyExists || !refreshTokenExists) {
         Log.debug('🔄 Creating framework auth tables...');
         await _createFrameworkTables();
       }
@@ -659,6 +814,19 @@ class Auth {
       expires_at $textType NOT NULL,
       created_at $textType NOT NULL
     )
+    ''',
+      '''
+    CREATE TABLE IF NOT EXISTS $_refreshTokensTable (
+      $idColumn,
+      user_id $textType NOT NULL,
+      token_hash $textType NOT NULL,
+      ip_address $textType,
+      user_agent $textType,
+      device_name $textType,
+      expires_at $textType NOT NULL,
+      created_at $textType NOT NULL,
+      revoked_at $textType
+    )
     '''
     ];
 
@@ -680,6 +848,9 @@ class Auth {
       ('password_reset_tokens', 'expires_at'),
       ('email_verification_tokens', 'token'),
       ('email_verification_tokens', 'email'),
+      (_refreshTokensTable, 'token_hash'),
+      (_refreshTokensTable, 'user_id'),
+      (_refreshTokensTable, 'expires_at'),
     ];
 
     for (final (table, column) in indexes) {
@@ -709,6 +880,131 @@ class Auth {
   }
 
   static Future<void> ensureMigrationsRun() async {}
+
+  static void _ensureJwtSecretConfigured() {
+    final appEnv = FlintEnv.get('APP_ENV', 'development').toLowerCase();
+    final secret = config.jwtSecret;
+    final usesDefault = secret == null ||
+        secret.isEmpty ||
+        secret == _defaultJwtSecret ||
+        secret.length < 32;
+
+    if (usesDefault && appEnv == 'production') {
+      throw AuthException(
+        message:
+            'JWT_SECRET must be set to a strong value (32+ chars) in production.',
+      );
+    }
+  }
+
+  static String _issueAccessToken(Map<String, dynamic> cleanUser) {
+    final jwt = JWT({
+      'id': cleanUser['id'],
+      'email': cleanUser[_config.emailColumn],
+    });
+
+    return jwt.sign(
+      SecretKey(_config.jwtSecret!),
+      expiresIn: Duration(minutes: _config.accessTokenExpiryMinutes),
+    );
+  }
+
+  static Future<String> _createRefreshTokenRecord({
+    required Object? userId,
+    String? ipAddress,
+    String? userAgent,
+    String? deviceName,
+  }) async {
+    await ensureFrameworkTablesExist();
+    final token = _generateSecureToken();
+    final tokenHash = _hashRefreshToken(token);
+    final now = DateTime.now();
+    final expiresAt = now.add(Duration(days: _config.refreshTokenExpiryDays));
+
+    await QueryBuilder(table: _refreshTokensTable).insert({
+      'user_id': userId?.toString(),
+      'token_hash': tokenHash,
+      'ip_address': ipAddress,
+      'user_agent': userAgent,
+      'device_name': deviceName,
+      'expires_at': expiresAt.toIso8601String(),
+      'created_at': now.toIso8601String(),
+      'revoked_at': null,
+    });
+
+    return token;
+  }
+
+  static String _generateSecureToken({int bytes = 48}) {
+    final rng = Random.secure();
+    final data = List<int>.generate(bytes, (_) => rng.nextInt(256));
+    return base64Url.encode(data).replaceAll('=', '');
+  }
+
+  static String _hashRefreshToken(String token) {
+    return sha256.convert(utf8.encode(token)).toString();
+  }
+
+  static void _validateLoginThrottle(
+    String email, {
+    String? throttleKey,
+  }) {
+    if (!_config.enableLoginThrottle) return;
+
+    final key = _buildThrottleKey(email, throttleKey);
+    final state = _loginThrottle[key];
+    if (state == null || state.lockedUntil == null) return;
+    if (DateTime.now().isAfter(state.lockedUntil!)) {
+      _loginThrottle.remove(key);
+      return;
+    }
+
+    final minutes =
+        state.lockedUntil!.difference(DateTime.now()).inMinutes.clamp(1, 9999);
+    throw AuthException(
+      message:
+          'Too many login attempts. Try again in $minutes minute${minutes == 1 ? '' : 's'}.',
+    );
+  }
+
+  static void _registerLoginFailure(
+    String email, {
+    String? throttleKey,
+  }) {
+    if (!_config.enableLoginThrottle) return;
+    final key = _buildThrottleKey(email, throttleKey);
+    final now = DateTime.now();
+    final current = _loginThrottle[key] ??
+        _LoginThrottleState(failures: 0, lockedUntil: null);
+
+    final failures = current.failures + 1;
+    DateTime? lockedUntil = current.lockedUntil;
+
+    if (failures >= _config.loginMaxAttempts) {
+      lockedUntil = now.add(Duration(minutes: _config.loginLockMinutes));
+    }
+
+    _loginThrottle[key] = _LoginThrottleState(
+      failures: failures,
+      lockedUntil: lockedUntil,
+    );
+  }
+
+  static void _registerLoginSuccess(
+    String email, {
+    String? throttleKey,
+  }) {
+    if (!_config.enableLoginThrottle) return;
+    _loginThrottle.remove(_buildThrottleKey(email, throttleKey));
+  }
+
+  static String _buildThrottleKey(String email, String? throttleKey) {
+    final suffix = throttleKey?.trim();
+    if (suffix != null && suffix.isNotEmpty) {
+      return '${email.toLowerCase()}::$suffix';
+    }
+    return email.toLowerCase();
+  }
 
   /// Generate numeric verification code (like OTP)
   static Future<String> generateNumericVerificationCode(
@@ -883,7 +1179,8 @@ class Auth {
     final updateData = <String, dynamic>{
       Auth.config.passwordColumn: newHashedPassword,
     };
-    final updatedAtExists = await Auth.columnExists(Auth.config.table, 'updated_at');
+    final updatedAtExists =
+        await Auth.columnExists(Auth.config.table, 'updated_at');
     if (updatedAtExists) {
       updateData['updated_at'] = DateTime.now().toIso8601String();
     }
@@ -1038,4 +1335,14 @@ class TotpService {
 
     return Uint8List.fromList(out);
   }
+}
+
+class _LoginThrottleState {
+  final int failures;
+  final DateTime? lockedUntil;
+
+  _LoginThrottleState({
+    required this.failures,
+    required this.lockedUntil,
+  });
 }

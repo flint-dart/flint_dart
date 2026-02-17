@@ -1,5 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/src/websocket/websocket.dart';
 import 'package:flint_dart/src/websocket/ws_manager_instance.dart';
 import 'package:test/test.dart';
 
@@ -125,7 +124,8 @@ void main() {
     });
 
     test('adaptWebSocket returns null when socket is missing', () async {
-      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/adapt-ws-no'));
+      final raw =
+          FakeHttpRequest(method: 'GET', uri: Uri.parse('/adapt-ws-no'));
       final request = Request(raw);
       var called = false;
       final handler = adaptWebSocket((req, socket) {

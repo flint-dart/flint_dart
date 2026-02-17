@@ -18,21 +18,27 @@ class CookieService {
     String name,
     String value, {
     bool httpOnly = true,
-    bool secure = false,
+    bool? secure,
     String path = '/',
     Duration? maxAge,
     DateTime? expires,
-    String sameSite = 'Lax',
+    String? sameSite,
   }) {
+    final appEnv = FlintEnv.get('APP_ENV', 'development').toLowerCase();
+    final resolvedSecure = secure ??
+        FlintEnv.getBool('SESSION_COOKIE_SECURE', appEnv == 'production');
+    final resolvedSameSite =
+        sameSite ?? FlintEnv.get('SESSION_COOKIE_SAMESITE', 'Lax');
+
     _response.setCookie(
       name,
       value,
       path: path,
       httpOnly: httpOnly,
-      secure: secure,
+      secure: resolvedSecure,
       maxAge: maxAge?.inSeconds,
       expires: expires,
-      sameSite: sameSite,
+      sameSite: resolvedSameSite,
     );
   }
 

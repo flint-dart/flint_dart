@@ -38,7 +38,11 @@ class FacebookProvider extends AuthProvider {
     }
 
     // Verify token and get user profile
-    final profile = await _verifyTokenAndGetProfile(finalAccessToken, clientId);
+    final profile = await _verifyTokenAndGetProfile(
+      finalAccessToken,
+      clientId,
+      clientSecret,
+    );
 
     return AuthProvider.formatUserData(
       provider: 'facebook',
@@ -87,11 +91,12 @@ class FacebookProvider extends AuthProvider {
   static Future<Map<String, dynamic>> _verifyTokenAndGetProfile(
     String accessToken,
     String clientId,
+    String clientSecret,
   ) async {
     // First verify the token
     final verifyUri = Uri.https('graph.facebook.com', '/debug_token', {
       'input_token': accessToken,
-      'access_token': '$clientId|$clientId',
+      'access_token': '$clientId|$clientSecret',
     });
 
     final client = HttpClient();
@@ -106,8 +111,9 @@ class FacebookProvider extends AuthProvider {
 
     final verifyData = json.decode(responseBody) as Map<String, dynamic>;
     final isValid = verifyData['data']?['is_valid'] == true;
+    final appId = verifyData['data']?['app_id']?.toString();
 
-    if (!isValid) {
+    if (!isValid || appId != clientId) {
       throw AuthException(message: 'Invalid Facebook token');
     }
 

@@ -1,6 +1,7 @@
 // providers/apple_provider.dart
 import 'dart:convert';
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/auth/providers/base_provider.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
 
@@ -55,11 +56,16 @@ class AppleProvider {
     String identityToken,
     String clientId,
   ) async {
-    // For Apple, we need to verify the JWT ourselves
-    // In production, you might want to use a proper JWT library
+    final allowInsecure =
+        FlintEnv.getBool('ALLOW_INSECURE_APPLE_TOKEN_VERIFICATION', false);
+    if (!allowInsecure) {
+      throw AuthException(
+        message:
+            'Apple identity token signature verification is not implemented. Set ALLOW_INSECURE_APPLE_TOKEN_VERIFICATION=true only for local development.',
+      );
+    }
 
     try {
-      // Simple verification - decode and check basic claims
       final parts = identityToken.split('.');
       if (parts.length != 3) {
         throw AuthException(message: 'Invalid Apple identity token format');
@@ -103,33 +109,10 @@ class AppleProvider {
     required String keyId,
     required String privateKey,
   }) {
-    // This is a simplified version - you'll need proper JWT implementation
-    final headers = {
-      'alg': 'ES256',
-      'kid': keyId,
-    };
-
-    final claims = {
-      'iss': teamId,
-      'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'exp':
-          DateTime.now().add(Duration(days: 30)).millisecondsSinceEpoch ~/ 1000,
-      'aud': 'https://appleid.apple.com',
-      'sub': clientId,
-    };
-
-    // In practice, you'd use a proper JWT library to sign with ES256
-    // This is just a placeholder - implement proper JWT signing
-    return _signJWT(headers, claims, privateKey);
-  }
-
-  static String _signJWT(
-    Map<String, dynamic> headers,
-    Map<String, dynamic> claims,
-    String privateKey,
-  ) {
-    // Implement proper JWT signing with ES256
-    // This is a complex operation that requires proper cryptographic libraries
-    throw UnimplementedError('JWT signing for Apple not implemented');
+    final _ = [teamId, clientId, keyId, privateKey];
+    throw AuthException(
+      message:
+          'Apple client secret generation is not implemented. Provide a pre-generated secret from your Apple auth service.',
+    );
   }
 }
