@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0+28] - 2026-02-18
+
+### Release Status
+- Public release build.
+
+### Changed
+- Bumped package version to `1.0.0+28`.
+
 ## [1.0.0+27] - 2026-02-11
 
 ### Release Status
