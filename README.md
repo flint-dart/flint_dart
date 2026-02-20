@@ -513,6 +513,22 @@ DB_SECURE=false
 
 Auto‑connect runs on server start. You can disable it and call `DB.connect()` manually.
 
+```dart
+final app = Flint(autoConnectDb: false);
+
+try {
+  await DB.connect(
+    database: env('DB_NAME', 'app_db'),
+    host: env('DB_HOST', 'localhost'),
+    port: env('DB_PORT', 3306),
+    username: env('DB_USER', 'root'),
+    password: env('DB_PASSWORD', ''),
+  );
+} catch (e) {
+  Log.debug('Database connection failed: $e');
+}
+```
+
 ---
 
 ## Logging

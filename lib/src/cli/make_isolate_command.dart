@@ -4,13 +4,13 @@ import 'package:flint_dart/logs.dart';
 import 'commands.dart';
 
 class MakeIsolateCommand extends FlintCommand {
-  MakeIsolateCommand() : super('make:isolate', 'Create a new isolate task');
+  MakeIsolateCommand() : super('--make-isolate', 'Create a new isolate task');
 
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      Log.error('❌ Usage: flint make:isolate <TaskName>');
-      Log.error('   Example: flint make:isolate send_email');
+      Log.error('❌ Usage: flint --make-isolate <TaskName>');
+      Log.error('   Example: flint --make-isolate send_email');
       return;
     }
 

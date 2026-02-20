@@ -3,7 +3,7 @@ import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class DbSeedCommand extends FlintCommand {
-  DbSeedCommand() : super('db:seed', 'Run database seeders');
+  DbSeedCommand() : super('--db-seed', 'Run database seeders');
 
   @override
   Future<void> execute(List<String> args) async {
@@ -14,7 +14,7 @@ class DbSeedCommand extends FlintCommand {
         'Seeder runner not found: lib/seeders/seeder.dart',
       );
       Log.info(
-        'Create it or run: flint make:seeder',
+        'Create it or run: flint --make-seeder',
       );
       exit(1);
     }

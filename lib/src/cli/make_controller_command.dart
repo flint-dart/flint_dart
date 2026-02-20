@@ -6,7 +6,7 @@ import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeControllerCommand extends FlintCommand {
   MakeControllerCommand()
-      : super('make:controller', '  Creates a new controller class');
+      : super('--make-controller', '  Creates a new controller class');
 
   @override
   Future<void> execute(List<String> args) async {

@@ -6,7 +6,7 @@ import 'package:path/path.dart' as path;
 
 class MakeDockerCommand extends FlintCommand {
   MakeDockerCommand()
-      : super('make:docker', 'Creates Docker configuration for the project');
+      : super('--make-docker', 'Creates Docker configuration for the project');
 
   @override
   Future<void> execute(List<String> args) async {

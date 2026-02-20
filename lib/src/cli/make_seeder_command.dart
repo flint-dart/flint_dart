@@ -4,13 +4,13 @@ import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeSeederCommand extends FlintCommand {
   MakeSeederCommand()
-      : super('make:seeder', 'Create a new standalone database seeder');
+      : super('--make-seeder', 'Create a new standalone database seeder');
 
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
       Log.debug(
-          'Please provide a seeder name. Example: flint make:seeder UserSeeder');
+          'Please provide a seeder name. Example: flint --make-seeder UserSeeder');
       exit(1);
     }
 

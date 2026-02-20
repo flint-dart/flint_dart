@@ -134,6 +134,8 @@ class Flint {
       this.autoConnectMail = true,
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false}) {
+    DB.setLazyAutoConnect(autoConnectDb);
+
     if (withDefaultMiddleware) {
       _middlewares.add(ExceptionMiddleware());
     }
@@ -977,12 +979,16 @@ class Flint {
     }
   }
 
-  void _connectDatabaseInBackground() async {
+  Future<void> _connectDatabaseInBackground() async {
     try {
-      DB.autoConnect();
+      await DB.autoConnect();
       _dbInitialized = true;
       Log.debug('[FLINT] Database auto-connected via .env');
     } catch (e) {
+      Log.debug(
+        '[FLINT] Database auto-connect failed: $e\n'
+        '[FLINT] Tip: set autoConnectDb: false and call DB.connect(...) inside try/catch.',
+      );
       Future.delayed(const Duration(seconds: 10), _connectDatabaseInBackground);
     }
   }
