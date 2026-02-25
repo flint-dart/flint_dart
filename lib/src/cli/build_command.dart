@@ -12,9 +12,8 @@ class BuildCommand extends FlintCommand {
   Future<void> execute(List<String> args) async {
     String? targetPlatform;
     String? entryPointArg;
-    final buildDir = 'build';
+    const buildDir = 'build';
 
-    // Parse platform arguments
     for (var i = 0; i < args.length; i++) {
       if (args[i] == '--platform' && i + 1 < args.length) {
         targetPlatform = args[i + 1].toLowerCase();
@@ -26,116 +25,118 @@ class BuildCommand extends FlintCommand {
         targetPlatform = 'linux';
       } else if (args[i] == '--windows') {
         targetPlatform = 'windows';
+      } else if (args[i] == '--macos') {
+        targetPlatform = 'macos';
       } else if (args[i] == '--both') {
         targetPlatform = 'both';
       } else if (args[i] == '--help' || args[i] == '-h') {
         _printHelp();
         return;
       } else if (args[i] == '--platform' || args[i] == '--entry') {
-        Log.debug('❌ Missing value for ${args[i]}');
+        Log.debug('Missing value for ${args[i]}');
         _printHelp();
         exit(1);
       } else {
-        Log.debug('❌ Unknown option: ${args[i]}');
+        Log.debug('Unknown option: ${args[i]}');
         _printHelp();
         exit(1);
       }
     }
 
     if (!_isValidTargetPlatform(targetPlatform)) {
-      Log.debug('❌ Invalid --platform value: $targetPlatform');
+      Log.debug('Invalid --platform value: $targetPlatform');
       _printHelp();
       exit(1);
     }
 
-    _validateTargetPlatform(targetPlatform);
-
     final entryPoint = await _resolveEntryPoint(entryPointArg);
+    final compileTargets = _resolveCompileTargets(targetPlatform);
 
-    Log.debug('🏗️  Building Flint application...');
+    Log.debug('Building Flint application...');
 
-    // Reset build directory
     final buildDirectory = Directory(buildDir);
     if (await buildDirectory.exists()) {
-      Log.debug('🧹 Removing previous build...');
+      Log.debug('Removing previous build...');
       buildDirectory.deleteSync(recursive: true);
     }
     buildDirectory.createSync(recursive: true);
 
-    // Load project name from pubspec.yaml
     final pubspec = await File('pubspec.yaml').readAsString();
     final match = RegExp(r'name:\s*(\S+)').firstMatch(pubspec);
     if (match == null) {
-      Log.debug('❌ Error: Missing project name in pubspec.yaml');
+      Log.debug('Error: Missing project name in pubspec.yaml');
       exit(1);
     }
     final projectName = match.group(1)!.trim();
 
-    // Determine executable path
-    final exeName = Platform.isWindows ? '$projectName.exe' : projectName;
-    final exePath = path.join(buildDir, exeName);
+    final builtExecutables = <String, String>{};
+    for (final target in compileTargets) {
+      final exeName = _executableNameForTarget(projectName, target);
+      final exePath = path.join(buildDir, exeName);
 
-    Log.debug('🔨 Compiling Dart executable from $entryPoint...');
-    final result = await Process.run(
-      'dart',
-      ['compile', 'exe', entryPoint, '-o', exePath],
-      runInShell: true,
-    );
+      Log.debug('Compiling $entryPoint for ${target.toUpperCase()}...');
+      final result = await Process.run(
+        'dart',
+        ['compile', 'exe', entryPoint, '--target-os', target, '-o', exePath],
+        runInShell: true,
+      );
 
-    if (result.exitCode != 0) {
-      Log.debug('❌ Build failed:');
-      Log.debug(result.stderr);
-      exit(1);
+      if (result.exitCode != 0) {
+        Log.debug('Build failed for target $target:');
+        Log.debug(result.stderr.toString());
+        exit(1);
+      }
+
+      builtExecutables[target] = exeName;
+      Log.debug('Executable generated: $exePath');
     }
 
-    Log.debug('✅ Executable generated: $exePath');
-
-    // Copy files with loading spinner
-    Log.debug('📦 Copying non-Dart resources...');
+    Log.debug('Copying non-Dart resources...');
     await _copyNonDartFilesWithSpinner(
         Directory.current, buildDirectory, buildDir);
     _copySwaggerSpec(buildDir);
     await _copySwaggerUiAssets(buildDir);
 
-    // Create start scripts
-    _createStartScripts(buildDir, exeName, targetPlatform);
-    _createDockerfile(buildDir);
+    _createStartScripts(buildDir, builtExecutables, targetPlatform);
+    _createDockerfile(
+      buildDir,
+      linuxExecutableName: builtExecutables['linux'],
+    );
 
-    Log.debug('\n🎉 Build completed successfully!');
-    Log.debug('📁 Output directory: $buildDir/');
-    _printRunInstructions(buildDir, targetPlatform);
+    Log.debug('Build completed successfully.');
+    Log.debug('Output directory: $buildDir/');
+    _printRunInstructions(buildDir, builtExecutables, targetPlatform);
   }
 
   bool _isValidTargetPlatform(String? targetPlatform) {
     return targetPlatform == null ||
         targetPlatform == 'linux' ||
         targetPlatform == 'windows' ||
+        targetPlatform == 'macos' ||
         targetPlatform == 'both';
   }
 
-  void _validateTargetPlatform(String? targetPlatform) {
-    if (targetPlatform == null) return;
-    if (targetPlatform == 'both') {
-      Log.debug(
-          '⚠️  --both creates both start scripts; executable is still built for the current OS only.');
-      return;
-    }
+  List<String> _resolveCompileTargets(String? targetPlatform) {
+    if (targetPlatform == null) return [_hostTargetOs()];
+    if (targetPlatform == 'both') return ['linux', 'windows'];
+    return [targetPlatform];
+  }
 
-    final hostPlatform = Platform.isWindows ? 'windows' : 'linux';
-    if (targetPlatform != hostPlatform) {
-      Log.debug(
-          '❌ Cross-compilation is not supported. Current host is $hostPlatform but requested $targetPlatform.');
-      Log.debug(
-          '   Build on the target OS or use --both only for script generation.');
-      exit(1);
-    }
+  String _hostTargetOs() {
+    if (Platform.isWindows) return 'windows';
+    if (Platform.isMacOS) return 'macos';
+    return 'linux';
+  }
+
+  String _executableNameForTarget(String projectName, String targetPlatform) {
+    return targetPlatform == 'windows' ? '$projectName.exe' : projectName;
   }
 
   Future<String> _resolveEntryPoint(String? entryPointArg) async {
     if (entryPointArg != null) {
       final customEntry = File(entryPointArg);
       if (!await customEntry.exists()) {
-        Log.debug('❌ Entry file not found: $entryPointArg');
+        Log.debug('Entry file not found: $entryPointArg');
         exit(1);
       }
       return entryPointArg;
@@ -147,21 +148,20 @@ class BuildCommand extends FlintCommand {
     }
 
     Log.debug(
-        '❌ No entry point found. Expected one of: ${candidates.join(', ')}');
-    Log.debug('   Or provide a custom entry with --entry <path>');
+        'No entry point found. Expected one of: ${candidates.join(', ')}');
+    Log.debug('Or provide a custom entry with --entry <path>');
     exit(1);
   }
 
-  // Spinner wrapper for copying files
   Future<void> _copyNonDartFilesWithSpinner(
       Directory source, Directory target, String buildDirName) async {
     final spinnerChars = ['|', '/', '-', '\\'];
-    int spinnerIndex = 0;
-    bool copying = true;
+    var spinnerIndex = 0;
+    var copying = true;
 
     Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!copying) {
-        stdout.write('\r'); // clear spinner
+        stdout.write('\r');
         timer.cancel();
       } else {
         stdout.write(
@@ -171,11 +171,9 @@ class BuildCommand extends FlintCommand {
     });
 
     await _copyFilesRecursively(source, target, buildDirName);
-
     copying = false;
   }
 
-  // Recursive file copy
   Future<void> _copyFilesRecursively(
       Directory source, Directory target, String buildDirName) async {
     for (final entity in source.listSync(recursive: false)) {
@@ -208,30 +206,33 @@ class BuildCommand extends FlintCommand {
     }
   }
 
-  void _createStartScripts(
-      String buildDir, String exeName, String? targetPlatform) {
-    final currentPlatform = Platform.isWindows ? 'windows' : 'linux';
-    final createLinux = targetPlatform == 'linux' ||
-        targetPlatform == 'both' ||
-        (targetPlatform == null && !Platform.isWindows);
-    final createWindows = targetPlatform == 'windows' ||
-        targetPlatform == 'both' ||
-        (targetPlatform == null && Platform.isWindows);
+  void _createStartScripts(String buildDir,
+      Map<String, String> builtExecutables, String? targetPlatform) {
+    final currentPlatform = _hostTargetOs();
 
-    if (createLinux) {
-      _createLinuxStartScript(buildDir, exeName);
-      Log.debug('🐧 Created Linux start script: start.sh');
+    final linuxExeName = builtExecutables['linux'];
+    final macExeName = builtExecutables['macos'];
+    final windowsExeName = builtExecutables['windows'];
+
+    if (linuxExeName != null) {
+      _createLinuxStartScript(buildDir, linuxExeName);
+      Log.debug('Created Linux start script: start.sh');
     }
 
-    if (createWindows) {
-      _createWindowsStartScript(buildDir, exeName);
-      Log.debug('🪟 Created Windows start script: start.bat');
+    if (macExeName != null && linuxExeName == null) {
+      _createLinuxStartScript(buildDir, macExeName);
+      Log.debug('Created macOS start script: start.sh');
+    }
+
+    if (windowsExeName != null) {
+      _createWindowsStartScript(buildDir, windowsExeName);
+      Log.debug('Created Windows start script: start.bat');
     }
 
     if (targetPlatform != null) {
-      Log.debug('🎯 Target platform: ${targetPlatform.toUpperCase()}');
+      Log.debug('Target platform: ${targetPlatform.toUpperCase()}');
     } else {
-      Log.debug('💻 Detected platform: ${currentPlatform.toUpperCase()}');
+      Log.debug('Detected platform: ${currentPlatform.toUpperCase()}');
     }
   }
 
@@ -250,21 +251,22 @@ class BuildCommand extends FlintCommand {
     }
 
     if (source == null) {
-      Log.debug('ℹ️  No swagger.json found (checked docs/swagger.json, swagger.json).');
+      Log.debug(
+          'No swagger.json found (checked docs/swagger.json, swagger.json).');
       return;
     }
 
     final target = File(path.join(buildDir, 'docs', 'swagger.json'));
     target.parent.createSync(recursive: true);
     source.copySync(target.path);
-    Log.debug('📚 Copied Swagger spec: ${source.path} -> ${target.path}');
+    Log.debug('Copied Swagger spec: ${source.path} -> ${target.path}');
   }
 
   Future<void> _copySwaggerUiAssets(String buildDir) async {
     final source = await _resolveSwaggerUiSourceDir();
     if (source == null) {
       Log.debug(
-          'ℹ️  No swagger-ui assets found (checked package and local framework paths).');
+          'No swagger-ui assets found (checked package and local framework paths).');
       return;
     }
 
@@ -274,15 +276,16 @@ class BuildCommand extends FlintCommand {
     }
 
     _copyDirectoryContents(source, targetDir);
-    Log.debug(
-        '📚 Copied Swagger UI assets: ${source.path} -> ${targetDir.path}');
+    Log.debug('Copied Swagger UI assets: ${source.path} -> ${targetDir.path}');
   }
 
   Future<Directory?> _resolveSwaggerUiSourceDir() async {
     final candidates = <String>[
       path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'),
-      path.join(Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'),
-      path.join(Directory.current.path, '..', 'flint_dart', 'lib', 'swagger', 'swagger-ui'),
+      path.join(
+          Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'),
+      path.join(Directory.current.path, '..', 'flint_dart', 'lib', 'swagger',
+          'swagger-ui'),
     ];
 
     try {
@@ -321,8 +324,16 @@ class BuildCommand extends FlintCommand {
 
   void _createLinuxStartScript(String buildDir, String exeName) {
     final content = '''#!/bin/bash
-echo "🚀 Starting Flint Application..."
-./$exeName
+set -e
+
+echo "Starting Flint Application..."
+
+# Ensure executable bit exists even if artifacts were published from Windows.
+if [ ! -x "./$exeName" ]; then
+  chmod +x "./$exeName"
+fi
+
+exec "./$exeName"
 ''';
     final file = File(path.join(buildDir, 'start.sh'));
     file.writeAsStringSync(content);
@@ -332,13 +343,19 @@ echo "🚀 Starting Flint Application..."
   void _createWindowsStartScript(String buildDir, String exeName) {
     final content = '''
 @echo off
-echo 🚀 Starting Flint Application...
+echo Starting Flint Application...
 $exeName
 ''';
     File(path.join(buildDir, 'start.bat')).writeAsStringSync(content);
   }
 
-  void _createDockerfile(String buildDir) {
+  void _createDockerfile(String buildDir, {String? linuxExecutableName}) {
+    if (linuxExecutableName == null) {
+      Log.debug(
+          'Skipping Dockerfile generation (no Linux binary built). Use --linux or --both.');
+      return;
+    }
+
     final content = '''FROM debian:bookworm-slim
 
 WORKDIR /app
@@ -350,8 +367,8 @@ RUN apt-get update \\
 # Copy prebuilt app bundle from this build directory.
 COPY . /app
 
-RUN chmod +x /app/start.sh \\
-    && find /app -maxdepth 1 -type f -perm -u=x -exec chmod +x {} +
+RUN if [ -f /app/start.sh ]; then chmod +x /app/start.sh; fi \\
+    && if [ -f /app/$linuxExecutableName ]; then chmod +x /app/$linuxExecutableName; fi
 
 ENV FLINT_HOT=0
 ENV PORT=3000
@@ -361,27 +378,21 @@ CMD ["./start.sh"]
 ''';
 
     File(path.join(buildDir, 'Dockerfile')).writeAsStringSync(content);
-    Log.debug('🐳 Created Dockerfile: Dockerfile');
+    Log.debug('Created Dockerfile: Dockerfile');
   }
 
-  void _printRunInstructions(String buildDir, String? targetPlatform) {
-    Log.debug('\n🚀 To run your application:');
-    final createLinux = targetPlatform == 'linux' ||
-        targetPlatform == 'both' ||
-        (targetPlatform == null && !Platform.isWindows);
-    final createWindows = targetPlatform == 'windows' ||
-        targetPlatform == 'both' ||
-        (targetPlatform == null && Platform.isWindows);
+  void _printRunInstructions(String buildDir,
+      Map<String, String> builtExecutables, String? targetPlatform) {
+    Log.debug('To run your application:');
+    final hasPosix = builtExecutables.containsKey('linux') ||
+        builtExecutables.containsKey('macos');
+    final hasWindows = builtExecutables.containsKey('windows');
 
-    if (createLinux) Log.debug('   💻 Linux/Mac:   cd $buildDir && ./start.sh');
-    if (createWindows) {
-      Log.debug('   🪟 Windows:     cd $buildDir && start.bat');
-    }
+    if (hasPosix) Log.debug('  Linux/Mac:   cd $buildDir && ./start.sh');
+    if (hasWindows) Log.debug('  Windows:     cd $buildDir && start.bat');
 
     if (targetPlatform == 'both') {
-      Log.debug(
-          '\n📝 Note: Both Linux and Windows start scripts were created.');
-      Log.debug('   Use the appropriate script for your target platform.');
+      Log.debug('Note: both Linux and Windows binaries were created.');
     }
   }
 
@@ -391,10 +402,11 @@ Usage: flint build [options]
 
 Options:
   --entry <path>       Entry file to compile (default order: bin/server.dart, bin/main.dart, lib/main.dart)
-  --platform <value>   linux | windows | both
+  --platform <value>   linux | windows | macos | both
   --linux              Shortcut for --platform linux
   --windows            Shortcut for --platform windows
-  --both               Create both Linux and Windows start scripts
+  --macos              Shortcut for --platform macos
+  --both               Build both Linux and Windows binaries
   --help, -h           Show this help
 ''');
   }

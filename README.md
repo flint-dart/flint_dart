@@ -3,7 +3,7 @@
 A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
 
 - Website: flintdart.eulogia.net
-- Status: Internal Build (v1.0.0+27)
+- Status: Internal Build (v1.0.0+29)
 - Maintainers: Eulogia Technologies
 
 ---
@@ -79,6 +79,59 @@ app.post('/users', (Context ctx) async {
 });
 ```
 
+### Controller-based routes (v1.0.0+29)
+
+Flint also supports request-scoped controllers for both HTTP and WebSocket routes.
+Controller methods can use `req`, `res`, and `socket` directly after binding.
+
+```dart
+import 'package:flint_dart/flint_dart.dart';
+
+class UserController extends Controller {
+  Future<Response> create() async {
+    final body = await req.json();
+    return res.json({'created': true, 'data': body});
+  }
+}
+
+class ChatController extends Controller {
+  void connect() {
+    socket.emit('connected', {'id': socket.id});
+  }
+}
+```
+
+Route registration:
+
+```dart
+app.post(
+  '/users',
+  controllerAction(UserController.new, (c) => c.create()),
+);
+
+app.websocket(
+  '/chat',
+  controllerAction(ChatController.new, (c) {
+    c.connect();
+    return null;
+  }),
+);
+```
+
+RouteGroup shorthand (no mixin required):
+
+```dart
+class UserRoutes extends RouteGroup {
+  @override
+  String get prefix => '/users';
+
+  @override
+  void register(Flint app) {
+    app.post('/', useController(UserController.new, (c) => c.create()));
+  }
+}
+```
+
 ### Unified Context handlers
 
 Flint uses a unified `Context` object for route handlers.
@@ -86,6 +139,7 @@ Flint uses a unified `Context` object for route handlers.
 - `ctx.req` is always available.
 - `ctx.res` is available for HTTP routes.
 - `ctx.socket` is available for WebSocket routes.
+- `ctx.extras` and `ctx.read<T>()` / `ctx.write<T>()` support future request-scoped injection (e.g. session/user).
 
 ```dart
 app.get('/health', (Context ctx) {
@@ -296,6 +350,116 @@ app.get('/', (Context ctx) async {
 - `assets` — asset helper tags
 - `session` — session/error helpers in templates
 - `old_processor` — legacy tags support
+
+---
+
+## Mail (SMTP + Flint Templates)
+
+Flint supports sending email with SMTP and rendering email bodies from `.flint.html` templates.
+
+### Auto connect mail on app start
+
+Mail config is loaded automatically when the server starts:
+
+```dart
+final app = Flint(); // autoConnectMail is true by default
+await app.listen(port: 3000);
+```
+
+If you want full manual control:
+
+```dart
+final app = Flint(autoConnectMail: false);
+await MailConfig.load(); // manual setup from .env
+await app.listen(port: 3000);
+```
+
+### `.env` mail config
+
+```bash
+MAIL_PROVIDER=custom   # custom | gmail | outlook | yahoo
+MAIL_HOST=smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_username
+MAIL_PASSWORD=your_password
+MAIL_ENCRYPTION=tls    # tls | ssl
+MAIL_FROM_ADDRESS=noreply@example.com
+MAIL_FROM_NAME=My App
+```
+
+### Send mail directly
+
+```dart
+await Mail()
+    .to('user@example.com')
+    .subject('Welcome')
+    .html('<h1>Hello</h1>')
+    .text('Hello')
+    .sendMail();
+```
+
+Text-only mail:
+
+```dart
+await Mail()
+    .to('user@example.com')
+    .subject('Plain Text Message')
+    .text('Hello from Flint Mail')
+    .sendMail();
+```
+
+### Use Flint view templates for mail (`ViewMailable`)
+
+Generate a mail class + template:
+
+```bash
+flint make:mail welcome
+```
+
+This creates:
+- `lib/mail/welcome_mail.dart`
+- `lib/mail/views/welcome.flint.html`
+
+Example:
+
+```dart
+import 'package:flint_dart/mail.dart';
+
+class WelcomeMail extends ViewMailable {
+  final String recipientName;
+  final String recipientEmail;
+
+  WelcomeMail({
+    required this.recipientName,
+    required this.recipientEmail,
+  });
+
+  @override
+  String get subject => 'Welcome';
+
+  @override
+  String get view => 'mail/views/welcome.flint.html';
+
+  @override
+  Map<String, dynamic> get data => {
+        'recipientName': recipientName,
+      };
+
+  @override
+  List<String> get to => [recipientEmail];
+}
+
+await WelcomeMail(
+  recipientName: 'Ada',
+  recipientEmail: 'ada@example.com',
+).send();
+```
+
+### Template rendering notes
+
+- For web pages, use `ctx.res?.view('home', data: {...})` with templates in `lib/views`.
+- For mail templates, `ViewMailable` renders your `.flint.html` file via `TemplateEngine().render(...)`.
+- If you are looking for old names like `viewFlintTemplate` or `Viewable`, use the current APIs above (`view`, `TemplateEngine`, `ViewMailable`).
 
 ---
 
