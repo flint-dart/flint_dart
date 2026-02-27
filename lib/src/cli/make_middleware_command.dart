@@ -5,7 +5,7 @@ import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeMiddlewareCommand extends FlintCommand {
   MakeMiddlewareCommand()
-      : super('make:middleware', 'Creates a new middleware class');
+      : super('--make-middleware', 'Creates a new middleware class');
 
   @override
   Future<void> execute(List<String> args) async {

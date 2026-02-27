@@ -113,8 +113,8 @@ void main() {
   group('Context handler returns', () {
     test('returns primitive value through middleware', () async {
       final log = <String>[];
-      final handler = RecordingMiddleware('trace', log)
-          .handle((ctx) async => 'ok');
+      final handler =
+          RecordingMiddleware('trace', log).handle((ctx) async => 'ok');
 
       final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
       final request = Request(raw);

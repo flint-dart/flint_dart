@@ -6,7 +6,7 @@ import 'package:path/path.dart' as path;
 
 class MakeDockerCommand extends FlintCommand {
   MakeDockerCommand()
-      : super('make:docker', 'Creates Docker configuration for the project');
+      : super('--make-docker', 'Creates Docker configuration for the project');
 
   @override
   Future<void> execute(List<String> args) async {
@@ -30,14 +30,16 @@ class MakeDockerCommand extends FlintCommand {
     final nameMatch = RegExp(r'name:\s*(\S+)').firstMatch(pubspec);
     final projectName = nameMatch?.group(1) ?? 'flint_app';
 
+    final port = envVars['PORT'] ?? '3000';
+
     // Create Dockerfile
-    _createDockerfile(outputDir, projectName);
+    _createDockerfile(outputDir, projectName, port);
 
     // Create docker-compose.yml with actual environment values
     _createDockerCompose(outputDir, projectName, envVars);
 
     // Create deployment script
-    _createDeployScript(outputDir);
+    _createDeployScript(outputDir, port);
 
     // Create .dockerignore
     _createDockerIgnore(outputDir);
@@ -110,13 +112,19 @@ class MakeDockerCommand extends FlintCommand {
     return envVars;
   }
 
-  void _createDockerfile(String outputDir, String projectName) {
+  void _createDockerfile(String outputDir, String projectName, String port) {
     final content = '''FROM dart:stable
 
 WORKDIR /app
 
-# Install project dependencies (including flint_dart and other packages)
+# Install project dependencies.
+# If dependency_overrides contains local path entries, remove that block so
+# docker builds resolve package versions from pub instead of local filesystem.
 COPY pubspec.* ./
+RUN if grep -q "^dependency_overrides:" pubspec.yaml; then \\
+      awk 'BEGIN{skip=0} /^dependency_overrides:/ {skip=1; next} skip && /^[^[:space:]]/ {skip=0} !skip {print}' pubspec.yaml > pubspec.docker.yaml && \\
+      mv pubspec.docker.yaml pubspec.yaml; \\
+    fi
 RUN dart pub get
 
 # Copy app source and refresh lock-resolved dependencies
@@ -124,8 +132,9 @@ COPY . .
 RUN dart pub get --offline
 
 ENV FLINT_HOT=0
-ENV PORT=3000
-EXPOSE 3000
+ARG APP_PORT=$port
+ENV PORT=\$APP_PORT
+EXPOSE \$APP_PORT
 
 CMD ["dart", "run", "lib/main.dart"]
 ''';
@@ -144,6 +153,8 @@ services:
     build: 
       context: ..
       dockerfile: $outputDir/Dockerfile
+      args:
+        APP_PORT: $port
     ports:
       - "$port:$port"
     env_file:
@@ -157,7 +168,7 @@ services:
     File(path.join(outputDir, 'docker-compose.yml')).writeAsStringSync(content);
   }
 
-  void _createDeployScript(String outputDir) {
+  void _createDeployScript(String outputDir, String port) {
     final content = '''#!/bin/bash
 
 set -e
@@ -179,6 +190,11 @@ fi
 
 echo -e "\${GREEN}📁 Using your existing .env configuration\${NC}"
 
+APP_PORT=\$(grep -E '^PORT=' .env | tail -n 1 | cut -d '=' -f2- | tr -d '"' | tr -d "'" | tr -d ' ')
+if [ -z "\$APP_PORT" ]; then
+    APP_PORT="$port"
+fi
+
 # Stop existing containers
 echo -e "\${YELLOW}🛑 Stopping existing services...\${NC}"
 docker-compose down
@@ -196,7 +212,7 @@ if docker-compose ps | grep -q "Up"; then
     echo -e "\${GREEN}✅ Deployment successful!\${NC}"
     echo ""
     echo -e "\${GREEN}🌐 Your application is running at:\${NC}"
-    echo -e "   • API: http://localhost:3000"
+    echo -e "   • API: http://localhost:\$APP_PORT"
     echo ""
     echo -e "\${YELLOW}🔍 View logs: \${NC}docker-compose logs -f"
     echo -e "\${YELLOW}🛑 Stop services: \${NC}docker-compose down"
@@ -217,6 +233,9 @@ fi
   }
 
   void _createDockerIgnore(String outputDir) {
+    final ignoreOutputDir = outputDir == '.' || outputDir == './'
+        ? ''
+        : '$outputDir/\n';
     final content = '''.git
 .gitignore
 README.md
@@ -228,8 +247,7 @@ build/
 .dart_tool/
 .packages
 pubspec.lock
-$outputDir/
-''';
+$ignoreOutputDir''';
 
     File(path.join(outputDir, '.dockerignore')).writeAsStringSync(content);
   }

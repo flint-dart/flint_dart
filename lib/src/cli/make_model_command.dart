@@ -5,7 +5,7 @@ import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeModelCommand extends FlintCommand {
-  MakeModelCommand() : super('make:model', 'Creates a new model class');
+  MakeModelCommand() : super('--make-model', 'Creates a new model class');
 
   @override
   Future<void> execute(List<String> args) async {

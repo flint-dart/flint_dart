@@ -4,7 +4,7 @@ import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeRouteCommand extends FlintCommand {
-  MakeRouteCommand() : super('make:route', '  Creates a new RouteGroup');
+  MakeRouteCommand() : super('--make-route', '  Creates a new RouteGroup');
 
   @override
   Future<void> execute(List<String> args) async {

@@ -26,47 +26,67 @@ final Map<String, FlintCommand> commands = {
   'start': RunServerCommand(),
   'run': RunServerCommand(),
   'build': BuildCommand(),
-  'make:docker': MakeDockerCommand(),
+  '--make-docker': MakeDockerCommand(),
   'deploy-globe': DeployGlobeCommand(),
   'migrate': DBMigrateCommand(),
-  'db:create': DBCreateCommand(),
-  'db:user:create': DBUserCreateCommand(),
-  'db:export': DBExportCommand(),
-  'make:model': MakeModelCommand(),
-  'make:controller': MakeControllerCommand(),
-  'make:middleware': MakeMiddlewareCommand(),
-  'make:isolate': MakeIsolateCommand(), // ✅ Add here
-  'docs:generate': GenerateDocsCommand(),
-  'make:seeder': MakeSeederCommand(), // <-- Add here
-  'seed': DbSeedCommand(), // <-- Add here
-  'make:mail': MakeMailCommand(),
+  '--db-create': DBCreateCommand(),
+  '--db-user-create': DBUserCreateCommand(),
+  '--db-export': DBExportCommand(),
+  '--db-table-export': DBTableExportCommand(),
+  '--make-model': MakeModelCommand(),
+  '--make-controller': MakeControllerCommand(),
+  '--make-middleware': MakeMiddlewareCommand(),
+  '--make-isolate': MakeIsolateCommand(),
+  '--docs-generate': GenerateDocsCommand(),
+  '--make-seeder': MakeSeederCommand(),
+  '--db-seed': DbSeedCommand(),
+  '--make-mail': MakeMailCommand(),
   'update': UpdateCommand(),
   'upgrade': UpgradeCommand(),
   'version': VersionCommand(),
-  'make:resource': MakeResourceCommand(),
-  'route': MakeRouteCommand(),
+  '--make-resource': MakeResourceCommand(),
+  '--make-route': MakeRouteCommand(),
   '--v': VersionCommand(),
 };
 
-// Map alternative long-form commands (with --) to standard commands
 final Map<String, String> aliasCommands = {
-  '--make-mail': 'make:mail',
-  '--make-model': 'make:model',
-  '--make-controller': 'make:controller',
-  '--make-resource': 'make:resource',
-  '--make-middleware': 'make:middleware',
-  '--make-docker': 'make:docker',
   '--deploy-globe': 'deploy-globe',
-  '--make-isolate': 'make:isolate',
-  "--docs-generate": 'docs:generate',
-  '--make-seeder': 'make:seeder', // <-- Add alias here
-  '--seed': 'seed', // <-- Add alias here
-  '--db-create': 'db:create',
-  '--db-user-create': 'db:user:create',
-  '--db-export': 'db:export',
-  '--build': 'build', // <-- Add alias here
-  '--update': 'update', // <-- Add alias here
-  '--upgrade': 'upgrade', // <-- Add alias here
+  '--seed': '--db-seed',
+  'seed': '--db-seed',
+  'db:seed': '--db-seed',
+  'db-seed': '--db-seed',
+  'db:create': '--db-create',
+  'db:user:create': '--db-user-create',
+  'db:export': '--db-export',
+  'db:table:export': '--db-table-export',
+  'db-create': '--db-create',
+  'db-user-create': '--db-user-create',
+  'db-export': '--db-export',
+  'db-table-export': '--db-table-export',
+  'make:mail': '--make-mail',
+  'make:model': '--make-model',
+  'make:controller': '--make-controller',
+  'make:resource': '--make-resource',
+  'make:middleware': '--make-middleware',
+  'make:docker': '--make-docker',
+  'make:isolate': '--make-isolate',
+  'make:seeder': '--make-seeder',
+  'make:route': '--make-route',
+  'docs:generate': '--docs-generate',
+  'make-mail': '--make-mail',
+  'make-model': '--make-model',
+  'make-controller': '--make-controller',
+  'make-resource': '--make-resource',
+  'make-middleware': '--make-middleware',
+  'make-docker': '--make-docker',
+  'make-isolate': '--make-isolate',
+  'make-seeder': '--make-seeder',
+  'make-route': '--make-route',
+  'docs-generate': '--docs-generate',
+  'route': '--make-route',
+  '--build': 'build',
+  '--update': 'update',
+  '--upgrade': 'upgrade',
 };
 
 void main(List<String> args) async {
@@ -75,11 +95,10 @@ void main(List<String> args) async {
     return;
   }
 
-  // Map long-form --commands to normal commands
   final firstArg = aliasCommands[args[0]] ?? args[0];
 
   if (!commands.containsKey(firstArg)) {
-    Log.debug('❌ Unknown command: ${args[0]}');
+    Log.debug('Unknown command: ${args[0]}');
     debugUsage();
     exit(1);
   }

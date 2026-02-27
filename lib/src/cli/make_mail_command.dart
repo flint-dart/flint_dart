@@ -5,14 +5,14 @@ import 'commands.dart';
 
 class MakeMailCommand extends FlintCommand {
   MakeMailCommand()
-      : super('make:mail',
+      : super('--make-mail',
             'Create a new HTML-based Flint mail class and template.');
 
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      Log.debug('❌ Usage: flint make:mail <name>');
-      Log.debug('   Example: flint make:mail newsletter');
+      Log.debug('❌ Usage: flint --make-mail <name>');
+      Log.debug('   Example: flint --make-mail newsletter');
       return;
     }
 

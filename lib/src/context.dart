@@ -64,13 +64,44 @@ class Context {
   final Request req;
   final Response? res;
   final FlintWebSocket? socket;
+  final Map<Object, Object?> extras;
 
   Context({
     required this.req,
     this.res,
     this.socket,
-  });
+    Map<Object, Object?>? extras,
+  }) : extras = Map<Object, Object?>.from(extras ?? const {});
 
   bool get isHttp => res != null;
   bool get isWebSocket => socket != null;
+
+  bool hasExtra(Object key) => extras.containsKey(key);
+
+  Object? operator [](Object key) => extras[key];
+
+  void operator []=(Object key, Object? value) {
+    extras[key] = value;
+  }
+
+  T? getExtra<T>(Object key) {
+    final value = extras[key];
+    if (value == null) return null;
+    if (value is T) return value as T;
+    throw StateError(
+      'Context extra "$key" is ${value.runtimeType}, not $T.',
+    );
+  }
+
+  void setExtra(Object key, Object? value) {
+    extras[key] = value;
+  }
+
+  /// Type-keyed storage for future session/user injection patterns.
+  T? read<T>() => getExtra<T>(T);
+
+  /// Type-keyed storage for future session/user injection patterns.
+  void write<T>(T value) {
+    setExtra(T, value);
+  }
 }

@@ -28,10 +28,25 @@ class DB {
   static PgConnectionWrapper? _pg;
   static bool _isConnected = false;
   static bool _isConnecting = false;
+  static bool _lazyAutoConnectEnabled = true;
+
+  /// Enable/disable implicit lazy auto-connect on first DB usage.
+  ///
+  /// When disabled, callers must establish a connection explicitly via
+  /// [connect] before calling query/execute helpers.
+  static void setLazyAutoConnect(bool enabled) {
+    _lazyAutoConnectEnabled = enabled;
+  }
 
   /// Ensure the database is connected before running any command.
   static Future<void> _ensureConnected() async {
     if (_isConnected) return;
+    if (!_lazyAutoConnectEnabled) {
+      throw Exception(
+        'Database is not connected and lazy auto-connect is disabled. '
+        'Set autoConnectDb: true or call DB.connect(...) manually with try/catch.',
+      );
+    }
     if (_isConnecting) {
       // Wait if another call is already connecting
       while (_isConnecting) {

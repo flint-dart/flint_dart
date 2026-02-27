@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0+30] - 2026-02-27
+
+### Release Status
+- Public release build.
+
+### Fixed
+- Fixed `Response.view(...)` to avoid wrapping full HTML documents in `#main-content`, preserving valid `<head>` metadata structure for SEO and favicon tags.
+- Improved full-document detection in `Response.view(...)` (`<!doctype html` and `<html>/<head>/<body>` checks) to prevent false wrapping.
+- Fixed dev hot-reload script to use the current browser host/protocol (`ws://` or `wss://`) instead of hardcoded `ws://localhost:3000/flint_reload`.
+
+## [1.0.0+29] - 2026-02-25
+
+### Release Status
+- Public release build.
+
+### Added
+- Added request-scoped `Controller` base with `bind(Context)` and internal context storage.
+- Added controller getters: `req`, `res`, `socket`, plus `isHttp` / `isWebSocket`.
+- Added meaningful controller context errors when `res` is used in WebSocket routes or `socket` is used in HTTP routes.
+- Added `controllerAction(...)` helper for binding controller instances per HTTP/WebSocket route invocation.
+- Added `useController(...)` and `useControllerVoid(...)` extension helpers for shorter route group controller registration.
+- Added extensible `Context.extras` storage and typed `read<T>()` / `write<T>()` helpers for future session/user injection.
+
+### Changed
+- Added controller-based HTTP and WebSocket route examples to the example app and docs.
+- Updated route-group examples to use controller actions without `Context` method parameters inside controllers.
+
 ## [1.0.0+28] - 2026-02-18
 
 ### Release Status
@@ -13,7 +40,6 @@ All notable changes to this project are documented in this file.
 ## [1.0.0+27] - 2026-02-11
 
 ### Release Status
-- Internal rollout build for server/docs/eucloudhost deployment.
 - Public stable release `1.0.1` is planned for a later date.
 
 ### Added
