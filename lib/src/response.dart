@@ -481,26 +481,42 @@ class Response {
       content = await file.readAsString();
     }
 
-// Wrap in main-content container for hot reload
-// Wrap in main-content container for hot reload
-    content = '<div id="main-content">$content</div>';
+    final trimmedContent = content.trimLeft();
+    final isFullHtmlDocument =
+        RegExp(r'^<!doctype\s+html', caseSensitive: false)
+                .hasMatch(trimmedContent) ||
+            (RegExp(r'<html[\s>]', caseSensitive: false).hasMatch(content) &&
+                RegExp(r'<head[\s>]', caseSensitive: false).hasMatch(content) &&
+                RegExp(r'<body[\s>]', caseSensitive: false).hasMatch(content));
+
+    // For partial templates we keep the wrapper used by hot-reload updates.
+    // For full HTML documents, do not wrap because it breaks <head>/<meta>.
+    if (!isFullHtmlDocument) {
+      content = '<div id="main-content">$content</div>';
+    }
 
 // Inject hot reload WebSocket script (only for development)
     if (Platform.environment['FLINT_HOT'] == '1') {
-      content += '''
+      const hotReloadScript = '''
 <script>
 function connectHotReload() {
-  const socket = new WebSocket('ws://localhost:3000/flint_reload');
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = wsProtocol + '//' + window.location.host + '/flint_reload';
+  const socket = new WebSocket(wsUrl);
 
   socket.addEventListener('open', () => {
     console.log('[FLINT] Hot reload WebSocket connected');
   });
 
   socket.addEventListener('message', event => {
-    const data = JSON.parse(event.data);
-    if (data.event === 'flint:reload') {
-      console.log('[FLINT] Hot reload triggered');
-      window.location.reload();
+    try {
+      const data = JSON.parse(event.data);
+      if (data.event === 'flint:reload') {
+        console.log('[FLINT] Hot reload triggered');
+        window.location.reload();
+      }
+    } catch (_) {
+      // Ignore non-JSON control frames.
     }
   });
 
@@ -521,6 +537,15 @@ connectHotReload();
 
 
 ''';
+      if (isFullHtmlDocument &&
+          RegExp(r'</body>', caseSensitive: false).hasMatch(content)) {
+        content = content.replaceFirst(
+          RegExp(r'</body>', caseSensitive: false),
+          '$hotReloadScript</body>',
+        );
+      } else {
+        content += hotReloadScript;
+      }
     }
 
     raw.statusCode = 200;

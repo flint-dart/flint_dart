@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0+30] - 2026-02-27
+
+### Release Status
+- Public release build.
+
+### Fixed
+- Fixed `Response.view(...)` to avoid wrapping full HTML documents in `#main-content`, preserving valid `<head>` metadata structure for SEO and favicon tags.
+- Improved full-document detection in `Response.view(...)` (`<!doctype html` and `<html>/<head>/<body>` checks) to prevent false wrapping.
+- Fixed dev hot-reload script to use the current browser host/protocol (`ws://` or `wss://`) instead of hardcoded `ws://localhost:3000/flint_reload`.
+
 ## [1.0.0+29] - 2026-02-25
 
 ### Release Status
