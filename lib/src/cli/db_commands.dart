@@ -253,43 +253,352 @@ String _injectDefaultColumns(String sql, String tableName) {
       sql.substring(insertIndex);
 }
 
-/// --- Alter table to add missing columns (MySQL/Postgres) ---
+/// --- Sync table schema for existing tables (add/remove/alter columns) ---
 Future<void> _alterTableAddMissingColumns(String tableName, String sql) async {
-  // Extract column definitions from CREATE TABLE statement
-  final createTableMatch = RegExp(r'CREATE\s+TABLE\s+[^\(]+\((.*)\)',
-          caseSensitive: false, dotAll: true)
-      .firstMatch(sql);
-  if (createTableMatch == null) return;
+  final desiredColumns = _extractColumnsFromCreateSql(sql);
+  if (desiredColumns.isEmpty) return;
 
-  final columnsSection = createTableMatch.group(1)!;
-  final columnRegex =
-      RegExp(r'["`]?(\w+)["`]?\s+([^\s,]+(?:\([^)]+\))?[^,]*)(?:,|$)');
-  final matches = columnRegex.allMatches(columnsSection);
+  final existingColumns = await _loadExistingColumnSchemas(tableName);
+  final protectedColumns = _protectedColumnsForTable(tableName);
+  final q = DB.driver == DBDriver.postgres ? '"' : '`';
 
-  for (final match in matches) {
-    final columnName = match.group(1)!;
-    var columnDef = match.group(2)!.trim();
+  for (final desired in desiredColumns) {
+    if (existingColumns.containsKey(desired.name)) continue;
+    final addSql =
+        'ALTER TABLE $q$tableName$q ADD COLUMN $q${desired.name}$q ${desired.definition}';
+    await _executeMigrationSql(
+      tableName: tableName,
+      operation: 'add column `${desired.name}`',
+      sql: addSql,
+      hint:
+          'Verify type/default syntax for ${DB.driver.name}, then rerun `flint db migrate`.',
+    );
+    Log.info('   + Added column `${desired.name}` to $tableName');
+  }
 
-    // Skip if it's a constraint
-    if (columnName.toUpperCase().startsWith('PRIMARY') ||
-        columnName.toUpperCase().startsWith('FOREIGN') ||
-        columnName.toUpperCase().startsWith('UNIQUE') ||
-        columnName.toUpperCase().startsWith('CHECK')) {
-      continue;
+  for (final desired in desiredColumns) {
+    final existing = existingColumns[desired.name];
+    if (existing == null) continue;
+    if (!_needsAlter(existing, desired)) continue;
+    final statements = _buildAlterColumnStatements(
+      tableName: tableName,
+      existing: existing,
+      desired: desired,
+    );
+    for (final statement in statements) {
+      await _executeMigrationSql(
+        tableName: tableName,
+        operation: 'alter column `${desired.name}`',
+        sql: statement,
+        hint:
+            'Existing rows may violate the new type/null/default constraints. Fix data and rerun migration.',
+      );
     }
-
-    final exists = await DB.columnExists(tableName, columnName);
-    if (!exists) {
-      final q = DB.driver == DBDriver.postgres ? '"' : '`';
-      try {
-        await DB.execute(
-            'ALTER TABLE $q$tableName$q ADD COLUMN $q$columnName$q $columnDef');
-        Log.info('   ➕ Added column `$columnName` to $tableName');
-      } catch (e) {
-        Log.debug('   ⚠️ Failed to add column `$columnName`: $e');
-      }
+    if (statements.isNotEmpty) {
+      Log.info('   ~ Updated column `${desired.name}` on $tableName');
     }
   }
+
+  for (final existingName in existingColumns.keys) {
+    final existsInDesired =
+        desiredColumns.any((column) => column.name == existingName);
+    if (existsInDesired || protectedColumns.contains(existingName)) continue;
+    final dropSql = 'ALTER TABLE $q$tableName$q DROP COLUMN $q$existingName$q';
+    await _executeMigrationSql(
+      tableName: tableName,
+      operation: 'drop column `$existingName`',
+      sql: dropSql,
+      hint:
+          'If this column should remain, re-add it to your table schema class before rerunning migration.',
+    );
+    Log.info('   - Dropped column `$existingName` from $tableName');
+  }
+}
+
+Set<String> _protectedColumnsForTable(String tableName) {
+  final protected = <String>{'created_at', 'updated_at'};
+  final authTable = FlintEnv.get('AUTH_TABLE', 'users');
+  if (tableName == authTable) {
+    protected.addAll({
+      FlintEnv.get('AUTH_PROVIDER_COLUMN', 'provider'),
+      FlintEnv.get('AUTH_PROVIDER_ID_COLUMN', 'provider_id'),
+      'email_verified_at',
+      'is_verified',
+    });
+  }
+  return protected;
+}
+
+Future<void> _executeMigrationSql({
+  required String tableName,
+  required String operation,
+  required String sql,
+  required String hint,
+}) async {
+  try {
+    await DB.execute(sql);
+  } catch (e) {
+    throw StateError(
+      'Migration failed for table "$tableName" during $operation.\n'
+      'SQL: $sql\n'
+      'Cause: $e\n'
+      'How to fix: $hint',
+    );
+  }
+}
+
+bool _needsAlter(_ExistingColumnSchema existing, _SqlColumnDefinition desired) {
+  final sameType = _normalizeTypeName(existing.typeName) ==
+      _normalizeTypeName(desired.typeName);
+  final sameNullable = existing.nullable == desired.nullable;
+  final sameDefault = _normalizeDefaultValue(existing.defaultValue) ==
+      _normalizeDefaultValue(desired.defaultValue);
+  return !(sameType && sameNullable && sameDefault);
+}
+
+List<String> _buildAlterColumnStatements({
+  required String tableName,
+  required _ExistingColumnSchema existing,
+  required _SqlColumnDefinition desired,
+}) {
+  if (DB.driver == DBDriver.mysql) {
+    return [
+      'ALTER TABLE `$tableName` MODIFY COLUMN `${desired.name}` ${desired.definition}'
+    ];
+  }
+
+  final statements = <String>[];
+  final normalizedExistingType = _normalizeTypeName(existing.typeName);
+  final normalizedDesiredType = _normalizeTypeName(desired.typeName);
+
+  if (normalizedExistingType != normalizedDesiredType) {
+    statements.add(
+      'ALTER TABLE "$tableName" ALTER COLUMN "${desired.name}" TYPE ${desired.typeName}',
+    );
+  }
+
+  if (existing.nullable != desired.nullable) {
+    statements.add(
+      desired.nullable
+          ? 'ALTER TABLE "$tableName" ALTER COLUMN "${desired.name}" DROP NOT NULL'
+          : 'ALTER TABLE "$tableName" ALTER COLUMN "${desired.name}" SET NOT NULL',
+    );
+  }
+
+  final currentDefault = _normalizeDefaultValue(existing.defaultValue);
+  final desiredDefault = _normalizeDefaultValue(desired.defaultValue);
+  if (currentDefault != desiredDefault) {
+    if (desired.defaultValue == null) {
+      statements.add(
+        'ALTER TABLE "$tableName" ALTER COLUMN "${desired.name}" DROP DEFAULT',
+      );
+    } else {
+      statements.add(
+        'ALTER TABLE "$tableName" ALTER COLUMN "${desired.name}" SET DEFAULT ${desired.defaultValue}',
+      );
+    }
+  }
+
+  return statements;
+}
+
+Future<Map<String, _ExistingColumnSchema>> _loadExistingColumnSchemas(
+  String tableName,
+) async {
+  final map = <String, _ExistingColumnSchema>{};
+
+  if (DB.driver == DBDriver.mysql) {
+    final rows = await DB.query(
+      '''
+SELECT COLUMN_NAME as column_name, COLUMN_TYPE as column_type, IS_NULLABLE as is_nullable, COLUMN_DEFAULT as column_default
+FROM information_schema.columns
+WHERE table_schema = DATABASE() AND table_name = ?
+''',
+      positionalParams: [tableName],
+    );
+
+    for (final row in rows) {
+      final name = row['column_name']?.toString();
+      if (name == null) continue;
+      map[name] = _ExistingColumnSchema(
+        name: name,
+        typeName: row['column_type']?.toString() ?? '',
+        nullable: row['is_nullable']?.toString().toUpperCase() == 'YES',
+        defaultValue: row['column_default']?.toString(),
+      );
+    }
+    return map;
+  }
+
+  if (DB.driver == DBDriver.postgres) {
+    final rows = await DB.query(
+      '''
+SELECT column_name, data_type, udt_name, is_nullable, column_default
+FROM information_schema.columns
+WHERE table_schema = 'public' AND table_name = ?
+''',
+      positionalParams: [tableName],
+    );
+
+    for (final row in rows) {
+      final name = row['column_name']?.toString();
+      if (name == null) continue;
+      final type = (row['udt_name'] ?? row['data_type'])?.toString() ?? '';
+      map[name] = _ExistingColumnSchema(
+        name: name,
+        typeName: type,
+        nullable: row['is_nullable']?.toString().toUpperCase() == 'YES',
+        defaultValue: row['column_default']?.toString(),
+      );
+    }
+  }
+
+  return map;
+}
+
+List<_SqlColumnDefinition> _extractColumnsFromCreateSql(String sql) {
+  final createTableMatch = RegExp(
+    r'CREATE\s+TABLE\s+[^\(]+\((.*)\)',
+    caseSensitive: false,
+    dotAll: true,
+  ).firstMatch(sql);
+  if (createTableMatch == null) return const [];
+
+  final columnsSection = createTableMatch.group(1)!;
+  final parts = _splitTopLevelCsv(columnsSection);
+  final columns = <_SqlColumnDefinition>[];
+
+  for (final rawPart in parts) {
+    final part = rawPart.trim();
+    if (part.isEmpty || _isTableConstraintLine(part)) continue;
+
+    final nameMatch = RegExp(
+      r'^\s*["`]?([A-Za-z_]\w*)["`]?\s+(.+)$',
+      caseSensitive: false,
+      dotAll: true,
+    ).firstMatch(part);
+    if (nameMatch == null) continue;
+
+    final name = nameMatch.group(1)!;
+    final definition = nameMatch.group(2)!.trim();
+    final typeName = _extractTypeName(definition);
+    final defaultValue = _extractDefaultExpression(definition);
+    final nullable =
+        !RegExp(r'\bNOT\s+NULL\b', caseSensitive: false).hasMatch(definition);
+
+    columns.add(
+      _SqlColumnDefinition(
+        name: name,
+        definition: definition,
+        typeName: typeName,
+        nullable: nullable,
+        defaultValue: defaultValue,
+      ),
+    );
+  }
+
+  return columns;
+}
+
+List<String> _splitTopLevelCsv(String input) {
+  final parts = <String>[];
+  var depth = 0;
+  var start = 0;
+
+  for (var i = 0; i < input.length; i++) {
+    final ch = input[i];
+    if (ch == '(') depth++;
+    if (ch == ')') depth = depth > 0 ? depth - 1 : 0;
+    if (ch == ',' && depth == 0) {
+      parts.add(input.substring(start, i));
+      start = i + 1;
+    }
+  }
+
+  if (start < input.length) {
+    parts.add(input.substring(start));
+  }
+  return parts;
+}
+
+bool _isTableConstraintLine(String line) {
+  final trimmed = line.trimLeft().toUpperCase();
+  return trimmed.startsWith('PRIMARY KEY') ||
+      trimmed.startsWith('FOREIGN KEY') ||
+      trimmed.startsWith('UNIQUE') ||
+      trimmed.startsWith('CONSTRAINT') ||
+      trimmed.startsWith('CHECK') ||
+      trimmed.startsWith('KEY ');
+}
+
+String _extractTypeName(String definition) {
+  final typeMatch = RegExp(
+    r'^\s*([A-Za-z]+(?:\s+[A-Za-z]+)?(?:\([^)]+\))?)',
+    caseSensitive: false,
+  ).firstMatch(definition);
+  return typeMatch?.group(1)?.trim() ?? definition.trim();
+}
+
+String? _extractDefaultExpression(String definition) {
+  final match = RegExp(
+    r'\bDEFAULT\s+(.+?)(?:\s+NOT\s+NULL|\s+NULL|\s+UNIQUE|\s+PRIMARY|\s+CHECK|\s+REFERENCES|$)',
+    caseSensitive: false,
+    dotAll: true,
+  ).firstMatch(definition);
+  if (match == null) return null;
+  return match.group(1)?.trim();
+}
+
+String _normalizeTypeName(String input) {
+  return input
+      .trim()
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .toLowerCase()
+      .replaceAll('character varying', 'varchar')
+      .replaceAll('timestamp without time zone', 'timestamp')
+      .replaceAll('timestamp with time zone', 'timestamptz');
+}
+
+String? _normalizeDefaultValue(String? input) {
+  if (input == null) return null;
+  var normalized = input.trim().toLowerCase();
+  normalized = normalized.replaceAll(RegExp(r"^'(.*)'$"), r'$1');
+  normalized = normalized.replaceAll('::character varying', '');
+  normalized = normalized.replaceAll('::text', '');
+  normalized = normalized.replaceAll('::timestamp without time zone', '');
+  normalized = normalized.replaceAll('::timestamp with time zone', '');
+  normalized = normalized.replaceAll(RegExp(r'\s+'), ' ');
+  return normalized;
+}
+
+class _SqlColumnDefinition {
+  final String name;
+  final String definition;
+  final String typeName;
+  final bool nullable;
+  final String? defaultValue;
+
+  const _SqlColumnDefinition({
+    required this.name,
+    required this.definition,
+    required this.typeName,
+    required this.nullable,
+    required this.defaultValue,
+  });
+}
+
+class _ExistingColumnSchema {
+  final String name;
+  final String typeName;
+  final bool nullable;
+  final String? defaultValue;
+
+  const _ExistingColumnSchema({
+    required this.name,
+    required this.typeName,
+    required this.nullable,
+    required this.defaultValue,
+  });
 }
 
 /// --- Normalize SQL for current driver ---
@@ -325,6 +634,19 @@ String _normalizeSqlForPostgres(String sql) {
 /// Exposed for testing migrate SQL normalization without requiring DB access.
 String dbMigrateNormalizeSqlForPostgres(String sql) {
   return _normalizeSqlForPostgres(sql);
+}
+
+/// Exposed for testing migration column parser without requiring DB access.
+List<Map<String, Object?>> dbMigrateExtractColumns(String sql) {
+  return _extractColumnsFromCreateSql(sql)
+      .map((c) => {
+            'name': c.name,
+            'definition': c.definition,
+            'type': c.typeName,
+            'nullable': c.nullable,
+            'default': c.defaultValue,
+          })
+      .toList();
 }
 
 /// --- Extract table name from SQL ---

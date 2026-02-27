@@ -21,7 +21,7 @@ dependencies:
   package_config: ^2.2.0
   path: ^1.9.1
   universal_web: ^1.1.1+1
-  flint_client: ^0.0.1+5
+  flint_client: ^0.0.2
   worker_manager: ^7.2.7
   args: ^2.7.0
   watcher: ^1.2.1
