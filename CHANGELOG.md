@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0+31] - 2026-03-01
+
+### Release Status
+- Public release build.
+
+### Fixed
+- Fixed stale database connection failures after idle periods in long-running apps (for example, MySQL `Can not prepare stmt: connection closed`).
+- Added automatic reconnect for both MySQL and PostgreSQL when a closed/stale connection is detected.
+- Added one automatic retry for DB query/execute operations after reconnect on connection-loss errors.
+- Enabled default DB keepalive heartbeats to reduce idle disconnects without requiring extra framework configuration.
+
 ## [1.0.0+30] - 2026-02-27
 
 ### Release Status

@@ -40,7 +40,8 @@ class DB {
 
   /// Ensure the database is connected before running any command.
   static Future<void> _ensureConnected() async {
-    if (_isConnected) return;
+    if (isConnected) return;
+    _isConnected = false;
     if (!_lazyAutoConnectEnabled) {
       throw Exception(
         'Database is not connected and lazy auto-connect is disabled. '
