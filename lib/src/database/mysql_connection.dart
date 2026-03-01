@@ -58,8 +58,9 @@ class MySqlConnectionWrapper implements DBWrapper {
         _processParameters(sql, positionalParams, namedParams);
 
     try {
-      final stmt = await _conn.prepare(finalSql);
-      final result = await stmt.execute(finalParams);
+      final result = finalParams.isEmpty
+          ? await _conn.execute(finalSql)
+          : await _conn.execute(finalSql, finalParams);
       return result.rows.map((r) => r.assoc()).toList();
     } catch (e) {
       Log.debug("", error: e);
@@ -79,18 +80,14 @@ class MySqlConnectionWrapper implements DBWrapper {
       throw Exception("MySQL not connected. Last error: $_lastError");
     }
 
-    if (positionalParams == null || positionalParams.isEmpty) {
-      await _conn.execute(sql);
-      return;
-    }
-
-    // Convert named parameters to positional parameters for MySQL
-    final (finalSql, finalParams) =
-        _processParameters(sql, positionalParams, namedParams);
-
     try {
-      final stmt = await _conn.prepare(finalSql);
-      await stmt.execute(finalParams);
+      final (finalSql, finalParams) =
+          _processParameters(sql, positionalParams, namedParams);
+      if (finalParams.isEmpty) {
+        await _conn.execute(finalSql);
+      } else {
+        await _conn.execute(finalSql, finalParams);
+      }
     } catch (e) {
       Log.debug("", error: e);
 
@@ -135,8 +132,7 @@ class MySqlConnectionWrapper implements DBWrapper {
 
     try {
       for (final sql in sqlCommands) {
-        final stmt = await _conn.prepare(sql);
-        await stmt.execute([]);
+        await _conn.execute(sql);
       }
     } catch (e) {
       _connected = _conn.connected;

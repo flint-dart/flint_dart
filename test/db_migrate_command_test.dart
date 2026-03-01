@@ -41,5 +41,38 @@ CREATE TABLE `users` (
       expect(normalized, isNot(contains('ON UPDATE CURRENT_TIMESTAMP')));
       expect(normalized, isNot(contains('`')));
     });
+
+    test('extracts column definitions and skips constraints', () {
+      final sql = '''
+CREATE TABLE "users" (
+  "id" INT PRIMARY KEY,
+  "email" VARCHAR(255) NOT NULL,
+  "age" INT DEFAULT 18,
+  UNIQUE ("email")
+);
+''';
+
+      final columns = dbMigrateExtractColumns(sql);
+      expect(columns.length, 3);
+      expect(columns[0]['name'], 'id');
+      expect(columns[1]['name'], 'email');
+      expect(columns[1]['nullable'], isFalse);
+      expect(columns[2]['default'], '18');
+    });
+
+    test('handles commas inside type declarations when parsing columns', () {
+      final sql = '''
+CREATE TABLE `events` (
+  `id` INT PRIMARY KEY,
+  `location` DECIMAL(10,2) NOT NULL,
+  `title` VARCHAR(120)
+);
+''';
+
+      final columns = dbMigrateExtractColumns(sql);
+      expect(columns.length, 3);
+      expect(columns[1]['name'], 'location');
+      expect(columns[1]['type'], contains('DECIMAL(10,2)'));
+    });
   });
 }
