@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
+
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/mail/smtp_factory.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
@@ -10,6 +13,7 @@ class Mail {
   static SmtpServer? _server;
   static String? _fromAddress;
   static String? _fromName;
+  static bool _autoConfigAttempted = false;
 
   final List<String> _to = [];
   final List<String> _cc = [];
@@ -38,12 +42,46 @@ class Mail {
       port: port,
       username: username,
       password: password,
-      encryption: useSSL ? "ssl" : "tls",
+      encryption: useSSL ? 'ssl' : 'tls',
     );
 
     _fromAddress = fromAddress;
     _fromName = fromName;
-    Log.debug('📧 Mail server configured for $_fromName <$_fromAddress>@$host');
+    _autoConfigAttempted = true;
+    Log.debug('Mail server configured for $_fromName <$_fromAddress>@$host');
+  }
+
+  static void _ensureConfigured({bool forceReload = false}) {
+    if (!forceReload && _server != null) return;
+    if (!forceReload && _autoConfigAttempted) return;
+
+    _autoConfigAttempted = true;
+
+    final providerStr = FlintEnv.get('MAIL_PROVIDER', 'custom').toLowerCase();
+    final provider = MailProvider.values.firstWhere(
+      (p) => p.name == providerStr,
+      orElse: () => MailProvider.custom,
+    );
+
+    final host = FlintEnv.get('MAIL_HOST', 'localhost');
+    final port = FlintEnv.getInt('MAIL_PORT', 25);
+    final username = FlintEnv.get('MAIL_USERNAME', '');
+    final password = FlintEnv.get('MAIL_PASSWORD', '');
+    final encryption = FlintEnv.get('MAIL_ENCRYPTION', 'tls').toLowerCase();
+    final fromAddress = FlintEnv.get('MAIL_FROM_ADDRESS', 'noreply@localhost');
+    final fromName = FlintEnv.get('MAIL_FROM_NAME', 'Flint Dart');
+
+    setup(
+      provider: provider,
+      host: host,
+      port: port,
+      username: username,
+      password: password,
+      fromAddress: fromAddress,
+      fromName: fromName,
+      useSSL: encryption == 'ssl',
+      useTLS: encryption == 'tls',
+    );
   }
 
   // ---- Chainable API ----
@@ -106,7 +144,7 @@ class Mail {
       throw Exception('From address not set. Call Mail.setup() first.');
     }
 
-    Log.debug('📧 Building message from $_fromName <$_fromAddress> to $_to');
+    Log.debug('Building message from $_fromName <$_fromAddress> to $_to');
 
     final msg = Message()
       ..from = Address(_fromAddress!, _fromName ?? 'Flint Dart')
@@ -130,8 +168,24 @@ class Mail {
     return msg;
   }
 
+  Future<bool> _retryAfterReconfigure() async {
+    try {
+      _ensureConfigured(forceReload: true);
+      if (_server == null) return false;
+
+      final retryMsg = _buildMessage();
+      await send(retryMsg, _server!);
+      Log.debug('Mail sent after automatic mail reconfiguration');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ---- Send immediately ----
   Future<void> sendMail() async {
+    _ensureConfigured();
+
     if (_server == null) {
       throw Exception('Mail not configured. Call Mail.setup() first.');
     }
@@ -139,23 +193,34 @@ class Mail {
     try {
       final msg = _buildMessage();
       await send(msg, _server!);
-      Log.debug('✅ Mail sent to: ${_to.join(", ")}');
+      Log.debug('Mail sent to: ${_to.join(', ')}');
     } on MailerException catch (e) {
-      Log.debug('❌ MailerException: $e');
+      final recovered = await _retryAfterReconfigure();
+      if (recovered) return;
+
+      Log.debug('MailerException: $e');
       if (e.problems.isNotEmpty) {
         for (final problem in e.problems) {
           Log.debug('  - ${problem.code}: ${problem.msg}');
         }
       }
       rethrow;
+    } on SocketException catch (e) {
+      final recovered = await _retryAfterReconfigure();
+      if (recovered) return;
+
+      Log.debug('SocketException while sending mail: $e');
+      rethrow;
     } catch (e) {
-      Log.debug('❌ Failed to send mail: $e');
+      Log.debug('Failed to send mail: $e');
       rethrow;
     }
   }
 
   // ---- Send asynchronously (background isolate) ----
   Future<void> queue() async {
+    _ensureConfigured();
+
     if (_server == null) {
       throw Exception('Mail not configured. Call Mail.setup() first.');
     }
@@ -212,9 +277,9 @@ class Mail {
 
     try {
       await send(msg, server);
-      Log.debug('📬 [Queued] Mail sent to: ${msg.recipients.join(", ")}');
+      Log.debug('Queued mail sent to: ${msg.recipients.join(', ')}');
     } catch (e) {
-      Log.debug('⚠️ [Queued] Failed to send mail: $e');
+      Log.debug('Queued mail failed: $e');
     }
   }
 }

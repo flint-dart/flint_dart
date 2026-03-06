@@ -17,9 +17,10 @@ class PostController {
       'title': 'required|string|min:3',
       'subTitle': 'required|string|min:3'
     });
-    var post = await PostModel().create(body);
-    return res
-        .json({'message': 'PostController created successfully', 'data': post});
+    // var post = await PostModel().create(body);
+    return res.json({
+      'message': 'PostController created successfully',
+    });
   }
 
   Future<Response> update(Request req, Response res) async {

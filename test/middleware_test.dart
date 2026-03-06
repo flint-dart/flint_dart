@@ -1,5 +1,6 @@
 import 'package:test/test.dart';
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/exception.dart';
 
 import 'helpers/fakes.dart';
 
@@ -152,6 +153,33 @@ void main() {
       expect(result, isA<Response>());
       final rawResponse = raw.response as FakeHttpResponse;
       expect(rawResponse.buffer.toString(), 'done');
+    });
+  });
+
+  group('ExceptionMiddleware', () {
+    test('catches ValidationError from exception library', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw ValidationError(
+          message: {
+            'email': ['The email field is required.']
+          },
+          errors: {},
+        );
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 422);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"message":{"email":["The email field is required."]}}',
+      );
     });
   });
 }

@@ -1,3 +1,4 @@
+import 'package:flint_dart/exception.dart';
 import 'package:flint_dart/src/validation/validator.dart';
 import 'package:test/test.dart';
 
@@ -128,6 +129,48 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('allows optional email field when value is missing', () async {
+      final data = <String, dynamic>{};
+      const rules = <String, String>{
+        'email': 'email',
+      };
+
+      await Validator.validate(data, rules);
+    });
+
+    test('rejects non-list value for list:type rule', () async {
+      final data = <String, dynamic>{
+        'values': 'not-a-list',
+      };
+      const rules = <String, String>{
+        'values': 'list:int',
+      };
+
+      expect(
+        () => Validator.validate(data, rules),
+        throwsA(
+          isA<ValidationException>().having(
+            (e) => e.errors['values']?.first,
+            'values first error',
+            contains('must be a list'),
+          ),
+        ),
+      );
+    });
+
+    test('ValidationError is compatible with ValidationException', () {
+      final error = ValidationError(
+        errors: {
+          'email': ['The email field is required.'],
+        },
+      );
+
+      expect(error, isA<ValidationException>());
+      expect(error.code, 422);
+      expect(error.errors['email']?.first, 'The email field is required.');
+      expect(error.message, error.errors);
     });
   });
 }

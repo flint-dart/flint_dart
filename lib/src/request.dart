@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/src/auth/auth.dart';
+import 'package:flint_dart/src/error/auth_exception.dart';
 import 'package:flint_dart/src/session/session.dart';
 import 'package:mime/mime.dart';
 
@@ -151,7 +152,12 @@ class Request {
   /// Throws an exception if no user is authenticated
   Map<String, dynamic> requireUser() {
     final u = _storage['user'];
-    if (u == null) throw Exception('Authentication required');
+    if (u == null) {
+      throw AuthException(
+        message: 'Authentication required',
+        code: HttpStatus.unauthorized,
+      );
+    }
     return Map<String, dynamic>.from(u as Map);
   }
 

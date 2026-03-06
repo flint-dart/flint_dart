@@ -1,12 +1,26 @@
 // mysql_connection.dart
+import 'dart:async';
+
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 
 class MySqlConnectionWrapper implements DBWrapper {
-  late MySQLConnection _conn;
+  MySQLConnection? _conn;
   bool _connected = false;
   String? _lastError;
+  Future<void>? _reconnectFuture;
+  Timer? _keepAliveTimer;
+
+  // Persist config so dropped connections can be re-established automatically.
+  String? _host;
+  int? _port;
+  String? _db;
+  String? _user;
+  String? _password;
+  bool _isSecure = false;
+  int _timeoutSeconds = 30;
+  int _keepAliveSeconds = 120;
 
   Future<void> connect({
     required String host,
@@ -16,21 +30,25 @@ class MySqlConnectionWrapper implements DBWrapper {
     required String password,
     bool isSecure = false,
     int timeoutSeconds = 30,
+    int keepAliveSeconds = 120,
   }) async {
-    try {
-      _conn = await MySQLConnection.createConnection(
-        host: host,
-        port: port,
-        databaseName: db,
-        userName: user,
-        password: password,
-        secure: isSecure,
-      );
+    _host = host;
+    _port = port;
+    _db = db;
+    _user = user;
+    _password = password;
+    _isSecure = isSecure;
+    _timeoutSeconds = timeoutSeconds;
+    _keepAliveSeconds = keepAliveSeconds;
 
-      await _conn.connect();
+    _keepAliveTimer?.cancel();
+
+    try {
+      await _openConnection();
       _connected = true;
       _lastError = null;
-      Log.debug("✅ MySQL connected to $db@$host:$port");
+      _startKeepAliveTimer();
+      Log.debug('[DB] MySQL connected to $db@$host:$port');
     } catch (e) {
       _connected = false;
       _lastError = e.toString();
@@ -39,7 +57,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   }
 
   @override
-  bool get isConnected => _connected && _conn.connected;
+  bool get isConnected => _connected && (_conn?.connected ?? false);
 
   String? get lastError => _lastError;
 
@@ -49,25 +67,15 @@ class MySqlConnectionWrapper implements DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   }) async {
-    // if (!isConnected) {
-    //   throw Exception("MySQL not connected. Last error: $_lastError");
-    // }
-
-    // Convert named parameters to positional parameters for MySQL
     final (finalSql, finalParams) =
         _processParameters(sql, positionalParams, namedParams);
 
-    try {
+    return _runWithReconnect(() async {
       final result = finalParams.isEmpty
-          ? await _conn.execute(finalSql)
-          : await _conn.execute(finalSql, finalParams);
+          ? await _conn!.execute(finalSql)
+          : await _conn!.execute(finalSql, finalParams);
       return result.rows.map((r) => r.assoc()).toList();
-    } catch (e) {
-      Log.debug("", error: e);
-      _connected = _conn.connected;
-      _lastError = e.toString();
-      rethrow;
-    }
+    });
   }
 
   @override
@@ -76,25 +84,15 @@ class MySqlConnectionWrapper implements DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   }) async {
-    if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
-    }
-
-    try {
+    await _runWithReconnect(() async {
       final (finalSql, finalParams) =
           _processParameters(sql, positionalParams, namedParams);
       if (finalParams.isEmpty) {
-        await _conn.execute(finalSql);
+        await _conn!.execute(finalSql);
       } else {
-        await _conn.execute(finalSql, finalParams);
+        await _conn!.execute(finalSql, finalParams);
       }
-    } catch (e) {
-      Log.debug("", error: e);
-
-      _connected = _conn.connected;
-      _lastError = e.toString();
-      rethrow;
-    }
+    });
   }
 
   /// Process parameters and convert named parameters to positional if needed
@@ -104,15 +102,12 @@ class MySqlConnectionWrapper implements DBWrapper {
     Map<String, dynamic>? namedParams,
   ) {
     if (namedParams != null && namedParams.isNotEmpty) {
-      // Convert named parameters to positional parameters for MySQL
       final paramList = <dynamic>[];
 
-      // Simple conversion: replace :param with ? and collect values in order
-      // This is a basic implementation - you might need a more robust one
       final processedSql = sql.replaceAllMapped(RegExp(r':(\w+)'), (match) {
         final paramName = match.group(1)!;
         if (!namedParams.containsKey(paramName)) {
-          throw ArgumentError("Named parameter :$paramName not provided");
+          throw ArgumentError('Named parameter :$paramName not provided');
         }
         paramList.add(namedParams[paramName]);
         return '?';
@@ -126,30 +121,22 @@ class MySqlConnectionWrapper implements DBWrapper {
 
   /// Execute a batch of SQL commands
   Future<void> executeBatch(List<String> sqlCommands) async {
-    if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
-    }
-
-    try {
+    await _runWithReconnect(() async {
       for (final sql in sqlCommands) {
-        await _conn.execute(sql);
+        await _conn!.execute(sql);
       }
-    } catch (e) {
-      _connected = _conn.connected;
-      _lastError = e.toString();
-      rethrow;
-    }
+    });
   }
 
   /// Check if a table exists in the database
   Future<bool> tableExists(String tableName) async {
     if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
+      throw Exception('MySQL not connected. Last error: $_lastError');
     }
 
     try {
       final result = await query(
-        "SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?",
+        'SELECT COUNT(*) as count FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ?',
         positionalParams: [tableName],
       );
 
@@ -166,12 +153,12 @@ class MySqlConnectionWrapper implements DBWrapper {
   /// Get database metadata
   Future<Map<String, dynamic>> getDatabaseInfo() async {
     if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
+      throw Exception('MySQL not connected. Last error: $_lastError');
     }
 
     try {
-      final versionResult = await query("SELECT VERSION() as version");
-      final databaseResult = await query("SELECT DATABASE() as database_name");
+      final versionResult = await query('SELECT VERSION() as version');
+      final databaseResult = await query('SELECT DATABASE() as database_name');
 
       return {
         'version': versionResult.first['version'],
@@ -188,11 +175,11 @@ class MySqlConnectionWrapper implements DBWrapper {
   @override
   Future<void> beginTransaction() async {
     if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
+      throw Exception('MySQL not connected. Last error: $_lastError');
     }
 
     try {
-      await execute("START TRANSACTION");
+      await execute('START TRANSACTION');
     } catch (e) {
       _lastError = e.toString();
       rethrow;
@@ -203,11 +190,11 @@ class MySqlConnectionWrapper implements DBWrapper {
   @override
   Future<void> commit() async {
     if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
+      throw Exception('MySQL not connected. Last error: $_lastError');
     }
 
     try {
-      await execute("COMMIT");
+      await execute('COMMIT');
     } catch (e) {
       _lastError = e.toString();
       rethrow;
@@ -218,11 +205,11 @@ class MySqlConnectionWrapper implements DBWrapper {
   @override
   Future<void> rollback() async {
     if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
+      throw Exception('MySQL not connected. Last error: $_lastError');
     }
 
     try {
-      await execute("ROLLBACK");
+      await execute('ROLLBACK');
     } catch (e) {
       _lastError = e.toString();
       rethrow;
@@ -232,7 +219,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   /// Execute within a transaction
   Future<void> transaction(Future<void> Function() action) async {
     if (!isConnected) {
-      throw Exception("MySQL not connected. Last error: $_lastError");
+      throw Exception('MySQL not connected. Last error: $_lastError');
     }
 
     try {
@@ -248,9 +235,11 @@ class MySqlConnectionWrapper implements DBWrapper {
   @override
   Future<void> close() async {
     try {
-      await _conn.close();
+      _keepAliveTimer?.cancel();
+      await _conn?.close();
+      _conn = null;
       _connected = false;
-      Log.debug("✅ MySQL connection closed");
+      Log.debug('[DB] MySQL connection closed');
     } catch (e) {
       _lastError = e.toString();
       rethrow;
@@ -261,7 +250,8 @@ class MySqlConnectionWrapper implements DBWrapper {
   Future<bool> ping() async {
     try {
       if (!_connected) return false;
-      await query("SELECT 1");
+      if (_conn == null || !_conn!.connected) return false;
+      await _conn!.execute('SELECT 1');
       return true;
     } catch (e) {
       _connected = false;
@@ -277,19 +267,127 @@ class MySqlConnectionWrapper implements DBWrapper {
     required String db,
     required String user,
     required String password,
+    bool isSecure = false,
+    int timeoutSeconds = 30,
+    int keepAliveSeconds = 120,
   }) async {
+    _host = host;
+    _port = port;
+    _db = db;
+    _user = user;
+    _password = password;
+    _isSecure = isSecure;
+    _timeoutSeconds = timeoutSeconds;
+    _keepAliveSeconds = keepAliveSeconds;
+    await _reconnect();
+  }
+
+  void _startKeepAliveTimer() {
+    _keepAliveTimer?.cancel();
+    if (_keepAliveSeconds <= 0) return;
+
+    _keepAliveTimer = Timer.periodic(
+      Duration(seconds: _keepAliveSeconds),
+      (_) async {
+        if (_reconnectFuture != null) return;
+
+        if (!isConnected) {
+          try {
+            await _reconnect();
+          } catch (_) {}
+          return;
+        }
+
+        await ping();
+      },
+    );
+  }
+
+  Future<void> _openConnection() async {
+    _conn = await MySQLConnection.createConnection(
+      host: _host!,
+      port: _port!,
+      databaseName: _db!,
+      userName: _user!,
+      password: _password!,
+      secure: _isSecure,
+    );
+
+    await _conn!.connect(timeoutMs: _timeoutSeconds * 1000);
+  }
+
+  Future<void> _ensureConnected() async {
+    if (isConnected) return;
+    await _reconnect();
+  }
+
+  Future<void> _reconnect() {
+    final existing = _reconnectFuture;
+    if (existing != null) return existing;
+
+    final future = () async {
+      if (_host == null ||
+          _port == null ||
+          _db == null ||
+          _user == null ||
+          _password == null) {
+        throw Exception(
+            'MySQL reconnect failed: connection config is missing.');
+      }
+
+      await _conn?.close();
+      _conn = null;
+
+      await _openConnection();
+      _connected = true;
+      _lastError = null;
+      _startKeepAliveTimer();
+      Log.debug('[DB] MySQL reconnected to $_db@$_host:$_port');
+    }();
+
+    _reconnectFuture = future.whenComplete(() => _reconnectFuture = null);
+    return _reconnectFuture!;
+  }
+
+  Future<T> _runWithReconnect<T>(Future<T> Function() operation) async {
+    await _ensureConnected();
+
     try {
-      await close();
-      await connect(
-        host: host,
-        port: port,
-        db: db,
-        user: user,
-        password: password,
-      );
+      final result = await operation();
+      _connected = true;
+      _lastError = null;
+      return result;
     } catch (e) {
+      _connected = isConnected;
       _lastError = e.toString();
-      rethrow;
+
+      if (!_shouldReconnectOnError(e)) {
+        Log.debug('', error: e);
+        rethrow;
+      }
+
+      try {
+        await _reconnect();
+        final retried = await operation();
+        _connected = true;
+        _lastError = null;
+        return retried;
+      } catch (retryError) {
+        _connected = isConnected;
+        _lastError = retryError.toString();
+        Log.debug('', error: retryError);
+        rethrow;
+      }
     }
+  }
+
+  bool _shouldReconnectOnError(Object error) {
+    final msg = error.toString().toLowerCase();
+    return msg.contains('connection closed') ||
+        msg.contains('server has gone away') ||
+        msg.contains('lost connection') ||
+        msg.contains('broken pipe') ||
+        msg.contains('eof') ||
+        msg.contains('can not prepare stmt');
   }
 }

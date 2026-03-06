@@ -3,7 +3,4 @@ export 'src/error/base_exception.dart';
 export 'src/error/forbidden_exception.dart';
 export 'src/error/http_exception.dart';
 export 'src/error/not_found_exception.dart';
-export 'src/error/query_exception.dart';
 export 'src/error/validation_exception.dart';
-export 'src/error/page_expired_exception.dart';
-export 'src/error/internal_server_error.dart';
