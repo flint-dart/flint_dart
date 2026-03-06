@@ -1,6 +1,8 @@
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/error/auth_exception.dart';
+import 'package:flint_dart/src/error/base_exception.dart';
+import 'package:flint_dart/src/error/validation_exception.dart';
 import 'package:mysql_dart/exception.dart';
 import 'package:postgres/postgres.dart';
 import 'package:flint_dart/src/error/forbidden_exception.dart';
@@ -15,7 +17,7 @@ class ExceptionMiddleware extends Middleware {
         return await next(ctx);
       } on ValidationException catch (e) {
         if (res == null) rethrow;
-        return res.json({"status": false, "errors": e.errors}, status: 400);
+        return res.json({"status": false, "errors": e.errors}, status: e.code);
       } on FormatException catch (e) {
         if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
@@ -59,7 +61,7 @@ class ExceptionMiddleware extends Middleware {
 
         if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
-      } on ForbiddenErorr catch (e) {
+      } on ForbiddenException catch (e) {
         if (res == null) rethrow;
         return res.json({"status": false, "message": e.message}, status: 500);
       } on AuthException catch (e) {
@@ -71,6 +73,15 @@ class ExceptionMiddleware extends Middleware {
             "message": e.message,
           },
           status: 401,
+        );
+      } on BaseException catch (e) {
+        if (res == null) rethrow;
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+          },
+          status: e.code,
         );
       } on Exception catch (e) {
         final msg = e.toString().toLowerCase();

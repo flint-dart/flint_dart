@@ -1,6 +1,6 @@
 import 'package:flint_dart/src/response.dart';
 
-class BaseException {
+class BaseException implements Exception {
   final dynamic message;
   final RespondType responseType;
   final int code;

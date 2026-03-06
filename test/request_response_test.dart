@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flint_dart/src/error/auth_exception.dart';
 import 'package:test/test.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';
@@ -70,6 +71,34 @@ void main() {
       final form = await request.form();
       expect(form['a'], '1');
       expect(form['b'], 'hello');
+    });
+
+    test('requireUser throws AuthException with 401', () {
+      final req = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('http://localhost/protected'),
+      );
+      final request = Request(req);
+
+      expect(
+        request.requireUser,
+        throwsA(
+          isA<AuthException>()
+              .having((e) => e.code, 'code', HttpStatus.unauthorized)
+              .having(
+                (e) => e.message,
+                'message',
+                'Authentication required',
+              ),
+        ),
+      );
+    });
+
+    test('AuthException is catchable as Exception', () {
+      expect(
+        () => throw AuthException(message: 'nope'),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 

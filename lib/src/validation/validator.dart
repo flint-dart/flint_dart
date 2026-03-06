@@ -1,31 +1,4 @@
-/// An exception that is thrown when validation fails.
-///
-/// Contains a map of validation errors, where each key is the field name
-/// and the value is a list of error messages for that field.
-///
-/// Example:
-/// ```dart
-/// try {
-///   await Validator.validate(data, {
-///     "email": "required|email",
-///   });
-/// } on ValidationException catch (e) {
-///   Log.debug(e.errors); // { "email": ["The email field is required."] }
-/// }
-/// ```
-class ValidationException implements Exception {
-  /// The map of validation errors.
-  ///
-  /// Key: field name
-  /// Value: list of error messages
-  final Map<String, List<String>> errors;
-
-  /// Creates a [ValidationException] with the given [errors].
-  ValidationException(this.errors);
-
-  @override
-  String toString() => 'ValidationException: $errors';
-}
+import 'package:flint_dart/exception.dart';
 
 /// A utility class for validating input data against a set of rules.
 ///
@@ -238,10 +211,9 @@ class Validator {
             );
           }
         } else if (part == 'email') {
-          if (isNotString(value) ||
-              value != null &&
-                  isString(value) &&
-                  !RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value)) {
+          if (value != null &&
+              (isNotString(value) ||
+                  !RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value))) {
             addError(
               field,
               'email',
@@ -282,7 +254,14 @@ class Validator {
         } else if (part.startsWith('list:')) {
           isListType = true;
           listItemType = part.substring('list:'.length);
-          if (value != null && isList(value)) {
+          if (value != null && !isList(value)) {
+            addError(
+              field,
+              'list',
+              'The $field must be a list.',
+              value: value,
+            );
+          } else if (value != null && isList(value)) {
             for (var item in value) {
               if (listItemType == 'string' && item is! String) {
                 addError(

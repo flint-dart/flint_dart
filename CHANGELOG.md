@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0+32] - 2026-03-06
+
+### Release Status
+- Public release build.
+
+### Fixed
+- Fixed framework exception handling so `AuthException` and validation failures are caught reliably by `ExceptionMiddleware`.
+- Unified validation exception behavior and aligned validation responses with HTTP `422`.
+- Fixed validator edge cases for optional `email` fields and `list:<type>` rules.
+
+### Changed
+- Simplified the exported exception surface by removing unused exception wrappers and standardizing exception naming.
+
 ## [1.0.0+31] - 2026-03-01
 
 ### Release Status
