@@ -243,8 +243,6 @@ class Response {
       final html = includePreview
           ? _generatePreviewHtml(widget, title ?? 'Flint Render')
           : widget.toHtml();
-      var test = File("test.html").create(recursive: true);
-      test.then((v) => v.writeAsString(html));
       raw.write(html);
     } catch (e) {
       raw.statusCode = 500;

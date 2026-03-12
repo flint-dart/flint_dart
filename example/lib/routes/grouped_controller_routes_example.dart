@@ -1,6 +1,6 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:sample/src/controllers/http_controller_example.dart';
-import 'package:sample/src/controllers/websocket_controller_example.dart';
+import 'package:sample/controllers/http_controller_example.dart';
+import 'package:sample/controllers/websocket_controller_example.dart';
 
 class UserRoutes extends RouteGroup {
   @override

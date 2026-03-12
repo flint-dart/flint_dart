@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flint_dart/ai.dart';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/middlewares.dart';
@@ -249,11 +250,14 @@ class Flint {
 
   final Router _router = Router();
   final List<Middleware> _middlewares = [];
+  final FlintAi _ai = FlintAi();
 
   bool _dbInitialized = false;
 
   /// Returns `true` if the database connection has been established.
   bool get isDatabaseConnected => _dbInitialized;
+
+  FlintAi get ai => _ai;
 
   // ===== HTTP ROUTES =====
   /// Registers a **GET** HTTP route on the application.
@@ -891,6 +895,7 @@ class Flint {
     );
 
     final ctx = Context(req: request, res: response);
+    ctx.write<FlintAi>(_ai);
 
     try {
       final result = await pipeline(ctx);
@@ -965,7 +970,9 @@ class Flint {
         );
 
         try {
-          await pipeline(Context(req: wsRequest, socket: client));
+          final ctx = Context(req: wsRequest, socket: client);
+          ctx.write<FlintAi>(_ai);
+          await pipeline(ctx);
         } catch (e, st) {
           Log.debug('[FLINT] ❌ WebSocket handler error: $e\n$st');
         }

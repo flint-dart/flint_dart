@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flint_dart/src/error/auth_exception.dart';
+import 'package:flint_dart/flint_ui.dart';
 import 'package:test/test.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';
@@ -71,6 +72,34 @@ void main() {
       final form = await request.form();
       expect(form['a'], '1');
       expect(form['b'], 'hello');
+    });
+
+    test('multipart uploaded file size is measured after buffering', () async {
+      final boundary = 'test-boundary';
+      final body = utf8Bytes(
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="avatar"; filename="a.txt"\r\n'
+        'Content-Type: text/plain\r\n\r\n'
+        'hello world\r\n'
+        '--$boundary--\r\n',
+      );
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType(
+          'multipart',
+          'form-data',
+          parameters: {'boundary': boundary},
+        );
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/upload'),
+        headers: headers,
+        bodyBytes: body,
+      );
+      final request = Request(req);
+
+      final file = await request.file('avatar');
+      expect(file, isNotNull);
+      expect(file!.size, 11);
     });
 
     test('requireUser throws AuthException with 401', () {
@@ -175,6 +204,20 @@ void main() {
       expect(setCookie.any((v) => v.contains('Saved%20successfully')), true);
       expect(setCookie.any((v) => v.contains('FLINT_FLASH_error=')), true);
       expect(setCookie.any((v) => v.contains('Something%20went%20wrong')), true);
+    });
+
+    test('render does not write debug file to project root', () {
+      final debugFile = File('test.html');
+      if (debugFile.existsSync()) {
+        debugFile.deleteSync();
+      }
+
+      final raw = FakeHttpResponse();
+      final res = Response(raw);
+      res.render(Text('Hello'));
+
+      expect(raw.buffer.toString(), contains('Hello'));
+      expect(debugFile.existsSync(), isFalse);
     });
   });
 
