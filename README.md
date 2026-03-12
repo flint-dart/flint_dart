@@ -640,6 +640,183 @@ if (upload != null) {
 
 ---
 
+## AI Runtime
+
+Flint now exposes one AI system only: `ai`.
+
+The AI layer is organized around:
+
+- providers
+- tools
+- workflows
+- memory
+- runtime
+
+### Framework entry points
+
+```dart
+final app = Flint();
+
+app.ai.registerChatProvider(OpenAiChatProvider(apiKey: 'openai-key'));
+
+app.get('/ai/chat', (Context ctx) async {
+  final result = await ctx.ai.chat(
+    providerId: 'openai',
+    request: const ChatRequest(
+      model: 'gpt-4o-mini',
+      messages: [
+        ChatMessage(role: 'user', content: 'Say hello'),
+      ],
+    ),
+  );
+
+  return ctx.res?.json(result.toMap());
+});
+```
+
+You can also opt into stricter production defaults:
+
+```dart
+final ai = FlintAi.production(
+  memoryStore: AutoAiMemoryStore(),
+  repository: AutoAiRepository(),
+);
+```
+
+### Register providers, tools, workflows, memory, and persistence
+
+```dart
+final app = Flint();
+
+app.ai.registerChatProvider(OpenAiChatProvider(apiKey: 'openai-key'));
+app.ai.registerTool(SummarizeTicketTool());
+app.ai.registerWorkflow(SupportEscalationWorkflow());
+
+// Optional explicit production wiring
+final hardenedAi = FlintAi.production(
+  memoryStore: AutoAiMemoryStore(),
+  repository: AutoAiRepository(),
+);
+```
+
+### Runtime model
+
+- `AiAgent` defines planning and synthesis
+- `AiTool` performs controlled side effects
+- `AiWorkflow` handles higher-level orchestration
+- `AiMemoryStore` tracks run memory
+- `AiRepository` persists runs, traces, threads, and artifacts
+
+### Memory and persistence APIs
+
+```dart
+await ctx.ai.saveThreadMessage('thread-42', {
+  'role': 'user',
+  'content': 'Customer cannot reset password',
+});
+
+final thread = await ctx.ai.loadThreadMessages('thread-42');
+final events = await ctx.ai.loadRunEvents('run-id');
+```
+
+### Production note
+
+Flint uses auto-configured AI memory and repository stores by default:
+
+- when the database is connected, DB-backed stores are used
+- when it is not connected, Flint falls back to in-memory stores with warnings
+
+For production, connect the database or provide explicit shared stores so runs, traces, threads, and memory survive restarts and work across workers.
+
+### Built-in chat providers
+
+- `OpenAiChatProvider`
+- `AnthropicChatProvider`
+- `GeminiChatProvider`
+
+These live under `ai` and use the shared AI provider abstractions. There is no separate public `agent` namespace anymore.
+
+### End-to-end example
+
+```dart
+class SummarizeTicketTool extends AiTool {
+  @override
+  String get name => 'support.summarize';
+
+  @override
+  String get description => 'Formats a support summary.';
+
+  @override
+  bool get enabledByDefault => true;
+
+  @override
+  Future<Map<String, dynamic>> execute(AiToolContext context) async {
+    final issue = context.arguments['issue']?.toString() ?? '';
+    return {'summary': 'Customer issue: $issue'};
+  }
+}
+
+class SupportAgent extends AiAgent {
+  @override
+  String get name => 'support_agent';
+
+  @override
+  Future<AiPlan> plan(AiRunContext context) async {
+    return AiPlan(
+      steps: [
+        AiPlanStep(
+          id: 'summarize',
+          type: 'tool',
+          description: 'Create a support summary',
+          toolName: 'support.summarize',
+          arguments: {'issue': context.goal.input['issue']},
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> synthesize(AiRunContext context) async {
+    return {
+      'summary': (context.state['summarize'] as Map)['summary'],
+      'events': context.run.events.map((event) => event.toMap()).toList(),
+    };
+  }
+}
+
+final app = Flint();
+app.ai.registerTool(SummarizeTicketTool());
+
+app.post('/ai/support', (Context ctx) async {
+  final body = await ctx.req.json();
+  final threadId = body['threadId']?.toString() ?? 'support-thread';
+
+  await ctx.ai.saveThreadMessage(threadId, {
+    'role': 'user',
+    'content': body['issue'],
+  });
+
+  final run = await ctx.ai.run(
+    agent: SupportAgent(),
+    goal: AiGoal(
+      task: 'Resolve support request',
+      input: {'issue': body['issue']},
+    ),
+    userId: 'support-user',
+    threadId: threadId,
+    context: ctx,
+  );
+
+  return ctx.res?.json({
+    'run': run.toMap(),
+    'thread': await ctx.ai.loadThreadMessages(threadId),
+    'events': await ctx.ai.loadRunEvents(run.run.id),
+  });
+});
+```
+
+---
+
 ## Swagger UI (Auto Docs)
 
 Enable docs and visit:

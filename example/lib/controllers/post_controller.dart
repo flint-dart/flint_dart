@@ -1,5 +1,5 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:sample/src/models/post_model.dart';
+import 'package:sample/models/post_model.dart';
 
 class PostController {
   Future<Response> index(Request req, Response res) async {
@@ -13,7 +13,7 @@ class PostController {
   }
 
   Future<Response> store(Request req, Response res) async {
-    final body = await req.validate({
+    await req.validate({
       'title': 'required|string|min:3',
       'subTitle': 'required|string|min:3'
     });

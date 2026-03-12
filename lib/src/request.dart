@@ -295,17 +295,12 @@ class Request {
       final filename = _extractFilename(contentDisposition);
       final ext = filename.split('.').last;
       final contentType = part.headers['content-type']?.split(';')[0];
-
-      // Count size while buffering the stream
+      final bufferedChunks = <List<int>>[];
       int totalBytes = 0;
-      final controller = StreamController<List<int>>();
-
-      part.listen((chunk) {
+      await for (final chunk in part) {
         totalBytes += chunk.length;
-        controller.add(chunk);
-      }, onDone: () {
-        controller.close();
-      });
+        bufferedChunks.add(List<int>.from(chunk));
+      }
 
       files[fieldName] = UploadedFile(
         fieldName: fieldName,
@@ -313,7 +308,7 @@ class Request {
         contentType: contentType,
         size: totalBytes,
         extension: ext,
-        content: controller.stream,
+        content: Stream<List<int>>.fromIterable(bufferedChunks),
       );
     } else {
       // NORMAL FIELD

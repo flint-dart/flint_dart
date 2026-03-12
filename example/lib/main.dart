@@ -5,11 +5,12 @@ import 'dart:io';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
-import 'package:sample/src/middlewares/auth_middleware.dart';
-import 'package:sample/src/routes/auth_routes.dart';
-import 'package:sample/src/routes/post_routes.dart';
-import 'package:sample/src/routes/user_routes.dart';
-import 'package:sample/src/views/welcome.dart';
+import 'package:sample/middlewares/auth_middleware.dart';
+import 'package:sample/routes/ai_routes.dart';
+import 'package:sample/routes/auth_routes.dart';
+import 'package:sample/routes/post_routes.dart';
+import 'package:sample/routes/user_routes.dart';
+import 'package:sample/views/welcome.dart';
 
 void main(List<String> args) {
   final app = Flint(
@@ -21,10 +22,12 @@ void main(List<String> args) {
 
   app.use(LoggerMiddleware());
 
+  app.routes(AiRoutes());
+
   app.get('/', (Request req, Response res) async {
     return res.render(Welcome());
   });
-  app.mount("/post", postRoute);
+  app.routes(PostRoutes());
   app.get('/preview/email', (Request req, Response res) async {
     final templates = _discoverEmailTemplates();
     if (templates.isEmpty) {
@@ -77,7 +80,8 @@ void main(List<String> args) {
     final previewData = <String, dynamic>{
       'subject': 'Preview: $name',
       'recipientName': req.queryParam('recipientName') ?? 'Preview User',
-      'recipientEmail': req.queryParam('recipientEmail') ?? 'preview@example.com',
+      'recipientEmail':
+          req.queryParam('recipientEmail') ?? 'preview@example.com',
       'appName': 'Flint Example',
       'currentYear': DateTime.now().year,
       'preview': true,
@@ -95,7 +99,7 @@ void main(List<String> args) {
   app.get('/login', (Request req, Response res) async {
     return res.oAuthRedirect("google", callback: "/api/auth/google/callback");
   });
-  app.mount("/users", registerUserRoutes);
+  app.routes(UserRoutes());
 
   app.get('/profile', (Request req, Response res) async {
     return res.json({'msg': 'This is a protected route'});
@@ -276,7 +280,7 @@ void main(List<String> args) {
     });
   });
 
-  app.mount("/auth", authRoutes);
+  app.routes(AuthRoutes());
   final portArg = args.isNotEmpty ? int.tryParse(args.first) : null;
   app.listen(port: portArg, hotReload: true);
 }
@@ -392,5 +396,6 @@ class _EmailTemplatePreviewMail extends ViewMailable {
   Map<String, dynamic> get data => payload;
 
   @override
-  List<String> get to => [payload['recipientEmail'] as String? ?? 'preview@example.com'];
+  List<String> get to =>
+      [payload['recipientEmail'] as String? ?? 'preview@example.com'];
 }

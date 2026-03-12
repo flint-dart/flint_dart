@@ -161,10 +161,9 @@ void main() {
       final middleware = ExceptionMiddleware();
       final handler = middleware.handle((ctx) async {
         throw ValidationError(
-          message: {
+          errors: {
             'email': ['The email field is required.']
           },
-          errors: {},
         );
       });
 
@@ -178,7 +177,7 @@ void main() {
       expect(rawResponse.statusCode, 422);
       expect(
         rawResponse.buffer.toString(),
-        '{"status":false,"message":{"email":["The email field is required."]}}',
+        '{"status":false,"errors":{"email":["The email field is required."]}}',
       );
     });
   });

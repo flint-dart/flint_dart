@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'ai/flint_ai.dart';
 import 'request.dart';
 import 'response.dart';
 import 'websocket/websocket.dart';
@@ -103,5 +104,13 @@ class Context {
   /// Type-keyed storage for future session/user injection patterns.
   void write<T>(T value) {
     setExtra(T, value);
+  }
+
+  FlintAi get ai {
+    final service = read<FlintAi>();
+    if (service == null) {
+      throw StateError('FlintAi is not attached to this context.');
+    }
+    return service;
   }
 }
