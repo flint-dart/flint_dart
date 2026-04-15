@@ -151,6 +151,11 @@ class DB {
   static void overrideConnection(DBWrapper connection) {
     _mysql = connection is MySqlConnectionWrapper ? connection : null;
     _pg = connection is PgConnectionWrapper ? connection : null;
+    if (connection is MySqlConnectionWrapper) {
+      _driver = DBDriver.mysql;
+    } else if (connection is PgConnectionWrapper) {
+      _driver = DBDriver.postgres;
+    }
     _isConnected = true;
   }
 

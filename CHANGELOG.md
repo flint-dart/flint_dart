@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.1+1] - 2026-04-15
+
+### Release Status
+- Public patch build.
+
+### Added
+- Added focused `upsert` regression tests covering `excludeUpdatedData`, `createData`, and `updateData`.
+
+### Changed
+- Expanded `upsert` to support explicit `createData` and `updateData` payloads alongside the legacy shared `data` payload.
+- Restricted `excludeUpdatedData` to legacy `data` mode and improved `uniqueBy` resolution when explicit payloads are used.
+
+### Fixed
+- Prevented `upsert` from creating rows when only update payload data is available.
+- Ensured `DB.overrideConnection(...)` sets the active driver so database-backed tests can run against fake connections.
+
 ## [1.0.1] - 2026-04-15
 
 ### Release Status
