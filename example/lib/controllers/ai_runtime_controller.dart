@@ -1,4 +1,5 @@
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/ai.dart';
 
 class AiRuntimeController extends Controller {
   Future<Response> index() async {

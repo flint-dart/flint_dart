@@ -27,6 +27,7 @@ import 'dart:io';
 class FlintEnv {
   /// Internal in-memory store for environment variables from .env file.
   static final Map<String, String> _envFromFile = {};
+  static String? _envFilePathOverride;
 
   /// Tracks whether the `.env` file has been loaded already.
   static bool _isLoaded = false;
@@ -167,12 +168,18 @@ class FlintEnv {
     _ensureLoaded();
   }
 
+  static void setEnvFilePath(String? path) {
+    _envFilePathOverride = path;
+    _isLoaded = false;
+    _envFromFile.clear();
+  }
+
   /// Ensures the `.env` file is loaded into memory.
   ///
   /// This is called automatically on first access of any getter.
   static void _ensureLoaded() {
     if (!_isLoaded) {
-      final file = File('.env');
+      final file = File(_envFilePathOverride ?? '.env');
       if (file.existsSync()) {
         final lines = file.readAsLinesSync();
         _envFromFile.addAll(_parseLines(lines));

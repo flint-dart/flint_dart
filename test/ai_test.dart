@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flint_dart/flint_dart.dart';
 import 'package:test/test.dart';
+import 'package:flint_dart/ai.dart';
 
 import 'helpers/fakes.dart';
 
@@ -73,7 +74,8 @@ void main() {
       expect(result.output['userId'], 'user-3');
     });
 
-    test('persists runs and traces through the configured repository', () async {
+    test('persists runs and traces through the configured repository',
+        () async {
       final runStore = InMemoryAiRunStore();
       final traceStore = InMemoryAiTraceStore();
       final ai = FlintAi(
@@ -127,7 +129,8 @@ void main() {
       );
 
       expect(result.content, 'Hello from OpenAI');
-      expect(http.requests.single.headers['Authorization'], 'Bearer openai-key');
+      expect(
+          http.requests.single.headers['Authorization'], 'Bearer openai-key');
       expect(result.usage.totalTokens, 7);
     });
 
@@ -221,7 +224,8 @@ void main() {
         () async {
       final ai = FlintAi(memoryStore: InMemoryAiMemoryStore());
 
-      await ai.saveThreadMessage('thread-1', const {'role': 'user', 'content': 'hi'});
+      await ai.saveThreadMessage(
+          'thread-1', const {'role': 'user', 'content': 'hi'});
       final messages = await ai.loadThreadMessages('thread-1');
 
       expect(messages, hasLength(1));
@@ -351,7 +355,8 @@ void main() {
 
       expect(response.statusCode, HttpStatus.ok);
       expect(response.buffer.toString(), contains('"status":"completed"'));
-      expect(response.buffer.toString(), contains('"task":"Handle support request"'));
+      expect(response.buffer.toString(),
+          contains('"task":"Handle support request"'));
     });
 
     test('workflow context carries request and metadata', () async {

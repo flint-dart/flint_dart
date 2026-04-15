@@ -1,47 +1,13 @@
 import 'dart:isolate';
+
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/schema.dart';
-import 'package:flint_dart/src/extensions/table_extension.dart';
 
 /// Runs the table registry process inside a Dart isolate.
 ///
-/// This function is typically called automatically by the Flint CLI when
-/// running database synchronization commands (e.g., `flint db:sync`).
-/// It compares the current database schema with the defined table schemas
-/// and produces a list of SQL statements to create or modify tables.
-///
-/// ### Parameters
-/// - [tables] (`List<Table>`):
-///   A list of [`Table`](package:flint_dart/schema.dart) objects representing
-///   the desired schema for each database table.
-// ignore: no_wildcard_variable_uses
-/// - [_] (`dynamic`, optional):
-///   An unused positional parameter (reserved for isolate call compatibility).
-/// - [sendPort] (`SendPort?`, optional):
-///   A [`SendPort`](dart:isolate) used to send the computed schema differences
-///   back to the main isolate. If `null`, the function will Log.debug an error
-///   and exit.
-///
-/// ### Behavior
-/// - If a table does not exist in the database, its `CREATE TABLE` SQL is added
-///   to the diff list.
-/// - If a table exists, the `compareWith` method is used to generate the
-///   necessary `ALTER TABLE` statements.
-/// - All differences are sent back to the main isolate via [sendPort].
-///
-/// ### Example
-/// ```dart
-/// // Inside table_registry.dart
-/// runTableRegistry([
-///   usersTable,
-///   postsTable,
-/// ], null, sendPort);
-/// ```
-///
-/// Throws no exceptions directly — errors are logged and an empty list may be sent.
-///
-/// Used internally by the Flint Dart CLI.
-///
+/// The migrate command expects canonical table definitions, not precomputed
+/// ALTER statements. It compares the live database schema against these CREATE
+/// TABLE definitions and then applies the necessary add/modify/drop work.
 void runTableRegistry(
   List<Table> tables, [
   dynamic _,
@@ -49,33 +15,34 @@ void runTableRegistry(
 ]) async {
   if (sendPort == null) {
     Log.debug(
-        "❌ Error: runTableRegistry must be called via the Flint CLI isolate.");
-    Isolate.exit(); // ← Add this
-    // return;
+      'Error: runTableRegistry must be called via the Flint CLI isolate.',
+    );
+    Isolate.exit();
   }
 
-  final List<String> diffs = [];
+  final sqlDefinitions = <String>[];
+  final registeredTables = <Map<String, Object?>>[];
 
   try {
     for (final table in tables) {
-      final existingTable = await getTableSchema(table.name);
-
-      if (existingTable == null) {
-        // Table doesn't exist → create it
-        diffs.add(table.toCreateSQL());
-      } else {
-        // Table exists → diff it
-        final diff = existingTable.compareWith(table);
-        if (diff != null) diffs.add(diff);
-      }
+      final createSql = table.toCreateSQL();
+      sqlDefinitions.add(createSql);
+      registeredTables.add({
+        'tableName': table.name,
+        'createSql': createSql,
+        'indexes': table.indexes
+            .map((index) => {
+                  'name': index.name,
+                  'columns': index.columns,
+                  'isUnique': index.isUnique,
+                })
+            .toList(),
+      });
     }
   } catch (e, st) {
-    Log.debug("⚠️ Error in table registry: $e\n$st");
+    Log.debug('Error in table registry: $e\n$st');
   }
 
-  // ✅ Always send result back, even if empty
-  sendPort.send(diffs);
-
-  // ✅ CRITICAL: Exit the isolate to stop the CLI process
+  sendPort.send(registeredTables.isEmpty ? sqlDefinitions : registeredTables);
   Isolate.exit();
 }

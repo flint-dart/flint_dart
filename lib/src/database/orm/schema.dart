@@ -111,6 +111,76 @@ class Column {
       options: options ?? this.options,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Column &&
+        other.name == name &&
+        other.type == type &&
+        other.length == length &&
+        other.isPrimaryKey == isPrimaryKey &&
+        other.isAutoIncrement == isAutoIncrement &&
+        other.isNullable == isNullable &&
+        other.isUnique == isUnique &&
+        _valuesEqual(other.defaultValue, defaultValue) &&
+        _listEquals(other.options, options);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        name,
+        type,
+        length,
+        isPrimaryKey,
+        isAutoIncrement,
+        isNullable,
+        isUnique,
+        _valueHash(defaultValue),
+        Object.hashAll(options ?? const <String>[]),
+      );
+
+  static bool _listEquals(List<String>? a, List<String>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null || a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  static bool _valuesEqual(dynamic a, dynamic b) {
+    if (identical(a, b)) return true;
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (!_valuesEqual(a[i], b[i])) return false;
+      }
+      return true;
+    }
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final key in a.keys) {
+        if (!b.containsKey(key) || !_valuesEqual(a[key], b[key])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return a == b;
+  }
+
+  static int _valueHash(dynamic value) {
+    if (value is List) {
+      return Object.hashAll(value.map(_valueHash));
+    }
+    if (value is Map) {
+      final entries = value.entries
+          .map((entry) => Object.hash(entry.key, _valueHash(entry.value)));
+      return Object.hashAll(entries);
+    }
+    return value.hashCode;
+  }
 }
 
 /// Enum representing supported column types for a table schema.
