@@ -2,6 +2,42 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.1+1] - 2026-04-15
+
+### Release Status
+- Public patch build.
+
+### Added
+- Added focused `upsert` regression tests covering `excludeUpdatedData`, `createData`, and `updateData`.
+
+### Changed
+- Expanded `upsert` to support explicit `createData` and `updateData` payloads alongside the legacy shared `data` payload.
+- Restricted `excludeUpdatedData` to legacy `data` mode and improved `uniqueBy` resolution when explicit payloads are used.
+
+### Fixed
+- Prevented `upsert` from creating rows when only update payload data is available.
+- Ensured `DB.overrideConnection(...)` sets the active driver so database-backed tests can run against fake connections.
+
+## [1.0.1] - 2026-04-15
+
+### Release Status
+- Public stable patch release.
+
+### Fixed
+- Fixed `flint migrate` so migration failures propagate instead of returning a successful process exit.
+- Fixed MySQL schema comparison to decode metadata reliably and avoid false column updates on clean reruns.
+- Fixed migration type parsing so column types like `DOUBLE NOT NULL` and `BOOLEAN NOT NULL` are parsed correctly.
+- Fixed default comparison normalization for boolean, numeric, and timestamp defaults during schema sync.
+- Fixed MySQL `updated_at` handling by correctly recognizing `ON UPDATE CURRENT_TIMESTAMP`.
+
+### Added
+- Added migration support for syncing declared indexes from `Table.indexes`, including composite indexes.
+- Added regression tests for schema comparison, default normalization, inline unique columns, and desired index generation.
+
+### Changed
+- `runTableRegistry` now provides canonical table definitions to the migrator instead of precomputed diffs.
+- Restored `ai.dart` to the top-level `package:flint_dart/flint_dart.dart` export surface for backward compatibility.
+
 ## [1.0.0+33] - 2026-03-16
 
 ### Release Status

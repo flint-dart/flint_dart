@@ -3,7 +3,7 @@
 A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
 
 - Website: flintdart.eulogia.net
-- Status: Internal Build (v1.0.0+29)
+- Status: Stable Release (v1.0.1)
 - Maintainers: Eulogia Technologies
 
 ---
@@ -79,7 +79,7 @@ app.post('/users', (Context ctx) async {
 });
 ```
 
-### Controller-based routes (v1.0.0+29)
+### Controller-based routes (v1.0.1)
 
 Flint also supports request-scoped controllers for both HTTP and WebSocket routes.
 Controller methods can use `req`, `res`, and `socket` directly after binding.

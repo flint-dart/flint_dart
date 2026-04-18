@@ -3,7 +3,13 @@ import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeSeederCommand extends FlintCommand {
+  final String? workingDirectory;
+
   MakeSeederCommand()
+      : workingDirectory = null,
+        super('--make-seeder', 'Create a new framework database seeder');
+
+  MakeSeederCommand.withWorkingDirectory(this.workingDirectory)
       : super('--make-seeder', 'Create a new framework database seeder');
 
   @override
@@ -22,13 +28,16 @@ class MakeSeederCommand extends FlintCommand {
         ? seederraw
         : "${seederraw}Seeder";
     final snakeCaseFileName = _toSnakeCase(seederName);
+    final projectRoot = Directory(
+      workingDirectory ?? Directory.current.path,
+    ).absolute.path;
 
-    final seedersDir = Directory('lib/seeders');
+    final seedersDir = Directory('$projectRoot/lib/seeders');
     if (!seedersDir.existsSync()) {
       seedersDir.createSync(recursive: true);
     }
 
-    final seederFile = File('lib/seeders/$snakeCaseFileName.dart');
+    final seederFile = File('$projectRoot/lib/seeders/$snakeCaseFileName.dart');
     if (seederFile.existsSync()) {
       Log.debug('Seeder already exists!');
       return;
@@ -52,12 +61,12 @@ class $seederName extends Seeder {
         'Seeder $seederName created at lib/seeders/$snakeCaseFileName.dart');
 
     // Ensure framework seeder registry exists.
-    final configDir = Directory('lib/config');
+    final configDir = Directory('$projectRoot/lib/config');
     if (!configDir.existsSync()) {
       configDir.createSync(recursive: true);
     }
 
-    final seederRegistryFile = File('lib/config/seeder_registry.dart');
+    final seederRegistryFile = File('$projectRoot/lib/config/seeder_registry.dart');
     if (!seederRegistryFile.existsSync()) {
       await seederRegistryFile.writeAsString('''
 import 'package:flint_dart/flint_dart.dart';

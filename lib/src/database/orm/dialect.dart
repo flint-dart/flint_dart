@@ -29,6 +29,7 @@ class MySQLDialect implements SQLDialect {
       if (col.defaultValue != null) {
         buffer.write(' DEFAULT ${_formatDefault(col.defaultValue)}');
       }
+      if (col.isUnique) buffer.write(' UNIQUE');
       if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
 
       if (i < table.columns.length - 1 || table.foreignKeys.isNotEmpty) {

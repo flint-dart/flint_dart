@@ -259,19 +259,100 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
   }
 
   /// Universal upsert for Flint Dart
-  /// Either `uniqueBy` or `where` must be provided
+  /// Either `uniqueBy` or `where` must be provided.
+  ///
+  /// Preferred API:
+  /// - `createData`: fields used when inserting
+  /// - `updateData`: fields used when updating
+  ///
+  /// Backward-compatible API:
+  /// - `data`: shared payload
+  /// - `excludeUpdatedData`: fields removed from `data` before update
   Future<T?> upsert({
     Map<String, dynamic>? where,
     List<String>? uniqueBy,
-    required Map<String, dynamic> data,
+
+    /// Old shared payload API
+    Map<String, dynamic>? data,
+
+    /// New explicit API
+    Map<String, dynamic>? createData,
+    Map<String, dynamic>? updateData,
+
+    /// Optional backward-compatible helper
+    List<String>? excludeUpdatedData,
   }) async {
-    // Build `where` from `uniqueBy` if not provided
+    // Validate identifier
     if (where == null) {
       if (uniqueBy == null || uniqueBy.isEmpty) {
         throw Exception('upsert requires either where or uniqueBy');
       }
+    }
 
-      where = {for (var key in uniqueBy) key: data[key]};
+    // Validate payload
+    final hasOldApi = data != null;
+    final hasNewApi = createData != null || updateData != null;
+
+    if (!hasOldApi && !hasNewApi) {
+      throw Exception(
+        'upsert requires either `data` or (`createData` / `updateData`)',
+      );
+    }
+
+    if (hasOldApi && hasNewApi) {
+      throw Exception(
+        'Use either `data` or (`createData` / `updateData`), not both',
+      );
+    }
+
+    if (!hasOldApi &&
+        excludeUpdatedData != null &&
+        excludeUpdatedData.isNotEmpty) {
+      throw Exception(
+        '`excludeUpdatedData` can only be used with the legacy `data` payload',
+      );
+    }
+
+    // Resolve create/update payloads
+    late final Map<String, dynamic> resolvedCreateData;
+    late final Map<String, dynamic> resolvedUpdateData;
+
+    if (hasOldApi) {
+      final sharedData = Map<String, dynamic>.from(data);
+
+      resolvedCreateData = Map<String, dynamic>.from(sharedData);
+      resolvedUpdateData = Map<String, dynamic>.from(sharedData);
+
+      if (excludeUpdatedData != null && excludeUpdatedData.isNotEmpty) {
+        for (final key in excludeUpdatedData) {
+          resolvedUpdateData.remove(key);
+        }
+      }
+    } else {
+      resolvedCreateData = Map<String, dynamic>.from(createData ?? {});
+      resolvedUpdateData = Map<String, dynamic>.from(updateData ?? {});
+    }
+
+    // Build `where` from `uniqueBy` if not provided
+    if (where == null) {
+      final resolvedUniqueBy = uniqueBy!;
+      final source = {
+        ...resolvedCreateData,
+        ...resolvedUpdateData,
+      };
+
+      where = {};
+
+      for (final key in resolvedUniqueBy) {
+        if (!source.containsKey(key)) {
+          throw Exception(
+            'Missing unique key "$key" in payload for upsert',
+          );
+        }
+        where[key] = source[key];
+      }
+    } else {
+      where = Map<String, dynamic>.from(where);
     }
 
     // 1️⃣ Try to find existing record
@@ -284,17 +365,38 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
     // 2️⃣ Update if exists
     if (existing != null) {
-      return await existing.update(data: data);
+      if (resolvedUpdateData.isEmpty) {
+        return existing;
+      }
+
+      return await existing.update(data: resolvedUpdateData);
     }
 
     // 3️⃣ Insert if not exists
-    final insertData = {...where, ...data};
+    if (resolvedCreateData.isEmpty) {
+      throw Exception('No create data available for insert');
+    }
+
+    final insertData = {
+      ...where,
+      ...resolvedCreateData,
+    };
+
     return await create(insertData);
   }
 
   Future<List<T?>> upsertMany({
     required List<Map<String, dynamic>> records,
     required List<String> uniqueBy,
+
+    /// Old shared payload API
+    List<String>? excludeUpdatedData,
+
+    /// Optional transformers for new API
+    Map<String, dynamic> Function(Map<String, dynamic> record)?
+        createDataBuilder,
+    Map<String, dynamic> Function(Map<String, dynamic> record)?
+        updateDataBuilder,
   }) async {
     if (records.isEmpty) return [];
 
@@ -318,12 +420,15 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
       final model = await resetQuery().upsert(
         where: where,
-        data: record,
+        data: createDataBuilder == null && updateDataBuilder == null
+            ? record
+            : null,
+        createData: createDataBuilder?.call(record),
+        updateData: updateDataBuilder?.call(record),
+        excludeUpdatedData: excludeUpdatedData,
       );
 
-      if (model != null) {
-        results.add(model);
-      }
+      results.add(model);
     }
 
     return results;

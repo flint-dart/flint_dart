@@ -62,12 +62,7 @@ extension ColumnSQL on Column {
 
 extension TableSQL on Table {
   String? compareWith(Table updated) {
-    switch (DB.driver) {
-      case DBDriver.mysql:
-        return _compareWithMySQL(updated);
-      case DBDriver.postgres:
-        return _compareWithPostgres(updated);
-    }
+    return dbSchemaCompareTables(this, updated, DB.driver);
   }
 
   // --- MYSQL ---
@@ -193,6 +188,15 @@ extension TableSQL on Table {
   }
 }
 
+String? dbSchemaCompareTables(Table existing, Table updated, DBDriver driver) {
+  switch (driver) {
+    case DBDriver.mysql:
+      return existing._compareWithMySQL(updated);
+    case DBDriver.postgres:
+      return existing._compareWithPostgres(updated);
+  }
+}
+
 // --- POSTGRES HELPERS ---
 String _buildAddColumnPostgres(Column col) {
   final buffer = StringBuffer('ADD COLUMN "${col.name}" ');
@@ -217,7 +221,7 @@ List<String> _buildAlterColumnPostgres(
   final changes = <String>[];
 
   // --- Type change ---
-  if (oldCol.type != newCol.type) {
+  if (oldCol.pgSqlType() != newCol.pgSqlType()) {
     if (newCol.isPrimaryKey && newCol.isAutoIncrement) {
       // Upgrade SERIAL → BIGSERIAL or similar
       changes.add(
