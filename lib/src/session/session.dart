@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
-import 'package:flint_dart/db.dart';
 import 'package:flint_dart/flint_dart.dart';
 
 class SessionManager {

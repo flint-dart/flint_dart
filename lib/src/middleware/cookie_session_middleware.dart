@@ -1,6 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/src/session/cookie_service.dart';
-import 'package:flint_dart/src/session/session_service.dart';
 
 /// ================= Middleware Example =================
 class CookieSessionMiddleware extends Middleware {

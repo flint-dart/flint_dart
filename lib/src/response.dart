@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/flint_ui.dart' hide FlintTemplate;
-import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:path/path.dart' as p;

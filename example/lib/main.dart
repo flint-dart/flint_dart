@@ -3,8 +3,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/mail.dart';
 import 'package:sample/middlewares/auth_middleware.dart';
 import 'package:sample/routes/ai_routes.dart';
 import 'package:sample/routes/auth_routes.dart';

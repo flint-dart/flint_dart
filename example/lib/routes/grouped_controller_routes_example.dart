@@ -25,7 +25,12 @@ class ChatRoutes extends RouteGroup {
   String get prefix => '/ws';
 
   @override
+  String get tag => 'WebSocket';
+
+  @override
   void register(Flint app) {
+    /// @summary Chat websocket handshake
+    /// @response 101 Switching Protocols
     app.websocket(
       '/chat',
       useControllerVoid(ChatSocketController.new, (c) {

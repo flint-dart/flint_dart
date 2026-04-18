@@ -202,23 +202,35 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
         return value;
       });
     }
-    String sql;
-    Map<String, dynamic> params;
-    // Use backticks for column names to handle reserved words
-    final setClause = updateData.keys.map((k) => '`$k` = :$k').join(', ');
-
     if (currentId != null) {
+      // Use backticks for column names to handle reserved words
+      final setClause = updateData.keys.map((k) => '`$k` = :$k').join(', ');
+      final params = <String, dynamic>{...updateData, 'id': currentId};
+      final sql =
+          'UPDATE `${table.name}` SET $setClause WHERE `$primaryKey` = :id';
+
       // ✅ PK-based update (old behavior)
-      sql = 'UPDATE `${table.name}` SET $setClause WHERE `$primaryKey` = :id';
-      params = {...updateData, 'id': currentId};
+      await _executeQuery(sql, namedParams: params);
     } else {
       // ✅ WHERE-based update (new behavior)
       final whereSql = qb.compileWhereSql();
-      params = {...updateData, ...qb.whereParams};
+      if (DB.driver == DBDriver.mysql) {
+        final setClause = updateData.keys.map((k) => '`$k` = ?').join(', ');
+        final sql = 'UPDATE `${table.name}` SET $setClause $whereSql';
+        final positionalParams = [
+          ...updateData.values,
+          ...qb.whereParams.values,
+        ];
 
-      sql = 'UPDATE `${table.name}` SET $setClause $whereSql';
+        await _executeQuery(sql, positionalParams: positionalParams);
+      } else {
+        final setClause = updateData.keys.map((k) => '`$k` = :$k').join(', ');
+        final sql = 'UPDATE `${table.name}` SET $setClause $whereSql';
+        final params = <String, dynamic>{...updateData, ...qb.whereParams};
+
+        await _executeQuery(sql, namedParams: params);
+      }
     }
-    await _executeQuery(sql, namedParams: params);
 
     return await refresh(currentId);
   }
@@ -458,8 +470,7 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
   /// Get all records
   Future<List<T>> all() async {
-    final result = await runQuery('SELECT * FROM ${table.name}');
-    return result.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
+    return await get();
   }
 
   /// Simple where clause (non-chainable)

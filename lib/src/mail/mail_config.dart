@@ -1,6 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/src/mail/smtp_factory.dart';
 
 class MailConfig {

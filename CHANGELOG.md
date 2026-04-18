@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.2] - 2026-04-18
+
+### Release Status
+- Public patch build.
+
+### Added
+- Added `Request.rawBody()` for exact undecoded request payload access alongside higher-level request parsers.
+- Added normalized request helpers `Request.input(...)` and `Request.allInput()` for query, JSON, form, multipart, file, and route-param access through one API.
+- Added websocket payload normalization so `emit(...)` and `sendJson(...)` can safely serialize values like `DateTime`, nested collections, exceptions, and objects with `toMap()` or `toJson()`.
+- Added Swagger/OpenAPI websocket documentation support with `101 Switching Protocols`, `x-websocket`, `x-flint-transport`, and a top-level `x-websockets` extension block.
+- Added regression tests covering unified request input/validation, raw body access, websocket namespace behavior, websocket payload normalization, and websocket Swagger docs generation.
+
+### Changed
+- Unified `Request.validate(...)` so it auto-detects JSON, urlencoded form, and multipart request input instead of only validating JSON bodies.
+- `Request.form()` now remains focused on text form fields while files stay available through file helpers and normalized input access.
+- WebSocket rooms are now namespace-scoped by path by default, with explicit cross-namespace helpers `emitToRoomIn(...)` and `emitToNamespace(...)`.
+- Swagger docs generation now discovers `app.websocket(...)` routes and documents their handshake path in a Swagger-friendly way.
+
+### Fixed
+- Fixed `orWhere` handling so grouped OR clauses are compiled consistently across select, update, delete, `first()`, and `all()` query paths.
+- Fixed `all()` on models so chained query builder filters are respected instead of returning every row.
+- Fixed MySQL where-based update parameter ordering when `orWhere` filters are present.
+- Fixed websocket event encoding crashes when emitting non-primitive Dart objects such as `DateTime`.
+
 ## [1.0.1+1] - 2026-04-15
 
 ### Release Status

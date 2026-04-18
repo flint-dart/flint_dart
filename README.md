@@ -3,7 +3,7 @@
 A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
 
 - Website: flintdart.eulogia.net
-- Status: Stable Release (v1.0.1)
+- Status: Stable Release (v1.0.2)
 - Maintainers: Eulogia Technologies
 
 ---
@@ -79,7 +79,7 @@ app.post('/users', (Context ctx) async {
 });
 ```
 
-### Controller-based routes (v1.0.1)
+### Controller-based routes (v1.0.2)
 
 Flint also supports request-scoped controllers for both HTTP and WebSocket routes.
 Controller methods can use `req`, `res`, and `socket` directly after binding.
@@ -157,9 +157,14 @@ app.websocket('/chat', (Context ctx) {
 
 - `ctx.req.param('id')` — route parameter
 - `ctx.req.queryParam('page')` — query parameter
+- `ctx.req.rawBody()` — raw body bytes for custom decoding/signature checks
 - `ctx.req.body()` — raw body string
+- `ctx.req.input('key')` — normalized input from query, JSON, form, multipart, files, and params
+- `ctx.req.allInput()` — all normalized input
+- `ctx.req.validate({...})` — auto-detects request input and validates it
 - `ctx.req.json()` — JSON body (Map)
-- `ctx.req.form()` — form data (Map)
+- `ctx.req.form()` — text form fields only (urlencoded or multipart)
+- `ctx.req.file('avatar')` / `ctx.req.files('gallery')` — uploaded files
 
 ### Response helpers
 
@@ -257,6 +262,57 @@ app.post('/register', (Context ctx) async {
   return ctx.res?.json({'ok': true, 'data': data});
 });
 ```
+
+`validate()`, `input()`, and `allInput()` now normalize incoming data for you, so the same handler can accept:
+
+- JSON requests
+- `application/x-www-form-urlencoded`
+- `multipart/form-data`
+
+Example:
+
+```dart
+app.post('/profile', (Context ctx) async {
+  final data = await ctx.req.validate({
+    'name': 'required|string|min:2',
+    'email': 'required|email',
+    'avatar': 'required',
+  });
+
+  final name = await ctx.req.input('name');
+  final avatar = await ctx.req.input('avatar'); // UploadedFile for multipart
+
+  return ctx.res?.json({
+    'ok': true,
+    'name': name,
+    'hasAvatar': avatar != null,
+    'data': data,
+  });
+});
+```
+
+Use the lower-level helpers only when you need a specific payload shape:
+
+- `json()` when you want a strict JSON object
+- `form()` when you only want text form fields
+- `file()` / `files()` when working directly with uploads
+- `rawBody()` when you need the exact undecoded payload
+
+## WebSockets
+
+WebSocket emits now normalize common Dart values before JSON encoding, so you can send normal app objects without manually converting everything first.
+
+```dart
+app.websocket('/chat', (Context ctx) {
+  ctx.socket?.emit('connected', {
+    'id': ctx.socket?.id,
+    'connectedAt': DateTime.now(),
+    'profile': UserDto(1, 'ada@example.com'),
+  });
+});
+```
+
+That means values like `DateTime`, nested `List`/`Map` data, and custom objects with `toMap()` or `toJson()` are converted safely before they are sent over the socket.
 
 ---
 
@@ -496,6 +552,53 @@ await User().delete(1);
 - `firstOrCreate(where, data)`
 - `upsert(where, data)` / `upsertMany([...])`
 - `countAll()` / `countWhere(field, value)`
+
+---
+
+## Seeders
+
+Flint seeders are meant to run through a registry file.
+
+The main entry point is:
+
+```text
+lib/config/seeder_registry.dart
+```
+
+That registry is what `flint --db-seed` runs, and it is the file the seeder generator updates when you create new seeders.
+
+Example registry:
+
+```dart
+import 'package:flint_dart/flint_dart.dart';
+import '../seeders/user_model_seeder.dart';
+import '../seeders/post_model_seeder.dart';
+
+Future<void> main() async {
+  await runSeeders([
+    UserModelSeeder(),
+    PostModelSeeder(),
+  ]);
+}
+```
+
+Create a seeder:
+
+```bash
+flint make:seeder UserModelSeeder
+```
+
+Run all registered seeders:
+
+```bash
+flint --db-seed
+```
+
+If you want people on your team to follow one pattern, this is the one to emphasize:
+
+- create seeders in `lib/seeders`
+- register them in `lib/config/seeder_registry.dart`
+- run them through `flint --db-seed`
 
 ---
 
