@@ -1,7 +1,7 @@
 // flint_websocket.dart
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flint_dart/logs.dart';
 
 import 'ws_manager_instance.dart';
@@ -10,13 +10,15 @@ import 'ws_manager_instance.dart';
 class FlintWebSocket {
   final WebSocket _socket;
   final String id;
+  final String namespace;
   final Set<String> rooms = {};
 
   // Event listeners storage
   final Map<String, List<void Function(dynamic)>> _eventListeners = {};
   StreamSubscription<dynamic>? _messageSubscription;
 
-  FlintWebSocket(this._socket, this.id) {
+  FlintWebSocket(this._socket, this.id, {String namespace = '/'})
+      : namespace = wsManager.normalizeNamespace(namespace) {
     // Setup the main message listener
     _messageSubscription = _socket.listen(
       _handleIncomingMessage,
@@ -28,6 +30,9 @@ class FlintWebSocket {
     wsManager.addClient(id, this);
   }
 
+  Set<String> get scopedRooms =>
+      rooms.map((room) => wsManager.scopeRoom(namespace, room)).toSet();
+
   /// Send a text message
   void send(String message) => _socket.add(message);
 
@@ -35,13 +40,14 @@ class FlintWebSocket {
   void sendBytes(List<int> data) => _socket.add(data);
 
   /// Send JSON
-  void sendJson(Map<String, dynamic> json) => _socket.add(jsonEncode(json));
+  void sendJson(Map<String, dynamic> json) =>
+      _socket.add(jsonEncode(_normalizePayload(json)));
 
   /// Emit an event with data
   void emit(String event, dynamic data) {
     final message = jsonEncode({
       'event': event,
-      'data': data,
+      'data': _normalizePayload(data),
     });
     send(message);
   }
@@ -142,13 +148,15 @@ class FlintWebSocket {
   /// Join a room
   void join(String room) {
     rooms.add(room);
-    wsManager.addToRoom(room, this);
+    wsManager.addToRoom(namespace, room, this);
   }
 
   /// Leave a room
   void leave(String room) {
-    rooms.remove(room);
-    wsManager.removeFromRoom(room, this);
+    final removed = rooms.remove(room);
+    if (removed) {
+      wsManager.removeFromRoom(namespace, room, this);
+    }
   }
 
   /// Leave all rooms
@@ -170,7 +178,7 @@ class FlintWebSocket {
   /// Broadcast to a specific room
   void broadcastToRoom(String room, String message,
       {bool includeSelf = false}) {
-    final roomClients = wsManager.rooms[room];
+    final roomClients = wsManager.roomClients(namespace, room);
     if (roomClients != null) {
       for (var client in roomClients) {
         if (includeSelf || client.id != id) {
@@ -192,7 +200,7 @@ class FlintWebSocket {
   /// Emit to a specific room
   void emitToRoom(String room, String event, dynamic data,
       {bool includeSelf = false}) {
-    final roomClients = wsManager.rooms[room];
+    final roomClients = wsManager.roomClients(namespace, room);
     if (roomClients != null) {
       for (var client in roomClients) {
         if (includeSelf || client.id != id) {
@@ -200,6 +208,84 @@ class FlintWebSocket {
         }
       }
     }
+  }
+
+  /// Emit to a room in another websocket namespace/path.
+  void emitToRoomIn(String path, String room, String event, dynamic data,
+      {bool includeSelf = false}) {
+    final targetNamespace = wsManager.normalizeNamespace(path);
+    final excludeClientId =
+        includeSelf && targetNamespace == namespace ? null : id;
+    wsManager.emitToPathRoom(
+      targetNamespace,
+      room,
+      event,
+      data,
+      excludeClientId: excludeClientId,
+    );
+  }
+
+  /// Emit to every client in another websocket namespace/path.
+  void emitToNamespace(String path, String event, dynamic data,
+      {bool includeSelf = false}) {
+    final targetNamespace = wsManager.normalizeNamespace(path);
+    final excludeClientId =
+        includeSelf && targetNamespace == namespace ? null : id;
+    wsManager.emitToNamespace(
+      targetNamespace,
+      event,
+      data,
+      excludeClientId: excludeClientId,
+    );
+  }
+
+  @Deprecated('Use emitToRoomIn(path, room, event, data) instead.')
+  void emitToPathRoom(String path, String room, String event, dynamic data,
+      {bool includeSelf = false}) {
+    emitToRoomIn(path, room, event, data, includeSelf: includeSelf);
+  }
+
+  dynamic _normalizePayload(dynamic value) {
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Uri) return value.toString();
+    if (value is Duration) return value.inMicroseconds;
+    if (value is Exception) {
+      return {
+        'error': value.runtimeType.toString(),
+        'message': value.toString(),
+      };
+    }
+    if (value is List) {
+      return value.map(_normalizePayload).toList();
+    }
+    if (value is Set) {
+      return value.map(_normalizePayload).toList();
+    }
+    if (value is Map) {
+      return Map.fromEntries(
+        value.entries.map(
+          (entry) => MapEntry(
+            entry.key.toString(),
+            _normalizePayload(entry.value),
+          ),
+        ),
+      );
+    }
+
+    try {
+      final dynamic dynamicValue = value;
+      final toMap = dynamicValue.toMap;
+      if (toMap is Function) {
+        return _normalizePayload(toMap());
+      }
+
+      final toJson = dynamicValue.toJson;
+      if (toJson is Function) {
+        return _normalizePayload(toJson());
+      }
+    } catch (_) {}
+
+    return value;
   }
 
   void _handleDisconnect() {

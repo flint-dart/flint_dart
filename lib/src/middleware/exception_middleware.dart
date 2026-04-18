@@ -1,11 +1,7 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/src/error/auth_exception.dart';
-import 'package:flint_dart/src/error/base_exception.dart';
-import 'package:flint_dart/src/error/validation_exception.dart';
+
 import 'package:mysql_dart/exception.dart';
 import 'package:postgres/postgres.dart';
-import 'package:flint_dart/src/error/forbidden_exception.dart';
 import 'dart:async';
 
 class ExceptionMiddleware extends Middleware {
@@ -105,8 +101,8 @@ class ExceptionMiddleware extends Middleware {
       } catch (e, stack) {
         Log.debug('[Flint] Unhandled error: $e\n$stack');
         if (res == null) rethrow;
-        return res.json({"status": false, "message": e.toString()},
-            status: 500);
+        return res
+            .json({"status": false, "message": e.toString()}, status: 500);
       }
     };
   }

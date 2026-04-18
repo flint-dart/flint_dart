@@ -1,5 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/logs.dart';
 
 class LoggerMiddleware extends Middleware {
   @override

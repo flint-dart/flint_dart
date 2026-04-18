@@ -1,4 +1,3 @@
-import 'package:flint_dart/exception.dart';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/storage.dart';
 import 'package:sample/models/user_model.dart';

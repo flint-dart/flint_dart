@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flint_dart/db.dart';
 import 'package:flint_dart/flint_dart.dart';
 
 enum ForeignKeyAction { cascade, restrict, setNull, noAction, setDefault }

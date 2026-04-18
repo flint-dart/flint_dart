@@ -44,8 +44,10 @@ final Map<String, FlintCommand> commands = {
   'update': UpdateCommand(),
   'upgrade': UpgradeCommand(),
   'version': VersionCommand(),
+  '--version': VersionCommand(),
   '--make-resource': MakeResourceCommand(),
   '--make-route': MakeRouteCommand(),
+  '-v': VersionCommand(),
   '--v': VersionCommand(),
 };
 

@@ -12,7 +12,6 @@ export 'src/middleware/middleware.dart';
 export 'src/env_parser.dart';
 export 'src/request.dart';
 export 'src/response.dart';
-export 'ai.dart';
 export 'model.dart';
 export 'schema.dart';
 export 'seed.dart';

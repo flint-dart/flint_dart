@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/helper.dart';
-import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/src/database/db.dart';
 
 /// A simple SQL query builder for MySQL/PostgreSQL in Flint Dart.
 class QueryBuilder {
@@ -25,10 +23,11 @@ class QueryBuilder {
   List<String> get withRelations => List.from(_withRelations);
   Map<String, dynamic> get modelContext => Map.from(_modelContext);
   Map<String, List<String>> get withColumns => Map.from(_withColumns);
-  bool get hasWhereClause => _wheres.isNotEmpty;
+  bool get hasWhereClause => _wheres.isNotEmpty || _orWheres.isNotEmpty;
   String compileWhereSql() {
-    if (_wheres.isEmpty) return '';
-    return 'WHERE ${_wheres.join(' AND ')}';
+    final whereBody = _compileWhereBody();
+    if (whereBody.isEmpty) return '';
+    return 'WHERE $whereBody';
   }
 
   Map<String, dynamic> get whereParams => Map.from(_bindings);
@@ -450,22 +449,8 @@ class QueryBuilder {
 
   String _buildSelectQuery() {
     final select = _selects.isEmpty ? '*' : _selects.join(', ');
-    var whereClause = '';
-
-    if (_wheres.isNotEmpty || _orWheres.isNotEmpty) {
-      final whereParts = <String>[];
-
-      if (_wheres.isNotEmpty) {
-        whereParts.add(_wheres.join(' AND '));
-      }
-
-      if (_orWheres.isNotEmpty) {
-        // 🔥 ALWAYS GROUP OR CONDITIONS
-        whereParts.add('(${_orWheres.join(' OR ')})');
-      }
-
-      whereClause = ' WHERE ${whereParts.join(' AND ')}';
-    }
+    final whereSql = compileWhereSql();
+    final whereClause = whereSql.isEmpty ? '' : ' $whereSql';
 
     final groupClause =
         _groups.isNotEmpty ? ' GROUP BY ${_groups.join(', ')}' : '';
@@ -590,48 +575,70 @@ class QueryBuilder {
 
   /// UPDATE
   Future<void> update(Map<String, dynamic> data) async {
-    if (_wheres.isEmpty) {
+    final whereSql = compileWhereSql();
+    if (whereSql.isEmpty) {
       throw Exception('Update requires a where clause.');
     }
 
     final setClauses = <String>[];
-    final bindings = {..._bindings};
 
     if (DB.driver == DBDriver.postgres) {
+      final bindings = {..._bindings};
       data.forEach((k, v) {
         setClauses.add('$k = :$k');
         bindings[k] = v;
       });
+
+      final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
+      await DB.query(
+        sql,
+        namedParams: bindings,
+      );
     } else {
+      final positionalParams = <dynamic>[];
       data.forEach((k, v) {
         setClauses.add('$k = ?');
-        bindings[k] = v;
+        positionalParams.add(v);
       });
-    }
 
-    final sql =
-        'UPDATE $table SET ${setClauses.join(', ')} WHERE ${_wheres.join(' AND ')}';
-    await DB.query(
-      sql,
-      namedParams: DB.driver == DBDriver.postgres ? bindings : null,
-      positionalParams:
-          DB.driver == DBDriver.mysql ? bindings.values.toList() : null,
-    );
+      positionalParams.addAll(_bindings.values);
+
+      final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
+      await DB.query(
+        sql,
+        positionalParams: positionalParams,
+      );
+    }
   }
 
   /// DELETE
   Future<void> delete() async {
-    if (_wheres.isEmpty) {
+    final whereSql = compileWhereSql();
+    if (whereSql.isEmpty) {
       throw Exception('Delete requires a where clause.');
     }
 
-    final sql = 'DELETE FROM $table WHERE ${_wheres.join(' AND ')}';
+    final sql = 'DELETE FROM $table $whereSql';
     await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
       positionalParams:
           DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
+  }
+
+  String _compileWhereBody() {
+    final whereParts = <String>[];
+
+    if (_wheres.isNotEmpty) {
+      whereParts.add(_wheres.join(' AND '));
+    }
+
+    if (_orWheres.isNotEmpty) {
+      whereParts.add('(${_orWheres.join(' OR ')})');
+    }
+
+    return whereParts.join(' AND ');
   }
 
   /// --- Load primary key info from the database ---

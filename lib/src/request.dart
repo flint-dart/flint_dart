@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/src/auth/auth.dart';
-import 'package:flint_dart/src/error/auth_exception.dart';
-import 'package:flint_dart/src/session/session.dart';
 import 'package:mime/mime.dart';
 
 class UploadedFile {
@@ -54,8 +53,9 @@ class Request {
     return params[key] ?? query[key];
   }
 
-  String? input(String key) {
-    return params[key] ?? query[key];
+  Future<dynamic> input(String key) async {
+    final data = await allInput();
+    return data[key];
   }
 
   /// Internal storage for request-scoped data
@@ -63,6 +63,9 @@ class Request {
 
   /// Cache for parsed body content to avoid multiple parsing
   dynamic _bodyCache;
+
+  /// Cache for the raw request body bytes so custom decoders can re-use them.
+  List<int>? _rawBodyCache;
 
   /// Singleton SessionManager instance (use your existing SessionManager).
   static final sessionManager = SessionManager();
@@ -235,9 +238,10 @@ class Request {
   Future<void> _parseBody() async {
     if (_bodyCache != null) return;
 
+    final rawBody = await this.rawBody();
     final contentTypeHeader = raw.headers.contentType;
     if (contentTypeHeader == null) {
-      _bodyCache = await utf8.decodeStream(raw);
+      _bodyCache = utf8.decode(rawBody);
       return;
     }
 
@@ -245,28 +249,33 @@ class Request {
 
     switch (mimeType) {
       case 'multipart/form-data':
-        await _parseMultipartFormData(contentTypeHeader);
+        await _parseMultipartFormData(contentTypeHeader, rawBody);
         break;
       case 'application/x-www-form-urlencoded':
-        await _parseUrlEncodedFormData();
+        await _parseUrlEncodedFormData(rawBody);
         break;
       case 'application/json':
-        await _parseJsonBody();
+        await _parseJsonBody(rawBody);
         break;
       default:
-        _bodyCache = await utf8.decodeStream(raw);
+        _bodyCache = utf8.decode(rawBody);
     }
   }
 
   /// Parses multipart/form-data requests (file uploads + form fields)
-  Future<void> _parseMultipartFormData(ContentType contentTypeHeader) async {
+  Future<void> _parseMultipartFormData(
+    ContentType contentTypeHeader,
+    List<int> rawBody,
+  ) async {
     final boundary = contentTypeHeader.parameters['boundary'];
     if (boundary == null) {
       throw FormatException(
           'Missing multipart boundary in Content-Type header');
     }
 
-    final parts = await MimeMultipartTransformer(boundary).bind(raw).toList();
+    final parts = await MimeMultipartTransformer(boundary)
+        .bind(Stream<List<int>>.fromIterable([rawBody]))
+        .toList();
     final files = <String, UploadedFile>{};
     final fields = <String, String>{};
 
@@ -330,14 +339,14 @@ class Request {
   }
 
   /// Parses application/x-www-form-urlencoded data
-  Future<void> _parseUrlEncodedFormData() async {
-    final content = await utf8.decodeStream(raw);
+  Future<void> _parseUrlEncodedFormData(List<int> rawBody) async {
+    final content = utf8.decode(rawBody);
     _bodyCache = Uri.splitQueryString(content);
   }
 
   /// Parses application/json data
-  Future<void> _parseJsonBody() async {
-    final content = await utf8.decodeStream(raw);
+  Future<void> _parseJsonBody(List<int> rawBody) async {
+    final content = utf8.decode(rawBody);
     if (content.isEmpty) {
       _bodyCache = <String, dynamic>{};
     } else {
@@ -350,11 +359,25 @@ class Request {
   /// Reads and returns the raw request body as a string
   /// Note: For multipart/form-data requests, use [form()] or [files()] instead
   Future<String> body() async {
-    await _parseBody();
-    if (_bodyCache is String) {
-      return _bodyCache;
+    return utf8.decode(await rawBody());
+  }
+
+  /// Returns the raw undecoded request body bytes.
+  ///
+  /// This is useful when you want to perform custom decoding or signature
+  /// verification against the exact payload that was sent.
+  Future<List<int>> rawBody() async {
+    if (_rawBodyCache != null) {
+      return List<int>.from(_rawBodyCache!);
     }
-    return '';
+
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in raw) {
+      builder.add(chunk);
+    }
+
+    _rawBodyCache = builder.toBytes();
+    return List<int>.from(_rawBodyCache!);
   }
 
   /// Parses the body as JSON and returns a Map
@@ -386,6 +409,17 @@ class Request {
     }
 
     return {};
+  }
+
+  /// Returns normalized request input across query, body, multipart fields,
+  /// uploaded files, and route params.
+  ///
+  /// Precedence is: query < body/form fields < files < route params.
+  Future<Map<String, dynamic>> allInput() async {
+    final input = <String, dynamic>{...query};
+    input.addAll(await _bodyInput(includeFiles: true));
+    input.addAll(params);
+    return input;
   }
 
   /// Checks if a file with the given field name exists in the request
@@ -520,12 +554,39 @@ class Request {
     Map<String, String> rules, {
     Map<String, String>? messages,
   }) async {
-    final body = await json();
-    await Validator.validate(body, rules, messages: messages);
-    return body;
+    final input = await allInput();
+    final validationData = <String, dynamic>{};
+
+    for (final entry in input.entries) {
+      if (entry.value is! UploadedFile) {
+        validationData[entry.key] = entry.value;
+      }
+    }
+
+    for (final field in rules.keys) {
+      final value = input[field];
+      if (value is UploadedFile) {
+        validationData[field] = value;
+      }
+
+      final confirmationField = '${field}_confirmation';
+      if (input.containsKey(confirmationField)) {
+        validationData[confirmationField] = input[confirmationField];
+      }
+
+      final prefixedConfirmationField = 'confirm_$field';
+      if (input.containsKey(prefixedConfirmationField)) {
+        validationData[prefixedConfirmationField] =
+            input[prefixedConfirmationField];
+      }
+    }
+
+    await Validator.validate(validationData, rules, messages: messages);
+    return validationData;
   }
 
   /// Validates form data against specified rules
+  @Deprecated('Use validate() instead. It now auto-detects request input.')
   Future<Map<String, String>> validateForm(
     Map<String, String> rules, {
     Map<String, String>? messages,
@@ -533,5 +594,32 @@ class Request {
     final formData = await form();
     await Validator.validate(formData, rules, messages: messages);
     return formData;
+  }
+
+  Future<Map<String, dynamic>> _bodyInput({required bool includeFiles}) async {
+    await _parseBody();
+
+    if (_bodyCache is Map && _bodyCache.containsKey('fields')) {
+      final fields = Map<String, dynamic>.from(
+        Map<String, String>.from(_bodyCache['fields']),
+      );
+
+      if (!includeFiles) {
+        return fields;
+      }
+
+      final files = Map<String, UploadedFile>.from(_bodyCache['files'] ?? {});
+      return {...fields, ...files};
+    }
+
+    if (_bodyCache is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(_bodyCache);
+    }
+
+    if (_bodyCache is Map<String, String>) {
+      return Map<String, dynamic>.from(_bodyCache);
+    }
+
+    return <String, dynamic>{};
   }
 }

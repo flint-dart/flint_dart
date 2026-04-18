@@ -159,7 +159,8 @@ class Flint {
       ];
 
       for (final file in candidates) {
-        Log.debug('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
+        Log.debug(
+            '[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
         if (await file.exists()) {
           final bytes = await file.readAsBytes();
           res.raw.headers.contentType = ContentType.json;
@@ -199,7 +200,8 @@ class Flint {
           var content = await file.readAsString();
           content = content.replaceAll('href="./', 'href="/swagger-ui/');
           content = content.replaceAll('src="./', 'src="/swagger-ui/');
-          content = content.replaceAll('href="index.css"', 'href="/swagger-ui/index.css"');
+          content = content.replaceAll(
+              'href="index.css"', 'href="/swagger-ui/index.css"');
 
           res.raw.headers.contentType = ContentType.html;
           res.raw.write(content);
@@ -227,11 +229,12 @@ class Flint {
     candidates.add(path.join(Directory.current.path, 'swagger-ui'));
     candidates.add(path.join(Directory.current.path, 'build', 'swagger-ui'));
     candidates.add(path.join(Directory.current.path, '..', 'swagger-ui'));
-    candidates.add(path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'));
+    candidates
+        .add(path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'));
     candidates.add(path.join(
         Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'));
-    candidates.add(path.join(
-        Directory.current.path, '..', 'flint_dart', 'lib', 'swagger', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, '..', 'flint_dart', 'lib',
+        'swagger', 'swagger-ui'));
 
     // Final fallback: framework-bundled assets from package cache.
     final flintLibPath = await _getFlintDartLibPath();
@@ -954,10 +957,10 @@ class Flint {
 
         final socket = await WebSocketTransformer.upgrade(req);
         final clientId = DateTime.now().microsecondsSinceEpoch.toString();
+        final namespace = normalizePath(req.uri.path);
 
         // This is now guaranteed to be in the same process as the server
-        final client = FlintWebSocket(socket, clientId);
-        wsManager.addClient(clientId, client);
+        final client = FlintWebSocket(socket, clientId, namespace: namespace);
 
         final handlerWithRouteMiddleware = route.middlewares.fold<Handler>(
           route.handler,

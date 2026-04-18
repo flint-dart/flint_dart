@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/src/error/auth_exception.dart';
+import 'package:flint_dart/src/error/validation_exception.dart';
 import 'package:flint_dart/flint_ui.dart';
 import 'package:test/test.dart';
 import 'package:flint_dart/src/request.dart';
@@ -57,6 +59,40 @@ void main() {
       expect(data['b'], 'x');
     });
 
+    test('rawBody returns undecoded request bytes', () async {
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType.json;
+      final rawBytes = utf8Bytes('{"name":"Ada"}');
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/'),
+        headers: headers,
+        bodyBytes: rawBytes,
+      );
+      final request = Request(req);
+
+      expect(await request.rawBody(), rawBytes);
+      expect(utf8.decode(await request.rawBody()), '{"name":"Ada"}');
+    });
+
+    test('rawBody remains available after parsed body access', () async {
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType.json;
+      final rawBytes = utf8Bytes('{"name":"Ada"}');
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/'),
+        headers: headers,
+        bodyBytes: rawBytes,
+      );
+      final request = Request(req);
+
+      final data = await request.json();
+
+      expect(data['name'], 'Ada');
+      expect(await request.rawBody(), rawBytes);
+    });
+
     test('parses urlencoded form body', () async {
       final headers = FakeHttpHeaders()
         ..contentType = ContentType(
@@ -72,6 +108,39 @@ void main() {
       final form = await request.form();
       expect(form['a'], '1');
       expect(form['b'], 'hello');
+    });
+
+    test('input reads normalized values across params, body, query, and files',
+        () async {
+      final boundary = 'input-boundary';
+      final body = utf8Bytes(
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="title"\r\n\r\n'
+        'Body title\r\n'
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="avatar"; filename="a.txt"\r\n'
+        'Content-Type: text/plain\r\n\r\n'
+        'hello world\r\n'
+        '--$boundary--\r\n',
+      );
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType(
+          'multipart',
+          'form-data',
+          parameters: {'boundary': boundary},
+        );
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/upload?title=Query title&tab=files'),
+        headers: headers,
+        bodyBytes: body,
+      );
+      final request = Request(req, params: {'id': '42'});
+
+      expect(await request.input('id'), '42');
+      expect(await request.input('tab'), 'files');
+      expect(await request.input('title'), 'Body title');
+      expect(await request.input('avatar'), isA<UploadedFile>());
     });
 
     test('multipart uploaded file size is measured after buffering', () async {
@@ -100,6 +169,161 @@ void main() {
       final file = await request.file('avatar');
       expect(file, isNotNull);
       expect(file!.size, 11);
+    });
+
+    test('form returns multipart fields while files stay accessible separately',
+        () async {
+      final boundary = 'multipart-fields-boundary';
+      final body = utf8Bytes(
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="title"\r\n\r\n'
+        'Launch update\r\n'
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="avatar"; filename="a.txt"\r\n'
+        'Content-Type: text/plain\r\n\r\n'
+        'hello world\r\n'
+        '--$boundary--\r\n',
+      );
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType(
+          'multipart',
+          'form-data',
+          parameters: {'boundary': boundary},
+        );
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/upload'),
+        headers: headers,
+        bodyBytes: body,
+      );
+      final request = Request(req);
+
+      final form = await request.form();
+
+      expect(form['title'], 'Launch update');
+      expect(form.containsKey('avatar'), isFalse);
+      expect(await request.input('avatar'), isA<UploadedFile>());
+    });
+
+    test('validate auto-detects JSON input', () async {
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType.json;
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/posts'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"title":"Hello","email":"ada@example.com"}'),
+      );
+      final request = Request(req);
+
+      final data = await request.validate({
+        'title': 'required|string',
+        'email': 'required|email',
+      });
+
+      expect(data['title'], 'Hello');
+      expect(data['email'], 'ada@example.com');
+    });
+
+    test('validate auto-detects urlencoded form input', () async {
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType(
+            'application', 'x-www-form-urlencoded', charset: 'utf-8');
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/login'),
+        headers: headers,
+        bodyBytes: utf8Bytes('email=ada%40example.com&password=secret123'),
+      );
+      final request = Request(req);
+
+      final data = await request.validate({
+        'email': 'required|email',
+        'password': 'required|string|min:8',
+      });
+
+      expect(data['email'], 'ada@example.com');
+      expect(data['password'], 'secret123');
+    });
+
+    test('validate auto-detects multipart fields and file presence', () async {
+      final boundary = 'multipart-validate-boundary';
+      final body = utf8Bytes(
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="title"\r\n\r\n'
+        'Release notes\r\n'
+        '--$boundary\r\n'
+        'Content-Disposition: form-data; name="avatar"; filename="a.txt"\r\n'
+        'Content-Type: text/plain\r\n\r\n'
+        'hello world\r\n'
+        '--$boundary--\r\n',
+      );
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType(
+          'multipart',
+          'form-data',
+          parameters: {'boundary': boundary},
+        );
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/upload'),
+        headers: headers,
+        bodyBytes: body,
+      );
+      final request = Request(req);
+
+      final data = await request.validate({
+        'title': 'required|string',
+        'avatar': 'required',
+      });
+
+      expect(data['title'], 'Release notes');
+      expect(data['avatar'], isA<UploadedFile>());
+    });
+
+    test('validate keeps confirmation fields available for confirmed rules',
+        () async {
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType.json;
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/register'),
+        headers: headers,
+        bodyBytes: utf8Bytes(
+          '{"password":"secret123","password_confirmation":"secret123"}',
+        ),
+      );
+      final request = Request(req);
+
+      final data = await request.validate({
+        'password': 'required|string|confirmed',
+      });
+
+      expect(data['password'], 'secret123');
+      expect(data['password_confirmation'], 'secret123');
+    });
+
+    test('validate still rejects unknown scalar fields', () async {
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType.json;
+      final req = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('http://localhost/posts'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"title":"Hello","role":"admin"}'),
+      );
+      final request = Request(req);
+
+      expect(
+        () => request.validate({'title': 'required|string'}),
+        throwsA(
+          isA<ValidationException>().having(
+            (e) => e.errors.containsKey('role'),
+            'unknown role field',
+            isTrue,
+          ),
+        ),
+      );
     });
 
     test('requireUser throws AuthException with 401', () {

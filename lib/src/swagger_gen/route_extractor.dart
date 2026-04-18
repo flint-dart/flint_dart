@@ -8,7 +8,7 @@ class RouteExtractor {
     // Check if this could be the start of a route
     // Either: variable.method( or just .method( for multi-line
     final hasRouteMethod = currentLine
-        .contains(RegExp(r'\.(get|post|put|delete|patch|options|head)\s*\('));
+        .contains(RegExp(r'\.(get|post|put|delete|patch|options|head|websocket)\s*\('));
 
     if (!hasRouteMethod && !currentLine.contains('.')) {
       return RouteParseResult(null, 1);
@@ -63,7 +63,7 @@ class RouteExtractor {
   }
 
   bool _containsRouteMethod(String text) {
-    return RegExp(r'\.(get|post|put|delete|patch|options|head)\s*\(')
+    return RegExp(r'\.(get|post|put|delete|patch|options|head|websocket)\s*\(')
         .hasMatch(text);
   }
 
@@ -72,19 +72,23 @@ class RouteExtractor {
         buffer.replaceAll('\n', ' ').replaceAll(RegExp(r'\s+'), ' ');
 
     final pattern = RegExp(
-      r'''\.(get|post|put|delete|patch|options|head)\s*\(\s*['"]([^'"]+)['"]''',
+      r'''\.(get|post|put|delete|patch|options|head|websocket)\s*\(\s*['"]([^'"]+)['"]''',
       caseSensitive: false,
     );
 
     final match = pattern.firstMatch(normalized);
     if (match != null) {
-      final method = match.group(1)!.toLowerCase();
+      final extractedMethod = match.group(1)!.toLowerCase();
       var path = match.group(2)!;
 
       // Convert :param to {param}
       path = path.replaceAllMapped(RegExp(r':(\w+)'), (m) => '{${m[1]}}');
 
-      return {"method": method, "path": path};
+      return {
+        "method": extractedMethod == 'websocket' ? 'get' : extractedMethod,
+        "path": path,
+        "isWebSocket": extractedMethod == 'websocket',
+      };
     }
 
     return null;

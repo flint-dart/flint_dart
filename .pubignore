@@ -1,2 +1,4 @@
 doc/api/**
 example/doc/api/**
+logs/**
+example/logs/**

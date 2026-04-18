@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/exception.dart';
 
 import 'helpers/fakes.dart';
 
