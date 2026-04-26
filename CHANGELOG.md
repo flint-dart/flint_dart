@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.3] - 2026-04-26
+
+### Release Status
+- Public patch build.
+
+### Added
+- Added `Auth.verifyPasswordResetCode(...)` to validate password reset codes without changing the user's password.
+- Added the `AuthVerification.verifyPasswordResetCode(...)` extension wrapper for backward-compatible verification flows.
+- Added regression coverage for `ExceptionMiddleware` handling awaited async `AuthException` failures.
+
+### Changed
+- Reused the password reset code verification helper inside `resetPasswordWithCode(...)` so standalone checks and password resets share the same validation logic.
+
 ## [1.0.2] - 2026-04-18
 
 ### Release Status
