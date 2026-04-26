@@ -1142,6 +1142,30 @@ class Auth {
     return code; // ⚠️ Return plain code to send via email/SMS
   }
 
+  /// Verify a password reset code without changing the password.
+  static Future<bool> verifyPasswordResetCode({
+    required String email,
+    required String code,
+  }) async {
+    await Auth.ensureFrameworkTablesExist();
+
+    final record = await _findValidPasswordResetCode(email);
+
+    if (record == null) {
+      Log.debug('Invalid or expired password reset code for $email');
+      return false;
+    }
+
+    final isValid = _verifyPasswordResetCodeRecord(record, code);
+
+    if (!isValid) {
+      Log.warning('Invalid password reset code for $email');
+      return false;
+    }
+
+    return true;
+  }
+
   /// Verify reset code and change password
   static Future<bool> resetPasswordWithCode({
     required String email,
@@ -1157,16 +1181,13 @@ class Auth {
     }
 
     // Look for valid code
-    final record = await QueryBuilder(table: 'password_reset_tokens')
-        .where('email', '=', email)
-        .where('expires_at', '>', DateTime.now().toIso8601String())
-        .first();
+    final record = await _findValidPasswordResetCode(email);
 
     if (record == null) {
       Log.debug('❌ Invalid or expired password reset code for $email');
       throw AuthException(message: 'Invalid or expired reset code.');
     }
-    final isValid = Hashing().verify(code, record['token']);
+    final isValid = _verifyPasswordResetCodeRecord(record, code);
 
     if (!isValid) {
       Log.warning('❌ Invalid verification code for $email');
@@ -1196,6 +1217,26 @@ class Auth {
 
     Log.debug('✅ Password successfully reset for $email');
     return true;
+  }
+
+  static Future<Map<String, dynamic>?> _findValidPasswordResetCode(
+    String email,
+  ) {
+    return QueryBuilder(table: 'password_reset_tokens')
+        .where('email', '=', email)
+        .where('expires_at', '>', DateTime.now().toIso8601String())
+        .first();
+  }
+
+  static bool _verifyPasswordResetCodeRecord(
+    Map<String, dynamic> record,
+    String code,
+  ) {
+    final token = record['token'];
+    if (token is! String) {
+      return false;
+    }
+    return Hashing().verify(code, token);
   }
 
   /// Optional: resend password reset code

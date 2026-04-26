@@ -27,6 +27,13 @@ extension AuthVerification on Auth {
     return Auth.generatePasswordResetCode(email, length: length);
   }
 
+  static Future<bool> verifyPasswordResetCode({
+    required String email,
+    required String code,
+  }) {
+    return Auth.verifyPasswordResetCode(email: email, code: code);
+  }
+
   static Future<bool> resetPasswordWithCode({
     required String email,
     required String code,
