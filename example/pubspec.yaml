@@ -5,7 +5,4 @@ publish_to: none
 environment:
   sdk: ^3.0.0
 dependencies:
-  flint_dart: 
-    path: ../../flint_dart
-   
-  
+  flint_dart: ^1.0.3

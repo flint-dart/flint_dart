@@ -179,5 +179,26 @@ void main() {
         '{"status":false,"errors":{"email":["The email field is required."]}}',
       );
     });
+
+    test('catches AuthException from awaited async handlers', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        await Future<void>.delayed(Duration.zero);
+        throw AuthException(message: 'User already exists with this email');
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 401);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"error":"Unauthorized","message":"User already exists with this email"}',
+      );
+    });
   });
 }
