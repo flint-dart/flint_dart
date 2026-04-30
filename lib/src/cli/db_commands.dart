@@ -73,11 +73,14 @@ class DBMigrateCommand extends FlintCommand {
                 tableName,
                 sql,
                 registeredTable.indexes,
+                registeredTable.columns,
               );
             }
           } else {
             await DB.execute(sql);
           }
+
+          await _syncColumnComments(tableName, registeredTable.columns);
 
           // --- Create trigger for PostgreSQL updated_at ---
           if (DB.driver == DBDriver.postgres) {
@@ -138,7 +141,8 @@ class DBMigrateCommand extends FlintCommand {
 
       final payload = await receivePort.first as List<dynamic>;
       _registeredTables = _parseRegisteredTables(payload);
-      Log.debug('Loaded ${_registeredTables.length} table definitions from registry.');
+      Log.debug(
+          'Loaded ${_registeredTables.length} table definitions from registry.');
     } catch (e) {
       Log.debug('⚠️ Failed to load table registry: ', error: e);
       _registeredTables = [];
@@ -273,6 +277,7 @@ Future<void> _alterTableAddMissingColumns(
   String tableName,
   String sql,
   List<_RegisteredIndexDefinition> declaredIndexes,
+  List<_RegisteredColumnDefinition> columnDirectives,
 ) async {
   final desiredColumns = _extractColumnsFromCreateSql(sql);
   if (desiredColumns.isEmpty) return;
@@ -283,8 +288,54 @@ Future<void> _alterTableAddMissingColumns(
 
   for (final desired in desiredColumns) {
     if (existingColumns.containsKey(desired.name)) continue;
+
+    final renamedFrom = _renamedFromForColumn(desired, columnDirectives);
+    if (renamedFrom == null || !existingColumns.containsKey(renamedFrom)) {
+      continue;
+    }
+
+    final renameSql = _buildRenameColumnSql(
+      tableName: tableName,
+      from: renamedFrom,
+      to: desired.name,
+    );
+    await _executeMigrationSql(
+      tableName: tableName,
+      operation: 'rename column `$renamedFrom` to `${desired.name}`',
+      sql: renameSql,
+      hint:
+          'Verify both column names are correct, then rerun `flint db migrate`.',
+    );
+    final existing = existingColumns.remove(renamedFrom)!;
+    existingColumns[desired.name] = existing.copyWith(name: desired.name);
+    Log.info('   ~ Renamed column `$renamedFrom` to `${desired.name}`');
+  }
+
+  for (var i = 0; i < desiredColumns.length; i++) {
+    final desired = desiredColumns[i];
+    if (existingColumns.containsKey(desired.name)) continue;
+    final caseConflict = _findCaseOnlyColumnName(
+      desired.name,
+      existingColumns.keys,
+    );
+    if (caseConflict != null) {
+      throw StateError(
+        'Migration detected a possible column rename on table "$tableName": '
+        '`$caseConflict` -> `${desired.name}`.\n'
+        'This looks like a case-only rename. Use '
+        'Column(name: \'${desired.name}\', ..., renamedFrom: \'$caseConflict\') '
+        'to preserve existing data, or make the new column nullable/provide a '
+        'default if you really want a new column.',
+      );
+    }
+    final afterClause = _buildAddColumnAfterClause(
+      desiredColumns,
+      i,
+      columnDirectives,
+      existingColumns.keys.toSet(),
+    );
     final addSql =
-        'ALTER TABLE $q$tableName$q ADD COLUMN $q${desired.name}$q ${desired.definition}';
+        'ALTER TABLE $q$tableName$q ADD COLUMN $q${desired.name}$q ${desired.definition}$afterClause';
     await _executeMigrationSql(
       tableName: tableName,
       operation: 'add column `${desired.name}`',
@@ -293,6 +344,14 @@ Future<void> _alterTableAddMissingColumns(
           'Verify type/default syntax for ${DB.driver.name}, then rerun `flint db migrate`.',
     );
     Log.info('   + Added column `${desired.name}` to $tableName');
+    existingColumns[desired.name] = _ExistingColumnSchema(
+      name: desired.name,
+      typeName: desired.typeName,
+      nullable: desired.nullable,
+      defaultValue: desired.defaultValue,
+      updatesCurrentTimestamp: desired.updatesCurrentTimestamp,
+      comment: _desiredColumnComment(desired, columnDirectives),
+    );
   }
 
   for (final desired in desiredColumns) {
@@ -315,6 +374,25 @@ Future<void> _alterTableAddMissingColumns(
     }
     if (statements.isNotEmpty) {
       Log.info('   ~ Updated column `${desired.name}` on $tableName');
+    }
+
+    final desiredComment = _desiredColumnComment(desired, columnDirectives);
+    if (_normalizeColumnComment(existing.comment) !=
+        _normalizeColumnComment(desiredComment)) {
+      final commentSql = _buildColumnCommentSql(
+        tableName: tableName,
+        desired: desired,
+        comment: desiredComment,
+      );
+      if (commentSql != null) {
+        await _executeMigrationSql(
+          tableName: tableName,
+          operation: 'comment column `${desired.name}`',
+          sql: commentSql,
+          hint: 'Verify column comment syntax for ${DB.driver.name}.',
+        );
+        Log.info('   ~ Updated comment for `${desired.name}` on $tableName');
+      }
     }
   }
 
@@ -387,16 +465,16 @@ List<String> _buildAlterColumnStatements({
   if (DB.driver == DBDriver.mysql) {
     final normalizedExistingType = _normalizeTypeName(existing.typeName);
     final normalizedDesiredType = _normalizeTypeName(desired.typeName);
-      final currentDefault = _normalizeDefaultValue(existing.defaultValue);
-      final desiredDefault = _normalizeDefaultValue(desired.defaultValue);
-      final sameUpdateBehavior =
-          existing.updatesCurrentTimestamp == desired.updatesCurrentTimestamp;
+    final currentDefault = _normalizeDefaultValue(existing.defaultValue);
+    final desiredDefault = _normalizeDefaultValue(desired.defaultValue);
+    final sameUpdateBehavior =
+        existing.updatesCurrentTimestamp == desired.updatesCurrentTimestamp;
 
-      final needsBaseDefinitionChange = normalizedExistingType !=
-              normalizedDesiredType ||
-          existing.nullable != desired.nullable ||
-          currentDefault != desiredDefault ||
-          !sameUpdateBehavior;
+    final needsBaseDefinitionChange =
+        normalizedExistingType != normalizedDesiredType ||
+            existing.nullable != desired.nullable ||
+            currentDefault != desiredDefault ||
+            !sameUpdateBehavior;
     if (!needsBaseDefinitionChange) {
       return const [];
     }
@@ -450,56 +528,59 @@ Future<Map<String, _ExistingColumnSchema>> _loadExistingColumnSchemas(
   if (DB.driver == DBDriver.mysql) {
     final rows = await DB.query(
       '''
-SELECT COLUMN_NAME as column_name, COLUMN_TYPE as column_type, IS_NULLABLE as is_nullable, COLUMN_DEFAULT as column_default, EXTRA as column_extra
+SELECT COLUMN_NAME as column_name, COLUMN_TYPE as column_type, IS_NULLABLE as is_nullable, COLUMN_DEFAULT as column_default, EXTRA as column_extra, COLUMN_COMMENT as column_comment
 FROM information_schema.columns
 WHERE table_schema = DATABASE() AND table_name = ?
 ''',
       positionalParams: [tableName],
     );
 
-      for (final row in rows) {
-        final name = _databaseTextValue(row['column_name']);
-        if (name == null) continue;
-        map[name] = _ExistingColumnSchema(
-          name: name,
-          typeName: _databaseTextValue(row['column_type']) ?? '',
-          nullable:
-              (_databaseTextValue(row['is_nullable']) ?? '').toUpperCase() ==
-              'YES',
-          defaultValue: _databaseTextValue(row['column_default']),
-          updatesCurrentTimestamp: (_databaseTextValue(row['column_extra']) ?? '')
-              .toLowerCase()
-              .contains('on update current_timestamp'),
-        );
-      }
+    for (final row in rows) {
+      final name = _databaseTextValue(row['column_name']);
+      if (name == null) continue;
+      map[name] = _ExistingColumnSchema(
+        name: name,
+        typeName: _databaseTextValue(row['column_type']) ?? '',
+        nullable:
+            (_databaseTextValue(row['is_nullable']) ?? '').toUpperCase() ==
+                'YES',
+        defaultValue: _databaseTextValue(row['column_default']),
+        updatesCurrentTimestamp: (_databaseTextValue(row['column_extra']) ?? '')
+            .toLowerCase()
+            .contains('on update current_timestamp'),
+        comment: _databaseTextValue(row['column_comment']),
+      );
+    }
     return map;
   }
 
   if (DB.driver == DBDriver.postgres) {
     final rows = await DB.query(
       '''
-SELECT column_name, data_type, udt_name, is_nullable, column_default
-FROM information_schema.columns
-WHERE table_schema = 'public' AND table_name = ?
+SELECT c.column_name, c.data_type, c.udt_name, c.is_nullable, c.column_default,
+       pg_catalog.col_description(format('%I.%I', c.table_schema, c.table_name)::regclass::oid, c.ordinal_position) AS column_comment
+FROM information_schema.columns c
+WHERE c.table_schema = 'public' AND c.table_name = ?
 ''',
       positionalParams: [tableName],
     );
 
-      for (final row in rows) {
-        final name = _databaseTextValue(row['column_name']);
-        if (name == null) continue;
-        final type =
-            _databaseTextValue(row['udt_name'] ?? row['data_type']) ?? '';
-        map[name] = _ExistingColumnSchema(
-          name: name,
-          typeName: type,
-          nullable:
-              (_databaseTextValue(row['is_nullable']) ?? '').toUpperCase() ==
-              'YES',
-          defaultValue: _databaseTextValue(row['column_default']),
-          updatesCurrentTimestamp: false,
-        );
-      }
+    for (final row in rows) {
+      final name = _databaseTextValue(row['column_name']);
+      if (name == null) continue;
+      final type =
+          _databaseTextValue(row['udt_name'] ?? row['data_type']) ?? '';
+      map[name] = _ExistingColumnSchema(
+        name: name,
+        typeName: type,
+        nullable:
+            (_databaseTextValue(row['is_nullable']) ?? '').toUpperCase() ==
+                'YES',
+        defaultValue: _databaseTextValue(row['column_default']),
+        updatesCurrentTimestamp: false,
+        comment: _databaseTextValue(row['column_comment']),
+      );
+    }
   }
 
   return map;
@@ -532,29 +613,31 @@ List<_SqlColumnDefinition> _extractColumnsFromCreateSql(String sql) {
     final definition = nameMatch.group(2)!.trim();
     final typeName = _extractTypeName(definition);
     final defaultValue = _extractDefaultExpression(definition);
+    final comment = _extractCommentExpression(definition);
     final nullable =
         !RegExp(r'\bNOT\s+NULL\b', caseSensitive: false).hasMatch(definition);
-      final isUnique =
-          RegExp(r'\bUNIQUE\b', caseSensitive: false).hasMatch(definition);
-      final isPrimaryKey =
-          RegExp(r'\bPRIMARY\s+KEY\b', caseSensitive: false).hasMatch(definition);
-      final updatesCurrentTimestamp = RegExp(
-        r'\bON\s+UPDATE\s+CURRENT_TIMESTAMP\b',
-        caseSensitive: false,
-      ).hasMatch(definition);
+    final isUnique =
+        RegExp(r'\bUNIQUE\b', caseSensitive: false).hasMatch(definition);
+    final isPrimaryKey =
+        RegExp(r'\bPRIMARY\s+KEY\b', caseSensitive: false).hasMatch(definition);
+    final updatesCurrentTimestamp = RegExp(
+      r'\bON\s+UPDATE\s+CURRENT_TIMESTAMP\b',
+      caseSensitive: false,
+    ).hasMatch(definition);
 
-      columns.add(
-        _SqlColumnDefinition(
-          name: name,
-          definition: definition,
-          typeName: typeName,
-          nullable: nullable,
-          defaultValue: defaultValue,
-          isUnique: isUnique,
-          isPrimaryKey: isPrimaryKey,
-          updatesCurrentTimestamp: updatesCurrentTimestamp,
-        ),
-      );
+    columns.add(
+      _SqlColumnDefinition(
+        name: name,
+        definition: definition,
+        typeName: typeName,
+        nullable: nullable,
+        defaultValue: defaultValue,
+        comment: comment,
+        isUnique: isUnique,
+        isPrimaryKey: isPrimaryKey,
+        updatesCurrentTimestamp: updatesCurrentTimestamp,
+      ),
+    );
   }
 
   return columns;
@@ -594,7 +677,7 @@ bool _isTableConstraintLine(String line) {
 String _extractTypeName(String definition) {
   final normalized = definition.trim().replaceAll(RegExp(r'\s+'), ' ');
   final constraintMatch = RegExp(
-    r'\s+(?:NOT\s+NULL|NULL|DEFAULT|UNIQUE|PRIMARY\s+KEY|CHECK|REFERENCES)\b',
+    r'\s+(?:NOT\s+NULL|NULL|DEFAULT|UNIQUE|PRIMARY\s+KEY|CHECK|REFERENCES|COMMENT|AFTER)\b',
     caseSensitive: false,
   ).firstMatch(normalized);
   if (constraintMatch == null) {
@@ -605,12 +688,21 @@ String _extractTypeName(String definition) {
 
 String? _extractDefaultExpression(String definition) {
   final match = RegExp(
-    r'\bDEFAULT\s+(.+?)(?:\s+NOT\s+NULL|\s+NULL|\s+UNIQUE|\s+PRIMARY|\s+CHECK|\s+REFERENCES|\s+ON\s+UPDATE|$)',
+    r'\bDEFAULT\s+(.+?)(?:\s+NOT\s+NULL|\s+NULL|\s+UNIQUE|\s+PRIMARY|\s+CHECK|\s+REFERENCES|\s+ON\s+UPDATE|\s+COMMENT|\s+AFTER|$)',
     caseSensitive: false,
     dotAll: true,
   ).firstMatch(definition);
   if (match == null) return null;
   return match.group(1)?.trim();
+}
+
+String? _extractCommentExpression(String definition) {
+  final match = RegExp(
+    r"\bCOMMENT\s+'((?:''|[^'])*)'",
+    caseSensitive: false,
+    dotAll: true,
+  ).firstMatch(definition);
+  return match?.group(1)?.replaceAll("''", "'");
 }
 
 String _normalizeTypeName(String input) {
@@ -621,7 +713,9 @@ String _normalizeTypeName(String input) {
       .replaceAll('character varying', 'varchar')
       .replaceAll('timestamp without time zone', 'timestamp')
       .replaceAll('timestamp with time zone', 'timestamptz');
-  if (normalized == 'bool' || normalized == 'boolean' || normalized == 'tinyint(1)') {
+  if (normalized == 'bool' ||
+      normalized == 'boolean' ||
+      normalized == 'tinyint(1)') {
     return 'boolean';
   }
   if (normalized == 'int' || normalized == 'integer') {
@@ -641,7 +735,8 @@ String? _normalizeDefaultValue(String? input) {
   if (quotedMatch != null) {
     normalized = quotedMatch.group(1)!;
   }
-  normalized = normalized.replaceAll('current_timestamp()', 'current_timestamp');
+  normalized =
+      normalized.replaceAll('current_timestamp()', 'current_timestamp');
   normalized = normalized.replaceAll('::character varying', '');
   normalized = normalized.replaceAll('::text', '');
   normalized = normalized.replaceAll('::timestamp without time zone', '');
@@ -673,6 +768,139 @@ String _stripInlineKeyConstraints(String definition) {
       .replaceAll(RegExp(r'\s+UNIQUE', caseSensitive: false), '')
       .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
+}
+
+String _buildAddColumnAfterClause(
+  List<_SqlColumnDefinition> desiredColumns,
+  int desiredIndex,
+  List<_RegisteredColumnDefinition> columnDirectives,
+  Set<String> existingColumns,
+) {
+  if (DB.driver != DBDriver.mysql) return '';
+
+  final desired = desiredColumns[desiredIndex];
+  final explicitAfter = columnDirectives
+      .firstWhereOrNull((column) => column.name == desired.name)
+      ?.after;
+  final after = explicitAfter ??
+      (desiredIndex > 0 ? desiredColumns[desiredIndex - 1].name : null);
+
+  if (after == null || after == desired.name) return '';
+  if (!existingColumns.contains(after) &&
+      !desiredColumns
+          .take(desiredIndex)
+          .any((column) => column.name == after)) {
+    return '';
+  }
+
+  return ' AFTER `$after`';
+}
+
+String? _renamedFromForColumn(
+  _SqlColumnDefinition desired,
+  List<_RegisteredColumnDefinition> columnDirectives,
+) {
+  return columnDirectives
+      .firstWhereOrNull((column) => column.name == desired.name)
+      ?.renamedFrom;
+}
+
+String _buildRenameColumnSql({
+  required String tableName,
+  required String from,
+  required String to,
+}) {
+  if (DB.driver == DBDriver.postgres) {
+    return 'ALTER TABLE "$tableName" RENAME COLUMN "$from" TO "$to"';
+  }
+  return 'ALTER TABLE `$tableName` RENAME COLUMN `$from` TO `$to`';
+}
+
+String? _findCaseOnlyColumnName(
+  String desiredName,
+  Iterable<String> existingNames,
+) {
+  for (final existingName in existingNames) {
+    if (existingName != desiredName &&
+        existingName.toLowerCase() == desiredName.toLowerCase()) {
+      return existingName;
+    }
+  }
+  return null;
+}
+
+String? _desiredColumnComment(
+  _SqlColumnDefinition desired,
+  List<_RegisteredColumnDefinition> columnDirectives,
+) {
+  return columnDirectives
+          .firstWhereOrNull((column) => column.name == desired.name)
+          ?.comment ??
+      desired.comment;
+}
+
+String? _buildColumnCommentSql({
+  required String tableName,
+  required _SqlColumnDefinition desired,
+  required String? comment,
+}) {
+  if (DB.driver == DBDriver.postgres) {
+    final value = comment == null ? 'NULL' : "'${_escapeSqlString(comment)}'";
+    return 'COMMENT ON COLUMN "$tableName"."${desired.name}" IS $value';
+  }
+
+  if (DB.driver == DBDriver.mysql) {
+    final definition = _definitionWithComment(desired.definition, comment);
+    return 'ALTER TABLE `$tableName` MODIFY COLUMN `${desired.name}` $definition';
+  }
+
+  return null;
+}
+
+String _definitionWithComment(String definition, String? comment) {
+  final withoutComment = definition
+      .replaceAll(
+        RegExp(r"\s+COMMENT\s+'(?:''|[^'])*'", caseSensitive: false),
+        '',
+      )
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  if (comment == null || comment.isEmpty) return withoutComment;
+  return "$withoutComment COMMENT '${_escapeSqlString(comment)}'";
+}
+
+String? _normalizeColumnComment(String? comment) {
+  if (comment == null || comment.isEmpty) return null;
+  return comment;
+}
+
+String _escapeSqlString(String value) {
+  return value.replaceAll("'", "''");
+}
+
+Future<void> _syncColumnComments(
+  String tableName,
+  List<_RegisteredColumnDefinition> columnDirectives,
+) async {
+  if (columnDirectives.isEmpty || DB.driver != DBDriver.postgres) return;
+
+  final comments = columnDirectives
+      .where((column) => column.comment != null)
+      .toList(growable: false);
+  if (comments.isEmpty) return;
+
+  final existingColumns = await _getTableColumns(tableName);
+  for (final column in comments) {
+    if (!existingColumns.contains(column.name)) continue;
+    final sql =
+        'COMMENT ON COLUMN "$tableName"."${column.name}" IS \'${_escapeSqlString(column.comment!)}\'';
+    await _executeMigrationSql(
+      tableName: tableName,
+      operation: 'comment column `${column.name}`',
+      sql: sql,
+      hint: 'Verify the column exists before rerunning migration.',
+    );
+  }
 }
 
 Future<void> _syncDeclaredIndexes(
@@ -737,7 +965,8 @@ List<_DesiredIndexDefinition> _buildDesiredIndexes(
   return deduped.values.toList();
 }
 
-Future<List<_ExistingIndexDefinition>> _loadExistingIndexes(String tableName) async {
+Future<List<_ExistingIndexDefinition>> _loadExistingIndexes(
+    String tableName) async {
   if (DB.driver == DBDriver.mysql) {
     final rows = await DB.query(
       '''
@@ -751,15 +980,15 @@ ORDER BY index_name, seq_in_index
       positionalParams: [tableName],
     );
 
-      final grouped = <String, List<Map<String, dynamic>>>{};
-      for (final row in rows) {
-        final indexName = _databaseTextValue(row['index_name']);
-        final columnName = _databaseTextValue(row['column_name']);
-        if (indexName == null || columnName == null) continue;
-        grouped.putIfAbsent(indexName, () => <Map<String, dynamic>>[]).add({
-          'column': columnName,
-          'nonUnique': row['non_unique'],
-        });
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final row in rows) {
+      final indexName = _databaseTextValue(row['index_name']);
+      final columnName = _databaseTextValue(row['column_name']);
+      if (indexName == null || columnName == null) continue;
+      grouped.putIfAbsent(indexName, () => <Map<String, dynamic>>[]).add({
+        'column': columnName,
+        'nonUnique': row['non_unique'],
+      });
     }
 
     final result = <_ExistingIndexDefinition>[];
@@ -795,13 +1024,13 @@ GROUP BY i.relname, ix.indisunique
     positionalParams: [tableName],
   );
 
-    final result = <_ExistingIndexDefinition>[];
-    for (final row in rows) {
-      final indexName = _databaseTextValue(row['index_name']);
-      if (indexName == null) continue;
-      result.add(
-        _ExistingIndexDefinition(
-          name: indexName,
+  final result = <_ExistingIndexDefinition>[];
+  for (final row in rows) {
+    final indexName = _databaseTextValue(row['index_name']);
+    if (indexName == null) continue;
+    result.add(
+      _ExistingIndexDefinition(
+        name: indexName,
         columns: _coerceStringList(row['columns']),
         isUnique: _coerceBoolish(row['is_unique']),
       ),
@@ -841,7 +1070,8 @@ String _buildIndexName(
   final trimmedColumns = columns
       .map((column) => column.length > 12 ? column.substring(0, 12) : column)
       .join('_');
-  final candidate = '${tablePart}_${trimmedColumns}_${isUnique ? 'uniq' : 'idx'}';
+  final candidate =
+      '${tablePart}_${trimmedColumns}_${isUnique ? 'uniq' : 'idx'}';
   if (candidate.length <= 63) return candidate;
   return candidate.substring(0, 63);
 }
@@ -864,9 +1094,8 @@ List<String> _coerceStringList(dynamic value) {
   final trimmed = raw.trim();
   if (trimmed.isEmpty) return const [];
 
-  final withoutBraces = trimmed
-      .replaceAll(RegExp(r'^\{'), '')
-      .replaceAll(RegExp(r'\}$'), '');
+  final withoutBraces =
+      trimmed.replaceAll(RegExp(r'^\{'), '').replaceAll(RegExp(r'\}$'), '');
   if (withoutBraces.isEmpty) return const [];
   return withoutBraces
       .split(',')
@@ -881,6 +1110,7 @@ class _SqlColumnDefinition {
   final String typeName;
   final bool nullable;
   final String? defaultValue;
+  final String? comment;
   final bool isUnique;
   final bool isPrimaryKey;
   final bool updatesCurrentTimestamp;
@@ -891,6 +1121,7 @@ class _SqlColumnDefinition {
     required this.typeName,
     required this.nullable,
     required this.defaultValue,
+    required this.comment,
     required this.isUnique,
     required this.isPrimaryKey,
     required this.updatesCurrentTimestamp,
@@ -901,11 +1132,13 @@ class _RegisteredTableDefinition {
   final String tableName;
   final String createSql;
   final List<_RegisteredIndexDefinition> indexes;
+  final List<_RegisteredColumnDefinition> columns;
 
   const _RegisteredTableDefinition({
     required this.tableName,
     required this.createSql,
     required this.indexes,
+    required this.columns,
   });
 
   factory _RegisteredTableDefinition.fromPayload(dynamic payload) {
@@ -914,11 +1147,13 @@ class _RegisteredTableDefinition {
         tableName: _extractTableName(payload) ?? '',
         createSql: payload,
         indexes: const [],
+        columns: const [],
       );
     }
 
     if (payload is Map) {
       final rawIndexes = payload['indexes'];
+      final rawColumns = payload['columns'];
       return _RegisteredTableDefinition(
         tableName: payload['tableName']?.toString() ??
             _extractTableName(payload['createSql']?.toString() ?? '') ??
@@ -928,6 +1163,12 @@ class _RegisteredTableDefinition {
             ? rawIndexes
                 .map(_RegisteredIndexDefinition.fromPayload)
                 .whereType<_RegisteredIndexDefinition>()
+                .toList()
+            : const [],
+        columns: rawColumns is List
+            ? rawColumns
+                .map(_RegisteredColumnDefinition.fromPayload)
+                .whereType<_RegisteredColumnDefinition>()
                 .toList()
             : const [],
       );
@@ -997,6 +1238,7 @@ class _ExistingColumnSchema {
   final bool nullable;
   final String? defaultValue;
   final bool updatesCurrentTimestamp;
+  final String? comment;
 
   const _ExistingColumnSchema({
     required this.name,
@@ -1004,7 +1246,53 @@ class _ExistingColumnSchema {
     required this.nullable,
     required this.defaultValue,
     required this.updatesCurrentTimestamp,
+    required this.comment,
   });
+
+  _ExistingColumnSchema copyWith({
+    String? name,
+    String? typeName,
+    bool? nullable,
+    String? defaultValue,
+    bool? updatesCurrentTimestamp,
+    String? comment,
+  }) {
+    return _ExistingColumnSchema(
+      name: name ?? this.name,
+      typeName: typeName ?? this.typeName,
+      nullable: nullable ?? this.nullable,
+      defaultValue: defaultValue ?? this.defaultValue,
+      updatesCurrentTimestamp:
+          updatesCurrentTimestamp ?? this.updatesCurrentTimestamp,
+      comment: comment ?? this.comment,
+    );
+  }
+}
+
+class _RegisteredColumnDefinition {
+  final String name;
+  final String? comment;
+  final String? after;
+  final String? renamedFrom;
+
+  const _RegisteredColumnDefinition({
+    required this.name,
+    required this.comment,
+    required this.after,
+    required this.renamedFrom,
+  });
+
+  static _RegisteredColumnDefinition? fromPayload(dynamic payload) {
+    if (payload is! Map) return null;
+    final name = payload['name']?.toString();
+    if (name == null || name.isEmpty) return null;
+    return _RegisteredColumnDefinition(
+      name: name,
+      comment: payload['comment']?.toString(),
+      after: payload['after']?.toString(),
+      renamedFrom: payload['renamedFrom']?.toString(),
+    );
+  }
 }
 
 /// --- Normalize SQL for current driver ---
@@ -1051,6 +1339,7 @@ List<Map<String, Object?>> dbMigrateExtractColumns(String sql) {
             'type': c.typeName,
             'nullable': c.nullable,
             'default': c.defaultValue,
+            'comment': c.comment,
             'unique': c.isUnique,
             'primaryKey': c.isPrimaryKey,
           })
@@ -1197,4 +1486,11 @@ Future<Set<String>> _getTableColumns(String tableName) async {
   return {};
 }
 
-
+extension _FirstWhereOrNullExtension<T> on Iterable<T> {
+  T? firstWhereOrNull(bool Function(T) test) {
+    for (final value in this) {
+      if (test(value)) return value;
+    }
+    return null;
+  }
+}

@@ -4,7 +4,9 @@ import 'package:test/test.dart';
 
 import 'helpers/fakes.dart';
 
-class _TestController extends Controller {}
+class _TestController extends Controller {
+  String ok() => '${req.method}:${isBound ? 'bound' : 'unbound'}';
+}
 
 void main() {
   tearDown(() {
@@ -15,12 +17,14 @@ void main() {
   });
 
   group('Controller', () {
-    test('exposes req and res in HTTP context and flags websocket as false', () {
+    test('exposes req and res in HTTP context and flags websocket as false',
+        () {
       final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/http'));
       final request = Request(raw);
       final response = Response(raw.response);
 
-      final controller = _TestController()..bind(Context(req: request, res: response));
+      final controller = _TestController()
+        ..bind(Context(req: request, res: response));
 
       expect(controller.req, same(request));
       expect(controller.res, same(response));
@@ -57,6 +61,19 @@ void main() {
       expect(controller.socket, same(ws));
 
       await rawSocket.close();
+    });
+
+    test('controller helper binds and unbinds per request', () async {
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/http'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+      final instance = _TestController();
+      final handler = controller(() => instance, (c) => c.ok());
+
+      final result = await handler(Context(req: request, res: response));
+
+      expect(result, 'GET:bound');
+      expect(instance.isBound, isFalse);
     });
   });
 }

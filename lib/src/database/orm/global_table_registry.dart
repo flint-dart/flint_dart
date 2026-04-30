@@ -37,6 +37,14 @@ void runTableRegistry(
                   'isUnique': index.isUnique,
                 })
             .toList(),
+        'columns': table.columns
+            .map((column) => {
+                  'name': column.name,
+                  'comment': column.comment,
+                  'after': column.after,
+                  'renamedFrom': column.renamedFrom,
+                })
+            .toList(),
       });
     }
   } catch (e, st) {

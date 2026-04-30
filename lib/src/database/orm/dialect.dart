@@ -31,6 +31,9 @@ class MySQLDialect implements SQLDialect {
       }
       if (col.isUnique) buffer.write(' UNIQUE');
       if (col.isPrimaryKey) buffer.write(' PRIMARY KEY');
+      if (col.comment != null) {
+        buffer.write(" COMMENT '${_escapeSqlString(col.comment!)}'");
+      }
 
       if (i < table.columns.length - 1 || table.foreignKeys.isNotEmpty) {
         buffer.write(',');
@@ -60,7 +63,7 @@ class MySQLDialect implements SQLDialect {
       }
       final result = await DB.query('''
         SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_DEFAULT, 
-               COLUMN_KEY, EXTRA, CHARACTER_MAXIMUM_LENGTH
+               COLUMN_KEY, EXTRA, CHARACTER_MAXIMUM_LENGTH, COLUMN_COMMENT
         FROM INFORMATION_SCHEMA.COLUMNS 
         WHERE TABLE_NAME = ? AND TABLE_SCHEMA = DATABASE()
         ORDER BY ORDINAL_POSITION
@@ -89,6 +92,7 @@ class MySQLDialect implements SQLDialect {
           isPrimaryKey: isPrimary,
           isAutoIncrement: isAutoIncrement,
           length: maxLength ?? 0,
+          comment: row['COLUMN_COMMENT']?.toString(),
         ));
       }
 
@@ -188,10 +192,11 @@ class PostgresDialect implements SQLDialect {
       }
 
       final result = await DB.query('''
-        SELECT column_name, data_type, is_nullable, column_default, 
-               character_maximum_length
-        FROM information_schema.columns 
-        WHERE table_name = :table_name
+        SELECT c.column_name, c.data_type, c.is_nullable, c.column_default, 
+               c.character_maximum_length,
+               pg_catalog.col_description(format('%I.%I', c.table_schema, c.table_name)::regclass::oid, c.ordinal_position) AS column_comment
+        FROM information_schema.columns c
+        WHERE c.table_name = :table_name
         ORDER BY ordinal_position
       ''', namedParams: {'table_name': tableName});
 
@@ -217,6 +222,7 @@ class PostgresDialect implements SQLDialect {
           isAutoIncrement:
               defaultValue?.toString().contains('nextval') ?? false,
           length: maxLength ?? 0,
+          comment: row['column_comment']?.toString(),
         ));
       }
 
@@ -433,4 +439,8 @@ int? parseInt(dynamic value) {
   if (value is int) return value;
   if (value is String) return int.tryParse(value);
   return null;
+}
+
+String _escapeSqlString(String value) {
+  return value.replaceAll("'", "''");
 }

@@ -89,5 +89,87 @@ void main() {
       expect(sql, isNotNull);
       expect(sql, contains('ALTER COLUMN "email" TYPE VARCHAR(100)'));
     });
+
+    test('emits mysql comment and after clause for new columns', () {
+      final existing = Table(
+        name: 'users',
+        columns: [
+          Column(
+            name: 'id',
+            type: ColumnType.integer,
+            isPrimaryKey: true,
+            isAutoIncrement: true,
+          ),
+          Column(name: 'email', type: ColumnType.string, length: 255),
+        ],
+      );
+      final updated = Table(
+        name: 'users',
+        columns: [
+          Column(
+            name: 'id',
+            type: ColumnType.integer,
+            isPrimaryKey: true,
+            isAutoIncrement: true,
+          ),
+          Column(name: 'email', type: ColumnType.string, length: 255),
+          Column(
+            name: 'nickname',
+            type: ColumnType.string,
+            length: 120,
+            isNullable: true,
+            comment: 'Public profile name',
+            after: 'email',
+          ),
+        ],
+      );
+
+      final sql = dbSchemaCompareTables(existing, updated, DBDriver.mysql);
+      expect(sql, isNotNull);
+      expect(
+        sql,
+        contains(
+          "ADD COLUMN `nickname` VARCHAR(120) COMMENT 'Public profile name' AFTER `email`",
+        ),
+      );
+    });
+
+    test('emits mysql rename instead of drop and add when renamedFrom is set',
+        () {
+      final existing = Table(
+        name: 'users',
+        columns: [
+          Column(
+            name: 'id',
+            type: ColumnType.integer,
+            isPrimaryKey: true,
+            isAutoIncrement: true,
+          ),
+          Column(name: 'Nickname', type: ColumnType.string, length: 255),
+        ],
+      );
+      final updated = Table(
+        name: 'users',
+        columns: [
+          Column(
+            name: 'id',
+            type: ColumnType.integer,
+            isPrimaryKey: true,
+            isAutoIncrement: true,
+          ),
+          Column(
+            name: 'nickname',
+            type: ColumnType.string,
+            length: 255,
+            renamedFrom: 'Nickname',
+          ),
+        ],
+      );
+
+      final sql = dbSchemaCompareTables(existing, updated, DBDriver.mysql);
+      expect(sql, contains('RENAME COLUMN `Nickname` TO `nickname`'));
+      expect(sql, isNot(contains('DROP COLUMN `Nickname`')));
+      expect(sql, isNot(contains('ADD COLUMN `nickname`')));
+    });
   });
 }

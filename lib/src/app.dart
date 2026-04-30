@@ -4,6 +4,7 @@ import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/middlewares.dart';
 import 'package:flint_dart/model.dart';
+import 'package:flint_dart/src/controller.dart' as controller_api;
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
@@ -37,6 +38,69 @@ Future<String?> _getFlintDartLibPath() async {
   } catch (e) {
     Log.debug('[FLINT] Swagger package path resolution failed: $e');
     return null;
+  }
+}
+
+class ControllerRouteBuilder<T extends controller_api.Controller> {
+  final Flint _app;
+  final controller_api.ControllerFactory<T> _factory;
+
+  ControllerRouteBuilder(this._app, this._factory);
+
+  RouteBuilder get(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.get(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder post(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.post(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder put(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.put(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder patch(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.patch(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder delete(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.delete(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder route(
+    String method,
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.route(
+        method, path, controller_api.controller(_factory, action));
+  }
+
+  void websocket(
+    String path,
+    void Function(T controller) action, {
+    List<Middleware> middlewares = const [],
+  }) {
+    _app.websocket(
+      path,
+      controller_api.controllerVoid(_factory, action),
+      middlewares: middlewares,
+    );
   }
 }
 
@@ -261,6 +325,12 @@ class Flint {
   bool get isDatabaseConnected => _dbInitialized;
 
   FlintAi get ai => _ai;
+
+  ControllerRouteBuilder<T> controller<T extends controller_api.Controller>(
+    controller_api.ControllerFactory<T> factory,
+  ) {
+    return ControllerRouteBuilder<T>(this, factory);
+  }
 
   // ===== HTTP ROUTES =====
   /// Registers a **GET** HTTP route on the application.
