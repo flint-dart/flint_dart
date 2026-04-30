@@ -806,7 +806,7 @@ class Flint {
     );
   }
 
-  _registerFlintTemReload() {
+  void _registerFlintTemReload() {
     websocket('/flint_reload', (Request req, FlintWebSocket client) {
       // client.onClose(() {
       //   connectedClients.remove(client.id);
