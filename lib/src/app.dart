@@ -821,24 +821,27 @@ class Flint {
       try {
         final body = await req.json();
         final templateName = body['template'] as String?;
-        final htmlContent = body['html'] as String?;
+        final htmlContent = body['html']?.toString() ?? '';
+        final source = body['source']?.toString();
+        final event = body['event']?.toString() ?? 'flint:reload';
+        final message = body['message']?.toString();
 
-        if (templateName == null || htmlContent == null) {
-          return res.status(400).json({
-            'success': false,
-            'error': 'Missing template or html in request body'
-          });
+        if (templateName == null) {
+          return res.status(400).json(
+              {'success': false, 'error': 'Missing template in request body'});
         }
 
         // Emit to all WebSocket clients in THIS process
-        wsManager.emitToAll('flint:reload', {
+        wsManager.emitToAll(event, {
           'template': templateName,
           'html': htmlContent,
+          if (message != null) 'message': message,
         });
 
         return res.json({
           'success': true,
           'message': 'Hot reload event sent',
+          'source': source,
           'clients': wsManager.clients.length,
           'timestamp': DateTime.now().toIso8601String()
         });

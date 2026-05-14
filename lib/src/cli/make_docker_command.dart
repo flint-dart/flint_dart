@@ -233,9 +233,8 @@ fi
   }
 
   void _createDockerIgnore(String outputDir) {
-    final ignoreOutputDir = outputDir == '.' || outputDir == './'
-        ? ''
-        : '$outputDir/\n';
+    final ignoreOutputDir =
+        outputDir == '.' || outputDir == './' ? '' : '$outputDir/\n';
     final content = '''.git
 .gitignore
 README.md

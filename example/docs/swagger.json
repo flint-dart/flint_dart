@@ -13,47 +13,77 @@
     }
   ],
   "paths": {
-    "/register": {
-      "post": {
-        "summary": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/login": {
-      "post": {
-        "summary": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/login-with-google": {
-      "post": {
-        "summary": "",
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/users/": {
+    "/ai-demo": {
       "get": {
-        "summary": "Register a new user",
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
         "responses": {
           "200": {
             "description": "OK"
           }
         }
-      },
+      }
+    },
+    "/ai-demo/workflow": {
+      "get": {
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/ai-demo/chat": {
+      "get": {
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/ai-demo/support": {
+      "post": {
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/users": {
       "post": {
         "summary": "Create a new user",
+        "tags": [
+          "Default"
+        ],
         "responses": {
           "200": {
             "description": "User registered successfully"
@@ -83,11 +113,78 @@
             }
           }
         }
+      },
+      "get": {
+        "summary": "Register a new user",
+        "tags": [
+          "Default"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/ws/chat": {
+      "get": {
+        "summary": "Chat websocket handshake",
+        "tags": [
+          "WebSocket"
+        ],
+        "responses": {
+          "101": {
+            "description": "Switching Protocols"
+          }
+        },
+        "x-websocket": true,
+        "x-flint-transport": "websocket",
+        "x-flint-namespace": "/ws/chat"
+      }
+    },
+    "/post": {
+      "get": {
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/post/{id}": {
+      "put": {
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Path parameter: id"
+          }
+        ]
       }
     },
     "/users/{id}": {
       "get": {
-        "summary": "Get a user by ID",
+        "summary": "",
+        "tags": [
+          "Default"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -107,6 +204,9 @@
       },
       "put": {
         "summary": "",
+        "tags": [
+          "Default"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -126,6 +226,9 @@
       },
       "delete": {
         "summary": "",
+        "tags": [
+          "Default"
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -148,6 +251,22 @@
           }
         ]
       }
+    }
+  },
+  "x-websockets": {
+    "/ws/chat": {
+      "summary": "Chat websocket handshake",
+      "tags": [
+        "WebSocket"
+      ],
+      "responses": {
+        "101": {
+          "description": "Switching Protocols"
+        }
+      },
+      "x-websocket": true,
+      "x-flint-transport": "websocket",
+      "x-flint-namespace": "/ws/chat"
     }
   },
   "components": {

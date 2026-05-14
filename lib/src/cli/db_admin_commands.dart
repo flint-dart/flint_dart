@@ -22,8 +22,8 @@ class DBCreateCommand extends FlintCommand {
     final port = driver == 'postgres'
         ? FlintEnv.getInt('DB_PORT', 5432)
         : FlintEnv.getInt('DB_PORT', 3306);
-    final user = FlintEnv.get(
-        'DB_USER', driver == 'postgres' ? 'postgres' : 'root');
+    final user =
+        FlintEnv.get('DB_USER', driver == 'postgres' ? 'postgres' : 'root');
     final password = FlintEnv.get('DB_PASSWORD', '');
 
     try {
@@ -71,8 +71,8 @@ class DBUserCreateCommand extends FlintCommand {
     final port = driver == 'postgres'
         ? FlintEnv.getInt('DB_PORT', 5432)
         : FlintEnv.getInt('DB_PORT', 3306);
-    final adminUser = FlintEnv.get(
-        'DB_USER', driver == 'postgres' ? 'postgres' : 'root');
+    final adminUser =
+        FlintEnv.get('DB_USER', driver == 'postgres' ? 'postgres' : 'root');
     final adminPassword = FlintEnv.get('DB_PASSWORD', '');
     final escapedPassword = targetPassword.replaceAll("'", "''");
 
@@ -89,7 +89,8 @@ class DBUserCreateCommand extends FlintCommand {
         await DB.execute(
             "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '$targetUser') "
             "THEN CREATE ROLE \"$targetUser\" LOGIN PASSWORD '$escapedPassword'; END IF; END \$\$;");
-        await DB.execute('GRANT ALL PRIVILEGES ON DATABASE "$dbName" TO "$targetUser"');
+        await DB.execute(
+            'GRANT ALL PRIVILEGES ON DATABASE "$dbName" TO "$targetUser"');
       } else {
         await DB.execute(
             "CREATE USER IF NOT EXISTS '$targetUser'@'%' IDENTIFIED BY '$escapedPassword'");
@@ -125,8 +126,8 @@ class DBExportCommand extends FlintCommand {
         ? FlintEnv.getInt('DB_PORT', 5432).toString()
         : FlintEnv.getInt('DB_PORT', 3306).toString();
     final dbName = FlintEnv.get('DB_NAME', '');
-    final user = FlintEnv.get(
-        'DB_USER', driver == 'postgres' ? 'postgres' : 'root');
+    final user =
+        FlintEnv.get('DB_USER', driver == 'postgres' ? 'postgres' : 'root');
     final password = FlintEnv.get('DB_PASSWORD', '');
 
     if (dbName.isEmpty) {
@@ -137,13 +138,33 @@ class DBExportCommand extends FlintCommand {
     if (driver == 'postgres') {
       await _runDumpUtility(
         executable: 'pg_dump',
-        args: ['-h', host, '-p', port, '-U', user, '-d', dbName, '-f', outputFile],
+        args: [
+          '-h',
+          host,
+          '-p',
+          port,
+          '-U',
+          user,
+          '-d',
+          dbName,
+          '-f',
+          outputFile
+        ],
         envExtra: {'PGPASSWORD': password},
       );
     } else {
       await _runDumpUtility(
         executable: 'mysqldump',
-        args: ['-h', host, '-P', port, '-u', user, dbName, '--result-file=$outputFile'],
+        args: [
+          '-h',
+          host,
+          '-P',
+          port,
+          '-u',
+          user,
+          dbName,
+          '--result-file=$outputFile'
+        ],
         envExtra: {'MYSQL_PWD': password},
       );
     }
@@ -154,8 +175,7 @@ class DBExportCommand extends FlintCommand {
 
 class DBTableExportCommand extends FlintCommand {
   DBTableExportCommand()
-      : super(
-            '--db-table-export',
+      : super('--db-table-export',
             'Exports a single table using mysqldump/pg_dump (-t table)');
 
   @override
@@ -185,8 +205,8 @@ class DBTableExportCommand extends FlintCommand {
         ? FlintEnv.getInt('DB_PORT', 5432).toString()
         : FlintEnv.getInt('DB_PORT', 3306).toString();
     final dbName = FlintEnv.get('DB_NAME', '');
-    final user = FlintEnv.get(
-        'DB_USER', driver == 'postgres' ? 'postgres' : 'root');
+    final user =
+        FlintEnv.get('DB_USER', driver == 'postgres' ? 'postgres' : 'root');
     final password = FlintEnv.get('DB_PASSWORD', '');
 
     if (dbName.isEmpty) {

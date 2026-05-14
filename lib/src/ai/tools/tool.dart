@@ -87,10 +87,13 @@ class AiToolContext {
 abstract class AiTool {
   /// Stable tool name used in plans and policies.
   String get name;
+
   /// Human-readable tool description.
   String get description;
+
   /// Whether the tool is allowed by the safe default policy.
   bool get enabledByDefault => false;
+
   /// Named capabilities required by this tool.
   Set<String> get requiredCapabilities => const {};
 

@@ -235,7 +235,6 @@ dynamic resolveValue(String path, Map<String, dynamic> context) {
   return value;
 }
 
-
 class _ConditionalSegment {
   final String condition;
   final String content;

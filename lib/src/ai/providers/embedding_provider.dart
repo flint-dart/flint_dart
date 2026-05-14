@@ -35,6 +35,7 @@ class EmbeddingResult {
 abstract class EmbeddingProvider {
   /// Stable provider id used for registration and lookup.
   String get id;
+
   /// Human-readable provider name.
   String get displayName;
 

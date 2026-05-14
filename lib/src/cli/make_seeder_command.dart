@@ -66,7 +66,8 @@ class $seederName extends Seeder {
       configDir.createSync(recursive: true);
     }
 
-    final seederRegistryFile = File('$projectRoot/lib/config/seeder_registry.dart');
+    final seederRegistryFile =
+        File('$projectRoot/lib/config/seeder_registry.dart');
     if (!seederRegistryFile.existsSync()) {
       await seederRegistryFile.writeAsString('''
 import 'package:flint_dart/flint_dart.dart';

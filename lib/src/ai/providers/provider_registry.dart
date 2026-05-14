@@ -25,8 +25,10 @@ class AiProviderRegistry {
 
   /// Looks up a chat provider by id.
   ChatProvider? chatProvider(String id) => _chatProviders[id];
+
   /// Looks up an image provider by id.
   ImageProvider? imageProvider(String id) => _imageProviders[id];
+
   /// Looks up an embedding provider by id.
   EmbeddingProvider? embeddingProvider(String id) => _embeddingProviders[id];
 

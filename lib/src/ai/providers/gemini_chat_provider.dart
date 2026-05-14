@@ -106,7 +106,8 @@ class GeminiChatProvider extends ChatProvider {
     final content = candidates.isEmpty
         ? const <String, dynamic>{}
         : Map<String, dynamic>.from(
-            Map<String, dynamic>.from(candidates.first as Map)['content'] as Map? ??
+            Map<String, dynamic>.from(candidates.first as Map)['content']
+                    as Map? ??
                 const {},
           );
     final parts = content['parts'] as List? ?? const [];

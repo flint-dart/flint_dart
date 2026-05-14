@@ -14,20 +14,28 @@ import 'package:flint_dart/logs.dart';
 class FlintAi {
   /// Registered chat, image, and embedding providers.
   final AiProviderRegistry providers;
+
   /// Registered executable AI tools.
   final AiToolRegistry tools;
+
   /// Registered named workflows.
   final AiWorkflowRegistry workflows;
+
   /// Run and thread memory storage.
   final AiMemoryStore memoryStore;
+
   /// Durable repository for runs, traces, threads, and artifacts.
   final AiRepository repository;
+
   /// Planner used to convert goals into execution steps.
   final AiPlanner planner;
+
   /// Executor used to run a plan.
   final AiExecutor executor;
+
   /// Policy used to authorize tool execution.
   AiToolPolicy toolPolicy;
+
   /// Indicates whether the default auto-configured memory store is in use.
   final bool usesAutoMemoryStore;
 
@@ -54,7 +62,7 @@ class FlintAi {
       Log.warning(
         'FlintAi is using auto-configured AI memory. Connect the database or provide a shared memory store for production.',
         tag: 'ai',
-        );
+      );
     }
   }
 
@@ -77,7 +85,8 @@ class FlintAi {
       repository: repository ?? AutoAiRepository(),
       planner: planner,
       executor: executor,
-      toolPolicy: toolPolicy ?? const SafeDefaultAiToolPolicy(requireUserBinding: true),
+      toolPolicy:
+          toolPolicy ?? const SafeDefaultAiToolPolicy(requireUserBinding: true),
     );
   }
 

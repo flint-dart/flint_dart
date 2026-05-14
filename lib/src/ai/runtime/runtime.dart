@@ -163,12 +163,16 @@ class AiRunContext {
 
   /// Stable identifier for the current run.
   String get runId => run.id;
+
   /// Bound user identifier, when present.
   String? get userId => run.userId;
+
   /// Bound tenant identifier, when present.
   String? get tenantId => run.tenantId;
+
   /// Mutable run state accumulated during execution.
   Map<String, dynamic> get state => run.state;
+
   /// Current agent goal.
   AiGoal get goal => run.goal;
 

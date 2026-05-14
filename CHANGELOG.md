@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.0] - 2026-05-14
+
+### Release Status
+- Public minor release.
+
+### Added
+- Added first-class Flint UI package support through the standalone `flint_ui` dependency.
+- Added public bridge exports for `package:flint_dart/flint_ui.dart` and the deprecated `package:flint_dart/flint_web_ui.dart` compatibility entrypoint.
+- Added Flint Web UI CLI workflows for creating and building browser UI entrypoints.
+- Added hot-reload rebuild support for Flint UI browser bundles.
+
+### Changed
+- Moved Flint UI usage onto the external `flint_ui: ^0.1.3` package instead of the old in-framework UI implementation.
+- Updated the example app to use the standalone Flint UI package during local development.
+
 ## [1.0.4] - 2026-04-30
 
 ### Release Status

@@ -3,7 +3,7 @@
 A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
 
 - Website: flintdart.eulogia.net
-- Status: Stable Release (v1.0.2)
+- Status: Stable Release (v1.1.0)
 - Maintainers: Eulogia Technologies
 
 ---
@@ -22,6 +22,29 @@ A modern, production‑ready backend framework for Dart. Flint Dart gives you ro
 ---
 
 ## Installation
+
+### One-command setup
+
+Install Dart, FlintDart, Flint UI, and PATH entries in one pass:
+
+```bash
+# macOS/Linux
+curl -fsSL https://raw.githubusercontent.com/flint-dart/flint_dart/main/install.sh | sh
+```
+
+```powershell
+# Windows PowerShell
+iwr https://raw.githubusercontent.com/flint-dart/flint_dart/main/install.ps1 -UseB | iex
+```
+
+See [INSTALL.md](INSTALL.md) for options and OS-specific details.
+
+For packaged releases, Flint also has a compiled Rust installer:
+
+```bash
+cd flint/installer-app
+cargo run --bin flint-install
+```
 
 ### 1) Install CLI globally
 

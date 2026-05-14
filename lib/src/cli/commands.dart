@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/cli/web_ui_builder.dart';
 
 /// Base class for all Flint CLI commands.
 abstract class FlintCommand {
@@ -18,7 +19,23 @@ class RunServerCommand extends FlintCommand {
 
   @override
   Future<void> execute(List<String> args) async {
-    final int port = args.isNotEmpty ? int.tryParse(args.first) ?? 8080 : 8080;
+    var buildWeb = true;
+    int port = 8080;
+
+    for (final arg in args) {
+      if (arg == '--no-web-build') {
+        buildWeb = false;
+      } else if (!arg.startsWith('--')) {
+        port = int.tryParse(arg) ?? port;
+      }
+    }
+
+    if (buildWeb) {
+      final built = await FlintWebUiBuilder.compileIfPresent();
+      if (!built) {
+        Log.debug('[FLINT] No Flint Web UI entry found. Skipping web build.');
+      }
+    }
 
     final child = await Process.start(
       'dart',
