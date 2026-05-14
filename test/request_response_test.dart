@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:flint_dart/src/error/auth_exception.dart';
 import 'package:flint_dart/src/error/validation_exception.dart';
-import 'package:flint_dart/flint_ui.dart';
 import 'package:test/test.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';
@@ -44,8 +42,7 @@ void main() {
     });
 
     test('parses JSON body', () async {
-      final headers = FakeHttpHeaders()
-        ..contentType = ContentType.json;
+      final headers = FakeHttpHeaders()..contentType = ContentType.json;
       final req = FakeHttpRequest(
         method: 'POST',
         uri: Uri.parse('http://localhost/'),
@@ -60,8 +57,7 @@ void main() {
     });
 
     test('rawBody returns undecoded request bytes', () async {
-      final headers = FakeHttpHeaders()
-        ..contentType = ContentType.json;
+      final headers = FakeHttpHeaders()..contentType = ContentType.json;
       final rawBytes = utf8Bytes('{"name":"Ada"}');
       final req = FakeHttpRequest(
         method: 'POST',
@@ -76,8 +72,7 @@ void main() {
     });
 
     test('rawBody remains available after parsed body access', () async {
-      final headers = FakeHttpHeaders()
-        ..contentType = ContentType.json;
+      final headers = FakeHttpHeaders()..contentType = ContentType.json;
       final rawBytes = utf8Bytes('{"name":"Ada"}');
       final req = FakeHttpRequest(
         method: 'POST',
@@ -95,8 +90,8 @@ void main() {
 
     test('parses urlencoded form body', () async {
       final headers = FakeHttpHeaders()
-        ..contentType = ContentType(
-            'application', 'x-www-form-urlencoded', charset: 'utf-8');
+        ..contentType = ContentType('application', 'x-www-form-urlencoded',
+            charset: 'utf-8');
       final req = FakeHttpRequest(
         method: 'POST',
         uri: Uri.parse('http://localhost/'),
@@ -206,8 +201,7 @@ void main() {
     });
 
     test('validate auto-detects JSON input', () async {
-      final headers = FakeHttpHeaders()
-        ..contentType = ContentType.json;
+      final headers = FakeHttpHeaders()..contentType = ContentType.json;
       final req = FakeHttpRequest(
         method: 'POST',
         uri: Uri.parse('http://localhost/posts'),
@@ -227,8 +221,8 @@ void main() {
 
     test('validate auto-detects urlencoded form input', () async {
       final headers = FakeHttpHeaders()
-        ..contentType = ContentType(
-            'application', 'x-www-form-urlencoded', charset: 'utf-8');
+        ..contentType = ContentType('application', 'x-www-form-urlencoded',
+            charset: 'utf-8');
       final req = FakeHttpRequest(
         method: 'POST',
         uri: Uri.parse('http://localhost/login'),
@@ -283,8 +277,7 @@ void main() {
 
     test('validate keeps confirmation fields available for confirmed rules',
         () async {
-      final headers = FakeHttpHeaders()
-        ..contentType = ContentType.json;
+      final headers = FakeHttpHeaders()..contentType = ContentType.json;
       final req = FakeHttpRequest(
         method: 'POST',
         uri: Uri.parse('http://localhost/register'),
@@ -304,8 +297,7 @@ void main() {
     });
 
     test('validate still rejects unknown scalar fields', () async {
-      final headers = FakeHttpHeaders()
-        ..contentType = ContentType.json;
+      final headers = FakeHttpHeaders()..contentType = ContentType.json;
       final req = FakeHttpRequest(
         method: 'POST',
         uri: Uri.parse('http://localhost/posts'),
@@ -427,10 +419,11 @@ void main() {
       expect(setCookie.any((v) => v.contains('FLINT_FLASH_success=')), true);
       expect(setCookie.any((v) => v.contains('Saved%20successfully')), true);
       expect(setCookie.any((v) => v.contains('FLINT_FLASH_error=')), true);
-      expect(setCookie.any((v) => v.contains('Something%20went%20wrong')), true);
+      expect(
+          setCookie.any((v) => v.contains('Something%20went%20wrong')), true);
     });
 
-    test('render does not write debug file to project root', () {
+    test('send does not write debug file to project root', () {
       final debugFile = File('test.html');
       if (debugFile.existsSync()) {
         debugFile.deleteSync();
@@ -438,10 +431,95 @@ void main() {
 
       final raw = FakeHttpResponse();
       final res = Response(raw);
-      res.render(Text('Hello'));
+      res.send('Hello');
 
       expect(raw.buffer.toString(), contains('Hello'));
       expect(debugFile.existsSync(), isFalse);
+    });
+
+    test('flintPage renders page payload for browser UI', () {
+      final raw = FakeHttpResponse();
+      final req = Request(FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('http://localhost/dashboard'),
+      ));
+      final res = Response(raw, request: req);
+
+      res.flintPage(
+        'Dashboard',
+        props: {
+          'user': {'name': 'Ada'}
+        },
+        script: '/main.dart.js',
+      );
+
+      final body = raw.buffer.toString();
+      expect(raw.headers.contentType?.mimeType, 'text/html');
+      expect(body, contains('id="app"'));
+      expect(body, contains('data-flint-page='));
+      expect(body, contains('&quot;component&quot;:&quot;Dashboard&quot;'));
+      expect(body, contains('&quot;name&quot;:&quot;Ada&quot;'));
+      expect(body, contains('<script defer src="/main.dart.js"></script>'));
+    });
+
+    test('flintPage renders SEO metadata in the initial HTML head', () {
+      final raw = FakeHttpResponse();
+      final req = Request(FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('https://eupanel.example/dashboard'),
+      ));
+      final res = Response(raw, request: req);
+
+      res.flintPage(
+        'Dashboard',
+        script: '/main.dart.js',
+        meta: const FlintPageMeta(
+          title: 'EuPanel Dashboard',
+          description: 'Manage hosting, domains, billing, and users.',
+          canonicalUrl: 'https://eupanel.example/dashboard',
+          imageUrl: 'https://eupanel.example/og.png',
+          siteName: 'EuPanel',
+          twitterSite: '@eulogia',
+          structuredData: {
+            '@context': 'https://schema.org',
+            '@type': 'WebApplication',
+            'name': 'EuPanel',
+          },
+        ),
+      );
+
+      final body = raw.buffer.toString();
+      expect(body, contains('<title>EuPanel Dashboard</title>'));
+      expect(
+        body,
+        contains(
+          '<meta name="description" content="Manage hosting, domains, billing, and users.">',
+        ),
+      );
+      expect(
+        body,
+        contains(
+          '<link rel="canonical" href="https://eupanel.example/dashboard">',
+        ),
+      );
+      expect(
+        body,
+        contains('<meta property="og:title" content="EuPanel Dashboard">'),
+      );
+      expect(
+        body,
+        contains(
+          '<meta property="og:image" content="https://eupanel.example/og.png">',
+        ),
+      );
+      expect(
+        body,
+        contains('<meta name="twitter:site" content="@eulogia">'),
+      );
+      expect(
+        body,
+        contains('<script type="application/ld+json">'),
+      );
     });
   });
 
@@ -465,7 +543,8 @@ NO
 
     test('session missing key renders empty string', () {
       final engine = TemplateEngine();
-      final rendered = engine.renderString("Value: {{ session('missing') }}", {});
+      final rendered =
+          engine.renderString("Value: {{ session('missing') }}", {});
       expect(rendered.trim(), 'Value:');
     });
 

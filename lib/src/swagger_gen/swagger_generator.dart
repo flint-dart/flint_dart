@@ -4,13 +4,9 @@ class SwaggerGenerator {
   final servers = <Map<String, dynamic>>[];
   final websocketPaths = <String, dynamic>{};
 
-  void addRoute(
-    String fullPath,
-    String method,
-    Map<String, dynamic> operation,
-    List<String> routeServers,
-    {bool isWebSocket = false}
-  ) {
+  void addRoute(String fullPath, String method, Map<String, dynamic> operation,
+      List<String> routeServers,
+      {bool isWebSocket = false}) {
     if (isWebSocket) {
       websocketPaths[fullPath] = operation;
     }

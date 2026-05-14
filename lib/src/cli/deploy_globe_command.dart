@@ -95,7 +95,8 @@ class DeployGlobeCommand extends FlintCommand {
         ? ''
         : '\nassets:\n${existingAssets.map((a) => '  - $a').join('\n')}\n';
 
-    final content = '''# yaml-language-server: \$schema=https://globe.dev/globe.schema.json
+    final content =
+        '''# yaml-language-server: \$schema=https://globe.dev/globe.schema.json
 
 entrypoint: $entryPoint
 
@@ -126,7 +127,8 @@ build:
     final targetDir = Directory(path.join(outputDir, 'swagger-ui'))
       ..createSync(recursive: true);
     _copyDirectoryContents(source, targetDir);
-    Log.debug('📚 Copied Swagger UI assets: ${source.path} -> ${targetDir.path}');
+    Log.debug(
+        '📚 Copied Swagger UI assets: ${source.path} -> ${targetDir.path}');
   }
 
   Future<Directory?> _resolveSwaggerUiSourceDir() async {

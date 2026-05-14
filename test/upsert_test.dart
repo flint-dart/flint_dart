@@ -133,7 +133,6 @@ class _SpyUser extends Model<_SpyUser> {
 
     throw UnsupportedError('Unexpected execute: $normalizedSql');
   }
-
 }
 
 Map<String, dynamic> _extractInsertPayload(

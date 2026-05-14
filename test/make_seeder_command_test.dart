@@ -10,7 +10,8 @@ void main() {
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('flint_make_seeder_');
       await Directory('${tempDir.path}/lib/config').create(recursive: true);
-      await File('${tempDir.path}/lib/config/seeder_registry.dart').writeAsString('''
+      await File('${tempDir.path}/lib/config/seeder_registry.dart')
+          .writeAsString('''
 import 'package:flint_dart/db.dart';
 import 'package:sample/seeders/demo_post_seeder.dart';
 
@@ -51,7 +52,8 @@ Future<void> main() async {
     });
 
     test('adds new seeder when runSeeders list is on one line', () async {
-      await File('${tempDir.path}/lib/config/seeder_registry.dart').writeAsString('''
+      await File('${tempDir.path}/lib/config/seeder_registry.dart')
+          .writeAsString('''
 import 'package:flint_dart/db.dart';
 import 'package:sample/seeders/demo_user_seeder.dart';
 
@@ -71,7 +73,8 @@ Future<void> main() async {
 
       expect(
         registry,
-        contains('runSeeders([\n    DemoUserSeeder(),\n    PostModelSeeder(),\n  ])'),
+        contains(
+            'runSeeders([\n    DemoUserSeeder(),\n    PostModelSeeder(),\n  ])'),
       );
       expect(
         registry,

@@ -14,18 +14,22 @@ import 'package:flint_dart/src/cli/make_isolate_command.dart';
 import 'package:flint_dart/src/cli/make_mail_command.dart';
 import 'package:flint_dart/src/cli/make_middleware_command.dart';
 import 'package:flint_dart/src/cli/make_model_command.dart';
+import 'package:flint_dart/src/cli/make_page_command.dart';
 import 'package:flint_dart/src/cli/make_resource_command.dart';
 import 'package:flint_dart/src/cli/make_route_command.dart';
 import 'package:flint_dart/src/cli/make_seeder_command.dart';
+import 'package:flint_dart/src/cli/make_ui_command.dart';
 import 'package:flint_dart/src/cli/update_command.dart';
 import 'package:flint_dart/src/cli/upgrade_command.dart';
 import 'package:flint_dart/src/cli/version_commands.dart';
+import 'package:flint_dart/src/cli/web_ui_command.dart';
 
 final Map<String, FlintCommand> commands = {
   'create': CreateProjectCommand(),
   'start': RunServerCommand(),
   'run': RunServerCommand(),
   'build': BuildCommand(),
+  'web': WebUiCommand(),
   '--make-docker': MakeDockerCommand(),
   'deploy-globe': DeployGlobeCommand(),
   'migrate': DBMigrateCommand(),
@@ -47,6 +51,8 @@ final Map<String, FlintCommand> commands = {
   '--version': VersionCommand(),
   '--make-resource': MakeResourceCommand(),
   '--make-route': MakeRouteCommand(),
+  '--make-page': MakePageCommand(),
+  '--make-ui': MakeUiCommand(),
   '-v': VersionCommand(),
   '--v': VersionCommand(),
 };
@@ -74,6 +80,8 @@ final Map<String, String> aliasCommands = {
   'make:isolate': '--make-isolate',
   'make:seeder': '--make-seeder',
   'make:route': '--make-route',
+  'make:page': '--make-page',
+  'make:ui': '--make-ui',
   'docs:generate': '--docs-generate',
   'make-mail': '--make-mail',
   'make-model': '--make-model',
@@ -84,9 +92,17 @@ final Map<String, String> aliasCommands = {
   'make-isolate': '--make-isolate',
   'make-seeder': '--make-seeder',
   'make-route': '--make-route',
+  'make-page': '--make-page',
+  'make-ui': '--make-ui',
+  'page': '--make-page',
+  'ui': '--make-ui',
   'docs-generate': '--docs-generate',
   'route': '--make-route',
   '--build': 'build',
+  '--web': 'web',
+  'web:run': 'web',
+  'web:serve': 'web',
+  'web:build': 'web',
   '--update': 'update',
   '--upgrade': 'upgrade',
 };

@@ -78,10 +78,12 @@ class OpenAiChatProvider extends ChatProvider {
     final message = choices.isEmpty
         ? const <String, dynamic>{}
         : Map<String, dynamic>.from(
-            Map<String, dynamic>.from(choices.first as Map)['message'] as Map? ??
+            Map<String, dynamic>.from(choices.first as Map)['message']
+                    as Map? ??
                 const {},
           );
-    final usage = Map<String, dynamic>.from(payload['usage'] as Map? ?? const {});
+    final usage =
+        Map<String, dynamic>.from(payload['usage'] as Map? ?? const {});
 
     return ChatResult(
       providerId: id,

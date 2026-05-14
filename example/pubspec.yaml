@@ -5,4 +5,12 @@ publish_to: none
 environment:
   sdk: ^3.0.0
 dependencies:
-  flint_dart: ^1.0.3
+  flint_dart:
+    path: ..
+  flint_ui: ^0.1.2
+
+dependency_overrides:
+  flint_ui:
+    path: ../../flint_ui
+  flint_client:
+    path: ../../flint-client

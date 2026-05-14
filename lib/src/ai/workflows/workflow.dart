@@ -29,6 +29,7 @@ class AiWorkflowContext {
 abstract class AiWorkflow {
   /// Stable workflow name used for registration and lookup.
   String get name;
+
   /// Human-readable description of the workflow.
   String get description;
 

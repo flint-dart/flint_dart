@@ -108,6 +108,21 @@ CREATE TABLE `settings` (
       expect(columns[2]['default'], 'CURRENT_TIMESTAMP');
     });
 
+    test('extracts column comments without swallowing type/default metadata',
+        () {
+      final sql = '''
+CREATE TABLE `profiles` (
+  `id` VARCHAR(255) NOT NULL PRIMARY KEY,
+  `displayName` VARCHAR(120) DEFAULT 'Guest' COMMENT 'Public profile name'
+);
+''';
+
+      final columns = dbMigrateExtractColumns(sql);
+      expect(columns[1]['type'], 'VARCHAR(120)');
+      expect(columns[1]['default'], "'Guest'");
+      expect(columns[1]['comment'], 'Public profile name');
+    });
+
     test('builds desired indexes from inline unique and declared indexes', () {
       final sql = '''
 CREATE TABLE `audit_logs` (

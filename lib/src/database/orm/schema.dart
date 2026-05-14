@@ -73,6 +73,15 @@ class Column {
   /// A list of allowed values (used for ENUM columns).
   final List<String>? options;
 
+  /// Optional database-level comment for the column.
+  final String? comment;
+
+  /// Optional column name to place this column after when adding it to MySQL.
+  final String? after;
+
+  /// Previous column name to rename from during migration.
+  final String? renamedFrom;
+
   /// Creates a new [Column] definition.
   Column({
     required this.name,
@@ -84,6 +93,9 @@ class Column {
     this.length = 255,
     this.defaultValue,
     this.options,
+    this.comment,
+    this.after,
+    this.renamedFrom,
   });
 
   /// Returns a new [Column] with updated values while keeping immutability.
@@ -97,6 +109,9 @@ class Column {
     bool? isUnique,
     dynamic defaultValue,
     List<String>? options,
+    String? comment,
+    String? after,
+    String? renamedFrom,
   }) {
     return Column(
       name: name ?? this.name,
@@ -108,6 +123,9 @@ class Column {
       isUnique: isUnique ?? this.isUnique,
       defaultValue: defaultValue ?? this.defaultValue,
       options: options ?? this.options,
+      comment: comment ?? this.comment,
+      after: after ?? this.after,
+      renamedFrom: renamedFrom ?? this.renamedFrom,
     );
   }
 
@@ -123,7 +141,8 @@ class Column {
         other.isNullable == isNullable &&
         other.isUnique == isUnique &&
         _valuesEqual(other.defaultValue, defaultValue) &&
-        _listEquals(other.options, options);
+        _listEquals(other.options, options) &&
+        other.comment == comment;
   }
 
   @override
@@ -137,6 +156,7 @@ class Column {
         isUnique,
         _valueHash(defaultValue),
         Object.hashAll(options ?? const <String>[]),
+        comment,
       );
 
   static bool _listEquals(List<String>? a, List<String>? b) {

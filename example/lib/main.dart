@@ -8,7 +8,6 @@ import 'package:sample/routes/ai_routes.dart';
 import 'package:sample/routes/auth_routes.dart';
 import 'package:sample/routes/post_routes.dart';
 import 'package:sample/routes/user_routes.dart';
-import 'package:sample/views/welcome.dart';
 
 void main(List<String> args) {
   final app = Flint(
@@ -19,11 +18,115 @@ void main(List<String> args) {
   );
 
   app.use(LoggerMiddleware());
+  app.static('/web', 'flint_ui/web');
 
   app.routes(AiRoutes());
 
   app.get('/', (Request req, Response res) async {
-    return res.render(Welcome());
+    return res.page(
+      'Welcome',
+      title: 'Welcome to Flint Dart',
+      props: {
+        'version': '1.0.4',
+        'tagline': 'Build backend routes and browser UI with Dart.',
+        'features': [
+          {
+            'title': 'Dart UI',
+            'body': 'Write frontend pages with Flutter-style Flint widgets.',
+          },
+          {
+            'title': 'Backend Bridge',
+            'body': 'Return page names and props from normal Flint routes.',
+          },
+          {
+            'title': 'One Toolchain',
+            'body': 'Compile UI into web assets and serve them from Flint.',
+          },
+        ],
+      },
+    );
+  });
+
+  app.get('/counter', (Request req, Response res) async {
+    return res.page(
+      'Counter',
+      title: 'Flint Dart Counter',
+      props: {
+        'title': 'Build a Flint UI page',
+        'intro':
+            'Use backend routes to choose pages, then render Dart UI components in the browser.',
+        'steps': [
+          {
+            'label': 'Create UI source',
+            'body': 'Place Dart frontend code in flint_ui/main.dart.',
+            'code': 'class HomePage extends FlintComponent { ... }',
+          },
+          {
+            'label': 'Register pages',
+            'body': 'Map backend page names to Dart components.',
+            'code':
+                'createFlintApp("#app", pages: {"Home": (p) => HomePage(p)});',
+          },
+          {
+            'label': 'Return a page',
+            'body': 'Send the page name and props from any Flint route.',
+            'code': 'return res.page("Home", props: {"name": "Ada"});',
+          },
+          {
+            'label': 'Compile assets',
+            'body': 'Compile flint_ui/main.dart into web/main.dart.js.',
+            'code': 'flint web --build-only',
+          },
+        ],
+      },
+    );
+  });
+
+  app.get('/guide', (Request req, Response res) async {
+    return res.page(
+      'Guide',
+      title: 'Flint Dart Guide',
+      props: {
+        'title': 'Build a Flint UI page',
+        'intro':
+            'Use backend routes to choose pages, then render Dart UI components in the browser.',
+        'steps': [
+          {
+            'label': 'Create UI source',
+            'body': 'Place Dart frontend code in flint_ui/main.dart.',
+            'code': 'class HomePage extends FlintComponent { ... }',
+          },
+          {
+            'label': 'Register pages',
+            'body': 'Map backend page names to Dart components.',
+            'code':
+                'createFlintApp("#app", pages: {"Home": (p) => HomePage(p)});',
+          },
+          {
+            'label': 'Return a page',
+            'body': 'Send the page name and props from any Flint route.',
+            'code': 'return res.page("Home", props: {"name": "Ada"});',
+          },
+          {
+            'label': 'Compile assets',
+            'body': 'Compile flint_ui/main.dart into web/main.dart.js.',
+            'code': 'flint web --build-only',
+          },
+        ],
+      },
+    );
+  });
+
+  app.get('/login-ui', (Request req, Response res) async {
+    return res.page(
+      'Login',
+      title: 'Flint Login UI',
+      props: {
+        'title': 'Welcome back',
+        'subtitle':
+            'A Tailwind-powered Flint UI page compiled without npm in the app.',
+      },
+    );
   });
   app.routes(PostRoutes());
   app.get('/preview/email', (Request req, Response res) async {

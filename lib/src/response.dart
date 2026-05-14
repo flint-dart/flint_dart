@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flint_dart/flint_ui.dart' hide FlintTemplate;
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:path/path.dart' as p;
@@ -18,7 +17,40 @@ enum RespondType {
 
   /// Plain text (text/plain)
   plain,
-  flint,
+}
+
+class FlintPageMeta {
+  final String? title;
+  final String? description;
+  final String? canonicalUrl;
+  final String? imageUrl;
+  final String type;
+  final String? siteName;
+  final String? locale;
+  final String twitterCard;
+  final String? twitterSite;
+  final bool noIndex;
+  final Map<String, String> meta;
+  final Map<String, String> openGraph;
+  final Map<String, String> twitter;
+  final Map<String, Object?>? structuredData;
+
+  const FlintPageMeta({
+    this.title,
+    this.description,
+    this.canonicalUrl,
+    this.imageUrl,
+    this.type = 'website',
+    this.siteName,
+    this.locale,
+    this.twitterCard = 'summary_large_image',
+    this.twitterSite,
+    this.noIndex = false,
+    this.meta = const {},
+    this.openGraph = const {},
+    this.twitter = const {},
+    this.structuredData,
+  });
 }
 
 /// A wrapper around [HttpResponse] for sending HTTP responses in Flint Dart.
@@ -73,10 +105,10 @@ class Response {
     } catch (e) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to send response: Invalid content.');
+      raw.write('âŒ Failed to send response: Invalid content.');
     }
     close();
-    return this; // ✅ return Response
+    return this; // âœ… return Response
   }
 
   /// Sends a JSON response with a [Map] or [List].
@@ -137,7 +169,7 @@ class Response {
     } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to encode JSON response: ${e.runtimeType}');
+      raw.write('âŒ Failed to encode JSON response: ${e.runtimeType}');
       Log.debug('[Flint] JSON Error: $e\n$stack');
     }
 
@@ -148,7 +180,7 @@ class Response {
   /// Sends a response automatically based on [RespondType] or inferred type.
   ///
   /// - If [type] is provided, it is used directly.
-  /// - If not, the type is inferred from [data] (Map/List → JSON, HTML tags → HTML, otherwise plain text).
+  /// - If not, the type is inferred from [data] (Map/List â†’ JSON, HTML tags â†’ HTML, otherwise plain text).
   Future<Response> respond(
     dynamic data, {
     int? status,
@@ -177,24 +209,11 @@ class Response {
         case RespondType.plain:
           send(data.toString(), status: status, contentType: 'text/plain');
           break;
-
-        case RespondType.flint:
-          if (data is FlintWidget) {
-            render(
-              data,
-              title: title,
-              status: status,
-              includePreview: includePreview == true,
-            );
-          } else {
-            throw ArgumentError('Data must be a FlintWidget for flint type');
-          }
-          break;
       }
     } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to send response: ${e.runtimeType}');
+      raw.write('âŒ Failed to send response: ${e.runtimeType}');
       Log.debug('[Flint] respond() Error: $e\n$stack');
     }
 
@@ -204,19 +223,15 @@ class Response {
 
   /// Attempts to guess the best [RespondType] based on [data].
   ///
-  /// - Map/List → JSON
-  /// - HTML-like string → HTML
-  /// - Otherwise → Plain text
-  /// Now includes FlintWidget detection
+  /// - Map/List â†’ JSON
+  /// - HTML-like string â†’ HTML
+  /// - Otherwise â†’ Plain text
   Future<RespondType> _inferRespondType(dynamic data) async {
     // Await if it's a Future
     if (data is Future) {
       data = await data;
     }
-
-    if (data is FlintWidget) {
-      return RespondType.flint;
-    } else if (data is Map || data is List) {
+    if (data is Map || data is List) {
       return RespondType.json;
     } else if (data is Model) {
       return RespondType.json;
@@ -228,28 +243,196 @@ class Response {
     }
   }
 
-  Response render(
-    FlintWidget widget, {
+  Response flintPage(
+    String component, {
+    Map<String, dynamic> props = const {},
+    String rootId = 'app',
+    String? script,
+    List<String>? stylesheets,
     String? title,
+    FlintPageMeta? meta,
     int? status,
-    bool includePreview = false,
   }) {
     try {
+      final page = {
+        'component': component,
+        'props': props,
+        if (request != null) 'url': request!.uri.toString(),
+      };
+      final resolvedScript = script ?? _defaultFlintPageScript();
+      final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
+      final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
+      final safeRootId = _escapeHtmlAttribute(rootId);
+      final safeScript = _escapeHtmlAttribute(resolvedScript);
+      final resolvedMeta =
+          meta ?? (title == null ? null : FlintPageMeta(title: title));
+      final headTags = _renderFlintPageHead(
+        title: title ?? resolvedMeta?.title ?? component,
+        stylesheets: resolvedStylesheets,
+        meta: resolvedMeta,
+        requestUrl: request?.uri.toString(),
+      );
+
       raw.statusCode = status ?? raw.statusCode;
       raw.headers.contentType = ContentType.html;
-
-      final html = includePreview
-          ? _generatePreviewHtml(widget, title ?? 'Flint Render')
-          : widget.toHtml();
-      raw.write(html);
-    } catch (e) {
+      final hotReloadScript = _hotReloadScript();
+      raw.write('''
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+$headTags
+  </head>
+  <body>
+    <main id="$safeRootId" data-flint-page="$encodedPage"></main>
+    <script defer src="$safeScript"></script>
+$hotReloadScript
+  </body>
+</html>
+''');
+    } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to render FlintWidget: ${e.runtimeType}');
-      Log.debug('[Flint] Render Error: $e');
+      raw.write('Failed to render Flint page: ${e.runtimeType}');
+      Log.debug('[Flint] flintPage() Error: $e\n$stack');
     }
+
     close();
     return this;
+  }
+
+  Response page(
+    String component, {
+    Map<String, dynamic> props = const {},
+    String rootId = 'app',
+    String? script,
+    List<String>? stylesheets,
+    String? title,
+    FlintPageMeta? meta,
+    int? status,
+  }) =>
+      flintPage(
+        component,
+        props: props,
+        rootId: rootId,
+        script: script,
+        stylesheets: stylesheets,
+        title: title,
+        meta: meta,
+        status: status,
+      );
+
+  String _renderFlintPageHead({
+    required String title,
+    required List<String> stylesheets,
+    required FlintPageMeta? meta,
+    required String? requestUrl,
+  }) {
+    final resolvedTitle = meta?.title ?? title;
+    final description = meta?.description;
+    final canonicalUrl = meta?.canonicalUrl ?? requestUrl;
+    final imageUrl = meta?.imageUrl;
+    final tags = <String>[
+      '    <meta charset="utf-8">',
+      '    <meta name="viewport" content="width=device-width, initial-scale=1">',
+      '    <title>${_escapeHtmlText(resolvedTitle)}</title>',
+      if (description != null && description.trim().isNotEmpty)
+        _metaName('description', description),
+      if (meta?.noIndex == true) _metaName('robots', 'noindex, nofollow'),
+      if (canonicalUrl != null && canonicalUrl.trim().isNotEmpty)
+        _linkTag('canonical', canonicalUrl),
+      _metaProperty('og:title', resolvedTitle),
+      if (description != null && description.trim().isNotEmpty)
+        _metaProperty('og:description', description),
+      _metaProperty('og:type', meta?.type ?? 'website'),
+      if (canonicalUrl != null && canonicalUrl.trim().isNotEmpty)
+        _metaProperty('og:url', canonicalUrl),
+      if (imageUrl != null && imageUrl.trim().isNotEmpty)
+        _metaProperty('og:image', imageUrl),
+      if (meta?.siteName != null && meta!.siteName!.trim().isNotEmpty)
+        _metaProperty('og:site_name', meta.siteName!),
+      if (meta?.locale != null && meta!.locale!.trim().isNotEmpty)
+        _metaProperty('og:locale', meta.locale!),
+      _metaName('twitter:card', meta?.twitterCard ?? 'summary_large_image'),
+      _metaName('twitter:title', resolvedTitle),
+      if (description != null && description.trim().isNotEmpty)
+        _metaName('twitter:description', description),
+      if (imageUrl != null && imageUrl.trim().isNotEmpty)
+        _metaName('twitter:image', imageUrl),
+      if (meta?.twitterSite != null && meta!.twitterSite!.trim().isNotEmpty)
+        _metaName('twitter:site', meta.twitterSite!),
+      if (meta != null) ...[
+        for (final entry in meta.meta.entries)
+          _metaName(entry.key, entry.value),
+        for (final entry in meta.openGraph.entries)
+          _metaProperty(entry.key, entry.value),
+        for (final entry in meta.twitter.entries)
+          _metaName(entry.key, entry.value),
+      ],
+      for (final href in stylesheets) _linkTag('stylesheet', href),
+      if (meta?.structuredData != null)
+        _jsonLdTag(jsonEncode(meta!.structuredData)),
+    ];
+
+    return tags.join('\n');
+  }
+
+  String _metaName(String name, String content) {
+    return '    <meta name="${_escapeHtmlAttribute(name)}" content="${_escapeHtmlAttribute(content)}">';
+  }
+
+  String _metaProperty(String property, String content) {
+    return '    <meta property="${_escapeHtmlAttribute(property)}" content="${_escapeHtmlAttribute(content)}">';
+  }
+
+  String _linkTag(String rel, String href) {
+    return '    <link rel="${_escapeHtmlAttribute(rel)}" href="${_escapeHtmlAttribute(href)}">';
+  }
+
+  String _jsonLdTag(String json) {
+    final safeJson = json.replaceAll('</script', '<\\/script');
+    return '    <script type="application/ld+json">$safeJson</script>';
+  }
+
+  String _defaultFlintPageScript() {
+    if (File(p.join('flint_ui', 'web', 'main.dart.js')).existsSync()) {
+      return '/web/main.dart.js';
+    }
+    if (File(p.join('web', 'main.dart.js')).existsSync()) {
+      return '/web/main.dart.js';
+    }
+    if (File(p.join('public', 'main.dart.js')).existsSync()) {
+      return '/main.dart.js';
+    }
+    return '/main.dart.js';
+  }
+
+  List<String> _defaultFlintPageStylesheets() {
+    if (File(p.join('flint_ui', 'web', 'style.css')).existsSync()) {
+      return const ['/web/style.css'];
+    }
+    if (File(p.join('web', 'style.css')).existsSync()) {
+      return const ['/web/style.css'];
+    }
+    if (File(p.join('public', 'style.css')).existsSync()) {
+      return const ['/style.css'];
+    }
+    return const [];
+  }
+
+  String _escapeHtmlAttribute(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+  }
+
+  String _escapeHtmlText(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
   }
 
   /// Renders a Mailable email template to HTML preview.
@@ -273,7 +456,7 @@ class Response {
     } catch (e) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to render email: ${e.runtimeType}');
+      raw.write('âŒ Failed to render email: ${e.runtimeType}');
       Log.debug('[Flint] Render Email Error: $e');
     }
 
@@ -294,7 +477,7 @@ class Response {
 
   /// Streams the contents of a [File] directly to the response body.
   ///
-  /// Does not set the content type automatically — you should set it before calling.
+  /// Does not set the content type automatically â€” you should set it before calling.
   /// Streams a file to the response, optionally with byte range.
   Future<void> streamFile(File file, {int start = 0, int? end}) async {
     try {
@@ -357,8 +540,8 @@ class Response {
   /// Redirects the client to a different [location] (URL or path).
   ///
   /// [status] defaults to `302` (Found). You can use:
-  /// - `301` → Permanent Redirect
-  /// - `302` → Temporary Redirect
+  /// - `301` â†’ Permanent Redirect
+  /// - `302` â†’ Temporary Redirect
   ///
   /// Example:
   /// ```dart
@@ -371,7 +554,7 @@ class Response {
       raw.headers.set(HttpHeaders.locationHeader, location);
     } catch (e) {
       raw.statusCode = 500;
-      raw.write('❌ Redirect failed: ${e.runtimeType}');
+      raw.write('âŒ Redirect failed: ${e.runtimeType}');
       Log.debug('[Flint] Redirect Error: $e');
     }
     return this;
@@ -449,7 +632,7 @@ class Response {
 
     if (file == null) {
       raw.statusCode = 404;
-      raw.write('❌ View not found: $templateName');
+      raw.write('âŒ View not found: $templateName');
       await raw.close();
       return this;
     }
@@ -493,12 +676,115 @@ class Response {
 
 // Inject hot reload WebSocket script (only for development)
     if (Platform.environment['FLINT_HOT'] == '1') {
-      const hotReloadScript = '''
+      final hotReloadScript = _hotReloadScript();
+      if (hotReloadScript.isEmpty) {
+        raw.statusCode = 200;
+        raw.headers.contentType = ContentType.html;
+        raw.write(content);
+        await raw.close();
+        return this;
+      }
+      if (isFullHtmlDocument &&
+          RegExp(r'</body>', caseSensitive: false).hasMatch(content)) {
+        content = content.replaceFirst(
+          RegExp(r'</body>', caseSensitive: false),
+          '$hotReloadScript</body>',
+        );
+      } else {
+        content += hotReloadScript;
+      }
+    }
+
+    raw.statusCode = 200;
+    raw.headers.contentType = ContentType.html;
+    raw.write(content);
+    await raw.close();
+
+    return this;
+  }
+
+  String _hotReloadScript() {
+    if (Platform.environment['FLINT_HOT'] != '1') return '';
+
+    return '''
 <script>
 function connectHotReload() {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = wsProtocol + '//' + window.location.host + '/flint_reload';
   const socket = new WebSocket(wsUrl);
+
+  function ensureFlintReloadIndicator() {
+    let overlay = document.getElementById('flint-hot-reload-indicator');
+    if (overlay) return overlay;
+
+    overlay = document.createElement('div');
+    overlay.id = 'flint-hot-reload-indicator';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<span class="flint-hot-reload-spinner"></span><span class="flint-hot-reload-text">Rebuilding Flint UI...</span>';
+
+    const style = document.createElement('style');
+    style.textContent = `
+      #flint-hot-reload-indicator {
+        align-items: center;
+        backdrop-filter: blur(14px);
+        background: rgba(15, 23, 42, 0.86);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
+        color: #ffffff;
+        display: none;
+        font: 700 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        gap: 10px;
+        left: 50%;
+        max-width: calc(100vw - 32px);
+        padding: 12px 14px;
+        position: fixed;
+        top: 18px;
+        transform: translateX(-50%);
+        z-index: 2147483647;
+      }
+
+      #flint-hot-reload-indicator[data-visible="true"] {
+        display: inline-flex;
+      }
+
+      .flint-hot-reload-spinner {
+        animation: flint-hot-reload-spin 0.75s linear infinite;
+        border: 2px solid rgba(255, 255, 255, 0.28);
+        border-top-color: #38bdf8;
+        border-radius: 999px;
+        height: 16px;
+        width: 16px;
+      }
+
+      @keyframes flint-hot-reload-spin {
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function showFlintReloadIndicator(message) {
+    const overlay = ensureFlintReloadIndicator();
+    const text = overlay.querySelector('.flint-hot-reload-text');
+    if (text) text.textContent = message || 'Rebuilding Flint UI...';
+    overlay.dataset.visible = 'true';
+  }
+
+  function normalizeFlintHotReloadMessage(raw) {
+    const envelope = JSON.parse(raw);
+    const payload = envelope && typeof envelope.data === 'object'
+      ? envelope.data
+      : {};
+
+    return {
+      event: envelope.event || payload.event,
+      message: envelope.message || payload.message
+    };
+  }
 
   socket.addEventListener('open', () => {
     console.log('[FLINT] Hot reload WebSocket connected');
@@ -506,10 +792,19 @@ function connectHotReload() {
 
   socket.addEventListener('message', event => {
     try {
-      const data = JSON.parse(event.data);
+      const data = normalizeFlintHotReloadMessage(event.data);
+      if (data.event === 'flint:building') {
+        console.log('[FLINT] Flint UI rebuild started');
+        showFlintReloadIndicator(data.message);
+      }
       if (data.event === 'flint:reload') {
         console.log('[FLINT] Hot reload triggered');
+        showFlintReloadIndicator('Reloading...');
         window.location.reload();
+      }
+      if (data.event === 'flint:error') {
+        console.error('[FLINT] Flint UI build failed');
+        showFlintReloadIndicator(data.message || 'Flint UI build failed.');
       }
     } catch (_) {
       // Ignore non-JSON control frames.
@@ -533,200 +828,9 @@ connectHotReload();
 
 
 ''';
-      if (isFullHtmlDocument &&
-          RegExp(r'</body>', caseSensitive: false).hasMatch(content)) {
-        content = content.replaceFirst(
-          RegExp(r'</body>', caseSensitive: false),
-          '$hotReloadScript</body>',
-        );
-      } else {
-        content += hotReloadScript;
-      }
-    }
-
-    raw.statusCode = 200;
-    raw.headers.contentType = ContentType.html;
-    raw.write(content);
-    await raw.close();
-
-    return this;
   }
 
   /// Convert absolute file path to template name relative to views directory
-
-  /// Generates a preview HTML wrapper for FlintWidget content
-  String _generatePreviewHtml(FlintWidget content, String title) {
-    return '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview: $title</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-        
-        .preview-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .preview-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px 12px 0 0;
-            margin-bottom: 0;
-        }
-        
-        .preview-header h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        
-        .device-preview {
-            background: white;
-            border-radius: 0 0 12px 12px;
-            padding: 40px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        
-        .preview-controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .preview-controls button {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: all 0.2s;
-        }
-        
-        .preview-controls button:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-1px);
-        }
-        
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #007cba;
-            text-decoration: none;
-            padding: 8px 16px;
-            border: 1px solid #007cba;
-            border-radius: 6px;
-        }
-        
-        .back-link:hover {
-            background: #007cba;
-            color: white;
-        }
-        
-        @media (max-width: 768px) {
-            .preview-controls {
-                flex-direction: column;
-            }
-            
-            .device-preview {
-                padding: 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="preview-container">
-        <div class="preview-header">
-            <h1>📧 $title</h1>
-            <p>Flint Widget Preview</p>
-            <div class="preview-controls">
-                <button onclick="copyHtml()">Copy HTML</button>
-                <button onclick="showHtml()">Show HTML Source</button>
-                <button onclick="showText()">Show Text Version</button>
-                <button onclick="showJson()">Show JSON</button>
-                <button onclick="downloadHtml()">Download HTML</button>
-            </div>
-        </div>
-        
-        <div class="device-preview">
-            ${content.toHtml()}
-        </div>
-        
-        <a href="javascript:history.back()" class="back-link">← Back</a>
-    </div>
-
-    <script>
-        const htmlContent = `${content.toHtml().replaceAll('`', '\\`')}`;
-        const textContent = `${content.toText().replaceAll('`', '\\`')}`;
-        const jsonContent = ${jsonEncode(content.toJson())};
-        
-        function copyHtml() {
-            navigator.clipboard.writeText(htmlContent).then(() => {
-                alert('✅ HTML copied to clipboard!');
-            }).catch(err => {
-                alert('❌ Failed to copy: ' + err);
-            });
-        }
-        
-        function showHtml() {
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(
-                '<!DOCTYPE html><html><head><title>HTML Source</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
-                htmlContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
-                '</body></html>'
-            );
-        }
-        
-        function showText() {
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(
-                '<!DOCTYPE html><html><head><title>Text Version</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
-                textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
-                '</body></html>'
-            );
-        }
-        
-        function showJson() {
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(
-                '<!DOCTYPE html><html><head><title>JSON Data</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
-                JSON.stringify(jsonContent, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
-                '</body></html>'
-            );
-        }
-        
-        function downloadHtml() {
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'flint-widget-${DateTime.now().millisecondsSinceEpoch}.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    </script>
-</body>
-</html>
-''';
-  }
 
   /// ----------------------------------------
   /// COOKIE SUPPORT

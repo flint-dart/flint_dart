@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:flint_dart/flint_dart.dart';
 
@@ -60,15 +62,13 @@ void main() {
       app.get('/text', (ctx) => 'hello');
       app.get('/json', (ctx) => {'ok': true});
 
-      final rawText =
-          FakeHttpRequest(method: 'GET', uri: Uri.parse('/text'));
+      final rawText = FakeHttpRequest(method: 'GET', uri: Uri.parse('/text'));
       await app.handleRequest(rawText);
       final textResponse = rawText.response as FakeHttpResponse;
       expect(textResponse.buffer.toString(), 'hello');
       expect(textResponse.headers.contentType?.mimeType, 'text/plain');
 
-      final rawJson =
-          FakeHttpRequest(method: 'GET', uri: Uri.parse('/json'));
+      final rawJson = FakeHttpRequest(method: 'GET', uri: Uri.parse('/json'));
       await app.handleRequest(rawJson);
       final jsonResponse = rawJson.response as FakeHttpResponse;
       expect(jsonResponse.buffer.toString(), '{"ok":true}');
@@ -88,6 +88,65 @@ void main() {
       final group = _LegacyRouteGroup();
       expect(() => app.routes(group), returnsNormally);
     });
+
+    test('controller route builder binds controller actions', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+      final users = app.controller(_AppTestController.new);
+      users.get('/users/:id', (c) => c.show());
+
+      final raw = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('/users/42'),
+      );
+      await app.handleRequest(raw);
+
+      final response = raw.response as FakeHttpResponse;
+      expect(response.buffer.toString(), '{"id":"42"}');
+      expect(response.headers.contentType?.mimeType, 'application/json');
+    });
+
+    test('route group can reuse app.controller for user routes', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+      app.routes(_UserRoutes());
+
+      final createRaw = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('/users'),
+        bodyBytes: utf8Bytes('{"email":"ada@example.com"}'),
+      );
+      createRaw.headers.contentType = ContentType.json;
+      await app.handleRequest(createRaw);
+
+      final createResponse = createRaw.response as FakeHttpResponse;
+      expect(
+        createResponse.buffer.toString(),
+        '{"message":"User created successfully","data":{"email":"ada@example.com"},"transport":"http"}',
+      );
+      expect(createResponse.headers.contentType?.mimeType, 'application/json');
+
+      final showRaw = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('/users/42'),
+      );
+      await app.handleRequest(showRaw);
+
+      final showResponse = showRaw.response as FakeHttpResponse;
+      expect(
+        showResponse.buffer.toString(),
+        '{"id":"42","message":"Profile loaded"}',
+      );
+      expect(showResponse.headers.contentType?.mimeType, 'application/json');
+    });
   });
 }
 
@@ -102,5 +161,43 @@ class _LegacyRouteGroup extends RouteGroup {
 
   Future<Response> _index(Request req, Response res) async {
     return res.send('ok');
+  }
+}
+
+class _AppTestController extends Controller {
+  Future<Response> show() async {
+    return res.json({'id': req.params['id']});
+  }
+}
+
+class _UserRoutes extends RouteGroup {
+  @override
+  String get prefix => '/users';
+
+  @override
+  void register(Flint app) {
+    final users = app.controller(_UserController.new);
+
+    users.post('/', (c) => c.create());
+    users.get('/:id', (c) => c.showProfile());
+  }
+}
+
+class _UserController extends Controller {
+  Future<Response> create() async {
+    final body = await req.json();
+
+    return res.json({
+      'message': 'User created successfully',
+      'data': body,
+      'transport': isWebSocket ? 'websocket' : 'http',
+    });
+  }
+
+  Future<Response> showProfile() async {
+    return res.json({
+      'id': req.params['id'],
+      'message': 'Profile loaded',
+    });
   }
 }

@@ -119,6 +119,28 @@ class Request {
     return null;
   }
 
+  /// Extract an auth token from the request.
+  ///
+  /// Authorization headers take priority. Browser-rendered Flint apps may also
+  /// provide a JWT through a readable auth cookie.
+  String? get authToken {
+    final bearer = bearerToken;
+    if (bearer != null && bearer.isNotEmpty) return bearer;
+
+    final configuredCookie = FlintEnv.get('FLINT_AUTH_COOKIE', 'auth.token');
+    final cookieNames = {
+      if (configuredCookie.isNotEmpty) configuredCookie,
+      'flint.auth.token',
+    };
+
+    for (final name in cookieNames) {
+      final token = cookies[name];
+      if (token != null && token.isNotEmpty) return token;
+    }
+
+    return null;
+  }
+
   /// JWT utility instance for token operations
   FlintJwt get jwt => FlintJwt(FlintEnv.get('JWT_SECRET'));
 
@@ -126,7 +148,7 @@ class Request {
   /// Returns the authenticated user payload from JWT or session (option C: session shape == JWT payload)
   Future<Map<String, dynamic>?> get user async {
     // 1️⃣ JWT first
-    final token = bearerToken;
+    final token = authToken;
     if (token != null) {
       try {
         final payload = Auth.verifyToken(token);

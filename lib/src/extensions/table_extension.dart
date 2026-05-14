@@ -75,7 +75,12 @@ extension TableSQL on Table {
       final newCol = newCols[name]!;
 
       if (!oldCols.containsKey(name)) {
-        changes.add(_buildAddColumnSQL(newCol));
+        if (newCol.renamedFrom != null &&
+            oldCols.containsKey(newCol.renamedFrom)) {
+          changes.add('RENAME COLUMN `${newCol.renamedFrom}` TO `$name`');
+        } else {
+          changes.add(_buildAddColumnSQL(newCol));
+        }
       } else {
         final oldCol = oldCols[name]!;
         if (oldCol != newCol) {
@@ -85,6 +90,9 @@ extension TableSQL on Table {
     }
 
     for (var name in oldCols.keys) {
+      final renamedInUpdated =
+          newCols.values.any((column) => column.renamedFrom == name);
+      if (renamedInUpdated) continue;
       if (!newCols.containsKey(name)) {
         final authTable = FlintEnv.get('AUTH_TABLE', "users");
         final providerCol = FlintEnv.get('AUTH_PROVIDER_COLUMN', "provider");
@@ -125,6 +133,10 @@ extension TableSQL on Table {
     }
     if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
     if (col.isUnique) buffer.write(' UNIQUE');
+    if (col.comment != null) {
+      buffer.write(" COMMENT '${_escapeSqlString(col.comment!)}'");
+    }
+    if (col.after != null) buffer.write(' AFTER `${col.after}`');
 
     return buffer.toString();
   }
@@ -139,6 +151,9 @@ extension TableSQL on Table {
     }
     if (col.isAutoIncrement) buffer.write(' AUTO_INCREMENT');
     if (col.isUnique) buffer.write(' UNIQUE');
+    if (col.comment != null) {
+      buffer.write(" COMMENT '${_escapeSqlString(col.comment!)}'");
+    }
 
     return buffer.toString();
   }
@@ -152,7 +167,12 @@ extension TableSQL on Table {
     for (var name in newCols.keys) {
       final newCol = newCols[name]!;
       if (!oldCols.containsKey(name)) {
-        changes.add(_buildAddColumnPostgres(newCol));
+        if (newCol.renamedFrom != null &&
+            oldCols.containsKey(newCol.renamedFrom)) {
+          changes.add('RENAME COLUMN "${newCol.renamedFrom}" TO "$name"');
+        } else {
+          changes.add(_buildAddColumnPostgres(newCol));
+        }
       } else {
         final oldCol = oldCols[name]!;
         if (oldCol != newCol) {
@@ -163,6 +183,9 @@ extension TableSQL on Table {
     }
 
     for (var name in oldCols.keys) {
+      final renamedInUpdated =
+          newCols.values.any((column) => column.renamedFrom == name);
+      if (renamedInUpdated) continue;
       if (name == 'created_at' || name == 'updated_at') continue;
       final authTable = FlintEnv.get('AUTH_TABLE', "users");
       final providerCol = FlintEnv.get('AUTH_PROVIDER_COLUMN', "provider");
@@ -345,4 +368,8 @@ String _formatArray(List<dynamic> array, {String dialect = 'postgres'}) {
   } else {
     return "'${jsonEncode(array)}'"; // JSON array for other dialects
   }
+}
+
+String _escapeSqlString(String value) {
+  return value.replaceAll("'", "''");
 }

@@ -7,8 +7,8 @@ class RouteExtractor {
 
     // Check if this could be the start of a route
     // Either: variable.method( or just .method( for multi-line
-    final hasRouteMethod = currentLine
-        .contains(RegExp(r'\.(get|post|put|delete|patch|options|head|websocket)\s*\('));
+    final hasRouteMethod = currentLine.contains(
+        RegExp(r'\.(get|post|put|delete|patch|options|head|websocket)\s*\('));
 
     if (!hasRouteMethod && !currentLine.contains('.')) {
       return RouteParseResult(null, 1);

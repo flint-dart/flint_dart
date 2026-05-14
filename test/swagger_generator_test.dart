@@ -27,18 +27,19 @@ void main() {
       ], generator);
 
       final swagger = generator.generateSwagger();
-      final operation = (swagger['paths'] as Map<String, dynamic>)['/ws/chat/{room}']
-          ['get'] as Map<String, dynamic>;
-      final websocketEntry =
-          (swagger['x-websockets'] as Map<String, dynamic>)['/ws/chat/{room}']
+      final operation =
+          (swagger['paths'] as Map<String, dynamic>)['/ws/chat/{room}']['get']
               as Map<String, dynamic>;
+      final websocketEntry = (swagger['x-websockets']
+          as Map<String, dynamic>)['/ws/chat/{room}'] as Map<String, dynamic>;
 
       expect(operation['summary'], 'Chat websocket handshake');
       expect(operation['x-websocket'], isTrue);
       expect(operation['x-flint-transport'], 'websocket');
       expect(operation['x-flint-namespace'], '/ws/chat/{room}');
       expect(operation['tags'], ['Chat']);
-      expect(operation['responses']['101']['description'], 'Switching Protocols');
+      expect(
+          operation['responses']['101']['description'], 'Switching Protocols');
 
       expect(websocketEntry['x-websocket'], isTrue);
       expect(websocketEntry['responses']['101']['description'],
@@ -70,9 +71,8 @@ void main() {
       final pathOperation =
           (swagger['paths'] as Map<String, dynamic>)['/notifications']['get']
               as Map<String, dynamic>;
-      final websocketOperationDoc =
-          (swagger['x-websockets'] as Map<String, dynamic>)['/notifications']
-              as Map<String, dynamic>;
+      final websocketOperationDoc = (swagger['x-websockets']
+          as Map<String, dynamic>)['/notifications'] as Map<String, dynamic>;
 
       expect(pathOperation['x-websocket'], isTrue);
       expect(pathOperation['responses']['101']['description'],

@@ -8,15 +8,10 @@ class UserRoutes extends RouteGroup {
 
   @override
   void register(Flint app) {
-    app.post(
-      '/',
-      useController(HttpUserController.new, (c) => c.create()),
-    );
+    final users = app.controller(HttpUserController.new);
 
-    app.get(
-      '/:id',
-      useController(HttpUserController.new, (c) => c.showProfile()),
-    );
+    users.post('/', (c) => c.create());
+    users.get('/:id', (c) => c.showProfile());
   }
 }
 
@@ -29,15 +24,14 @@ class ChatRoutes extends RouteGroup {
 
   @override
   void register(Flint app) {
+    final chat = app.controller(ChatSocketController.new);
+
     /// @summary Chat websocket handshake
     /// @response 101 Switching Protocols
-    app.websocket(
-      '/chat',
-      useControllerVoid(ChatSocketController.new, (c) {
-        c.connect();
-        c.joinRoom();
-      }),
-    );
+    chat.websocket('/chat', (c) {
+      c.connect();
+      c.joinRoom();
+    });
   }
 }
 

@@ -2,6 +2,44 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.0] - 2026-05-14
+
+### Release Status
+- Public minor release.
+
+### Added
+- Added first-class Flint UI package support through the standalone `flint_ui` dependency.
+- Added public bridge exports for `package:flint_dart/flint_ui.dart` and the deprecated `package:flint_dart/flint_web_ui.dart` compatibility entrypoint.
+- Added Flint Web UI CLI workflows for creating and building browser UI entrypoints.
+- Added hot-reload rebuild support for Flint UI browser bundles.
+
+### Changed
+- Moved Flint UI usage onto the external `flint_ui: ^0.1.3` package instead of the old in-framework UI implementation.
+- Updated the example app to use the standalone Flint UI package during local development.
+
+## [1.0.4] - 2026-04-30
+
+### Release Status
+- Public patch build.
+
+### Added
+- Added `Column.comment`, `Column.after`, and `Column.renamedFrom` schema metadata.
+- Added safe column rename handling during migrations so `renamedFrom` preserves existing data instead of dropping and re-adding columns.
+- Added helpful migration detection for case-only column renames, with guidance to use `renamedFrom`.
+- Added `app.controller(...)` and `ControllerRouteBuilder` for concise, request-scoped controller route registration.
+- Added shorter `controller(...)` and `controllerVoid(...)` helpers while keeping `useController(...)` and `useControllerVoid(...)` compatible.
+- Added regression coverage for controller route groups, controller binding/unbinding, migration comments, MySQL `after`, and rename handling.
+
+### Changed
+- MySQL migrations can place newly added columns with `AFTER` and persist column comments.
+- PostgreSQL migrations can apply column comments with `COMMENT ON COLUMN`.
+- Updated the grouped controller route example to use the new `app.controller(...)` API.
+- Pointed the in-repo example app to the local package path for development against unreleased framework APIs.
+
+### Fixed
+- Prevented case-only column renames such as `Nickname` to `nickname` from silently becoming unsafe drop/add migrations.
+- Ensured `renamedFrom` behaves as a one-time migration hint and is harmless on later reruns once the target column exists.
+
 ## [1.0.3] - 2026-04-26
 
 ### Release Status

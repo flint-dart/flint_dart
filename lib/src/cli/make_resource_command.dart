@@ -5,8 +5,8 @@ import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeResourceCommand extends FlintCommand {
   MakeResourceCommand()
-      : super(
-            '--make-resource', '  Creates controller, routes and registers them');
+      : super('--make-resource',
+            '  Creates controller, routes and registers them');
 
   @override
   Future<void> execute(List<String> args) async {

@@ -1,0 +1,37 @@
+@import "tailwindcss";
+@source "./**/*.dart";
+@source "../web/index.html";
+
+@theme {
+  --font-display: "Sora", "Segoe UI", sans-serif;
+  --font-body: "Inter", "Segoe UI", sans-serif;
+
+  --color-flint-ink: #172033;
+  --color-flint-teal: #0f766e;
+  --color-flint-amber: #f59e0b;
+  --color-flint-mist: #f6f8fb;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    color: var(--color-flint-ink);
+    background: var(--color-flint-mist);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-5xl px-4 py-12;
+  }
+}

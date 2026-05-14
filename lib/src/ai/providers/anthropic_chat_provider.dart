@@ -14,7 +14,8 @@ class AnthropicChatProvider extends ChatProvider {
     required this.apiKey,
     Uri? endpoint,
     AiHttpClient? httpClient,
-  })  : endpoint = endpoint ?? Uri.parse('https://api.anthropic.com/v1/messages'),
+  })  : endpoint =
+            endpoint ?? Uri.parse('https://api.anthropic.com/v1/messages'),
         httpClient = httpClient ?? RetryingAiHttpClient(DartIoAiHttpClient()) {
     if (apiKey.isEmpty) {
       throw ArgumentError('AnthropicChatProvider requires apiKey.');
@@ -34,7 +35,8 @@ class AnthropicChatProvider extends ChatProvider {
 
     for (final message in request.messages) {
       if (message.role == 'system') {
-        system = system == null ? message.content : '$system\n${message.content}';
+        system =
+            system == null ? message.content : '$system\n${message.content}';
         continue;
       }
       messages.add({
@@ -86,7 +88,8 @@ class AnthropicChatProvider extends ChatProvider {
     final first = content.isEmpty
         ? const <String, dynamic>{}
         : Map<String, dynamic>.from(content.first as Map);
-    final usage = Map<String, dynamic>.from(payload['usage'] as Map? ?? const {});
+    final usage =
+        Map<String, dynamic>.from(payload['usage'] as Map? ?? const {});
 
     return ChatResult(
       providerId: id,

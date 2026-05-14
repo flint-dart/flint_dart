@@ -27,6 +27,30 @@ Handler controllerAction<T extends Controller>(
   };
 }
 
+/// Short alias for [controllerAction].
+///
+/// Example:
+/// ```dart
+/// app.get('/users', controller(UserController.new, (c) => c.index()));
+/// ```
+Handler controller<T extends Controller>(
+  ControllerFactory<T> factory,
+  ControllerCallback<T> callback,
+) {
+  return controllerAction(factory, callback);
+}
+
+/// Short alias for controller actions that do not return a value.
+Handler controllerVoid<T extends Controller>(
+  ControllerFactory<T> factory,
+  void Function(T controller) action,
+) {
+  return controllerAction(factory, (controller) {
+    action(controller);
+    return null;
+  });
+}
+
 class ControllerContextException implements Exception {
   final String message;
 
@@ -109,16 +133,13 @@ extension ControllerRouteExtension on Object {
     ControllerFactory<T> factory,
     ControllerCallback<T> action,
   ) {
-    return controllerAction(factory, action);
+    return controller(factory, action);
   }
 
   Handler useControllerVoid<T extends Controller>(
     ControllerFactory<T> factory,
     void Function(T controller) action,
   ) {
-    return controllerAction(factory, (controller) {
-      action(controller);
-      return null;
-    });
+    return controllerVoid(factory, action);
   }
 }
