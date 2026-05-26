@@ -203,8 +203,11 @@ class Flint {
 
     if (withDefaultMiddleware) {
       _middlewares.add(ExceptionMiddleware());
+      _middlewares.add(CookieSessionMiddleware());
+      _middlewares.add(StaticFileMiddleware());
+    } else {
+      _middlewares.add(CookieSessionMiddleware());
     }
-    _middlewares.add(CookieSessionMiddleware());
     if (enableSwaggerDocs) {
       _registerSwaggerDocs();
     }
@@ -919,8 +922,7 @@ class Flint {
   Future<void> _runServer(int port) async {
     HttpServer? server;
     try {
-      server =
-          await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
+      server = await HttpServer.bind(InternetAddress.anyIPv4, port);
       Log.debug(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
 

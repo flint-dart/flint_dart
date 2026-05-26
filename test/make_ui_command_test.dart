@@ -29,7 +29,7 @@ void main() {
         '--with-root-design',
       ]);
 
-      final uiRoot = path.join(tempDir.path, 'flint_ui', 'flint_ui');
+      final uiRoot = path.join(tempDir.path, 'lib', 'ui');
       final pageFile = File(path.join(uiRoot, 'pages', 'portfolio_page.dart'));
       final registryFile = File(path.join(uiRoot, 'component_registry.dart'));
       final mainFile = File(path.join(uiRoot, 'main.dart'));
@@ -67,7 +67,7 @@ void main() {
       await command.execute(['--component', 'ProjectCard']);
       await command.execute(['--section', 'Skills']);
 
-      final uiRoot = path.join(tempDir.path, 'flint_ui', 'flint_ui');
+      final uiRoot = path.join(tempDir.path, 'lib', 'ui');
       final componentFile =
           File(path.join(uiRoot, 'components', 'project_card.dart'));
       final sectionFile =

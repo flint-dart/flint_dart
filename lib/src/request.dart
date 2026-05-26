@@ -152,6 +152,13 @@ class Request {
     if (token != null) {
       try {
         final payload = Auth.verifyToken(token);
+        if (payload == null) throw const FormatException('Invalid token');
+        final s = await session;
+        if (s != null) {
+          final merged = {...s, ...payload};
+          set('user', merged);
+          return merged;
+        }
         set('user', payload);
         return payload;
       } catch (_) {

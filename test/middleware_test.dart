@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:test/test.dart';
 import 'package:flint_dart/flint_dart.dart';
 
@@ -198,6 +200,86 @@ void main() {
       expect(
         rawResponse.buffer.toString(),
         '{"status":false,"error":"Unauthorized","message":"User already exists with this email"}',
+      );
+    });
+  });
+
+  group('AntiSqlInjectionMiddleware', () {
+    test('blocks SQL injection in query parameters', () async {
+      var handlerCalled = false;
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        handlerCalled = true;
+        return ctx.res?.send('ok');
+      });
+
+      final raw = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse("/search?q=' OR 1=1 --"),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 400);
+      expect(rawResponse.buffer.toString(), contains('SQL injection'));
+    });
+
+    test('blocks SQL injection in JSON request body', () async {
+      var handlerCalled = false;
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        handlerCalled = true;
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType('application', 'json');
+      final raw = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('/login'),
+        headers: headers,
+        bodyBytes: utf8Bytes(
+            '{"email":"admin@example.com","password":"x\' OR 1=1 --"}'),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 400);
+    });
+
+    test('allows ordinary text and preserves the body for handlers', () async {
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        final body = await ctx.req.body();
+        return ctx.res?.send(body);
+      });
+
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType('application', 'json');
+      final raw = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('/tickets'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"message":"Please help me select a plan"}'),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 200);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"message":"Please help me select a plan"}',
       );
     });
   });

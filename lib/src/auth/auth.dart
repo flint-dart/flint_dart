@@ -901,6 +901,8 @@ class Auth {
     final jwt = JWT({
       'id': cleanUser['id'],
       'email': cleanUser[_config.emailColumn],
+      if (cleanUser['name'] != null) 'name': cleanUser['name'],
+      if (cleanUser['role'] != null) 'role': cleanUser['role'],
     });
 
     return jwt.sign(

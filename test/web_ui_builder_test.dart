@@ -40,5 +40,49 @@ void main() {
         path.normalize(path.join(publicDir.path, 'main.dart.js')),
       );
     });
+
+    test('discovers app-owned lib/ui entrypoints', () {
+      final uiDir = Directory(path.join(tempDir.path, 'lib', 'ui'))
+        ..createSync(recursive: true);
+      Directory(path.join(tempDir.path, 'public')).createSync(recursive: true);
+      File(path.join(uiDir.path, 'main.dart')).writeAsStringSync(
+        'void main() {}',
+      );
+
+      final entry = FlintWebUiBuilder.findEntry();
+      final build = FlintWebUiBuilder.resolve();
+
+      expect(entry, isNotNull);
+      expect(
+        path.normalize(entry!.path),
+        path.normalize(path.join('lib', 'ui', 'main.dart')),
+      );
+      expect(build, isNotNull);
+      expect(path.normalize(build!.webDir.path), path.normalize('public'));
+      expect(
+        path.normalize(build.jsOut),
+        path.normalize(
+          path.join(
+            'public',
+            'assets',
+            'js',
+            'flint-ui',
+            'main.dart.js',
+          ),
+        ),
+      );
+      expect(
+        path.normalize(build.cssOut!),
+        path.normalize(
+          path.join(
+            'public',
+            'assets',
+            'css',
+            'flint-ui',
+            'style.css',
+          ),
+        ),
+      );
+    });
   });
 }
