@@ -24,6 +24,8 @@ class FlintPageMeta {
   final String? description;
   final String? canonicalUrl;
   final String? imageUrl;
+  final String? iconUrl;
+  final String? appleTouchIconUrl;
   final String type;
   final String? siteName;
   final String? locale;
@@ -40,6 +42,8 @@ class FlintPageMeta {
     this.description,
     this.canonicalUrl,
     this.imageUrl,
+    this.iconUrl,
+    this.appleTouchIconUrl,
     this.type = 'website',
     this.siteName,
     this.locale,
@@ -263,12 +267,13 @@ class Response {
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
-      final safeScript = _escapeHtmlAttribute(resolvedScript);
+      final safeScript =
+          _escapeHtmlAttribute(_versionedAssetUrl(resolvedScript));
       final resolvedMeta =
           meta ?? (title == null ? null : FlintPageMeta(title: title));
       final headTags = _renderFlintPageHead(
         title: title ?? resolvedMeta?.title ?? component,
-        stylesheets: resolvedStylesheets,
+        stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
         meta: resolvedMeta,
         requestUrl: request?.uri.toString(),
       );
@@ -331,6 +336,9 @@ $hotReloadScript
     final description = meta?.description;
     final canonicalUrl = meta?.canonicalUrl ?? requestUrl;
     final imageUrl = meta?.imageUrl;
+    final iconUrl = _resolveIconUrl(meta?.iconUrl);
+    final appleTouchIconUrl =
+        _resolveIconUrl(meta?.appleTouchIconUrl, preferPng: true);
     final tags = <String>[
       '    <meta charset="utf-8">',
       '    <meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -340,6 +348,9 @@ $hotReloadScript
       if (meta?.noIndex == true) _metaName('robots', 'noindex, nofollow'),
       if (canonicalUrl != null && canonicalUrl.trim().isNotEmpty)
         _linkTag('canonical', canonicalUrl),
+      if (iconUrl != null) _linkTag('icon', iconUrl),
+      if (appleTouchIconUrl != null)
+        _linkTag('apple-touch-icon', appleTouchIconUrl),
       _metaProperty('og:title', resolvedTitle),
       if (description != null && description.trim().isNotEmpty)
         _metaProperty('og:description', description),
@@ -393,7 +404,55 @@ $hotReloadScript
     return '    <script type="application/ld+json">$safeJson</script>';
   }
 
+  String _versionedAssetUrl(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('data:')) {
+      return url;
+    }
+
+    final parsed = Uri.tryParse(trimmed);
+    final pathOnly = parsed?.path ?? trimmed.split('?').first.split('#').first;
+    if (!pathOnly.startsWith('/')) return url;
+
+    final publicPath = p.joinAll([
+      'public',
+      ...pathOnly.split('/').where((part) => part.isNotEmpty),
+    ]);
+    final file = File(publicPath);
+    if (!file.existsSync()) return url;
+
+    final version = file.lastModifiedSync().millisecondsSinceEpoch.toString();
+    final separator = trimmed.contains('?') ? '&' : '?';
+    return '$trimmed${separator}v=$version';
+  }
+
+  String? _resolveIconUrl(String? explicitUrl, {bool preferPng = false}) {
+    if (explicitUrl != null && explicitUrl.trim().isNotEmpty) {
+      return explicitUrl;
+    }
+
+    final candidates = preferPng
+        ? const ['favicon.png', 'apple-touch-icon.png', 'favicon.ico']
+        : const ['favicon.ico', 'favicon.png', 'favicon.svg'];
+
+    for (final candidate in candidates) {
+      if (File(p.join('public', candidate)).existsSync()) {
+        return '/$candidate';
+      }
+    }
+
+    return null;
+  }
+
   String _defaultFlintPageScript() {
+    if (File(p.join('public', 'assets', 'js', 'flint-ui', 'main.dart.js'))
+        .existsSync()) {
+      return '/assets/js/flint-ui/main.dart.js';
+    }
     if (File(p.join('flint_ui', 'web', 'main.dart.js')).existsSync()) {
       return '/web/main.dart.js';
     }
@@ -407,6 +466,10 @@ $hotReloadScript
   }
 
   List<String> _defaultFlintPageStylesheets() {
+    if (File(p.join('public', 'assets', 'css', 'flint-ui', 'style.css'))
+        .existsSync()) {
+      return const ['/assets/css/flint-ui/style.css'];
+    }
     if (File(p.join('flint_ui', 'web', 'style.css')).existsSync()) {
       return const ['/web/style.css'];
     }
@@ -708,6 +771,9 @@ $hotReloadScript
 
     return '''
 <script>
+let flintHotReloadAttempts = 0;
+let flintHotReloadLoggedUnavailable = false;
+
 function connectHotReload() {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = wsProtocol + '//' + window.location.host + '/flint_reload';
@@ -787,6 +853,8 @@ function connectHotReload() {
   }
 
   socket.addEventListener('open', () => {
+    flintHotReloadAttempts = 0;
+    flintHotReloadLoggedUnavailable = false;
     console.log('[FLINT] Hot reload WebSocket connected');
   });
 
@@ -812,13 +880,17 @@ function connectHotReload() {
   });
 
   socket.addEventListener('close', () => {
-    console.log('[FLINT] WebSocket disconnected, retrying in 1s...');
-    setTimeout(connectHotReload, 1000); // reconnect after 1 second
+    flintHotReloadAttempts += 1;
+    const retryDelay = Math.min(1000 * flintHotReloadAttempts, 5000);
+    if (!flintHotReloadLoggedUnavailable) {
+      console.warn('[FLINT] Hot reload WebSocket unavailable, retrying...');
+      flintHotReloadLoggedUnavailable = true;
+    }
+    setTimeout(connectHotReload, retryDelay);
   });
 
-  socket.addEventListener('error', err => {
-    console.error('[FLINT] WebSocket error:', err);
-    socket.close(); // close and trigger reconnect
+  socket.addEventListener('error', () => {
+    socket.close();
   });
 }
 

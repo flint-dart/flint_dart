@@ -29,6 +29,7 @@ class FlintWebUiBuilder {
     }
 
     final candidates = [
+      path.join('lib', 'ui', 'main.dart'),
       path.join('flint_ui', 'main.dart'),
       path.join('flint_ui', 'flint_ui', 'main.dart'),
       path.join('lib', 'flint_ui', 'main.dart'),
@@ -54,6 +55,18 @@ class FlintWebUiBuilder {
     }
 
     final entryDir = entry.parent;
+    final normalizedEntry = path.normalize(entry.path);
+    final appUiEntry = path.normalize(path.join('lib', 'ui', 'main.dart'));
+    if (normalizedEntry == appUiEntry ||
+        normalizedEntry.endsWith(path.normalize(path.join(
+          '${path.separator}lib',
+          'ui',
+          'main.dart',
+        )))) {
+      final publicDir = Directory('public');
+      if (publicDir.existsSync()) return publicDir;
+    }
+
     if (path.basename(entryDir.path) == 'flint_ui') {
       final siblingWebDir = Directory(path.join(entryDir.parent.path, 'web'));
       if (siblingWebDir.existsSync()) return siblingWebDir;
@@ -87,10 +100,37 @@ class FlintWebUiBuilder {
       entry: entry,
       uiDir: entry.parent,
       webDir: webDir,
-      jsOut: outArg ?? path.join(webDir.path, 'main.dart.js'),
+      jsOut: outArg ?? _defaultJsOut(entry, webDir),
       tailwindInput: _resolveTailwindInput(entry.parent),
-      cssOut: path.join(webDir.path, 'style.css'),
+      cssOut: _defaultCssOut(entry, webDir),
     );
+  }
+
+  static String _defaultJsOut(File entry, Directory webDir) {
+    if (_isAppUiEntry(entry) && path.basename(webDir.path) == 'public') {
+      return path.join(webDir.path, 'assets', 'js', 'flint-ui', 'main.dart.js');
+    }
+
+    return path.join(webDir.path, 'main.dart.js');
+  }
+
+  static String _defaultCssOut(File entry, Directory webDir) {
+    if (_isAppUiEntry(entry) && path.basename(webDir.path) == 'public') {
+      return path.join(webDir.path, 'assets', 'css', 'flint-ui', 'style.css');
+    }
+
+    return path.join(webDir.path, 'style.css');
+  }
+
+  static bool _isAppUiEntry(File entry) {
+    final normalizedEntry = path.normalize(entry.path);
+    final appUiEntry = path.normalize(path.join('lib', 'ui', 'main.dart'));
+    return normalizedEntry == appUiEntry ||
+        normalizedEntry.endsWith(path.normalize(path.join(
+          '${path.separator}lib',
+          'ui',
+          'main.dart',
+        )));
   }
 
   static Future<bool> compileIfPresent() async {
@@ -131,13 +171,24 @@ class FlintWebUiBuilder {
       runInShell: true,
     );
 
+    final stdoutText = result.stdout.toString().trim();
+    final stderrText = result.stderr.toString().trim();
+
     if (result.exitCode != 0) {
       Log.debug('Web build failed:');
-      Log.debug(result.stderr.toString());
-      throw StateError('Flint Web UI build failed.');
+      if (stdoutText.isNotEmpty) Log.debug(stdoutText);
+      if (stderrText.isNotEmpty) Log.debug(stderrText);
+      final detail = [stdoutText, stderrText]
+          .where((text) => text.isNotEmpty)
+          .join('\n')
+          .trim();
+      throw StateError(
+        detail.isEmpty
+            ? 'Flint Web UI build failed.'
+            : 'Flint Web UI build failed.\n$detail',
+      );
     }
 
-    final stdoutText = result.stdout.toString().trim();
     if (stdoutText.isNotEmpty) Log.debug(stdoutText);
   }
 

@@ -280,12 +280,9 @@
       return B.UnknownJavaScriptObject_methods;
     },
     JSArray_JSArray$fixed($length, $E) {
-      if ($length > 4294967295)
+      if ($length < 0 || $length > 4294967295)
         throw A.wrapException(A.RangeError$range($length, 0, 4294967295, "length", null));
       return J.JSArray_JSArray$markFixed(new Array($length), $E);
-    },
-    JSArray_JSArray$growable($length, $E) {
-      return A._setArrayType(new Array($length), $E._eval$1("JSArray<0>"));
     },
     JSArray_JSArray$markFixed(allocation, $E) {
       var t1 = A._setArrayType(allocation, $E._eval$1("JSArray<0>"));
@@ -418,6 +415,15 @@
         return receiver;
       return J.getNativeInterceptor(receiver);
     },
+    getInterceptor$s(receiver) {
+      if (typeof receiver == "string")
+        return J.JSString.prototype;
+      if (receiver == null)
+        return receiver;
+      if (!(receiver instanceof A.Object))
+        return J.UnknownJavaScriptObject.prototype;
+      return receiver;
+    },
     get$hashCode$(receiver) {
       return J.getInterceptor$(receiver).get$hashCode(receiver);
     },
@@ -437,14 +443,14 @@
         return a0 != null && receiver === a0;
       return J.getInterceptor$(receiver).$eq(receiver, a0);
     },
+    allMatches$1$s(receiver, a0) {
+      return J.getInterceptor$s(receiver).allMatches$1(receiver, a0);
+    },
     elementAt$1$ax(receiver, a0) {
       return J.getInterceptor$ax(receiver).elementAt$1(receiver, a0);
     },
     map$1$1$ax(receiver, a0, $T1) {
       return J.getInterceptor$ax(receiver).map$1$1(receiver, a0, $T1);
-    },
-    toList$0$ax(receiver) {
-      return J.getInterceptor$ax(receiver).toList$0(receiver);
     },
     toString$0$(receiver) {
       return J.getInterceptor$(receiver).toString$0(receiver);
@@ -514,11 +520,14 @@
         return new A.EfficientLengthMappedIterable(iterable, $function, $S._eval$1("@<0>")._bind$1($T)._eval$1("EfficientLengthMappedIterable<1,2>"));
       return new A.MappedIterable(iterable, $function, $S._eval$1("@<0>")._bind$1($T)._eval$1("MappedIterable<1,2>"));
     },
+    IterableElementError_noElement() {
+      return new A.StateError("No element");
+    },
     LateError: function LateError(t0) {
       this._message = t0;
     },
-    ReachabilityError: function ReachabilityError(t0) {
-      this._message = t0;
+    CodeUnits: function CodeUnits(t0) {
+      this._string = t0;
     },
     EfficientLengthIterable: function EfficientLengthIterable() {
     },
@@ -573,6 +582,10 @@
       this.$ti = t1;
     },
     FixedLengthListMixin: function FixedLengthListMixin() {
+    },
+    UnmodifiableListMixin: function UnmodifiableListMixin() {
+    },
+    UnmodifiableListBase: function UnmodifiableListBase() {
     },
     unminifyOrTag(rawClassName) {
       var preserved = init.mangledGlobalNames[rawClassName];
@@ -1282,10 +1295,68 @@
         return $function.apply(null, fieldRtis);
       return $function(fieldRtis);
     },
+    JSSyntaxRegExp_makeNative(source, multiLine, caseSensitive, unicode, dotAll, extraFlags) {
+      var m = multiLine ? "m" : "",
+        i = caseSensitive ? "" : "i",
+        u = unicode ? "u" : "",
+        s = dotAll ? "s" : "",
+        regexp = function(source, modifiers) {
+          try {
+            return new RegExp(source, modifiers);
+          } catch (e) {
+            return e;
+          }
+        }(source, m + i + u + s + extraFlags);
+      if (regexp instanceof RegExp)
+        return regexp;
+      throw A.wrapException(A.FormatException$("Illegal RegExp pattern (" + String(regexp) + ")", source));
+    },
+    escapeReplacement(replacement) {
+      if (replacement.indexOf("$", 0) >= 0)
+        return replacement.replace(/\$/g, "$$$$");
+      return replacement;
+    },
     quoteStringForRegExp(string) {
       if (/[[\]{}()*+?.\\^$|]/.test(string))
         return string.replace(/[[\]{}()*+?.\\^$|]/g, "\\$&");
       return string;
+    },
+    stringReplaceAllUnchecked(receiver, pattern, replacement) {
+      var nativeRegexp;
+      if (typeof pattern == "string")
+        return A.stringReplaceAllUncheckedString(receiver, pattern, replacement);
+      if (pattern instanceof A.JSSyntaxRegExp) {
+        nativeRegexp = pattern.get$_nativeGlobalVersion();
+        nativeRegexp.lastIndex = 0;
+        return receiver.replace(nativeRegexp, A.escapeReplacement(replacement));
+      }
+      return A.stringReplaceAllGeneral(receiver, pattern, replacement);
+    },
+    stringReplaceAllGeneral(receiver, pattern, replacement) {
+      var t1, startIndex, t2, match;
+      for (t1 = J.allMatches$1$s(pattern, receiver), t1 = t1.get$iterator(t1), startIndex = 0, t2 = ""; t1.moveNext$0();) {
+        match = t1.get$current();
+        t2 = t2 + receiver.substring(startIndex, match.get$start()) + replacement;
+        startIndex = match.get$end();
+      }
+      t1 = t2 + receiver.substring(startIndex);
+      return t1.charCodeAt(0) == 0 ? t1 : t1;
+    },
+    stringReplaceAllUncheckedString(receiver, pattern, replacement) {
+      var $length, t1, i;
+      if (pattern === "") {
+        if (receiver === "")
+          return replacement;
+        $length = receiver.length;
+        for (t1 = replacement, i = 0; i < $length; ++i)
+          t1 = t1 + receiver[i] + replacement;
+        return t1.charCodeAt(0) == 0 ? t1 : t1;
+      }
+      if (receiver.indexOf(pattern, 0) < 0)
+        return receiver;
+      if (receiver.length < 500 || replacement.indexOf("$", 0) >= 0)
+        return receiver.split(pattern).join(replacement);
+      return receiver.replace(new RegExp(A.quoteStringForRegExp(pattern), "g"), A.escapeReplacement(replacement));
     },
     ConstantMap: function ConstantMap() {
     },
@@ -1310,6 +1381,13 @@
       _.__js_helper$_index = 0;
       _.__js_helper$_current = null;
       _.$ti = t2;
+    },
+    ConstantSet: function ConstantSet() {
+    },
+    ConstantStringSet: function ConstantStringSet(t0, t1, t2) {
+      this._jsIndex = t0;
+      this.__js_helper$_length = t1;
+      this.$ti = t2;
     },
     SafeToStringHook: function SafeToStringHook() {
     },
@@ -1367,15 +1445,28 @@
       this.$this = t0;
     },
     LinkedHashMapCell: function LinkedHashMapCell(t0, t1) {
-      this.hashMapCellKey = t0;
-      this.hashMapCellValue = t1;
-      this._next = null;
+      var _ = this;
+      _.hashMapCellKey = t0;
+      _.hashMapCellValue = t1;
+      _._previous = _._next = null;
     },
     LinkedHashMapKeysIterable: function LinkedHashMapKeysIterable(t0, t1) {
       this._map = t0;
       this.$ti = t1;
     },
     LinkedHashMapKeyIterator: function LinkedHashMapKeyIterator(t0, t1, t2, t3) {
+      var _ = this;
+      _._map = t0;
+      _._modifications = t1;
+      _._cell = t2;
+      _.__js_helper$_current = null;
+      _.$ti = t3;
+    },
+    LinkedHashMapValuesIterable: function LinkedHashMapValuesIterable(t0, t1) {
+      this._map = t0;
+      this.$ti = t1;
+    },
+    LinkedHashMapValueIterator: function LinkedHashMapValueIterator(t0, t1, t2, t3) {
       var _ = this;
       _._map = t0;
       _._modifications = t1;
@@ -1403,6 +1494,47 @@
     },
     initHooks_closure1: function initHooks_closure1(t0) {
       this.prototypeForTag = t0;
+    },
+    JSSyntaxRegExp: function JSSyntaxRegExp(t0, t1) {
+      var _ = this;
+      _.pattern = t0;
+      _._nativeRegExp = t1;
+      _._nativeAnchoredRegExp = _._nativeGlobalRegExp = null;
+    },
+    _MatchImplementation: function _MatchImplementation(t0) {
+      this._match = t0;
+    },
+    _AllMatchesIterable: function _AllMatchesIterable(t0, t1, t2) {
+      this._re = t0;
+      this.__js_helper$_string = t1;
+      this._start = t2;
+    },
+    _AllMatchesIterator: function _AllMatchesIterator(t0, t1, t2) {
+      var _ = this;
+      _._regExp = t0;
+      _.__js_helper$_string = t1;
+      _._nextIndex = t2;
+      _.__js_helper$_current = null;
+    },
+    StringMatch: function StringMatch(t0, t1) {
+      this.start = t0;
+      this.pattern = t1;
+    },
+    _StringAllMatchesIterable: function _StringAllMatchesIterable(t0, t1, t2) {
+      this._input = t0;
+      this._pattern = t1;
+      this.__js_helper$_index = t2;
+    },
+    _StringAllMatchesIterator: function _StringAllMatchesIterator(t0, t1, t2) {
+      var _ = this;
+      _._input = t0;
+      _._pattern = t1;
+      _.__js_helper$_index = t2;
+      _.__js_helper$_current = null;
+    },
+    _checkValidIndex(index, list, $length) {
+      if (index >>> 0 !== index || index >= $length)
+        throw A.wrapException(A.diagnoseIndexError(list, index));
     },
     NativeByteBuffer: function NativeByteBuffer() {
     },
@@ -3064,6 +3196,15 @@
     LinkedHashMap_LinkedHashMap$_empty($K, $V) {
       return new A.JsLinkedHashMap($K._eval$1("@<0>")._bind$1($V)._eval$1("JsLinkedHashMap<1,2>"));
     },
+    LinkedHashSet_LinkedHashSet$_empty($E) {
+      return new A._LinkedHashSet($E._eval$1("_LinkedHashSet<0>"));
+    },
+    _LinkedHashSet__newHashTable() {
+      var table = Object.create(null);
+      table["<non-identifier-key>"] = table;
+      delete table["<non-identifier-key>"];
+      return table;
+    },
     LinkedHashMap_LinkedHashMap$of(other, $K, $V) {
       var t1 = A.LinkedHashMap_LinkedHashMap($K, $V);
       t1.addAll$1(0, other);
@@ -3089,6 +3230,24 @@
       t1 = result._contents;
       return t1.charCodeAt(0) == 0 ? t1 : t1;
     },
+    _LinkedHashSet: function _LinkedHashSet(t0) {
+      var _ = this;
+      _._collection$_length = 0;
+      _._collection$_last = _._collection$_first = _._collection$_rest = _._collection$_nums = _._collection$_strings = null;
+      _._collection$_modifications = 0;
+      _.$ti = t0;
+    },
+    _LinkedHashSetCell: function _LinkedHashSetCell(t0) {
+      this._element = t0;
+      this._collection$_next = null;
+    },
+    _LinkedHashSetIterator: function _LinkedHashSetIterator(t0, t1, t2) {
+      var _ = this;
+      _._set = t0;
+      _._collection$_modifications = t1;
+      _._collection$_current = _._collection$_cell = null;
+      _.$ti = t2;
+    },
     ListBase: function ListBase() {
     },
     MapBase: function MapBase() {
@@ -3100,14 +3259,18 @@
       this._box_0 = t0;
       this.result = t1;
     },
+    SetBase: function SetBase() {
+    },
+    _SetBase: function _SetBase() {
+    },
     _parseJson(source, reviver) {
       var e, exception, t1, parsed = null;
       try {
         parsed = JSON.parse(source);
       } catch (exception) {
         e = A.unwrapException(exception);
-        t1 = String(e);
-        throw A.wrapException(new A.FormatException(t1));
+        t1 = A.FormatException$(String(e), null);
+        throw A.wrapException(t1);
       }
       t1 = A._convertJsonToDartLazy(parsed);
       return t1;
@@ -3150,9 +3313,9 @@
     },
     List_List$filled($length, fill, growable, $E) {
       var i,
-        result = growable ? J.JSArray_JSArray$growable($length, $E) : J.JSArray_JSArray$fixed($length, $E);
+        result = J.JSArray_JSArray$fixed($length, $E);
       if ($length !== 0)
-        for (i = 0; i < result.length; ++i)
+        for (i = 0; i < $length; ++i)
           result[i] = fill;
       return result;
     },
@@ -3162,6 +3325,9 @@
       for (t1 = elements.get$iterator(elements); t1.moveNext$0();)
         B.JSArray_methods.add$1(list, t1.get$current());
       return list;
+    },
+    RegExp_RegExp(source) {
+      return new A.JSSyntaxRegExp(source, A.JSSyntaxRegExp_makeNative(source, false, true, false, false, ""));
     },
     StringBuffer__writeAll(string, objects, separator) {
       var iterator = J.get$iterator$ax(objects);
@@ -3196,13 +3362,24 @@
     ArgumentError$(message) {
       return new A.ArgumentError(false, null, null, message);
     },
+    ArgumentError$value(value, $name, message) {
+      return new A.ArgumentError(true, value, $name, message);
+    },
     RangeError$range(invalidValue, minValue, maxValue, $name, message) {
       return new A.RangeError(minValue, maxValue, true, invalidValue, $name, "Invalid value");
     },
     RangeError_checkValidRange(start, end, $length) {
-      if (start > $length)
+      if (0 > start || start > $length)
         throw A.wrapException(A.RangeError$range(start, 0, $length, "start", null));
+      if (end != null) {
+        if (start > end || end > $length)
+          throw A.wrapException(A.RangeError$range(end, start, $length, "end", null));
+        return end;
+      }
       return $length;
+    },
+    RangeError_checkNotNegative(value, $name) {
+      return value;
     },
     IndexError$withLength(invalidValue, $length, indexable, $name) {
       return new A.IndexError($length, true, invalidValue, $name, "Index out of range");
@@ -3218,6 +3395,9 @@
     },
     ConcurrentModificationError$(modifiedObject) {
       return new A.ConcurrentModificationError(modifiedObject);
+    },
+    FormatException$(message, source) {
+      return new A.FormatException(message, source);
     },
     Iterable_iterableToShortString(iterable, leftDelimiter, rightDelimiter) {
       var parts, t1;
@@ -3337,6 +3517,8 @@
       B.JSArray_methods.add$1(parts, penultimateString);
       B.JSArray_methods.add$1(parts, ultimateString);
     },
+    _Enum: function _Enum() {
+    },
     Error: function Error() {
     },
     AssertionError: function AssertionError(t0) {
@@ -3380,13 +3562,16 @@
     ConcurrentModificationError: function ConcurrentModificationError(t0) {
       this.modifiedObject = t0;
     },
+    OutOfMemoryError: function OutOfMemoryError() {
+    },
     StackOverflowError: function StackOverflowError() {
     },
     _Exception: function _Exception(t0) {
       this.message = t0;
     },
-    FormatException: function FormatException(t0) {
+    FormatException: function FormatException(t0, t1) {
       this.message = t0;
+      this.source = t1;
     },
     Iterable: function Iterable() {
     },
@@ -3402,14 +3587,23 @@
     StringBuffer: function StringBuffer(t0) {
       this._contents = t0;
     },
-    FlintRoot: function FlintRoot(t0) {
+    FlintRoot: function FlintRoot(t0, t1) {
       var _ = this;
       _.host = t0;
       _._node = null;
+      _._componentSlots = t1;
       _._mounted = _._renderQueued = false;
     },
     FlintRoot__scheduleRender_closure: function FlintRoot__scheduleRender_closure(t0) {
       this.$this = t0;
+    },
+    FlintRoot__createComponent_closure: function FlintRoot__createComponent_closure(t0, t1) {
+      this.$this = t0;
+      this.mount = t1;
+    },
+    FlintRoot__scheduleComponentRender_closure: function FlintRoot__scheduleComponentRender_closure(t0, t1) {
+      this.$this = t0;
+      this.mount = t1;
     },
     FlintRoot__applyProps_closure: function FlintRoot__applyProps_closure(t0, t1) {
       this.$this = t0;
@@ -3422,7 +3616,177 @@
     FlintRoot__listen_closure: function FlintRoot__listen_closure(t0) {
       this.handler = t0;
     },
+    _ComponentMount: function _ComponentMount(t0, t1, t2) {
+      var _ = this;
+      _.component = t0;
+      _.boundary = t1;
+      _.childSlots = t2;
+      _.mounted = _.renderQueued = false;
+    },
     FlintComponent: function FlintComponent() {
+    },
+    mergeComponentProps(props, className, dartStyle, defaultStyle, style) {
+      var t2, t3, mergedStyle, t4, t5, scopedClass, classes,
+        _s9_ = "className",
+        _null = null, _s5_ = "style",
+        t1 = props.$index(0, _s9_),
+        existingClass = t1 == null ? _null : J.toString$0$(t1),
+        existingStyle = props.$index(0, _s5_);
+      t1 = dartStyle == null;
+      t2 = t1 ? _null : dartStyle.toMap$0();
+      if (t2 == null)
+        t2 = B.Map_empty;
+      $label0$0: {
+        if (type$.Map_of_String_and_nullable_Object._is(existingStyle)) {
+          t3 = existingStyle;
+          break $label0$0;
+        }
+        if (typeof existingStyle == "string") {
+          t3 = A.LinkedHashMap_LinkedHashMap$_literal(["_cssText", existingStyle], type$.String, type$.nullable_Object);
+          break $label0$0;
+        }
+        t3 = B.Map_empty;
+        break $label0$0;
+      }
+      mergedStyle = A.mergeStyles(defaultStyle, B.Map_empty, t2, style, t3);
+      t3 = type$.String;
+      t2 = type$.nullable_Object;
+      t4 = A.LinkedHashMap_LinkedHashMap$of(props, t3, t2);
+      t4.remove$1(0, _s5_);
+      if (t1)
+        t5 = _null;
+      else {
+        t5 = true;
+        if (dartStyle.hover == null)
+          if (dartStyle.focusVisible == null) {
+            t5 = dartStyle.active;
+            t5 = t5 != null;
+          }
+      }
+      if (t5 === true) {
+        dartStyle.toString;
+        scopedClass = "flint-s-" + B.JSInt_methods.toRadixString$1(A._stableHash(A._scopedCssBody(dartStyle)), 36);
+      } else
+        scopedClass = _null;
+      classes = A.joinClassNames(A._setArrayType([existingClass, className, scopedClass], type$.JSArray_nullable_String));
+      t2 = A.LinkedHashMap_LinkedHashMap$of(t4, t3, t2);
+      if (classes.length !== 0)
+        t2.$indexSet(0, _s9_, classes);
+      if (scopedClass != null) {
+        dartStyle.toString;
+        t2.$indexSet(0, "_flintStyleCss", A._scopedCss(scopedClass, dartStyle));
+      }
+      if (mergedStyle.__js_helper$_length !== 0) {
+        if (typeof existingStyle == "string") {
+          t1 = t1 ? _null : dartStyle.toMap$0();
+          t1 = new A.WhereIterable(A._setArrayType([A.styleToCss(A.mergeStyles(defaultStyle, B.Map_empty, t1 == null ? B.Map_empty : t1, style, B.Map_empty)), existingStyle], type$.JSArray_String), type$.bool_Function_String._as(new A.mergeComponentProps_closure()), type$.WhereIterable_String).join$1(0, "; ");
+        } else
+          t1 = mergedStyle;
+        t2.$indexSet(0, _s5_, t1);
+      }
+      return t2;
+    },
+    mergeStyles(first, second, third, fourth, fifth) {
+      var t2, _i, t3, t4, t5,
+        t1 = A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$.nullable_Object);
+      for (t2 = [first, second, third, fourth, fifth], _i = 0; _i < 5; ++_i)
+        for (t3 = t2[_i].get$entries(), t3 = t3.get$iterator(t3); t3.moveNext$0();) {
+          t4 = t3.get$current();
+          t5 = t4.value;
+          if (t5 != null && t4.key !== "_cssText")
+            t1.$indexSet(0, t4.key, t5);
+        }
+      return t1;
+    },
+    normalizeChildren(child, children) {
+      var t2, t3, t1 = [];
+      if (child != null)
+        t1.push(child);
+      B.JSArray_methods.addAll$1(t1, children);
+      t2 = A._arrayInstanceType(t1);
+      t3 = t2._eval$1("MappedListIterable<1,FlintNode>");
+      t1 = A.List_List$_of(new A.MappedListIterable(t1, t2._eval$1("FlintNode(1)")._as(A.component_props__toFlintNode$closure()), t3), t3._eval$1("ListIterable.E"));
+      t1.$flags = 1;
+      return t1;
+    },
+    toFlintNode(value) {
+      var t1;
+      if (value instanceof A.FlintNode)
+        return value;
+      if (value instanceof A.FlintComponent)
+        return new A.FlintComponentNode(value);
+      if (type$.Iterable_dynamic._is(value))
+        return new A.FlintFragment(J.map$1$1$ax(value, A.component_props__toFlintNode$closure(), type$.FlintNode).toList$1$growable(0, false));
+      t1 = value == null ? null : J.toString$0$(value);
+      return new A.FlintText(t1 == null ? "" : t1);
+    },
+    joinClassNames(values) {
+      var t1 = A._arrayInstanceType(values);
+      return new A.MappedIterable(new A.WhereIterable(values, t1._eval$1("bool(1)")._as(new A.joinClassNames_closure()), t1._eval$1("WhereIterable<1>")), t1._eval$1("String(1)")._as(new A.joinClassNames_closure0()), t1._eval$1("MappedIterable<1,String>")).join$1(0, " ");
+    },
+    styleToCss(style) {
+      var t1 = A._instanceType(style)._eval$1("LinkedHashMapEntriesIterable<1,2>");
+      return new A.MappedIterable(new A.WhereIterable(new A.LinkedHashMapEntriesIterable(style, t1), t1._eval$1("bool(Iterable.E)")._as(new A.styleToCss_closure()), t1._eval$1("WhereIterable<Iterable.E>")), t1._eval$1("String(Iterable.E)")._as(new A.styleToCss_closure0()), t1._eval$1("MappedIterable<Iterable.E,String>")).join$1(0, "; ");
+    },
+    _scopedCss(className, style) {
+      var t1, t2, entry, body,
+        chunks = A._setArrayType([], type$.JSArray_String);
+      for (t1 = style.get$stateStyles(), t1 = new A.LinkedHashMapEntriesIterable(t1, A._instanceType(t1)._eval$1("LinkedHashMapEntriesIterable<1,2>")).get$iterator(0), t2 = "." + className; t1.moveNext$0();) {
+        entry = t1.__js_helper$_current;
+        body = A._styleToCssImportant(entry.value.toMap$0());
+        if (body.length === 0)
+          continue;
+        B.JSArray_methods.add$1(chunks, t2 + entry.key + " { " + body + "; }");
+      }
+      for (t1 = style.get$breakpointStyles(), t1 = new A.LinkedHashMapEntriesIterable(t1, A._instanceType(t1)._eval$1("LinkedHashMapEntriesIterable<1,2>")).get$iterator(0); t1.moveNext$0();) {
+        entry = t1.__js_helper$_current;
+        body = A._styleToCssImportant(entry.value.toMap$0());
+        if (body.length === 0)
+          continue;
+        B.JSArray_methods.add$1(chunks, "@media (min-width: " + entry.key.minWidth + "px) { ." + className + " { " + body + "; } }");
+      }
+      return B.JSArray_methods.join$1(chunks, "\n");
+    },
+    _scopedCssBody(style) {
+      var t4,
+        t1 = style.get$stateStyles(),
+        t2 = A._instanceType(t1)._eval$1("LinkedHashMapEntriesIterable<1,2>"),
+        t3 = type$.String;
+      t1 = A.List_List$_of(A.MappedIterable_MappedIterable(new A.LinkedHashMapEntriesIterable(t1, t2), t2._eval$1("String(Iterable.E)")._as(new A._scopedCssBody_closure()), t2._eval$1("Iterable.E"), t3), t3);
+      t2 = style.get$breakpointStyles();
+      t4 = A._instanceType(t2)._eval$1("LinkedHashMapEntriesIterable<1,2>");
+      B.JSArray_methods.addAll$1(t1, A.MappedIterable_MappedIterable(new A.LinkedHashMapEntriesIterable(t2, t4), t4._eval$1("String(Iterable.E)")._as(new A._scopedCssBody_closure0()), t4._eval$1("Iterable.E"), t3));
+      return B.JSArray_methods.join$1(t1, "|");
+    },
+    _styleToCssImportant(style) {
+      var t1 = A._instanceType(style)._eval$1("LinkedHashMapEntriesIterable<1,2>");
+      return new A.MappedIterable(new A.WhereIterable(new A.LinkedHashMapEntriesIterable(style, t1), t1._eval$1("bool(Iterable.E)")._as(new A._styleToCssImportant_closure()), t1._eval$1("WhereIterable<Iterable.E>")), t1._eval$1("String(Iterable.E)")._as(new A._styleToCssImportant_closure0()), t1._eval$1("MappedIterable<Iterable.E,String>")).join$1(0, "; ");
+    },
+    _stableHash(value) {
+      var t1, t2, hash, t3;
+      for (t1 = new A.CodeUnits(value), t2 = type$.CodeUnits, t1 = new A.ListIterator(t1, t1.get$length(0), t2._eval$1("ListIterator<ListBase.E>")), t2 = t2._eval$1("ListBase.E"), hash = 2166136261; t1.moveNext$0();) {
+        t3 = t1.__internal$_current;
+        hash = ((hash ^ (t3 == null ? t2._as(t3) : t3)) >>> 0) * 16777619 >>> 0;
+      }
+      return hash;
+    },
+    mergeComponentProps_closure: function mergeComponentProps_closure() {
+    },
+    joinClassNames_closure: function joinClassNames_closure() {
+    },
+    joinClassNames_closure0: function joinClassNames_closure0() {
+    },
+    styleToCss_closure: function styleToCss_closure() {
+    },
+    styleToCss_closure0: function styleToCss_closure0() {
+    },
+    _scopedCssBody_closure: function _scopedCssBody_closure() {
+    },
+    _scopedCssBody_closure0: function _scopedCssBody_closure0() {
+    },
+    _styleToCssImportant_closure: function _styleToCssImportant_closure() {
+    },
+    _styleToCssImportant_closure0: function _styleToCssImportant_closure0() {
     },
     FlintNode: function FlintNode() {
     },
@@ -3440,6 +3804,49 @@
     FlintComponentNode: function FlintComponentNode(t0) {
       this.component = t0;
     },
+    createFlintApp(selector, registry) {
+      var t1, _i, encoded, decoded, t2, t3, context, builder, component, _null = null,
+        host = A._asJSObjectQ(A._asJSObject(init.G.document).querySelector(selector));
+      if (host == null)
+        throw A.wrapException(A.StateError$('No element found for selector "' + selector + '".'));
+      t1 = type$.JSArray_KeyframeStep;
+      A.registerRootDesign(new A.RootDesign("flint-animations", A._setArrayType([new A.StyleKeyframes("flint-spin", A._setArrayType([new A.KeyframeStep("from", A.DartStyle$(_null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, new A.StyleTransform("rotate(" + A.cssValue(0, false) + ")"), _null, _null, _null, _null, _null)), new A.KeyframeStep("to", A.DartStyle$(_null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, new A.StyleTransform("rotate(" + A.cssValue("360deg", false) + ")"), _null, _null, _null, _null, _null))], t1)), new A.StyleKeyframes("flint-fade-in", A._setArrayType([new A.KeyframeStep("from", B.DartStyle_WEp), new A.KeyframeStep("to", B.DartStyle_zkl)], t1))], type$.JSArray_StyleKeyframes)));
+      for (_i = 0; false; ++_i)
+        A.registerStyleSheet(B.List_empty[_i]);
+      encoded = A._asStringQ(host.getAttribute("data-flint-page"));
+      if (encoded == null || B.JSString_methods.trim$0(encoded).length === 0)
+        A.throwExpression(A.StateError$("Missing data-flint-page payload on Flint app root."));
+      decoded = B.C_JsonCodec.decode$2$reviver(encoded, _null);
+      if (!type$.Map_String_dynamic._is(decoded))
+        A.throwExpression(A.StateError$("Invalid Flint page payload."));
+      t1 = decoded.$index(0, "component");
+      t1 = t1 == null ? _null : J.toString$0$(t1);
+      if (t1 == null)
+        t1 = "";
+      t2 = A._asStringKeyedMap(decoded.$index(0, "props"));
+      t3 = decoded.$index(0, "url");
+      if (t3 != null)
+        J.toString$0$(t3);
+      t3 = decoded.$index(0, "version");
+      if (t3 != null)
+        J.toString$0$(t3);
+      context = new A.FlintPageContext();
+      for (_i = 0; false; ++_i)
+        B.List_empty0[_i].call$1(context);
+      builder = registry._pages.$index(0, t1);
+      if (builder == null)
+        builder = _null;
+      t2 = builder == null ? _null : builder.call$1(t2);
+      if (t2 == null)
+        component = _null;
+      else
+        component = t2;
+      if (component == null)
+        component = new A.MissingFlintPage(t1);
+      t1 = new A.FlintRoot(host, A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$._ComponentMount));
+      t1._node = t1._normalize$1(component);
+      t1._scheduleRender$0();
+    },
     _asStringKeyedMap(value) {
       if (type$.Map_String_dynamic._is(value))
         return value;
@@ -3454,108 +3861,525 @@
       this.component = t0;
       this.props = t1;
     },
+    FlintPageContext: function FlintPageContext() {
+    },
     MissingFlintPage: function MissingFlintPage(t0) {
       this.component = t0;
       this._component$_scheduleRender = null;
     },
     _asStringKeyedMap_closure: function _asStringKeyedMap_closure() {
     },
-    Text$(value) {
-      var t1 = value == null ? null : J.toString$0$(value);
-      return new A.Text(t1 == null ? "" : t1);
+    DartStyle$(active, alignItems, animation, aspectRatio, backdropFilter, background, border, borderBottom, borderLeft, borderRight, borderTop, bottom, boxSizing, checked, color, cursor, disabled, display, expanded, flex, flexBasis, flexDirection, flexGrow, flexShrink, flexWrap, $focus, focusVisible, fontFamily, fontSize, fontWeight, gap, gradient, gridTemplateColumns, height, hover, invalid, justifyContent, justifyItems, left, lg, lineHeight, margin, maxHeight, maxWidth, md, minHeight, minWidth, objectFit, opacity, overflow, padding, position, radius, resize, right, scrollBehavior, selected, shadow, sm, textAlign, textDecoration, textTransform, $top, transform, transition, width, willChange, xl, zIndex) {
+      return new A.DartStyle(padding, margin, width, height, minWidth, maxWidth, minHeight, maxHeight, display, gap, alignItems, justifyItems, justifyContent, flex, flexDirection, flexWrap, flexGrow, flexShrink, flexBasis, gridTemplateColumns, position, $top, right, bottom, left, zIndex, overflow, boxSizing, scrollBehavior, aspectRatio, objectFit, transform, backdropFilter, fontFamily, fontSize, fontWeight, lineHeight, color, textAlign, textTransform, textDecoration, cursor, resize, background, radius, border, borderTop, borderRight, borderBottom, borderLeft, shadow, opacity, gradient, transition, animation, willChange, hover, $focus, focusVisible, active, disabled, checked, selected, expanded, invalid, sm, md, lg, xl);
     },
-    Column$(children, props) {
-      var t1 = A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$.nullable_Object);
-      t1.$indexSet(0, "display", "flex");
-      t1.$indexSet(0, "flex-direction", "column");
-      t1.addAll$1(0, B.Map_empty);
-      return new A.Column("div", A._mergeProps(props, t1), A._normalizeChildren(null, children));
+    rootStyleToCss(style) {
+      var t1 = A._instanceType(style)._eval$1("LinkedHashMapEntriesIterable<1,2>");
+      return new A.MappedIterable(new A.WhereIterable(new A.LinkedHashMapEntriesIterable(style, t1), t1._eval$1("bool(Iterable.E)")._as(new A.rootStyleToCss_closure()), t1._eval$1("WhereIterable<Iterable.E>")), t1._eval$1("String(Iterable.E)")._as(new A.rootStyleToCss_closure0()), t1._eval$1("MappedIterable<Iterable.E,String>")).join$1(0, "; ");
     },
-    Row$(children, props) {
-      var t1 = A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$.nullable_Object);
-      t1.$indexSet(0, "display", "flex");
-      t1.$indexSet(0, "flex-direction", "row");
-      t1.addAll$1(0, B.Map_empty);
-      return new A.Row("div", A._mergeProps(props, t1), A._normalizeChildren(null, children));
+    Border$all(color) {
+      return new A.Border(1, color, "solid");
     },
-    Button$(child, onPressed, props) {
-      var t1 = A.LinkedHashMap_LinkedHashMap$of(props, type$.String, type$.nullable_Object);
-      t1.$indexSet(0, "onClick", onPressed);
-      return new A.Button("button", A._mergeProps(t1, B.Map_empty), A._normalizeChildren(child, B.List_empty));
+    StyleTransition_StyleTransition$property(property, milliseconds, timing) {
+      return new A.StyleTransition(property + " " + milliseconds + "ms " + timing.value);
     },
-    _normalizeChildren(child, children) {
-      var t2, t3, t1 = [];
-      if (child != null)
-        t1.push(child);
-      B.JSArray_methods.addAll$1(t1, children);
-      t2 = A._arrayInstanceType(t1);
-      t3 = t2._eval$1("MappedListIterable<1,FlintNode>");
-      t1 = A.List_List$_of(new A.MappedListIterable(t1, t2._eval$1("FlintNode(1)")._as(A.widgets___toFlintNode$closure()), t3), t3._eval$1("ListIterable.E"));
-      t1.$flags = 1;
+    StyleTransition_StyleTransition$combine(transitions) {
+      var t1;
+      if (transitions.length === 0)
+        throw A.wrapException(A.ArgumentError$value(transitions, "transitions", "Must not be empty."));
+      t1 = A._arrayInstanceType(transitions);
+      return new A.StyleTransition(new A.MappedListIterable(transitions, t1._eval$1("String(1)")._as(new A.StyleTransition_StyleTransition$combine_closure()), t1._eval$1("MappedListIterable<1,String>")).join$1(0, ", "));
+    },
+    cssValue(value, unitlessNumber) {
+      if (value == null)
+        return "";
+      if (value instanceof A.TokenRef)
+        return value.toCss$0();
+      if (value instanceof A.Border)
+        return value.toCss$0();
+      if (value instanceof A.Shadow)
+        return value.toCss$0();
+      if (typeof value == "number")
+        return unitlessNumber ? B.JSNumber_methods.toString$0(value) : A.S(value) + "px";
+      return J.toString$0$(value);
+    },
+    _withoutNulls(map) {
+      var t2, entry, t3,
+        t1 = A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$.nullable_Object);
+      for (t2 = new A.LinkedHashMapEntriesIterable(map, A._instanceType(map)._eval$1("LinkedHashMapEntriesIterable<1,2>")).get$iterator(0); t2.moveNext$0();) {
+        entry = t2.__js_helper$_current;
+        t3 = entry.value;
+        if (t3 != null && !J.$eq$(t3, ""))
+          t1.$indexSet(0, entry.key, t3);
+      }
       return t1;
     },
-    _toFlintNode(value) {
-      if (value instanceof A.FlintNode)
-        return value;
-      if (value instanceof A.FlintComponent)
-        return new A.FlintComponentNode(value);
-      if (type$.Iterable_dynamic._is(value))
-        return new A.FlintFragment(J.map$1$1$ax(value, A.widgets___toFlintNode$closure(), type$.FlintNode).toList$1$growable(0, false));
-      return A.Text$(value);
+    Color: function Color() {
     },
-    _mergeProps(props, style) {
-      var existingStyle, t1, t2;
-      if (style.get$isEmpty(style))
-        return props;
-      existingStyle = props.$index(0, "style");
-      $label0$0: {
-        if (type$.Map_of_String_and_nullable_Object._is(existingStyle)) {
-          t1 = A.LinkedHashMap_LinkedHashMap$of(existingStyle, type$.String, type$.nullable_Object);
-          t1.addAll$1(0, style);
-          break $label0$0;
-        }
-        if (typeof existingStyle == "string") {
-          t1 = existingStyle + "; " + A._styleToString(style);
-          break $label0$0;
-        }
-        t1 = style;
-        break $label0$0;
-      }
-      t2 = A.LinkedHashMap_LinkedHashMap$of(props, type$.String, type$.nullable_Object);
-      t2.$indexSet(0, "style", t1);
-      return t2;
+    DartStyle: function DartStyle(t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32, t33, t34, t35, t36, t37, t38, t39, t40, t41, t42, t43, t44, t45, t46, t47, t48, t49, t50, t51, t52, t53, t54, t55, t56, t57, t58, t59, t60, t61, t62, t63, t64, t65, t66, t67, t68) {
+      var _ = this;
+      _.padding = t0;
+      _.margin = t1;
+      _.width = t2;
+      _.height = t3;
+      _.minWidth = t4;
+      _.maxWidth = t5;
+      _.minHeight = t6;
+      _.maxHeight = t7;
+      _.display = t8;
+      _.gap = t9;
+      _.alignItems = t10;
+      _.justifyItems = t11;
+      _.justifyContent = t12;
+      _.flex = t13;
+      _.flexDirection = t14;
+      _.flexWrap = t15;
+      _.flexGrow = t16;
+      _.flexShrink = t17;
+      _.flexBasis = t18;
+      _.gridTemplateColumns = t19;
+      _.position = t20;
+      _.top = t21;
+      _.right = t22;
+      _.bottom = t23;
+      _.left = t24;
+      _.zIndex = t25;
+      _.overflow = t26;
+      _.boxSizing = t27;
+      _.scrollBehavior = t28;
+      _.aspectRatio = t29;
+      _.objectFit = t30;
+      _.transform = t31;
+      _.backdropFilter = t32;
+      _.fontFamily = t33;
+      _.fontSize = t34;
+      _.fontWeight = t35;
+      _.lineHeight = t36;
+      _.color = t37;
+      _.textAlign = t38;
+      _.textTransform = t39;
+      _.textDecoration = t40;
+      _.cursor = t41;
+      _.resize = t42;
+      _.background = t43;
+      _.radius = t44;
+      _.border = t45;
+      _.borderTop = t46;
+      _.borderRight = t47;
+      _.borderBottom = t48;
+      _.borderLeft = t49;
+      _.shadow = t50;
+      _.opacity = t51;
+      _.gradient = t52;
+      _.transition = t53;
+      _.animation = t54;
+      _.willChange = t55;
+      _.hover = t56;
+      _.focus = t57;
+      _.focusVisible = t58;
+      _.active = t59;
+      _.disabled = t60;
+      _.checked = t61;
+      _.selected = t62;
+      _.expanded = t63;
+      _.invalid = t64;
+      _.sm = t65;
+      _.md = t66;
+      _.lg = t67;
+      _.xl = t68;
     },
-    _styleToString(style) {
-      var t1 = style.get$entries(),
-        t2 = A._instanceType(t1);
-      return new A.MappedIterable(new A.WhereIterable(t1, t2._eval$1("bool(Iterable.E)")._as(new A._styleToString_closure()), t2._eval$1("WhereIterable<Iterable.E>")), t2._eval$1("String(Iterable.E)")._as(new A._styleToString_closure0()), t2._eval$1("MappedIterable<Iterable.E,String>")).join$1(0, "; ");
+    TokenRef: function TokenRef(t0, t1) {
+      this.name = t0;
+      this.fallback = t1;
     },
-    Text: function Text(t0) {
+    KeyframeStep: function KeyframeStep(t0, t1) {
+      this.offset = t0;
+      this.style = t1;
+    },
+    StyleKeyframes: function StyleKeyframes(t0, t1) {
+      this.name = t0;
+      this.steps = t1;
+    },
+    StyleKeyframes_cssText_closure: function StyleKeyframes_cssText_closure() {
+    },
+    StyleKeyframes_cssText_closure0: function StyleKeyframes_cssText_closure0() {
+    },
+    RootDesign: function RootDesign(t0, t1) {
+      this.name = t0;
+      this.keyframes = t1;
+    },
+    RootDesign_cssText_closure: function RootDesign_cssText_closure() {
+    },
+    rootStyleToCss_closure: function rootStyleToCss_closure() {
+    },
+    rootStyleToCss_closure0: function rootStyleToCss_closure0() {
+    },
+    EdgeInsets: function EdgeInsets(t0, t1) {
+      this.right = t0;
+      this.left = t1;
+    },
+    EdgeInsets_toCss_closure: function EdgeInsets_toCss_closure(t0) {
+      this.values = t0;
+    },
+    Border: function Border(t0, t1, t2) {
+      this.width = t0;
+      this.color = t1;
+      this.style = t2;
+    },
+    Shadow: function Shadow(t0, t1, t2, t3) {
+      var _ = this;
+      _.y = t0;
+      _.blur = t1;
+      _.spread = t2;
+      _.color = t3;
+    },
+    StyleTransform: function StyleTransform(t0) {
       this.value = t0;
     },
-    Container: function Container(t0, t1, t2) {
-      this.tag = t0;
-      this.props = t1;
-      this.children = t2;
+    Cursor: function Cursor(t0) {
+      this.value = t0;
     },
-    Column: function Column(t0, t1, t2) {
-      this.tag = t0;
-      this.props = t1;
-      this.children = t2;
+    TextDecorationStyle: function TextDecorationStyle() {
     },
-    Row: function Row(t0, t1, t2) {
-      this.tag = t0;
-      this.props = t1;
-      this.children = t2;
+    TransitionTiming: function TransitionTiming(t0) {
+      this.value = t0;
+    },
+    StyleTransition: function StyleTransition(t0) {
+      this.value = t0;
+    },
+    StyleTransition_StyleTransition$combine_closure: function StyleTransition_StyleTransition$combine_closure() {
+    },
+    StyleAnimation: function StyleAnimation(t0) {
+      this.value = t0;
+    },
+    Display: function Display(t0, t1) {
+      this.index = t0;
+      this._name = t1;
+    },
+    AlignItems: function AlignItems(t0, t1) {
+      this.index = t0;
+      this._name = t1;
+    },
+    JustifyContent: function JustifyContent(t0, t1) {
+      this.index = t0;
+      this._name = t1;
+    },
+    Button$(child, onPressed, props) {
+      var t3, _null = null,
+        t1 = A.LinkedHashMap_LinkedHashMap$of(props, type$.String, type$.nullable_Object),
+        t2 = props.$index(0, "type");
+      t1.$indexSet(0, "type", t2 == null ? "button" : t2);
+      t1.$indexSet(0, "onClick", onPressed);
+      t2 = $.$get$buttonBaseStyle().merge$1(A.buttonSizeStyle(B.ComponentSize_2)).merge$1(A.buttonVariantStyle(B.ButtonVariant_0, B.Tone_1));
+      t3 = A.buttonHoverStyle(B.ButtonVariant_0, B.Tone_1);
+      t3 = A.DartStyle$(A.DartStyle$(_null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, new A.StyleTransform("scale(0.98)"), _null, _null, _null, _null, _null), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, A.DartStyle$(_null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, new A.Shadow(0, 0, 3, A.toneFocus(B.Tone_1)), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null), _null, _null, _null, _null, _null, _null, _null, t3, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+      t1 = A.mergeComponentProps(t1, _null, t2.merge$1(t3).merge$1(_null), B.Map_empty, B.Map_empty);
+      t2 = A._setArrayType([], type$.JSArray_FlintNode);
+      B.JSArray_methods.addAll$1(t2, A.normalizeChildren(child, B.List_empty1));
+      return new A.Button("button", t1, t2);
     },
     Button: function Button(t0, t1, t2) {
       this.tag = t0;
       this.props = t1;
       this.children = t2;
     },
-    _styleToString_closure: function _styleToString_closure() {
+    Spinner: function Spinner(t0, t1, t2) {
+      this.tag = t0;
+      this.props = t1;
+      this.children = t2;
     },
-    _styleToString_closure0: function _styleToString_closure0() {
+    Column$(children, props) {
+      return new A.Column("div", A.mergeComponentProps(props, null, null, B.Map_IwXTo, B.Map_empty), A.normalizeChildren(null, children));
+    },
+    Column: function Column(t0, t1, t2) {
+      this.tag = t0;
+      this.props = t1;
+      this.children = t2;
+    },
+    Container: function Container(t0, t1, t2) {
+      this.tag = t0;
+      this.props = t1;
+      this.children = t2;
+    },
+    Row$(children, props) {
+      return new A.Row("div", A.mergeComponentProps(props, null, null, B.Map_IwAaL, B.Map_empty), A.normalizeChildren(null, children));
+    },
+    Row: function Row(t0, t1, t2) {
+      this.tag = t0;
+      this.props = t1;
+      this.children = t2;
+    },
+    Text$(value) {
+      var t1 = J.toString$0$(value);
+      return new A.Text(t1);
+    },
+    Text: function Text(t0) {
+      this.value = t0;
+    },
+    buttonSizeStyle(size) {
+      var t1;
+      switch (size.index) {
+        case 0:
+          t1 = B.DartStyle_7LF;
+          break;
+        case 1:
+          t1 = B.DartStyle_utZ;
+          break;
+        case 2:
+          t1 = B.DartStyle_Uy0;
+          break;
+        case 3:
+          t1 = B.DartStyle_jLf;
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    buttonVariantStyle(variant, tone) {
+      var t1, _null = null, _s5_ = "solid";
+      switch (variant.index) {
+        case 0:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, A.toneSolid(tone), new A.Border(1, A.toneSolid(tone), _s5_), _null, _null, _null, _null, _null, _null, _null, A.toneOnSolid(tone), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        case 1:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, A.toneSoft(tone), new A.Border(1, A.toneSoft(tone), _s5_), _null, _null, _null, _null, _null, _null, _null, A.toneText(tone), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        case 2:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, B.C_Color, new A.Border(1, A.toneBorder(tone), _s5_), _null, _null, _null, _null, _null, _null, _null, A.toneText(tone), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        case 3:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, B.C_Color, B.Border_1_Color_solid, _null, _null, _null, _null, _null, _null, _null, A.toneText(tone), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        default:
+          t1 = _null;
+      }
+      return t1;
+    },
+    buttonHoverStyle(variant, tone) {
+      var t1, _null = null;
+      switch (variant.index) {
+        case 0:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, A.toneSolidHover(tone), new A.Border(1, A.toneSolidHover(tone), "solid"), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        case 1:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, A.toneSoftHover(tone), new A.Border(1, A.toneSoftHover(tone), "solid"), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        case 2:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, A.toneSoft(tone), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        case 3:
+          t1 = A.DartStyle$(_null, _null, _null, _null, _null, A.toneSoft(tone), _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null);
+          break;
+        default:
+          t1 = _null;
+      }
+      return t1;
+    },
+    toneSolid(tone) {
+      var t1;
+      switch (tone.index) {
+        case 0:
+          t1 = new A.TokenRef("color.neutralSolid", "#111827").toCss$0();
+          break;
+        case 1:
+          t1 = new A.TokenRef("color.primarySolid", "#155eef").toCss$0();
+          break;
+        case 2:
+          t1 = new A.TokenRef("color.successSolid", "#079455").toCss$0();
+          break;
+        case 3:
+          t1 = new A.TokenRef("color.warningSolid", "#dc6803").toCss$0();
+          break;
+        case 4:
+          t1 = new A.TokenRef("color.dangerSolid", "#d92d20").toCss$0();
+          break;
+        case 5:
+          t1 = new A.TokenRef("color.infoSolid", "#1570ef").toCss$0();
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    toneSolidHover(tone) {
+      var t1;
+      switch (tone.index) {
+        case 0:
+          t1 = new A.TokenRef("color.neutralSolidHover", "#1f2937").toCss$0();
+          break;
+        case 1:
+          t1 = new A.TokenRef("color.primarySolidHover", "#004eeb").toCss$0();
+          break;
+        case 2:
+          t1 = new A.TokenRef("color.successSolidHover", "#067647").toCss$0();
+          break;
+        case 3:
+          t1 = new A.TokenRef("color.warningSolidHover", "#b54708").toCss$0();
+          break;
+        case 4:
+          t1 = new A.TokenRef("color.dangerSolidHover", "#b42318").toCss$0();
+          break;
+        case 5:
+          t1 = new A.TokenRef("color.infoSolidHover", "#175cd3").toCss$0();
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    toneSoft(tone) {
+      var t1;
+      switch (tone.index) {
+        case 0:
+          t1 = new A.TokenRef("color.neutralSoft", "#f3f4f6").toCss$0();
+          break;
+        case 1:
+          t1 = new A.TokenRef("color.primarySoft", "#eff4ff").toCss$0();
+          break;
+        case 2:
+          t1 = new A.TokenRef("color.successSoft", "#ecfdf3").toCss$0();
+          break;
+        case 3:
+          t1 = new A.TokenRef("color.warningSoft", "#fffaeb").toCss$0();
+          break;
+        case 4:
+          t1 = new A.TokenRef("color.dangerSoft", "#fef3f2").toCss$0();
+          break;
+        case 5:
+          t1 = new A.TokenRef("color.infoSoft", "#eff8ff").toCss$0();
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    toneSoftHover(tone) {
+      var t1;
+      switch (tone.index) {
+        case 0:
+          t1 = new A.TokenRef("color.neutralSoftHover", "#e5e7eb").toCss$0();
+          break;
+        case 1:
+          t1 = new A.TokenRef("color.primarySoftHover", "#dbeafe").toCss$0();
+          break;
+        case 2:
+          t1 = new A.TokenRef("color.successSoftHover", "#d1fadf").toCss$0();
+          break;
+        case 3:
+          t1 = new A.TokenRef("color.warningSoftHover", "#fef0c7").toCss$0();
+          break;
+        case 4:
+          t1 = new A.TokenRef("color.dangerSoftHover", "#fee4e2").toCss$0();
+          break;
+        case 5:
+          t1 = new A.TokenRef("color.infoSoftHover", "#d1e9ff").toCss$0();
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    toneBorder(tone) {
+      var t1;
+      switch (tone.index) {
+        case 0:
+          t1 = new A.TokenRef("color.neutralBorder", "#d1d5db").toCss$0();
+          break;
+        case 1:
+          t1 = new A.TokenRef("color.primaryBorder", "#b2ccff").toCss$0();
+          break;
+        case 2:
+          t1 = new A.TokenRef("color.successBorder", "#abefc6").toCss$0();
+          break;
+        case 3:
+          t1 = new A.TokenRef("color.warningBorder", "#fedf89").toCss$0();
+          break;
+        case 4:
+          t1 = new A.TokenRef("color.dangerBorder", "#fecdca").toCss$0();
+          break;
+        case 5:
+          t1 = new A.TokenRef("color.infoBorder", "#b2ddff").toCss$0();
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    toneText(tone) {
+      var t1;
+      switch (tone.index) {
+        case 0:
+          t1 = new A.TokenRef("color.neutralText", "#374151").toCss$0();
+          break;
+        case 1:
+          t1 = new A.TokenRef("color.primaryText", "#1849a9").toCss$0();
+          break;
+        case 2:
+          t1 = new A.TokenRef("color.successText", "#067647").toCss$0();
+          break;
+        case 3:
+          t1 = new A.TokenRef("color.warningText", "#b54708").toCss$0();
+          break;
+        case 4:
+          t1 = new A.TokenRef("color.dangerText", "#b42318").toCss$0();
+          break;
+        case 5:
+          t1 = new A.TokenRef("color.infoText", "#175cd3").toCss$0();
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    toneOnSolid(tone) {
+      var t1;
+      $label0$0: {
+        if (B.Tone_3 === tone) {
+          t1 = new A.TokenRef("color.warningOnSolid", "#111827").toCss$0();
+          break $label0$0;
+        }
+        t1 = new A.TokenRef("color.onSolid", "#ffffff").toCss$0();
+        break $label0$0;
+      }
+      return t1;
+    },
+    toneFocus(tone) {
+      var t1;
+      switch (tone.index) {
+        case 0:
+          t1 = new A.TokenRef("color.neutralFocus", "#9ca3af").toCss$0();
+          break;
+        case 1:
+          t1 = new A.TokenRef("color.primaryFocus", "#155eef").toCss$0();
+          break;
+        case 2:
+          t1 = new A.TokenRef("color.successFocus", "#079455").toCss$0();
+          break;
+        case 3:
+          t1 = new A.TokenRef("color.warningFocus", "#dc6803").toCss$0();
+          break;
+        case 4:
+          t1 = new A.TokenRef("color.dangerFocus", "#d92d20").toCss$0();
+          break;
+        case 5:
+          t1 = new A.TokenRef("color.infoFocus", "#1570ef").toCss$0();
+          break;
+        default:
+          t1 = null;
+      }
+      return t1;
+    },
+    Tone: function Tone(t0, t1) {
+      this.index = t0;
+      this._name = t1;
+    },
+    ComponentSize: function ComponentSize(t0, t1) {
+      this.index = t0;
+      this._name = t1;
+    },
+    ButtonVariant: function ButtonVariant(t0, t1) {
+      this.index = t0;
+      this._name = t1;
     },
     componentRegistry_closure: function componentRegistry_closure() {
     },
@@ -3610,63 +4434,44 @@
     h(tag, children, props) {
       var t1 = A._arrayInstanceType(children),
         t2 = t1._eval$1("MappedListIterable<1,FlintNode>");
-      t1 = A.List_List$_of(new A.MappedListIterable(children, t1._eval$1("FlintNode(1)")._as(A.html__toFlintNode$closure()), t2), t2._eval$1("ListIterable.E"));
+      t1 = A.List_List$_of(new A.MappedListIterable(children, t1._eval$1("FlintNode(1)")._as(A.component_props__toFlintNode$closure()), t2), t2._eval$1("ListIterable.E"));
       t1.$flags = 1;
       return new A.FlintElement(tag, props, t1);
     },
-    toFlintNode(value) {
-      var t1, t2, t3;
-      if (value instanceof A.FlintNode)
-        return value;
-      if (value instanceof A.FlintComponent)
-        return new A.FlintComponentNode(value);
-      if (type$.Iterable_dynamic._is(value)) {
-        t1 = J.toList$0$ax(value);
-        t2 = A._arrayInstanceType(t1);
-        t3 = t2._eval$1("MappedListIterable<1,FlintNode>");
-        t1 = A.List_List$_of(new A.MappedListIterable(t1, t2._eval$1("FlintNode(1)")._as(A.html__toFlintNode$closure()), t3), t3._eval$1("ListIterable.E"));
-        t1.$flags = 1;
-        return new A.FlintFragment(t1);
-      }
-      t1 = value == null ? null : J.toString$0$(value);
-      return new A.FlintText(t1 == null ? "" : t1);
+    registerRootDesign(design) {
+      var cssText, t2, head, element,
+        t1 = design.name;
+      if ($._registeredRootDesigns.contains$1(0, t1))
+        return;
+      cssText = design.get$cssText();
+      if (B.JSString_methods.trim$0(cssText).length === 0)
+        return;
+      t2 = init.G;
+      head = A._asJSObjectQ(A._asJSObject(t2.document).querySelector("head"));
+      if (head == null)
+        return;
+      element = A._asJSObject(A._asJSObject(t2.document).createElement("style"));
+      element.setAttribute("data-flint-root-design", t1);
+      element.textContent = cssText;
+      A._asJSObject(head.appendChild(element));
+      $._registeredRootDesigns.add$1(0, t1);
+    },
+    registerStyleSheet(stylesheet) {
+      var t1, head, element;
+      if ($._registeredStyleSheets.contains$1(0, stylesheet.get$name()))
+        return;
+      t1 = init.G;
+      head = A._asJSObjectQ(A._asJSObject(t1.document).querySelector("head"));
+      if (head == null)
+        return;
+      element = A._asJSObject(A._asJSObject(t1.document).createElement("style"));
+      element.setAttribute("data-flint-stylesheet", stylesheet.get$name());
+      element.textContent = stylesheet.get$cssText();
+      A._asJSObject(head.appendChild(element));
+      $._registeredStyleSheets.add$1(0, stylesheet.get$name());
     },
     main() {
-      var encoded, decoded, t2, t3, t4, builder, component, _null = null,
-        t1 = $.$get$componentRegistry(),
-        host = A._asJSObjectQ(A._asJSObject(init.G.document).querySelector("#app"));
-      if (host == null)
-        A.throwExpression(A.StateError$('No element found for selector "#app".'));
-      encoded = A._asStringQ(host.getAttribute("data-flint-page"));
-      if (encoded == null || B.JSString_methods.trim$0(encoded).length === 0)
-        A.throwExpression(A.StateError$("Missing data-flint-page payload on Flint app root."));
-      decoded = B.C_JsonCodec.decode$2$reviver(encoded, _null);
-      if (!type$.Map_String_dynamic._is(decoded))
-        A.throwExpression(A.StateError$("Invalid Flint page payload."));
-      t2 = decoded.$index(0, "component");
-      t2 = t2 == null ? _null : J.toString$0$(t2);
-      if (t2 == null)
-        t2 = "";
-      t3 = A._asStringKeyedMap(decoded.$index(0, "props"));
-      t4 = decoded.$index(0, "url");
-      if (t4 != null)
-        J.toString$0$(t4);
-      t4 = decoded.$index(0, "version");
-      if (t4 != null)
-        J.toString$0$(t4);
-      builder = t1._pages.$index(0, t2);
-      if (builder == null)
-        builder = _null;
-      t1 = builder == null ? _null : builder.call$1(t3);
-      if (t1 == null)
-        component = _null;
-      else
-        component = t1;
-      if (component == null)
-        component = new A.MissingFlintPage(t2);
-      t1 = new A.FlintRoot(host);
-      t1._node = t1._normalize$1(component);
-      t1._scheduleRender$0();
+      A.createFlintApp("#app", $.$get$componentRegistry());
     }
   },
   B = {};
@@ -3755,10 +4560,15 @@
       receiver.push(value);
     },
     addAll$1(receiver, collection) {
+      var t1;
       A._arrayInstanceType(receiver)._eval$1("Iterable<1>")._as(collection);
       receiver.$flags & 1 && A.throwUnsupportedOperation(receiver, "addAll", 2);
-      this._addAllFromArray$1(receiver, collection);
-      return;
+      if (Array.isArray(collection)) {
+        this._addAllFromArray$1(receiver, collection);
+        return;
+      }
+      for (t1 = J.get$iterator$ax(collection); t1.moveNext$0();)
+        receiver.push(t1.get$current());
     },
     _addAllFromArray$1(receiver, array) {
       var len, i;
@@ -3775,20 +4585,37 @@
       var t1 = A._arrayInstanceType(receiver);
       return new A.MappedListIterable(receiver, t1._bind$1($T)._eval$1("1(2)")._as(f), t1._eval$1("@<1>")._bind$1($T)._eval$1("MappedListIterable<1,2>"));
     },
+    join$1(receiver, separator) {
+      var i,
+        list = A.List_List$filled(receiver.length, "", false, type$.String);
+      for (i = 0; i < receiver.length; ++i)
+        this.$indexSet(list, i, A.S(receiver[i]));
+      return list.join(separator);
+    },
     elementAt$1(receiver, index) {
       if (!(index < receiver.length))
         return A.ioore(receiver, index);
       return receiver[index];
     },
+    get$first(receiver) {
+      if (receiver.length > 0)
+        return receiver[0];
+      throw A.wrapException(A.IterableElementError_noElement());
+    },
+    every$1(receiver, test) {
+      var end, i;
+      A._arrayInstanceType(receiver)._eval$1("bool(1)")._as(test);
+      end = receiver.length;
+      for (i = 0; i < end; ++i) {
+        if (!test.call$1(receiver[i]))
+          return false;
+        if (receiver.length !== end)
+          throw A.wrapException(A.ConcurrentModificationError$(receiver));
+      }
+      return true;
+    },
     toString$0(receiver) {
       return A.Iterable_iterableToFullString(receiver, "[", "]");
-    },
-    toList$1$growable(receiver, growable) {
-      var t1 = A._setArrayType(receiver.slice(0), A._arrayInstanceType(receiver));
-      return t1;
-    },
-    toList$0(receiver) {
-      return this.toList$1$growable(receiver, true);
     },
     get$iterator(receiver) {
       return new J.ArrayIterator(receiver, receiver.length, A._arrayInstanceType(receiver)._eval$1("ArrayIterator<1>"));
@@ -3859,6 +4686,34 @@
     $isIterator: 1
   };
   J.JSNumber.prototype = {
+    toRadixString$1(receiver, radix) {
+      var result, t1, t2, match, exponent;
+      if (radix < 2 || radix > 36)
+        throw A.wrapException(A.RangeError$range(radix, 2, 36, "radix", null));
+      result = receiver.toString(radix);
+      t1 = result.length;
+      t2 = t1 - 1;
+      if (!(t2 >= 0))
+        return A.ioore(result, t2);
+      if (result.charCodeAt(t2) !== 41)
+        return result;
+      match = /^([\da-z]+)(?:\.([\da-z]+))?\(e\+(\d+)\)$/.exec(result);
+      if (match == null)
+        A.throwExpression(A.UnsupportedError$("Unexpected toString result: " + result));
+      t1 = match.length;
+      if (1 >= t1)
+        return A.ioore(match, 1);
+      result = match[1];
+      if (3 >= t1)
+        return A.ioore(match, 3);
+      exponent = +match[3];
+      t1 = match[2];
+      if (t1 != null) {
+        result += t1;
+        exponent -= t1.length;
+      }
+      return result + B.JSString_methods.$mul("0", exponent);
+    },
     toString$0(receiver) {
       if (receiver === 0 && 1 / receiver < 0)
         return "-0.0";
@@ -3909,6 +4764,9 @@
     $isTrustedGetRuntimeType: 1
   };
   J.JSString.prototype = {
+    allMatches$1(receiver, string) {
+      return new A._StringAllMatchesIterable(string, receiver, 0);
+    },
     startsWith$1(receiver, pattern) {
       var otherLength = pattern.length;
       if (otherLength > receiver.length)
@@ -3943,6 +4801,24 @@
         return result;
       return result.substring(startIndex, endIndex0);
     },
+    $mul(receiver, times) {
+      var s, result;
+      if (0 >= times)
+        return "";
+      if (times === 1 || receiver.length === 0)
+        return receiver;
+      if (times !== times >>> 0)
+        throw A.wrapException(B.C_OutOfMemoryError);
+      for (s = receiver, result = "";;) {
+        if ((times & 1) === 1)
+          result = s + result;
+        times = times >>> 1;
+        if (times === 0)
+          break;
+        s += s;
+      }
+      return result;
+    },
     toString$0(receiver) {
       return receiver;
     },
@@ -3972,9 +4848,15 @@
       return "LateInitializationError: " + this._message;
     }
   };
-  A.ReachabilityError.prototype = {
-    toString$0(_) {
-      return "ReachabilityError: " + this._message;
+  A.CodeUnits.prototype = {
+    get$length(_) {
+      return this._string.length;
+    },
+    $index(_, i) {
+      var t1 = this._string;
+      if (!(i >= 0 && i < t1.length))
+        return A.ioore(t1, i);
+      return t1.charCodeAt(i);
     }
   };
   A.EfficientLengthIterable.prototype = {};
@@ -3982,6 +4864,30 @@
     get$iterator(_) {
       var _this = this;
       return new A.ListIterator(_this, _this.get$length(_this), A._instanceType(_this)._eval$1("ListIterator<ListIterable.E>"));
+    },
+    join$1(_, separator) {
+      var first, t1, i, _this = this,
+        $length = _this.get$length(_this);
+      if (separator.length !== 0) {
+        if ($length === 0)
+          return "";
+        first = A.S(_this.elementAt$1(0, 0));
+        if ($length !== _this.get$length(_this))
+          throw A.wrapException(A.ConcurrentModificationError$(_this));
+        for (t1 = first, i = 1; i < $length; ++i) {
+          t1 = t1 + separator + A.S(_this.elementAt$1(0, i));
+          if ($length !== _this.get$length(_this))
+            throw A.wrapException(A.ConcurrentModificationError$(_this));
+        }
+        return t1.charCodeAt(0) == 0 ? t1 : t1;
+      } else {
+        for (i = 0, t1 = ""; i < $length; ++i) {
+          t1 += A.S(_this.elementAt$1(0, i));
+          if ($length !== _this.get$length(_this))
+            throw A.wrapException(A.ConcurrentModificationError$(_this));
+        }
+        return t1.charCodeAt(0) == 0 ? t1 : t1;
+      }
     },
     where$1(_, test) {
       return this.super$Iterable$where(0, A._instanceType(this)._eval$1("bool(ListIterable.E)")._as(test));
@@ -3991,18 +4897,9 @@
       return new A.MappedListIterable(this, t1._bind$1($T)._eval$1("1(ListIterable.E)")._as(toElement), t1._eval$1("@<ListIterable.E>")._bind$1($T)._eval$1("MappedListIterable<1,2>"));
     },
     toList$1$growable(_, growable) {
-      var t1 = A._instanceType(this)._eval$1("ListIterable.E");
-      if (growable)
-        t1 = A.List_List$_of(this, t1);
-      else {
-        t1 = A.List_List$_of(this, t1);
-        t1.$flags = 1;
-        t1 = t1;
-      }
+      var t1 = A.List_List$_of(this, A._instanceType(this)._eval$1("ListIterable.E"));
+      t1.$flags = 1;
       return t1;
-    },
-    toList$0(_) {
-      return this.toList$1$growable(0, true);
     }
   };
   A.ListIterator.prototype = {
@@ -4030,12 +4927,10 @@
   };
   A.MappedIterable.prototype = {
     get$iterator(_) {
-      var t1 = this.__internal$_iterable;
-      return new A.MappedIterator(t1.get$iterator(t1), this._f, A._instanceType(this)._eval$1("MappedIterator<1,2>"));
+      return new A.MappedIterator(J.get$iterator$ax(this.__internal$_iterable), this._f, A._instanceType(this)._eval$1("MappedIterator<1,2>"));
     },
     get$length(_) {
-      var t1 = this.__internal$_iterable;
-      return t1.get$length(t1);
+      return J.get$length$asx(this.__internal$_iterable);
     }
   };
   A.EfficientLengthMappedIterable.prototype = {$isEfficientLengthIterable: 1};
@@ -4105,10 +5000,9 @@
     $isIterator: 1
   };
   A.FixedLengthListMixin.prototype = {};
+  A.UnmodifiableListMixin.prototype = {};
+  A.UnmodifiableListBase.prototype = {};
   A.ConstantMap.prototype = {
-    get$isEmpty(_) {
-      return this.get$length(this) === 0;
-    },
     toString$0(_) {
       return A.MapBase_mapToString(this);
     },
@@ -4236,6 +5130,27 @@
     },
     $isIterator: 1
   };
+  A.ConstantSet.prototype = {};
+  A.ConstantStringSet.prototype = {
+    get$length(_) {
+      return this.__js_helper$_length;
+    },
+    get$iterator(_) {
+      var t1, _this = this,
+        keys = _this.$keys;
+      if (keys == null) {
+        keys = Object.keys(_this._jsIndex);
+        _this.$keys = keys;
+      }
+      t1 = keys;
+      return new A._KeysOrValuesOrElementsIterator(t1, t1.length, _this.$ti._eval$1("_KeysOrValuesOrElementsIterator<1>"));
+    },
+    contains$1(_, key) {
+      if ("__proto__" === key)
+        return false;
+      return this._jsIndex.hasOwnProperty(key);
+    }
+  };
   A.SafeToStringHook.prototype = {};
   A.TypeErrorDecoder.prototype = {
     matchTypeError$1(message) {
@@ -4354,14 +5269,17 @@
     get$length(_) {
       return this.__js_helper$_length;
     },
-    get$isEmpty(_) {
-      return this.__js_helper$_length === 0;
-    },
     get$keys() {
       return new A.LinkedHashMapKeysIterable(this, A._instanceType(this)._eval$1("LinkedHashMapKeysIterable<1>"));
     },
     get$entries() {
       return new A.LinkedHashMapEntriesIterable(this, A._instanceType(this)._eval$1("LinkedHashMapEntriesIterable<1,2>"));
+    },
+    containsKey$1(key) {
+      var strings = this._strings;
+      if (strings == null)
+        return false;
+      return strings[key] != null;
     },
     addAll$1(_, other) {
       A._instanceType(this)._eval$1("Map<1,2>")._as(other).forEach$1(0, new A.JsLinkedHashMap_addAll_closure(this));
@@ -4430,6 +5348,10 @@
           bucket.push(_this._newLinkedCell$2(key, value));
       }
     },
+    remove$1(_, key) {
+      var t1 = this._removeHashTableEntry$2(this._strings, key);
+      return t1;
+    },
     forEach$1(_, action) {
       var cell, modifications, _this = this;
       A._instanceType(_this)._eval$1("~(1,2)")._as(action);
@@ -4453,17 +5375,50 @@
       else
         cell.hashMapCellValue = value;
     },
+    _removeHashTableEntry$2(table, key) {
+      var cell;
+      if (table == null)
+        return null;
+      cell = table[key];
+      if (cell == null)
+        return null;
+      this._unlinkCell$1(cell);
+      delete table[key];
+      return cell.hashMapCellValue;
+    },
+    _modified$0() {
+      this._modifications = this._modifications + 1 & 1073741823;
+    },
     _newLinkedCell$2(key, value) {
       var _this = this,
         t1 = A._instanceType(_this),
         cell = new A.LinkedHashMapCell(t1._precomputed1._as(key), t1._rest[1]._as(value));
       if (_this._first == null)
         _this._first = _this._last = cell;
-      else
-        _this._last = _this._last._next = cell;
+      else {
+        t1 = _this._last;
+        t1.toString;
+        cell._previous = t1;
+        _this._last = t1._next = cell;
+      }
       ++_this.__js_helper$_length;
-      _this._modifications = _this._modifications + 1 & 1073741823;
+      _this._modified$0();
       return cell;
+    },
+    _unlinkCell$1(cell) {
+      var _this = this,
+        previous = cell._previous,
+        next = cell._next;
+      if (previous == null)
+        _this._first = next;
+      else
+        previous._next = next;
+      if (next == null)
+        _this._last = previous;
+      else
+        next._previous = previous;
+      --_this.__js_helper$_length;
+      _this._modified$0();
     },
     internalComputeHashCode$1(key) {
       return J.get$hashCode$(key) & 1073741823;
@@ -4530,6 +5485,36 @@
     },
     $isIterator: 1
   };
+  A.LinkedHashMapValuesIterable.prototype = {
+    get$length(_) {
+      return this._map.__js_helper$_length;
+    },
+    get$iterator(_) {
+      var t1 = this._map;
+      return new A.LinkedHashMapValueIterator(t1, t1._modifications, t1._first, this.$ti._eval$1("LinkedHashMapValueIterator<1>"));
+    }
+  };
+  A.LinkedHashMapValueIterator.prototype = {
+    get$current() {
+      return this.__js_helper$_current;
+    },
+    moveNext$0() {
+      var cell, _this = this,
+        t1 = _this._map;
+      if (_this._modifications !== t1._modifications)
+        throw A.wrapException(A.ConcurrentModificationError$(t1));
+      cell = _this._cell;
+      if (cell == null) {
+        _this.__js_helper$_current = null;
+        return false;
+      } else {
+        _this.__js_helper$_current = cell.hashMapCellValue;
+        _this._cell = cell._next;
+        return true;
+      }
+    },
+    $isIterator: 1
+  };
   A.LinkedHashMapEntriesIterable.prototype = {
     get$length(_) {
       return this._map.__js_helper$_length;
@@ -4580,6 +5565,141 @@
     },
     $signature: 10
   };
+  A.JSSyntaxRegExp.prototype = {
+    toString$0(_) {
+      return "RegExp/" + this.pattern + "/" + this._nativeRegExp.flags;
+    },
+    get$_nativeGlobalVersion() {
+      var _this = this,
+        t1 = _this._nativeGlobalRegExp;
+      if (t1 != null)
+        return t1;
+      t1 = _this._nativeRegExp;
+      return _this._nativeGlobalRegExp = A.JSSyntaxRegExp_makeNative(_this.pattern, t1.multiline, !t1.ignoreCase, t1.unicode, t1.dotAll, "g");
+    },
+    allMatches$1(_, string) {
+      return new A._AllMatchesIterable(this, string, 0);
+    },
+    _execGlobal$2(string, start) {
+      var match,
+        regexp = this.get$_nativeGlobalVersion();
+      if (regexp == null)
+        regexp = A._asObject(regexp);
+      regexp.lastIndex = start;
+      match = regexp.exec(string);
+      if (match == null)
+        return null;
+      return new A._MatchImplementation(match);
+    },
+    $isPattern: 1,
+    $isRegExp: 1
+  };
+  A._MatchImplementation.prototype = {
+    get$start() {
+      return this._match.index;
+    },
+    get$end() {
+      var t1 = this._match;
+      return t1.index + t1[0].length;
+    },
+    $isMatch: 1,
+    $isRegExpMatch: 1
+  };
+  A._AllMatchesIterable.prototype = {
+    get$iterator(_) {
+      return new A._AllMatchesIterator(this._re, this.__js_helper$_string, this._start);
+    }
+  };
+  A._AllMatchesIterator.prototype = {
+    get$current() {
+      var t1 = this.__js_helper$_current;
+      return t1 == null ? type$.RegExpMatch._as(t1) : t1;
+    },
+    moveNext$0() {
+      var t1, t2, t3, match, nextIndex, t4, _this = this,
+        string = _this.__js_helper$_string;
+      if (string == null)
+        return false;
+      t1 = _this._nextIndex;
+      t2 = string.length;
+      if (t1 <= t2) {
+        t3 = _this._regExp;
+        match = t3._execGlobal$2(string, t1);
+        if (match != null) {
+          _this.__js_helper$_current = match;
+          nextIndex = match.get$end();
+          if (match._match.index === nextIndex) {
+            t1 = false;
+            if (t3._nativeRegExp.unicode) {
+              t3 = _this._nextIndex;
+              t4 = t3 + 1;
+              if (t4 < t2) {
+                if (!(t3 >= 0 && t3 < t2))
+                  return A.ioore(string, t3);
+                t3 = string.charCodeAt(t3);
+                if (t3 >= 55296 && t3 <= 56319) {
+                  if (!(t4 >= 0))
+                    return A.ioore(string, t4);
+                  t1 = string.charCodeAt(t4);
+                  t1 = t1 >= 56320 && t1 <= 57343;
+                }
+              }
+            }
+            nextIndex = (t1 ? nextIndex + 1 : nextIndex) + 1;
+          }
+          _this._nextIndex = nextIndex;
+          return true;
+        }
+      }
+      _this.__js_helper$_string = _this.__js_helper$_current = null;
+      return false;
+    },
+    $isIterator: 1
+  };
+  A.StringMatch.prototype = {
+    get$end() {
+      return this.start + this.pattern.length;
+    },
+    $isMatch: 1,
+    get$start() {
+      return this.start;
+    }
+  };
+  A._StringAllMatchesIterable.prototype = {
+    get$iterator(_) {
+      return new A._StringAllMatchesIterator(this._input, this._pattern, this.__js_helper$_index);
+    }
+  };
+  A._StringAllMatchesIterator.prototype = {
+    moveNext$0() {
+      var index, end, _this = this,
+        t1 = _this.__js_helper$_index,
+        t2 = _this._pattern,
+        t3 = t2.length,
+        t4 = _this._input,
+        t5 = t4.length;
+      if (t1 + t3 > t5) {
+        _this.__js_helper$_current = null;
+        return false;
+      }
+      index = t4.indexOf(t2, t1);
+      if (index < 0) {
+        _this.__js_helper$_index = t5 + 1;
+        _this.__js_helper$_current = null;
+        return false;
+      }
+      end = index + t3;
+      _this.__js_helper$_current = new A.StringMatch(index, t2);
+      _this.__js_helper$_index = end === _this.__js_helper$_index ? end + 1 : end;
+      return true;
+    },
+    get$current() {
+      var t1 = this.__js_helper$_current;
+      t1.toString;
+      return t1;
+    },
+    $isIterator: 1
+  };
   A.NativeByteBuffer.prototype = {
     get$runtimeType(receiver) {
       return B.Type_ByteBuffer_rqD;
@@ -4599,7 +5719,15 @@
     },
     $isJavaScriptIndexingBehavior: 1
   };
-  A.NativeTypedArrayOfDouble.prototype = {$isEfficientLengthIterable: 1, $isIterable: 1, $isList: 1};
+  A.NativeTypedArrayOfDouble.prototype = {
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
+    },
+    $isEfficientLengthIterable: 1,
+    $isIterable: 1,
+    $isList: 1
+  };
   A.NativeTypedArrayOfInt.prototype = {$isEfficientLengthIterable: 1, $isIterable: 1, $isList: 1};
   A.NativeFloat32List.prototype = {
     get$runtimeType(receiver) {
@@ -4617,11 +5745,19 @@
     get$runtimeType(receiver) {
       return B.Type_Int16List_s5h;
     },
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
+    },
     $isTrustedGetRuntimeType: 1
   };
   A.NativeInt32List.prototype = {
     get$runtimeType(receiver) {
       return B.Type_Int32List_O8Z;
+    },
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
     },
     $isTrustedGetRuntimeType: 1
   };
@@ -4629,17 +5765,29 @@
     get$runtimeType(receiver) {
       return B.Type_Int8List_rFV;
     },
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
+    },
     $isTrustedGetRuntimeType: 1
   };
   A.NativeUint16List.prototype = {
     get$runtimeType(receiver) {
       return B.Type_Uint16List_kmP;
     },
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
+    },
     $isTrustedGetRuntimeType: 1
   };
   A.NativeUint32List.prototype = {
     get$runtimeType(receiver) {
       return B.Type_Uint32List_kmP;
+    },
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
     },
     $isTrustedGetRuntimeType: 1
   };
@@ -4650,6 +5798,10 @@
     get$length(receiver) {
       return receiver.length;
     },
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
+    },
     $isTrustedGetRuntimeType: 1
   };
   A.NativeUint8List.prototype = {
@@ -4658,6 +5810,10 @@
     },
     get$length(receiver) {
       return receiver.length;
+    },
+    $index(receiver, index) {
+      A._checkValidIndex(index, receiver, receiver.length);
+      return receiver[index];
     },
     $isTrustedGetRuntimeType: 1
   };
@@ -4708,13 +5864,13 @@
     call$0() {
       this.callback.call$0();
     },
-    $signature: 2
+    $signature: 5
   };
   A._AsyncRun__scheduleImmediateWithSetImmediate_internalCallback.prototype = {
     call$0() {
       this.callback.call$0();
     },
-    $signature: 2
+    $signature: 5
   };
   A._TimerImpl.prototype = {
     _TimerImpl$2(milliseconds, callback) {
@@ -4863,14 +6019,121 @@
     },
     $signature: 0
   };
+  A._LinkedHashSet.prototype = {
+    get$iterator(_) {
+      var _this = this,
+        t1 = new A._LinkedHashSetIterator(_this, _this._collection$_modifications, _this.$ti._eval$1("_LinkedHashSetIterator<1>"));
+      t1._collection$_cell = _this._collection$_first;
+      return t1;
+    },
+    get$length(_) {
+      return this._collection$_length;
+    },
+    contains$1(_, object) {
+      var strings, t1;
+      if (object !== "__proto__") {
+        strings = this._collection$_strings;
+        if (strings == null)
+          return false;
+        return type$.nullable__LinkedHashSetCell._as(strings[object]) != null;
+      } else {
+        t1 = this._contains$1(object);
+        return t1;
+      }
+    },
+    _contains$1(object) {
+      var rest = this._collection$_rest;
+      if (rest == null)
+        return false;
+      return this._findBucketIndex$2(rest[B.JSString_methods.get$hashCode(object) & 1073741823], object) >= 0;
+    },
+    add$1(_, element) {
+      var strings, nums, _this = this;
+      _this.$ti._precomputed1._as(element);
+      if (typeof element == "string" && element !== "__proto__") {
+        strings = _this._collection$_strings;
+        return _this._collection$_addHashTableEntry$2(strings == null ? _this._collection$_strings = A._LinkedHashSet__newHashTable() : strings, element);
+      } else if (typeof element == "number" && (element & 1073741823) === element) {
+        nums = _this._collection$_nums;
+        return _this._collection$_addHashTableEntry$2(nums == null ? _this._collection$_nums = A._LinkedHashSet__newHashTable() : nums, element);
+      } else
+        return _this._add$1(element);
+    },
+    _add$1(element) {
+      var rest, hash, bucket, _this = this;
+      _this.$ti._precomputed1._as(element);
+      rest = _this._collection$_rest;
+      if (rest == null)
+        rest = _this._collection$_rest = A._LinkedHashSet__newHashTable();
+      hash = J.get$hashCode$(element) & 1073741823;
+      bucket = rest[hash];
+      if (bucket == null)
+        rest[hash] = [_this._collection$_newLinkedCell$1(element)];
+      else {
+        if (_this._findBucketIndex$2(bucket, element) >= 0)
+          return false;
+        bucket.push(_this._collection$_newLinkedCell$1(element));
+      }
+      return true;
+    },
+    _collection$_addHashTableEntry$2(table, element) {
+      this.$ti._precomputed1._as(element);
+      if (type$.nullable__LinkedHashSetCell._as(table[element]) != null)
+        return false;
+      table[element] = this._collection$_newLinkedCell$1(element);
+      return true;
+    },
+    _collection$_newLinkedCell$1(element) {
+      var _this = this,
+        cell = new A._LinkedHashSetCell(_this.$ti._precomputed1._as(element));
+      if (_this._collection$_first == null)
+        _this._collection$_first = _this._collection$_last = cell;
+      else
+        _this._collection$_last = _this._collection$_last._collection$_next = cell;
+      ++_this._collection$_length;
+      _this._collection$_modifications = _this._collection$_modifications + 1 & 1073741823;
+      return cell;
+    },
+    _findBucketIndex$2(bucket, element) {
+      var $length, i;
+      if (bucket == null)
+        return -1;
+      $length = bucket.length;
+      for (i = 0; i < $length; ++i)
+        if (J.$eq$(bucket[i]._element, element))
+          return i;
+      return -1;
+    }
+  };
+  A._LinkedHashSetCell.prototype = {};
+  A._LinkedHashSetIterator.prototype = {
+    get$current() {
+      var t1 = this._collection$_current;
+      return t1 == null ? this.$ti._precomputed1._as(t1) : t1;
+    },
+    moveNext$0() {
+      var _this = this,
+        cell = _this._collection$_cell,
+        t1 = _this._set;
+      if (_this._collection$_modifications !== t1._collection$_modifications)
+        throw A.wrapException(A.ConcurrentModificationError$(t1));
+      else if (cell == null) {
+        _this._collection$_current = null;
+        return false;
+      } else {
+        _this._collection$_current = _this.$ti._eval$1("1?")._as(cell._element);
+        _this._collection$_cell = cell._collection$_next;
+        return true;
+      }
+    },
+    $isIterator: 1
+  };
   A.ListBase.prototype = {
     get$iterator(receiver) {
-      return new A.ListIterator(receiver, receiver.length, A.instanceType(receiver)._eval$1("ListIterator<ListBase.E>"));
+      return new A.ListIterator(receiver, this.get$length(receiver), A.instanceType(receiver)._eval$1("ListIterator<ListBase.E>"));
     },
     elementAt$1(receiver, index) {
-      if (!(index < receiver.length))
-        return A.ioore(receiver, index);
-      return receiver[index];
+      return this.$index(receiver, index);
     },
     whereType$1$0(receiver, $T) {
       return new A.WhereTypeIterable(receiver, $T._eval$1("WhereTypeIterable<0>"));
@@ -4879,26 +6142,12 @@
       var t1 = A.instanceType(receiver);
       return new A.MappedListIterable(receiver, t1._bind$1($T)._eval$1("1(ListBase.E)")._as(f), t1._eval$1("@<ListBase.E>")._bind$1($T)._eval$1("MappedListIterable<1,2>"));
     },
-    toList$1$growable(receiver, growable) {
-      var result, i,
-        t1 = receiver.length;
-      if (t1 === 0) {
-        t1 = J.JSArray_JSArray$growable(0, A.instanceType(receiver)._eval$1("ListBase.E"));
-        return t1;
-      }
-      if (0 >= t1)
-        return A.ioore(receiver, 0);
-      result = A.List_List$filled(t1, receiver[0], true, A.instanceType(receiver)._eval$1("ListBase.E"));
-      for (i = 1; i < receiver.length; ++i)
-        B.JSArray_methods.$indexSet(result, i, receiver[i]);
-      return result;
-    },
-    toList$0(receiver) {
-      return this.toList$1$growable(receiver, true);
-    },
     toString$0(receiver) {
       return A.Iterable_iterableToFullString(receiver, "[", "]");
-    }
+    },
+    $isEfficientLengthIterable: 1,
+    $isIterable: 1,
+    $isList: 1
   };
   A.MapBase.prototype = {
     forEach$1(_, action) {
@@ -4965,6 +6214,18 @@
     },
     $signature: 13
   };
+  A.SetBase.prototype = {
+    map$1$1(_, f, $T) {
+      var t1 = A._instanceType(this);
+      return new A.EfficientLengthMappedIterable(this, t1._bind$1($T)._eval$1("1(2)")._as(f), t1._eval$1("@<1>")._bind$1($T)._eval$1("EfficientLengthMappedIterable<1,2>"));
+    },
+    toString$0(_) {
+      return A.Iterable_iterableToFullString(this, "{", "}");
+    },
+    $isEfficientLengthIterable: 1,
+    $isIterable: 1
+  };
+  A._SetBase.prototype = {};
   A._JsonMap.prototype = {
     $index(_, key) {
       var result,
@@ -5060,6 +6321,11 @@
     }
   };
   A.JsonDecoder.prototype = {};
+  A._Enum.prototype = {
+    toString$0(_) {
+      return this._enumToString$0();
+    }
+  };
   A.Error.prototype = {};
   A.AssertionError.prototype = {
     toString$0(_) {
@@ -5156,6 +6422,12 @@
       return "Concurrent modification during iteration: " + A.Error_safeToString(t1) + ".";
     }
   };
+  A.OutOfMemoryError.prototype = {
+    toString$0(_) {
+      return "Out of Memory";
+    },
+    $isError: 1
+  };
   A.StackOverflowError.prototype = {
     toString$0(_) {
       return "Stack Overflow";
@@ -5170,8 +6442,14 @@
   A.FormatException.prototype = {
     toString$0(_) {
       var message = this.message,
-        report = "" !== message ? "FormatException: " + message : "FormatException";
-      return report;
+        report = "" !== message ? "FormatException: " + message : "FormatException",
+        source = this.source;
+      if (typeof source == "string") {
+        if (source.length > 78)
+          source = B.JSString_methods.substring$2(source, 0, 75) + "...";
+        return report + "\n" + source;
+      } else
+        return report;
     }
   };
   A.Iterable.prototype = {
@@ -5215,9 +6493,6 @@
       }
       return t1;
     },
-    toList$0(_) {
-      return this.toList$1$growable(0, true);
-    },
     get$length(_) {
       var count,
         it = this.get$iterator(this);
@@ -5226,8 +6501,9 @@
       return count;
     },
     elementAt$1(_, index) {
-      var skipCount,
-        iterator = this.get$iterator(this);
+      var iterator, skipCount;
+      A.RangeError_checkNotNegative(index, "index");
+      iterator = this.get$iterator(this);
       for (skipCount = index; iterator.moveNext$0();) {
         if (skipCount === 0)
           return iterator.get$current();
@@ -5286,63 +6562,141 @@
       A.scheduleMicrotask(new A.FlintRoot__scheduleRender_closure(this));
     },
     _paint$0() {
-      var t1, _this = this,
+      var previousSlots, nextSlots, t1, entry, _this = this,
         node = _this._node;
       if (node == null)
         return;
+      previousSlots = _this._componentSlots;
+      nextSlots = A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$._ComponentMount);
       t1 = _this.host;
       t1.textContent = "";
-      A._asJSObject(t1.appendChild(_this._createDom$1(node)));
+      A._asJSObject(t1.appendChild(_this._createDom$4(node, "0", previousSlots, nextSlots)));
+      for (t1 = new A.LinkedHashMapEntriesIterable(previousSlots, A._instanceType(previousSlots)._eval$1("LinkedHashMapEntriesIterable<1,2>")).get$iterator(0); t1.moveNext$0();) {
+        entry = t1.__js_helper$_current;
+        if (!nextSlots.containsKey$1(entry.key))
+          _this._unmountComponentTree$1(entry.value);
+      }
+      _this._componentSlots = nextSlots;
       _this._mounted = true;
     },
-    _createDom$1(node) {
-      var t1, component, child, _this = this;
+    _createDom$4(node, path, previousSlots, nextSlots) {
+      var t1 = type$.Map_String__ComponentMount;
+      t1._as(previousSlots);
+      t1._as(nextSlots);
       $label0$0: {
         if (node instanceof A.FlintText) {
           t1 = A._asJSObject(A._asJSObject(init.G.document).createTextNode(node.value));
           break $label0$0;
         }
         if (node instanceof A.FlintFragment) {
-          t1 = _this._createFragment$1(node.children);
+          t1 = this._createFragment$4(node.children, path, previousSlots, nextSlots);
           break $label0$0;
         }
         if (node instanceof A.FlintElement) {
-          t1 = _this._createElement$3(node.tag, node.props, node.children);
+          t1 = this._createElement$6(node.tag, node.props, node.children, path, previousSlots, nextSlots);
           break $label0$0;
         }
         if (node instanceof A.FlintComponentNode) {
-          component = node.component;
-          component._component$_scheduleRender = type$.void_Function._as(_this.get$_scheduleRender());
-          child = _this._createDom$1(component.build$0());
-          if (!_this._mounted)
-            A.scheduleMicrotask(component.get$didMount());
-          t1 = child;
+          t1 = this._createComponent$4(node.component, path, previousSlots, nextSlots);
           break $label0$0;
         }
-        throw A.wrapException(new A.ReachabilityError("None of the patterns in the switch expression the matched input value. See https://github.com/dart-lang/language/issues/3488 for details."));
+        t1 = null;
       }
       return t1;
     },
-    _createFragment$1(children) {
-      var fragment, t1, _i;
+    _createFragment$4(children, path, previousSlots, nextSlots) {
+      var t1, fragment, i;
       type$.List_FlintNode._as(children);
+      t1 = type$.Map_String__ComponentMount;
+      t1._as(previousSlots);
+      t1._as(nextSlots);
       fragment = A._asJSObject(A._asJSObject(init.G.document).createDocumentFragment());
-      for (t1 = children.length, _i = 0; _i < children.length; children.length === t1 || (0, A.throwConcurrentModificationError)(children), ++_i)
-        A._asJSObject(fragment.appendChild(this._createDom$1(children[_i])));
+      for (t1 = path + ".", i = 0; i < children.length; ++i)
+        A._asJSObject(fragment.appendChild(this._createDom$4(children[i], t1 + i, previousSlots, nextSlots)));
       return fragment;
     },
-    _createElement$3(tag, props, children) {
-      var element, t1, _i;
+    _createElement$6(tag, props, children, path, previousSlots, nextSlots) {
+      var t1, element, i;
       type$.Map_of_String_and_nullable_Object._as(props);
       type$.List_FlintNode._as(children);
-      element = A._asJSObject(A._asJSObject(init.G.document).createElement(tag));
+      t1 = type$.Map_String__ComponentMount;
+      t1._as(previousSlots);
+      t1._as(nextSlots);
+      element = this._createDomElement$1(tag);
       this._applyProps$2(element, props);
-      for (t1 = children.length, _i = 0; _i < children.length; children.length === t1 || (0, A.throwConcurrentModificationError)(children), ++_i)
-        A._asJSObject(element.appendChild(this._createDom$1(children[_i])));
+      for (t1 = path + ".", i = 0; i < children.length; ++i)
+        A._asJSObject(element.appendChild(this._createDom$4(children[i], t1 + i, previousSlots, nextSlots)));
       return element;
+    },
+    _createDomElement$1(tag) {
+      if (B.Set_ammpx.contains$1(0, tag))
+        return A._asJSObject(A._asJSObject(init.G.document).createElementNS("http://www.w3.org/2000/svg", tag));
+      return A._asJSObject(A._asJSObject(init.G.document).createElement(tag));
+    },
+    _createComponent$4(component, path, previousSlots, nextSlots) {
+      var previous, hasExisting, mount, _this = this,
+        t1 = type$.Map_String__ComponentMount;
+      t1._as(previousSlots);
+      t1._as(nextSlots);
+      previous = previousSlots.$index(0, path);
+      t1 = previous != null;
+      hasExisting = t1 && A.getRuntimeTypeOfDartObject(previous.component) === A.getRuntimeTypeOfDartObject(component);
+      mount = hasExisting ? previous : new A._ComponentMount(component, A._asJSObject(A._asJSObject(init.G.document).createElement("flint-component")), A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$._ComponentMount));
+      if (t1 && !hasExisting)
+        _this._unmountComponentTree$1(previous);
+      nextSlots.$indexSet(0, path, mount);
+      t1 = mount.component;
+      t1._component$_scheduleRender = type$.void_Function._as(new A.FlintRoot__createComponent_closure(_this, mount));
+      _this._renderComponent$1(mount);
+      if (!(_this._mounted && hasExisting))
+        A.scheduleMicrotask(t1.get$didMount());
+      return mount.boundary;
+    },
+    _scheduleComponentRender$1(mount) {
+      if (mount.renderQueued)
+        return;
+      mount.renderQueued = true;
+      A.scheduleMicrotask(new A.FlintRoot__scheduleComponentRender_closure(this, mount));
+    },
+    _renderComponent$1(mount) {
+      var entry,
+        previousSlots = mount.childSlots,
+        nextSlots = A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$._ComponentMount),
+        t1 = mount.boundary;
+      t1.textContent = "";
+      t1.setAttribute("style", "display: contents;");
+      A._asJSObject(t1.appendChild(this._createDom$4(mount.component.build$0(), "c", previousSlots, nextSlots)));
+      for (t1 = new A.LinkedHashMapEntriesIterable(previousSlots, A._instanceType(previousSlots)._eval$1("LinkedHashMapEntriesIterable<1,2>")).get$iterator(0); t1.moveNext$0();) {
+        entry = t1.__js_helper$_current;
+        if (!nextSlots.containsKey$1(entry.key))
+          this._unmountComponentTree$1(entry.value);
+      }
+      mount.set$childSlots(nextSlots);
+      mount.mounted = true;
+    },
+    _unmountComponentTree$1(mount) {
+      var t1;
+      for (t1 = mount.childSlots, t1 = new A.LinkedHashMapValueIterator(t1, t1._modifications, t1._first, A._instanceType(t1)._eval$1("LinkedHashMapValueIterator<2>")); t1.moveNext$0();)
+        this._unmountComponentTree$1(t1.__js_helper$_current);
     },
     _applyProps$2(element, props) {
       type$.Map_of_String_and_nullable_Object._as(props).forEach$1(0, new A.FlintRoot__applyProps_closure(this, element));
+    },
+    _registerScopedStyle$1(cssText) {
+      var id, t1, head, element;
+      if (B.JSString_methods.trim$0(cssText).length === 0)
+        return;
+      id = "flint-style-" + B.JSString_methods.get$hashCode(cssText);
+      t1 = init.G;
+      if (A._asJSObjectQ(A._asJSObject(t1.document).querySelector('style[data-flint-style-id="' + id + '"]')) != null)
+        return;
+      head = A._asJSObjectQ(A._asJSObject(t1.document).querySelector("head"));
+      if (head == null)
+        return;
+      element = A._asJSObject(A._asJSObject(t1.document).createElement("style"));
+      element.setAttribute("data-flint-style-id", id);
+      element.textContent = cssText;
+      A._asJSObject(head.appendChild(element));
     },
     _applyStyle$2(element, value) {
       var t1, t2;
@@ -5381,12 +6735,30 @@
     },
     $signature: 0
   };
+  A.FlintRoot__createComponent_closure.prototype = {
+    call$0() {
+      return this.$this._scheduleComponentRender$1(this.mount);
+    },
+    $signature: 0
+  };
+  A.FlintRoot__scheduleComponentRender_closure.prototype = {
+    call$0() {
+      var t1 = this.mount;
+      t1.renderQueued = false;
+      this.$this._renderComponent$1(t1);
+    },
+    $signature: 0
+  };
   A.FlintRoot__applyProps_closure.prototype = {
     call$2($name, value) {
       var t1, _this = this;
       A._asString($name);
       if (value == null || J.$eq$(value, false))
         return;
+      if ($name === "_flintStyleCss") {
+        _this.$this._registerScopedStyle$1(J.toString$0$(value));
+        return;
+      }
       if ($name === "className") {
         _this.element.className = J.toString$0$(value);
         return;
@@ -5412,20 +6784,25 @@
     call$1(entry) {
       return type$.MapEntry_of_String_and_nullable_Object._as(entry).value != null;
     },
-    $signature: 3
+    $signature: 1
   };
   A.FlintRoot__applyStyle_closure0.prototype = {
     call$1(entry) {
       type$.MapEntry_of_String_and_nullable_Object._as(entry);
       return entry.key + ": " + A.S(entry.value);
     },
-    $signature: 4
+    $signature: 2
   };
   A.FlintRoot__listen_closure.prototype = {
     call$1($event) {
       this.handler.call$1(A._asJSObject($event));
     },
     $signature: 15
+  };
+  A._ComponentMount.prototype = {
+    set$childSlots(childSlots) {
+      this.childSlots = type$.Map_String__ComponentMount._as(childSlots);
+    }
   };
   A.FlintComponent.prototype = {
     setState$1(update) {
@@ -5438,6 +6815,69 @@
     didMount$0() {
     }
   };
+  A.mergeComponentProps_closure.prototype = {
+    call$1(value) {
+      return B.JSString_methods.trim$0(A._asString(value)).length !== 0;
+    },
+    $signature: 3
+  };
+  A.joinClassNames_closure.prototype = {
+    call$1(value) {
+      A._asStringQ(value);
+      return value != null && B.JSString_methods.trim$0(value).length !== 0;
+    },
+    $signature: 16
+  };
+  A.joinClassNames_closure0.prototype = {
+    call$1(value) {
+      A._asStringQ(value);
+      value.toString;
+      return B.JSString_methods.trim$0(value);
+    },
+    $signature: 17
+  };
+  A.styleToCss_closure.prototype = {
+    call$1(entry) {
+      type$.MapEntry_of_String_and_nullable_Object._as(entry);
+      return entry.value != null && entry.key !== "_cssText";
+    },
+    $signature: 1
+  };
+  A.styleToCss_closure0.prototype = {
+    call$1(entry) {
+      type$.MapEntry_of_String_and_nullable_Object._as(entry);
+      return entry.key + ": " + A.S(entry.value);
+    },
+    $signature: 2
+  };
+  A._scopedCssBody_closure.prototype = {
+    call$1(entry) {
+      type$.MapEntry_String_DartStyle._as(entry);
+      return entry.key + ":" + A.styleToCss(entry.value.toMap$0());
+    },
+    $signature: 18
+  };
+  A._scopedCssBody_closure0.prototype = {
+    call$1(entry) {
+      type$.MapEntry_Breakpoint_DartStyle._as(entry);
+      return entry.key._name + ":" + A.styleToCss(entry.value.toMap$0());
+    },
+    $signature: 19
+  };
+  A._styleToCssImportant_closure.prototype = {
+    call$1(entry) {
+      type$.MapEntry_of_String_and_nullable_Object._as(entry);
+      return entry.value != null && entry.key !== "_cssText";
+    },
+    $signature: 1
+  };
+  A._styleToCssImportant_closure0.prototype = {
+    call$1(entry) {
+      type$.MapEntry_of_String_and_nullable_Object._as(entry);
+      return entry.key + ": " + A.S(entry.value) + " !important";
+    },
+    $signature: 2
+  };
   A.FlintNode.prototype = {};
   A.FlintText.prototype = {};
   A.FlintFragment.prototype = {};
@@ -5445,56 +6885,383 @@
   A.FlintComponentNode.prototype = {};
   A.FlintComponentRegistry.prototype = {};
   A.FlintPage.prototype = {};
+  A.FlintPageContext.prototype = {};
   A.MissingFlintPage.prototype = {
     build$0() {
       var t2,
         t1 = type$.String;
       t1 = A.LinkedHashMap_LinkedHashMap$_literal(["style", A.LinkedHashMap_LinkedHashMap$_literal(["padding", "24px", "font-family", "system-ui, sans-serif"], t1, t1)], t1, type$.nullable_Object);
       t2 = A.Text$('Flint page "' + this.component + '" was not registered.');
-      return new A.Container("div", A._mergeProps(t1, B.Map_empty), A._normalizeChildren(null, [t2]));
+      return new A.Container("div", A.mergeComponentProps(t1, null, null, B.Map_empty, B.Map_empty), A.normalizeChildren(null, [t2]));
     }
   };
   A._asStringKeyedMap_closure.prototype = {
     call$2(key, entryValue) {
       return new A.MapEntry(J.toString$0$(key), entryValue, type$.MapEntry_String_dynamic);
     },
-    $signature: 16
+    $signature: 20
   };
-  A.Text.prototype = {};
-  A.Container.prototype = {};
-  A.Column.prototype = {};
-  A.Row.prototype = {};
-  A.Button.prototype = {};
-  A._styleToString_closure.prototype = {
-    call$1(entry) {
-      return type$.MapEntry_of_String_and_nullable_Object._as(entry).value != null;
+  A.Color.prototype = {
+    toString$0(_) {
+      return "transparent";
+    }
+  };
+  A.DartStyle.prototype = {
+    toMap$0() {
+      var t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, t22, t23, t24, t25, t26, t27, t28, t29, t30, t31, t32, t33, t34, t35, t36, t37, t38, t39, t40, t41, _this = this, _null = null,
+        t1 = _this.padding;
+      t1 = t1 == null ? _null : t1.toCss$0();
+      t2 = A.cssValue(_this.width, false);
+      t3 = A.cssValue(_this.height, false);
+      t4 = A.cssValue(_this.minWidth, false);
+      t5 = A.cssValue(_this.maxWidth, false);
+      t6 = A.cssValue(_this.minHeight, false);
+      t7 = A.cssValue(_this.maxHeight, false);
+      t8 = _this.display == null ? _null : "inline-flex";
+      t9 = A.cssValue(_this.gap, false);
+      t10 = _this.alignItems == null ? _null : "center";
+      t11 = A.cssValue(_this.justifyItems, true);
+      t12 = _this.justifyContent == null ? _null : "center";
+      t13 = A.cssValue(_this.flex, true);
+      t14 = A.cssValue(_this.flexWrap, true);
+      t15 = A.cssValue(_this.flexGrow, true);
+      t16 = A.cssValue(_this.flexShrink, true);
+      t17 = A.cssValue(_this.flexBasis, false);
+      t18 = A.cssValue(_this.top, false);
+      t19 = A.cssValue(_this.right, false);
+      t20 = A.cssValue(_this.bottom, false);
+      t21 = A.cssValue(_this.left, false);
+      t22 = A.cssValue(_this.overflow, true);
+      t23 = A.cssValue(_this.boxSizing, true);
+      t24 = A.cssValue(_this.scrollBehavior, true);
+      t25 = A.cssValue(_this.aspectRatio, true);
+      t26 = A.cssValue(_this.objectFit, true);
+      t27 = A.cssValue(_this.transform, true);
+      t28 = A.cssValue(_this.backdropFilter, true);
+      t29 = A.cssValue(_this.fontFamily, true);
+      t30 = A.cssValue(_this.fontSize, false);
+      t31 = A.cssValue(_this.fontWeight, true);
+      t32 = A.cssValue(_this.lineHeight, true);
+      t33 = A.cssValue(_this.color, false);
+      t34 = A.cssValue(_this.textTransform, true);
+      t35 = A.cssValue(_this.textDecoration, true);
+      t36 = A.cssValue(_this.cursor, true);
+      t37 = A.cssValue(_this.resize, true);
+      t38 = A.cssValue(_this.background, false);
+      t39 = A.cssValue(_this.radius, false);
+      t40 = _this.border;
+      t40 = t40 == null ? _null : t40.toCss$0();
+      t41 = _this.shadow;
+      t41 = t41 instanceof A.Shadow ? t41.toCss$0() : A.cssValue(t41, false);
+      return A._withoutNulls(A.LinkedHashMap_LinkedHashMap$_literal(["padding", t1, "margin", null, "width", t2, "height", t3, "min-width", t4, "max-width", t5, "min-height", t6, "max-height", t7, "display", t8, "gap", t9, "align-items", t10, "justify-items", t11, "justify-content", t12, "flex", t13, "flex-direction", null, "flex-wrap", t14, "flex-grow", t15, "flex-shrink", t16, "flex-basis", t17, "grid-template-columns", _this.gridTemplateColumns, "position", null, "top", t18, "right", t19, "bottom", t20, "left", t21, "z-index", _this.zIndex, "overflow", t22, "box-sizing", t23, "scroll-behavior", t24, "aspect-ratio", t25, "object-fit", t26, "transform", t27, "backdrop-filter", t28, "font-family", t29, "font-size", t30, "font-weight", t31, "line-height", t32, "color", t33, "text-align", null, "text-transform", t34, "text-decoration", t35, "cursor", t36, "resize", t37, "background", t38, "border-radius", t39, "border", t40, "border-top", null, "border-right", null, "border-bottom", null, "border-left", null, "box-shadow", t41, "opacity", _this.opacity, "transition", A.cssValue(_this.transition, true), "animation", A.cssValue(_this.animation, true), "will-change", A.cssValue(_this.willChange, true)], type$.String, type$.nullable_Object));
+    },
+    get$breakpointStyles() {
+      return A.LinkedHashMap_LinkedHashMap$_empty(type$.Breakpoint, type$.DartStyle);
+    },
+    get$stateStyles() {
+      var t1 = A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$.DartStyle),
+        t2 = this.hover;
+      if (t2 != null)
+        t1.$indexSet(0, ":hover", t2);
+      t2 = this.focusVisible;
+      if (t2 != null)
+        t1.$indexSet(0, ":focus-visible", t2);
+      t2 = this.active;
+      if (t2 != null)
+        t1.$indexSet(0, ":active", t2);
+      return t1;
+    },
+    merge$1(override) {
+      var t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15, t16, t17, t18, t19, t20, t21, _this = this;
+      if (override == null)
+        return _this;
+      t1 = override.padding;
+      if (t1 == null)
+        t1 = _this.padding;
+      t2 = override.minHeight;
+      if (t2 == null)
+        t2 = _this.minHeight;
+      t3 = override.display;
+      if (t3 == null)
+        t3 = _this.display;
+      t4 = override.gap;
+      if (t4 == null)
+        t4 = _this.gap;
+      t5 = override.alignItems;
+      if (t5 == null)
+        t5 = _this.alignItems;
+      t6 = override.justifyContent;
+      if (t6 == null)
+        t6 = _this.justifyContent;
+      t7 = override.transform;
+      if (t7 == null)
+        t7 = _this.transform;
+      t8 = override.fontSize;
+      if (t8 == null)
+        t8 = _this.fontSize;
+      t9 = override.fontWeight;
+      if (t9 == null)
+        t9 = _this.fontWeight;
+      t10 = override.color;
+      if (t10 == null)
+        t10 = _this.color;
+      t11 = override.textDecoration;
+      if (t11 == null)
+        t11 = _this.textDecoration;
+      t12 = override.cursor;
+      if (t12 == null)
+        t12 = _this.cursor;
+      t13 = override.background;
+      if (t13 == null)
+        t13 = _this.background;
+      t14 = override.radius;
+      if (t14 == null)
+        t14 = _this.radius;
+      t15 = override.border;
+      if (t15 == null)
+        t15 = _this.border;
+      t16 = override.shadow;
+      if (t16 == null)
+        t16 = _this.shadow;
+      t17 = override.opacity;
+      if (t17 == null)
+        t17 = _this.opacity;
+      t18 = override.transition;
+      if (t18 == null)
+        t18 = _this.transition;
+      t19 = override.hover;
+      if (t19 == null)
+        t19 = _this.hover;
+      t20 = override.focusVisible;
+      if (t20 == null)
+        t20 = _this.focusVisible;
+      t21 = override.active;
+      if (t21 == null)
+        t21 = _this.active;
+      return A.DartStyle$(t21, t5, _this.animation, _this.aspectRatio, _this.backdropFilter, t13, t15, _this.borderBottom, _this.borderLeft, _this.borderRight, _this.borderTop, _this.bottom, _this.boxSizing, _this.checked, t10, t12, _this.disabled, t3, _this.expanded, _this.flex, _this.flexBasis, _this.flexDirection, _this.flexGrow, _this.flexShrink, _this.flexWrap, _this.focus, t20, _this.fontFamily, t8, t9, t4, _this.gradient, _this.gridTemplateColumns, _this.height, t19, _this.invalid, t6, _this.justifyItems, _this.left, _this.lg, _this.lineHeight, _this.margin, _this.maxHeight, _this.maxWidth, _this.md, t2, _this.minWidth, _this.objectFit, t17, _this.overflow, t1, _this.position, t14, _this.resize, _this.right, _this.scrollBehavior, _this.selected, t16, _this.sm, _this.textAlign, t11, _this.textTransform, _this.top, t7, t18, _this.width, _this.willChange, _this.xl, _this.zIndex);
+    }
+  };
+  A.TokenRef.prototype = {
+    toCss$0() {
+      var safe,
+        t1 = B.JSString_methods.trim$0(A.stringReplaceAllUnchecked(this.name, ".", "-")),
+        t2 = A.RegExp_RegExp("[^a-zA-Z0-9_-]+");
+      t1 = A.stringReplaceAllUnchecked(t1, t2, "-");
+      t2 = A.RegExp_RegExp("^-+|-+$");
+      safe = A.stringReplaceAllUnchecked(t1, t2, "");
+      t1 = safe.length === 0 ? "style" : safe;
+      return "var(--" + t1 + ", " + A.cssValue(this.fallback, false) + ")";
+    },
+    toString$0(_) {
+      return this.toCss$0();
+    }
+  };
+  A.KeyframeStep.prototype = {
+    get$selector() {
+      return this.offset;
+    }
+  };
+  A.StyleKeyframes.prototype = {
+    get$cssText() {
+      var t1 = this.steps,
+        t2 = A._arrayInstanceType(t1),
+        t3 = t2._eval$1("MappedListIterable<1,String>"),
+        body = new A.MappedListIterable(t1, t2._eval$1("String(1)")._as(new A.StyleKeyframes_cssText_closure()), t3).super$Iterable$where(0, t3._eval$1("bool(ListIterable.E)")._as(new A.StyleKeyframes_cssText_closure0())).join$1(0, "\n");
+      if (body.length === 0)
+        return "";
+      return "@keyframes " + this.name + " {\n" + body + "\n}";
+    }
+  };
+  A.StyleKeyframes_cssText_closure.prototype = {
+    call$1(step) {
+      var stepBody;
+      type$.KeyframeStep._as(step);
+      stepBody = A.rootStyleToCss(step.style.toMap$0());
+      if (stepBody.length === 0)
+        return "";
+      return "  " + step.get$selector() + " { " + stepBody + "; }";
+    },
+    $signature: 21
+  };
+  A.StyleKeyframes_cssText_closure0.prototype = {
+    call$1(chunk) {
+      return A._asString(chunk).length !== 0;
     },
     $signature: 3
   };
-  A._styleToString_closure0.prototype = {
+  A.RootDesign.prototype = {
+    get$cssText() {
+      var t2, t3, t4, _i,
+        t1 = A._setArrayType([], type$.JSArray_String);
+      for (t2 = B.Map_empty1.get$entries(), t3 = t2.$ti, t2 = new A._SyncStarIterator(t2._outerHelper(), t3._eval$1("_SyncStarIterator<1>")), t3 = t3._precomputed1; t2.moveNext$0();) {
+        t4 = t2._async$_current;
+        if (t4 == null)
+          t4 = t3._as(t4);
+        t1.push(this._compileRootRule$2(t4.key, t4.value));
+      }
+      for (t2 = this.keyframes, _i = 0; _i < 2; ++_i)
+        t1.push(t2[_i].get$cssText());
+      return new A.WhereIterable(t1, type$.bool_Function_String._as(new A.RootDesign_cssText_closure()), type$.WhereIterable_String).join$1(0, "\n");
+    },
+    _compileRootRule$2(selector, style) {
+      var body = A.rootStyleToCss(type$.Map_of_String_and_nullable_Object._as(style.toMap$0()));
+      if (B.JSString_methods.trim$0(body).length === 0)
+        return "";
+      return selector + " { " + body + "; }";
+    }
+  };
+  A.RootDesign_cssText_closure.prototype = {
+    call$1(chunk) {
+      return B.JSString_methods.trim$0(A._asString(chunk)).length !== 0;
+    },
+    $signature: 3
+  };
+  A.rootStyleToCss_closure.prototype = {
     call$1(entry) {
       type$.MapEntry_of_String_and_nullable_Object._as(entry);
-      return entry.key + ": " + A.S(entry.value);
+      return entry.value != null && entry.key !== "_cssText";
     },
-    $signature: 4
+    $signature: 1
+  };
+  A.rootStyleToCss_closure0.prototype = {
+    call$1(entry) {
+      var t1;
+      type$.MapEntry_of_String_and_nullable_Object._as(entry);
+      t1 = entry.key;
+      return t1 + ": " + A.cssValue(entry.value, B.Set_a02Zq.contains$1(0, t1));
+    },
+    $signature: 2
+  };
+  A.EdgeInsets.prototype = {
+    toCss$0() {
+      var t1 = A.cssValue(0, false),
+        t2 = A.cssValue(this.right, false),
+        t3 = A.cssValue(0, false),
+        values = A._setArrayType([t1, t2, t3, A.cssValue(this.left, false)], type$.JSArray_String);
+      if (B.JSArray_methods.every$1(values, new A.EdgeInsets_toCss_closure(values)))
+        return B.JSArray_methods.get$first(values);
+      t1 = values[0];
+      t2 = values[2];
+      if (t1 === t2 && values[1] === values[3])
+        return t1 + " " + values[1];
+      t3 = values[1];
+      if (t3 === values[3])
+        return t1 + " " + t3 + " " + t2;
+      return B.JSArray_methods.join$1(values, " ");
+    }
+  };
+  A.EdgeInsets_toCss_closure.prototype = {
+    call$1(value) {
+      return A._asString(value) === B.JSArray_methods.get$first(this.values);
+    },
+    $signature: 3
+  };
+  A.Border.prototype = {
+    toCss$0() {
+      return A.cssValue(this.width, false) + " " + this.style + " " + A.cssValue(this.color, false);
+    }
+  };
+  A.Shadow.prototype = {
+    toCss$0() {
+      var _this = this,
+        t1 = A._setArrayType([], type$.JSArray_String);
+      t1.push(A.cssValue(0, false));
+      t1.push(A.cssValue(_this.y, false));
+      t1.push(A.cssValue(_this.blur, false));
+      t1.push(A.cssValue(_this.spread, false));
+      t1.push(A.cssValue(_this.color, false));
+      return B.JSArray_methods.join$1(t1, " ");
+    }
+  };
+  A.StyleTransform.prototype = {
+    toString$0(_) {
+      return this.value;
+    }
+  };
+  A.Cursor.prototype = {
+    toString$0(_) {
+      return this.value;
+    }
+  };
+  A.TextDecorationStyle.prototype = {
+    toString$0(_) {
+      return "none";
+    }
+  };
+  A.TransitionTiming.prototype = {
+    toString$0(_) {
+      return this.value;
+    }
+  };
+  A.StyleTransition.prototype = {
+    toString$0(_) {
+      return this.value;
+    }
+  };
+  A.StyleTransition_StyleTransition$combine_closure.prototype = {
+    call$1(item) {
+      return type$.StyleTransition._as(item).value;
+    },
+    $signature: 22
+  };
+  A.StyleAnimation.prototype = {
+    toString$0(_) {
+      return this.value;
+    }
+  };
+  A.Display.prototype = {
+    _enumToString$0() {
+      return "Display." + this._name;
+    }
+  };
+  A.AlignItems.prototype = {
+    _enumToString$0() {
+      return "AlignItems." + this._name;
+    }
+  };
+  A.JustifyContent.prototype = {
+    _enumToString$0() {
+      return "JustifyContent." + this._name;
+    }
+  };
+  A.Button.prototype = {};
+  A.Spinner.prototype = {};
+  A.Column.prototype = {};
+  A.Container.prototype = {};
+  A.Row.prototype = {};
+  A.Text.prototype = {};
+  A.Tone.prototype = {
+    _enumToString$0() {
+      return "Tone." + this._name;
+    }
+  };
+  A.ComponentSize.prototype = {
+    _enumToString$0() {
+      return "ComponentSize." + this._name;
+    }
+  };
+  A.ButtonVariant.prototype = {
+    _enumToString$0() {
+      return "ButtonVariant." + this._name;
+    }
   };
   A.componentRegistry_closure.prototype = {
     call$1(props) {
       return new A.WelcomePage(type$.Map_String_dynamic._as(props));
     },
-    $signature: 17
+    $signature: 23
   };
   A.componentRegistry_closure0.prototype = {
     call$1(props) {
       return new A.GuidePage(type$.Map_String_dynamic._as(props));
     },
-    $signature: 18
+    $signature: 24
   };
   A.componentRegistry_closure1.prototype = {
     call$1(props) {
       return new A.LoginPage(type$.Map_String_dynamic._as(props));
     },
-    $signature: 19
+    $signature: 25
   };
   A.componentRegistry_closure2.prototype = {
     call$1(props) {
@@ -5505,11 +7272,11 @@
       t1.count = A._isInt(props.$index(0, _s12_)) ? A._asInt(props.$index(0, _s12_)) : 0;
       return t1;
     },
-    $signature: 20
+    $signature: 26
   };
   A.CounterApp.prototype = {
     build$0() {
-      var t6, t7, t8, t9, _this = this,
+      var t6, t7, t8, t9, _this = this, _null = null,
         t1 = type$.String,
         t2 = type$.nullable_Object,
         t3 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "app-shell"], t1, t2),
@@ -5521,11 +7288,11 @@
       t7 = A.Button$(A.Text$("-"), new A.CounterApp_build_closure(_this), t7);
       t8 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "count"], t1, t2);
       t9 = A.Text$(_this.count);
-      t8 = A._mergeProps(t8, B.Map_empty);
-      t9 = A._normalizeChildren(t9, B.List_empty);
+      t8 = A.mergeComponentProps(t8, _null, _null, B.Map_empty, B.Map_empty);
+      t9 = A.normalizeChildren(t9, B.List_empty1);
       t2 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "icon-button", "aria-label", "Increase"], t1, t2);
       t6 = A.Row$([t7, new A.Container("div", t8, t9), A.Button$(A.Text$("+"), new A.CounterApp_build_closure0(_this), t2)], t6);
-      return new A.Container("div", A._mergeProps(t3, B.Map_empty), A._normalizeChildren(null, [t4, t5, t6]));
+      return new A.Container("div", A.mergeComponentProps(t3, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(_null, [t4, t5, t6]));
     }
   };
   A.CounterApp_build_closure.prototype = {
@@ -5535,7 +7302,7 @@
       t1 = this.$this;
       return t1.setState$1(new A.CounterApp_build__closure0(t1));
     },
-    $signature: 5
+    $signature: 6
   };
   A.CounterApp_build__closure0.prototype = {
     call$0() {
@@ -5550,7 +7317,7 @@
       t1 = this.$this;
       return t1.setState$1(new A.CounterApp_build__closure(t1));
     },
-    $signature: 5
+    $signature: 6
   };
   A.CounterApp_build__closure.prototype = {
     call$0() {
@@ -5578,14 +7345,14 @@
       t5 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "brand"], t1, t2);
       t6 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "brand-mark"], t1, t2);
       t7 = A.Text$("F");
-      t5 = A.Row$([new A.Container(_s3_, A._mergeProps(t6, B.Map_empty), A._normalizeChildren(t7, B.List_empty)), A.Text$("Flint Dart")], t5);
+      t5 = A.Row$([new A.Container(_s3_, A.mergeComponentProps(t6, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(t7, B.List_empty1)), A.Text$("Flint Dart")], t5);
       t7 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "nav-actions"], t1, t2);
       t4 = A.h("header", [t5, A.Row$([A.h("a", ["Home"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "/"], t1, t2)), A.h("a", ["Docs"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "/docs"], t1, t2)), A.h("a", ["Swagger JSON"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "/swagger.json"], t1, t2))], t7)], t4);
       t7 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "guide-hero"], t1, t2);
       t5 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "guide-copy"], t1, t2);
       t6 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "eyebrow"], t1, t2);
       t8 = A.Text$("Backend route - Browser UI");
-      t7 = A.h("section", [A.Column$([new A.Container(_s3_, A._mergeProps(t6, B.Map_empty), A._normalizeChildren(t8, B.List_empty)), A.h("h1", [title], B.Map_empty), A.h("p", [intro], A.LinkedHashMap_LinkedHashMap$_literal(["className", "hero-text"], t1, t2))], t5)], t7);
+      t7 = A.h("section", [A.Column$([new A.Container(_s3_, A.mergeComponentProps(t6, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(t8, B.List_empty1)), A.h("h1", [title], B.Map_empty), A.h("p", [intro], A.LinkedHashMap_LinkedHashMap$_literal(["className", "hero-text"], t1, t2))], t5)], t7);
       t5 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "guide-steps"], t1, t2);
       t8 = [];
       for (t6 = type$.Map_String_String, i = 0; i < steps.length; i = i0) {
@@ -5594,30 +7361,33 @@
         t10 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "guide-step"], t1, t2);
         t11 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "step-number"], t1, t2);
         t12 = B.JSInt_methods.toString$0(i0);
-        t11 = A._mergeProps(t11, B.Map_empty);
-        t12 = A._normalizeChildren(new A.Text(t12), B.List_empty);
+        t11 = A.mergeComponentProps(t11, _null, _null, B.Map_empty, B.Map_empty);
+        t12 = A.normalizeChildren(new A.Text(t12), B.List_empty1);
         t13 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "step-content"], t1, t2);
         t14 = t9.$index(0, "label");
         t14 = [t14 == null ? "Step" : t14];
         t15 = A._arrayInstanceType(t14);
         t16 = t15._eval$1("MappedListIterable<1,FlintNode>");
-        t14 = A.List_List$_of(new A.MappedListIterable(t14, t15._eval$1("FlintNode(1)")._as(A.html__toFlintNode$closure()), t16), t16._eval$1("ListIterable.E"));
+        t14 = A.List_List$_of(new A.MappedListIterable(t14, t15._eval$1("FlintNode(1)")._as(A.component_props__toFlintNode$closure()), t16), t16._eval$1("ListIterable.E"));
         t14.$flags = 1;
         t15 = t9.$index(0, "body");
         t15 = [t15 == null ? "" : t15];
         t16 = A._arrayInstanceType(t15);
         t17 = t16._eval$1("MappedListIterable<1,FlintNode>");
-        t15 = A.List_List$_of(new A.MappedListIterable(t15, t16._eval$1("FlintNode(1)")._as(A.html__toFlintNode$closure()), t17), t17._eval$1("ListIterable.E"));
+        t15 = A.List_List$_of(new A.MappedListIterable(t15, t16._eval$1("FlintNode(1)")._as(A.component_props__toFlintNode$closure()), t17), t17._eval$1("ListIterable.E"));
         t15.$flags = 1;
         t16 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "command"], t1, t2);
         t9 = t9.$index(0, "code");
         if (t9 == null)
           t9 = "";
-        t9 = A.Column$([new A.FlintElement("h2", B.Map_empty, t14), new A.FlintElement("p", B.Map_empty, t15), new A.Container(_s3_, A._mergeProps(t16, B.Map_empty), A._normalizeChildren(new A.Text(t9), B.List_empty))], t13);
-        t8.push(new A.Container(_s3_, A._mergeProps(t10, B.Map_empty), A._normalizeChildren(_null, [new A.Container(_s3_, t11, t12), t9])));
+        t16 = A.mergeComponentProps(t16, _null, _null, B.Map_empty, B.Map_empty);
+        t9 = A.normalizeChildren(new A.Text(t9), B.List_empty1);
+        t13 = A.mergeComponentProps(t13, _null, _null, B.Map_IwXTo, B.Map_empty);
+        t9 = A.normalizeChildren(_null, [new A.FlintElement("h2", B.Map_empty, t14), new A.FlintElement("p", B.Map_empty, t15), new A.Container(_s3_, t16, t9)]);
+        t8.push(new A.Container(_s3_, A.mergeComponentProps(t10, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(_null, [new A.Container(_s3_, t11, t12), new A.Column(_s3_, t13, t9)])));
       }
       t1 = A.h("section", t8, t5);
-      return new A.Container(_s3_, A._mergeProps(t3, B.Map_empty), A._normalizeChildren(_null, [t4, t7, t1]));
+      return new A.Container(_s3_, A.mergeComponentProps(t3, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(_null, [t4, t7, t1]));
     },
     _steps$0() {
       var t1, t2,
@@ -5629,7 +7399,7 @@
         t1 = A.List_List$_of(t2, A._instanceType(t2)._eval$1("Iterable.E"));
         return t1;
       }
-      return B.List_empty0;
+      return B.List_empty2;
     }
   };
   A.GuidePage__steps_closure.prototype = {
@@ -5651,20 +7421,20 @@
       t4 = type$.String;
       return A.LinkedHashMap_LinkedHashMap$_literal(["label", t1, "body", t2, "code", t3], t4, t4);
     },
-    $signature: 6
+    $signature: 7
   };
   A.LoginPage.prototype = {
     build$0() {
-      var subtitle, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, _s3_ = "div", _s1_ = "a",
+      var subtitle, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, _null = null, _s3_ = "div", _s1_ = "a",
         _s20_ = "hover:text-slate-900",
         _s8_ = "password",
         t1 = this.props,
         t2 = t1.$index(0, "title"),
-        title = t2 == null ? null : J.toString$0$(t2);
+        title = t2 == null ? _null : J.toString$0$(t2);
       if (title == null)
         title = "Welcome back";
       t1 = t1.$index(0, "subtitle");
-      subtitle = t1 == null ? null : J.toString$0$(t1);
+      subtitle = t1 == null ? _null : J.toString$0$(t1);
       if (subtitle == null)
         subtitle = "Sign in to continue building with Flint.";
       t1 = type$.String;
@@ -5690,14 +7460,14 @@
       t11 = this._field$4$label$name$placeholder$type("Password", _s8_, "Enter your password", _s8_);
       t12 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "flex items-center justify-between gap-3 pt-1 text-sm"], t1, t2);
       t13 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "inline-flex items-center gap-2 text-slate-600"], t1, t2);
-      t6 = A.h(_s3_, [t5, A.h("section", [t9, A.h("form", [t7, t11, A.h(_s3_, [A.h("label", [A.h("input", B.List_empty, A.LinkedHashMap_LinkedHashMap$_literal(["type", "checkbox", "className", "h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-700"], t1, t2)), "Remember me"], t13), A.h(_s1_, ["Forgot password?"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "#", "className", "font-semibold text-teal-800 hover:text-teal-900"], t1, t2))], t12), A.h("button", ["Sign in"], A.LinkedHashMap_LinkedHashMap$_literal(["type", "submit", "className", "inline-flex w-full min-h-12 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"], t1, t2))], t8), A.h(_s3_, ["Test note: if this page looks unstyled, the Tailwind standalone build is not being picked up yet."], A.LinkedHashMap_LinkedHashMap$_literal(["className", "mt-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"], t1, t2))], t10)], t6);
-      return new A.Container(_s3_, A._mergeProps(t3, B.Map_empty), A._normalizeChildren(null, [t4, t6]));
+      t6 = A.h(_s3_, [t5, A.h("section", [t9, A.h("form", [t7, t11, A.h(_s3_, [A.h("label", [A.h("input", B.List_empty1, A.LinkedHashMap_LinkedHashMap$_literal(["type", "checkbox", "className", "h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-700"], t1, t2)), "Remember me"], t13), A.h(_s1_, ["Forgot password?"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "#", "className", "font-semibold text-teal-800 hover:text-teal-900"], t1, t2))], t12), A.h("button", ["Sign in"], A.LinkedHashMap_LinkedHashMap$_literal(["type", "submit", "className", "inline-flex w-full min-h-12 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800"], t1, t2))], t8), A.h(_s3_, ["Test note: if this page looks unstyled, the Tailwind standalone build is not being picked up yet."], A.LinkedHashMap_LinkedHashMap$_literal(["className", "mt-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900"], t1, t2))], t10)], t6);
+      return new A.Container(_s3_, A.mergeComponentProps(t3, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(_null, [t4, t6]));
     },
     _field$4$label$name$placeholder$type(label, $name, placeholder, type) {
       var t1 = type$.String,
         t2 = type$.nullable_Object,
         t3 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "block space-y-2"], t1, t2);
-      return A.h("label", [A.h("span", [label], A.LinkedHashMap_LinkedHashMap$_literal(["className", "text-sm font-medium text-slate-700"], t1, t2)), A.h("input", B.List_empty, A.LinkedHashMap_LinkedHashMap$_literal(["name", $name, "type", type, "placeholder", placeholder, "className", "h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-700 focus:ring-4 focus:ring-teal-700/10"], t1, t2))], t3);
+      return A.h("label", [A.h("span", [label], A.LinkedHashMap_LinkedHashMap$_literal(["className", "text-sm font-medium text-slate-700"], t1, t2)), A.h("input", B.List_empty1, A.LinkedHashMap_LinkedHashMap$_literal(["name", $name, "type", type, "placeholder", placeholder, "className", "h-12 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-700 focus:ring-4 focus:ring-teal-700/10"], t1, t2))], t3);
     }
   };
   A.WelcomePage.prototype = {
@@ -5721,15 +7491,15 @@
       t5 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "brand"], t1, t2);
       t6 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "brand-mark"], t1, t2);
       t7 = A.Text$("F");
-      t5 = A.Row$([new A.Container(_s3_, A._mergeProps(t6, B.Map_empty), A._normalizeChildren(t7, B.List_empty)), A.Text$("Flint Dart")], t5);
+      t5 = A.Row$([new A.Container(_s3_, A.mergeComponentProps(t6, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(t7, B.List_empty1)), A.Text$("Flint Dart")], t5);
       t7 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "nav-actions"], t1, t2);
       t4 = A.h("header", [t5, A.Row$([A.h(_s1_, ["Docs"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "/docs"], t1, t2)), A.h(_s1_, ["Guide"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "/guide"], t1, t2)), A.h(_s1_, ["API"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "/swagger"], t1, t2)), A.h(_s1_, ["Email"], A.LinkedHashMap_LinkedHashMap$_literal(["href", "/preview/email"], t1, t2))], t7)], t4);
       t7 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "hero"], t1, t2);
       t5 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "hero-copy"], t1, t2);
       t6 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "eyebrow"], t1, t2);
       t8 = A.Text$("Flint UI bridge - v" + version);
-      t6 = A._mergeProps(t6, B.Map_empty);
-      t8 = A._normalizeChildren(t8, B.List_empty);
+      t6 = A.mergeComponentProps(t6, _null, _null, B.Map_empty, B.Map_empty);
+      t8 = A.normalizeChildren(t8, B.List_empty1);
       t9 = A.h("h1", ["Welcome to Flint Dart"], B.Map_empty);
       t10 = A.h("p", [tagline], A.LinkedHashMap_LinkedHashMap$_literal(["className", "hero-text"], t1, t2));
       t11 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "hero-actions"], t1, t2);
@@ -5740,7 +7510,7 @@
       t8 = A.Text$("});");
       t6 = A.Text$("");
       t12 = A.Text$('createFlintApp("#app", registry: componentRegistry);');
-      t7 = A.h(_s7_, [t5, new A.Container(_s3_, A._mergeProps(t11, B.Map_empty), A._normalizeChildren(_null, [t10, t9, t8, t6, t12]))], t7);
+      t7 = A.h(_s7_, [t5, new A.Container(_s3_, A.mergeComponentProps(t11, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(_null, [t10, t9, t8, t6, t12]))], t7);
       t12 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "feature-grid"], t1, t2);
       t6 = [];
       for (t5 = features.length, t8 = type$.Map_String_String, _i = 0; _i < features.length; features.length === t5 || (0, A.throwConcurrentModificationError)(features), ++_i) {
@@ -5750,15 +7520,15 @@
         t11 = [t11 == null ? "Feature" : t11];
         t13 = A._arrayInstanceType(t11);
         t14 = t13._eval$1("MappedListIterable<1,FlintNode>");
-        t11 = A.List_List$_of(new A.MappedListIterable(t11, t13._eval$1("FlintNode(1)")._as(A.html__toFlintNode$closure()), t14), t14._eval$1("ListIterable.E"));
+        t11 = A.List_List$_of(new A.MappedListIterable(t11, t13._eval$1("FlintNode(1)")._as(A.component_props__toFlintNode$closure()), t14), t14._eval$1("ListIterable.E"));
         t11.$flags = 1;
         t9 = t9.$index(0, "body");
         t9 = [t9 == null ? "" : t9];
         t13 = A._arrayInstanceType(t9);
         t14 = t13._eval$1("MappedListIterable<1,FlintNode>");
-        t9 = A.List_List$_of(new A.MappedListIterable(t9, t13._eval$1("FlintNode(1)")._as(A.html__toFlintNode$closure()), t14), t14._eval$1("ListIterable.E"));
+        t9 = A.List_List$_of(new A.MappedListIterable(t9, t13._eval$1("FlintNode(1)")._as(A.component_props__toFlintNode$closure()), t14), t14._eval$1("ListIterable.E"));
         t9.$flags = 1;
-        t6.push(new A.Container(_s3_, A._mergeProps(t10, B.Map_empty), A._normalizeChildren(_null, [new A.FlintElement("h3", B.Map_empty, t11), new A.FlintElement("p", B.Map_empty, t9)])));
+        t6.push(new A.Container(_s3_, A.mergeComponentProps(t10, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(_null, [new A.FlintElement("h3", B.Map_empty, t11), new A.FlintElement("p", B.Map_empty, t9)])));
       }
       t5 = A.h(_s7_, t6, t12);
       t6 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "start-band", "id", "start"], t1, t2);
@@ -5766,8 +7536,8 @@
       t8 = A.Column$([A.h("h2", ["A Dart-first frontend for Flint"], B.Map_empty), A.h("p", ["Keep routes, controllers, auth, and data loading in Flint. Render browser pages from Dart components when a template is too small for the job."], B.Map_empty)], t8);
       t2 = A.LinkedHashMap_LinkedHashMap$_literal(["className", "command"], t1, t2);
       t1 = A.Text$("flint run");
-      t6 = A.h(_s7_, [t8, new A.Container(_s3_, A._mergeProps(t2, B.Map_empty), A._normalizeChildren(t1, B.List_empty))], t6);
-      return new A.Container(_s3_, A._mergeProps(t3, B.Map_empty), A._normalizeChildren(_null, [t4, t7, t5, t6]));
+      t6 = A.h(_s7_, [t8, new A.Container(_s3_, A.mergeComponentProps(t2, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(t1, B.List_empty1))], t6);
+      return new A.Container(_s3_, A.mergeComponentProps(t3, _null, _null, B.Map_empty, B.Map_empty), A.normalizeChildren(_null, [t4, t7, t5, t6]));
     },
     _features$0() {
       var t1, t2,
@@ -5797,7 +7567,7 @@
       t3 = type$.String;
       return A.LinkedHashMap_LinkedHashMap$_literal(["title", t1, "body", t2], t3, t3);
     },
-    $signature: 6
+    $signature: 7
   };
   (function aliases() {
     var _ = J.LegacyJavaScriptObject.prototype;
@@ -5809,35 +7579,37 @@
     var _static_1 = hunkHelpers._static_1,
       _static_0 = hunkHelpers._static_0,
       _instance_0_u = hunkHelpers._instance_0u;
-    _static_1(A, "async__AsyncRun__scheduleImmediateJsOverride$closure", "_AsyncRun__scheduleImmediateJsOverride", 1);
-    _static_1(A, "async__AsyncRun__scheduleImmediateWithSetImmediate$closure", "_AsyncRun__scheduleImmediateWithSetImmediate", 1);
-    _static_1(A, "async__AsyncRun__scheduleImmediateWithTimer$closure", "_AsyncRun__scheduleImmediateWithTimer", 1);
+    _static_1(A, "async__AsyncRun__scheduleImmediateJsOverride$closure", "_AsyncRun__scheduleImmediateJsOverride", 4);
+    _static_1(A, "async__AsyncRun__scheduleImmediateWithSetImmediate$closure", "_AsyncRun__scheduleImmediateWithSetImmediate", 4);
+    _static_1(A, "async__AsyncRun__scheduleImmediateWithTimer$closure", "_AsyncRun__scheduleImmediateWithTimer", 4);
     _static_0(A, "async___startMicrotaskLoop$closure", "_startMicrotaskLoop", 0);
-    _instance_0_u(A.FlintRoot.prototype, "get$_scheduleRender", "_scheduleRender$0", 0);
     _instance_0_u(A.FlintComponent.prototype, "get$didMount", "didMount$0", 0);
-    _static_1(A, "widgets___toFlintNode$closure", "_toFlintNode", 7);
-    _static_1(A, "html__toFlintNode$closure", "toFlintNode", 7);
+    _static_1(A, "component_props__toFlintNode$closure", "toFlintNode", 27);
   })();
   (function inheritance() {
     var _mixin = hunkHelpers.mixin,
       _inherit = hunkHelpers.inherit,
       _inheritMany = hunkHelpers.inheritMany;
     _inherit(A.Object, null);
-    _inheritMany(A.Object, [A.JS_CONST, J.Interceptor, A.SafeToStringHook, J.ArrayIterator, A.Error, A.Iterable, A.ListIterator, A.MappedIterator, A.WhereIterator, A.WhereTypeIterator, A.FixedLengthListMixin, A.ConstantMap, A.Closure, A._KeysOrValuesOrElementsIterator, A.TypeErrorDecoder, A.NullThrownFromJavaScriptException, A._StackTrace, A.MapBase, A.LinkedHashMapCell, A.LinkedHashMapKeyIterator, A.LinkedHashMapEntryIterator, A.Rti, A._FunctionParameters, A._Type, A._TimerImpl, A._SyncStarIterator, A._AsyncCallbackEntry, A._Zone, A.ListBase, A.Codec, A.Converter, A.StackOverflowError, A._Exception, A.FormatException, A.MapEntry, A.Null, A.StringBuffer, A.FlintRoot, A.FlintComponent, A.FlintNode, A.FlintComponentRegistry, A.FlintPage]);
+    _inheritMany(A.Object, [A.JS_CONST, J.Interceptor, A.SafeToStringHook, J.ArrayIterator, A.Error, A.ListBase, A.Iterable, A.ListIterator, A.MappedIterator, A.WhereIterator, A.WhereTypeIterator, A.FixedLengthListMixin, A.UnmodifiableListMixin, A.ConstantMap, A.Closure, A._KeysOrValuesOrElementsIterator, A.SetBase, A.TypeErrorDecoder, A.NullThrownFromJavaScriptException, A._StackTrace, A.MapBase, A.LinkedHashMapCell, A.LinkedHashMapKeyIterator, A.LinkedHashMapValueIterator, A.LinkedHashMapEntryIterator, A.JSSyntaxRegExp, A._MatchImplementation, A._AllMatchesIterator, A.StringMatch, A._StringAllMatchesIterator, A.Rti, A._FunctionParameters, A._Type, A._TimerImpl, A._SyncStarIterator, A._AsyncCallbackEntry, A._Zone, A._LinkedHashSetCell, A._LinkedHashSetIterator, A.Codec, A.Converter, A._Enum, A.OutOfMemoryError, A.StackOverflowError, A._Exception, A.FormatException, A.MapEntry, A.Null, A.StringBuffer, A.FlintRoot, A._ComponentMount, A.FlintComponent, A.FlintNode, A.FlintComponentRegistry, A.FlintPage, A.FlintPageContext, A.Color, A.DartStyle, A.TokenRef, A.KeyframeStep, A.StyleKeyframes, A.RootDesign, A.EdgeInsets, A.Border, A.Shadow, A.StyleTransform, A.Cursor, A.TextDecorationStyle, A.TransitionTiming, A.StyleTransition, A.StyleAnimation]);
     _inheritMany(J.Interceptor, [J.JSBool, J.JSNull, J.JavaScriptObject, J.JavaScriptBigInt, J.JavaScriptSymbol, J.JSNumber, J.JSString]);
     _inheritMany(J.JavaScriptObject, [J.LegacyJavaScriptObject, J.JSArray, A.NativeByteBuffer, A.NativeTypedData]);
     _inheritMany(J.LegacyJavaScriptObject, [J.PlainJavaScriptObject, J.UnknownJavaScriptObject, J.JavaScriptFunction]);
     _inherit(J.JSArraySafeToStringHook, A.SafeToStringHook);
     _inherit(J.JSUnmodifiableArray, J.JSArray);
     _inheritMany(J.JSNumber, [J.JSInt, J.JSNumNotInt]);
-    _inheritMany(A.Error, [A.LateError, A.ReachabilityError, A.TypeError, A.JsNoSuchMethodError, A.UnknownJsTypeError, A.RuntimeError, A._Error, A.AssertionError, A.ArgumentError, A.UnsupportedError, A.UnimplementedError, A.StateError, A.ConcurrentModificationError]);
-    _inheritMany(A.Iterable, [A.EfficientLengthIterable, A.MappedIterable, A.WhereIterable, A.WhereTypeIterable, A._KeysOrValues, A._SyncStarIterable]);
-    _inheritMany(A.EfficientLengthIterable, [A.ListIterable, A.LinkedHashMapKeysIterable, A.LinkedHashMapEntriesIterable]);
+    _inheritMany(A.Error, [A.LateError, A.TypeError, A.JsNoSuchMethodError, A.UnknownJsTypeError, A.RuntimeError, A._Error, A.AssertionError, A.ArgumentError, A.UnsupportedError, A.UnimplementedError, A.StateError, A.ConcurrentModificationError]);
+    _inherit(A.UnmodifiableListBase, A.ListBase);
+    _inherit(A.CodeUnits, A.UnmodifiableListBase);
+    _inheritMany(A.Iterable, [A.EfficientLengthIterable, A.MappedIterable, A.WhereIterable, A.WhereTypeIterable, A._KeysOrValues, A._AllMatchesIterable, A._StringAllMatchesIterable, A._SyncStarIterable]);
+    _inheritMany(A.EfficientLengthIterable, [A.ListIterable, A.LinkedHashMapKeysIterable, A.LinkedHashMapValuesIterable, A.LinkedHashMapEntriesIterable]);
     _inherit(A.EfficientLengthMappedIterable, A.MappedIterable);
     _inheritMany(A.ListIterable, [A.MappedListIterable, A._JsonMapKeyIterable]);
-    _inheritMany(A.Closure, [A.Closure2Args, A.Closure0Args, A.TearOffClosure, A.initHooks_closure, A.initHooks_closure1, A._AsyncRun__initializeScheduleImmediate_internalCallback, A._AsyncRun__initializeScheduleImmediate_closure, A.MapBase_entries_closure, A.FlintRoot__applyStyle_closure, A.FlintRoot__applyStyle_closure0, A.FlintRoot__listen_closure, A._styleToString_closure, A._styleToString_closure0, A.componentRegistry_closure, A.componentRegistry_closure0, A.componentRegistry_closure1, A.componentRegistry_closure2, A.CounterApp_build_closure, A.CounterApp_build_closure0, A.GuidePage__steps_closure, A.WelcomePage__features_closure]);
+    _inheritMany(A.Closure, [A.Closure2Args, A.Closure0Args, A.TearOffClosure, A.initHooks_closure, A.initHooks_closure1, A._AsyncRun__initializeScheduleImmediate_internalCallback, A._AsyncRun__initializeScheduleImmediate_closure, A.MapBase_entries_closure, A.FlintRoot__applyStyle_closure, A.FlintRoot__applyStyle_closure0, A.FlintRoot__listen_closure, A.mergeComponentProps_closure, A.joinClassNames_closure, A.joinClassNames_closure0, A.styleToCss_closure, A.styleToCss_closure0, A._scopedCssBody_closure, A._scopedCssBody_closure0, A._styleToCssImportant_closure, A._styleToCssImportant_closure0, A.StyleKeyframes_cssText_closure, A.StyleKeyframes_cssText_closure0, A.RootDesign_cssText_closure, A.rootStyleToCss_closure, A.rootStyleToCss_closure0, A.EdgeInsets_toCss_closure, A.StyleTransition_StyleTransition$combine_closure, A.componentRegistry_closure, A.componentRegistry_closure0, A.componentRegistry_closure1, A.componentRegistry_closure2, A.CounterApp_build_closure, A.CounterApp_build_closure0, A.GuidePage__steps_closure, A.WelcomePage__features_closure]);
     _inheritMany(A.Closure2Args, [A.ConstantMap_map_closure, A.JsLinkedHashMap_addAll_closure, A.initHooks_closure0, A.MapBase_mapToString_closure, A.FlintRoot__applyProps_closure, A._asStringKeyedMap_closure]);
     _inherit(A.ConstantStringMap, A.ConstantMap);
+    _inheritMany(A.SetBase, [A.ConstantSet, A._SetBase]);
+    _inherit(A.ConstantStringSet, A.ConstantSet);
     _inherit(A.NullError, A.TypeError);
     _inheritMany(A.TearOffClosure, [A.StaticClosure, A.BoundClosure]);
     _inheritMany(A.MapBase, [A.JsLinkedHashMap, A._JsonMap]);
@@ -5850,15 +7622,18 @@
     _inheritMany(A.NativeTypedArrayOfDouble, [A.NativeFloat32List, A.NativeFloat64List]);
     _inheritMany(A.NativeTypedArrayOfInt, [A.NativeInt16List, A.NativeInt32List, A.NativeInt8List, A.NativeUint16List, A.NativeUint32List, A.NativeUint8ClampedList, A.NativeUint8List]);
     _inherit(A._TypeError, A._Error);
-    _inheritMany(A.Closure0Args, [A._AsyncRun__scheduleImmediateJsOverride_internalCallback, A._AsyncRun__scheduleImmediateWithSetImmediate_internalCallback, A._TimerImpl_internalCallback, A._RootZone_bindCallbackGuarded_closure, A._rootHandleError_closure, A.FlintRoot__scheduleRender_closure, A.CounterApp_build__closure0, A.CounterApp_build__closure]);
+    _inheritMany(A.Closure0Args, [A._AsyncRun__scheduleImmediateJsOverride_internalCallback, A._AsyncRun__scheduleImmediateWithSetImmediate_internalCallback, A._TimerImpl_internalCallback, A._RootZone_bindCallbackGuarded_closure, A._rootHandleError_closure, A.FlintRoot__scheduleRender_closure, A.FlintRoot__createComponent_closure, A.FlintRoot__scheduleComponentRender_closure, A.CounterApp_build__closure0, A.CounterApp_build__closure]);
     _inherit(A._RootZone, A._Zone);
+    _inherit(A._LinkedHashSet, A._SetBase);
     _inherit(A.JsonCodec, A.Codec);
     _inherit(A.JsonDecoder, A.Converter);
     _inheritMany(A.ArgumentError, [A.RangeError, A.IndexError]);
     _inheritMany(A.FlintNode, [A.FlintText, A.FlintFragment, A.FlintElement, A.FlintComponentNode]);
     _inheritMany(A.FlintComponent, [A.MissingFlintPage, A.CounterApp, A.GuidePage, A.LoginPage, A.WelcomePage]);
+    _inheritMany(A._Enum, [A.Display, A.AlignItems, A.JustifyContent, A.Tone, A.ComponentSize, A.ButtonVariant]);
+    _inheritMany(A.FlintElement, [A.Button, A.Spinner, A.Column, A.Container, A.Row]);
     _inherit(A.Text, A.FlintText);
-    _inheritMany(A.FlintElement, [A.Container, A.Column, A.Row, A.Button]);
+    _mixin(A.UnmodifiableListBase, A.UnmodifiableListMixin);
     _mixin(A._NativeTypedArrayOfDouble_NativeTypedArray_ListMixin, A.ListBase);
     _mixin(A._NativeTypedArrayOfDouble_NativeTypedArray_ListMixin_FixedLengthListMixin, A.FixedLengthListMixin);
     _mixin(A._NativeTypedArrayOfInt_NativeTypedArray_ListMixin, A.ListBase);
@@ -5869,45 +7644,63 @@
     typeUniverse: {eC: new Map(), tR: {}, eT: {}, tPV: {}, sEA: []},
     mangledGlobalNames: {int: "int", double: "double", num: "num", String: "String", bool: "bool", Null: "Null", List: "List", Object: "Object", Map: "Map", JSObject: "JSObject"},
     mangledNames: {},
-    types: ["~()", "~(~())", "Null()", "bool(MapEntry<String,Object?>)", "String(MapEntry<String,Object?>)", "~(Object)", "Map<String,String>(Map<@,@>)", "FlintNode(Object?)", "@(@)", "@(@,String)", "@(String)", "Null(@)", "Null(~())", "~(Object?,Object?)", "~(String,Object?)", "Null(JSObject)", "MapEntry<String,@>(@,@)", "WelcomePage(Map<String,@>)", "GuidePage(Map<String,@>)", "LoginPage(Map<String,@>)", "CounterApp(Map<String,@>)"],
+    types: ["~()", "bool(MapEntry<String,Object?>)", "String(MapEntry<String,Object?>)", "bool(String)", "~(~())", "Null()", "~(Object)", "Map<String,String>(Map<@,@>)", "@(@)", "@(@,String)", "@(String)", "Null(@)", "Null(~())", "~(Object?,Object?)", "~(String,Object?)", "Null(JSObject)", "bool(String?)", "String(String?)", "String(MapEntry<String,DartStyle>)", "String(MapEntry<Breakpoint,DartStyle>)", "MapEntry<String,@>(@,@)", "String(KeyframeStep)", "String(StyleTransition)", "WelcomePage(Map<String,@>)", "GuidePage(Map<String,@>)", "LoginPage(Map<String,@>)", "CounterApp(Map<String,@>)", "FlintNode(Object?)"],
     interceptorsByTag: null,
     leafTags: null,
     arrayRti: Symbol("$ti")
   };
-  A._Universe_addRules(init.typeUniverse, JSON.parse('{"PlainJavaScriptObject":"LegacyJavaScriptObject","UnknownJavaScriptObject":"LegacyJavaScriptObject","JavaScriptFunction":"LegacyJavaScriptObject","NativeArrayBuffer":"NativeByteBuffer","JSBool":{"bool":[],"TrustedGetRuntimeType":[]},"JSNull":{"TrustedGetRuntimeType":[]},"JavaScriptObject":{"JSObject":[]},"LegacyJavaScriptObject":{"JSObject":[]},"JSArray":{"List":["1"],"EfficientLengthIterable":["1"],"JSObject":[],"Iterable":["1"]},"JSArraySafeToStringHook":{"SafeToStringHook":[]},"JSUnmodifiableArray":{"JSArray":["1"],"List":["1"],"EfficientLengthIterable":["1"],"JSObject":[],"Iterable":["1"]},"ArrayIterator":{"Iterator":["1"]},"JSNumber":{"double":[],"num":[]},"JSInt":{"double":[],"int":[],"num":[],"TrustedGetRuntimeType":[]},"JSNumNotInt":{"double":[],"num":[],"TrustedGetRuntimeType":[]},"JSString":{"String":[],"Pattern":[],"TrustedGetRuntimeType":[]},"LateError":{"Error":[]},"ReachabilityError":{"Error":[]},"EfficientLengthIterable":{"Iterable":["1"]},"ListIterable":{"EfficientLengthIterable":["1"],"Iterable":["1"]},"ListIterator":{"Iterator":["1"]},"MappedIterable":{"Iterable":["2"],"Iterable.E":"2"},"EfficientLengthMappedIterable":{"MappedIterable":["1","2"],"EfficientLengthIterable":["2"],"Iterable":["2"],"Iterable.E":"2"},"MappedIterator":{"Iterator":["2"]},"MappedListIterable":{"ListIterable":["2"],"EfficientLengthIterable":["2"],"Iterable":["2"],"ListIterable.E":"2","Iterable.E":"2"},"WhereIterable":{"Iterable":["1"],"Iterable.E":"1"},"WhereIterator":{"Iterator":["1"]},"WhereTypeIterable":{"Iterable":["1"],"Iterable.E":"1"},"WhereTypeIterator":{"Iterator":["1"]},"ConstantMap":{"Map":["1","2"]},"ConstantStringMap":{"ConstantMap":["1","2"],"Map":["1","2"]},"_KeysOrValues":{"Iterable":["1"],"Iterable.E":"1"},"_KeysOrValuesOrElementsIterator":{"Iterator":["1"]},"NullError":{"Error":[]},"JsNoSuchMethodError":{"Error":[]},"UnknownJsTypeError":{"Error":[]},"_StackTrace":{"StackTrace":[]},"Closure":{"Function":[]},"Closure0Args":{"Function":[]},"Closure2Args":{"Function":[]},"TearOffClosure":{"Function":[]},"StaticClosure":{"Function":[]},"BoundClosure":{"Function":[]},"RuntimeError":{"Error":[]},"JsLinkedHashMap":{"MapBase":["1","2"],"LinkedHashMap":["1","2"],"Map":["1","2"],"MapBase.K":"1","MapBase.V":"2"},"LinkedHashMapKeysIterable":{"EfficientLengthIterable":["1"],"Iterable":["1"],"Iterable.E":"1"},"LinkedHashMapKeyIterator":{"Iterator":["1"]},"LinkedHashMapEntriesIterable":{"EfficientLengthIterable":["MapEntry<1,2>"],"Iterable":["MapEntry<1,2>"],"Iterable.E":"MapEntry<1,2>"},"LinkedHashMapEntryIterator":{"Iterator":["MapEntry<1,2>"]},"NativeByteBuffer":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedData":{"JSObject":[]},"NativeByteData":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedArray":{"JavaScriptIndexingBehavior":["1"],"JSObject":[]},"NativeTypedArrayOfDouble":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"EfficientLengthIterable":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"]},"NativeTypedArrayOfInt":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"]},"NativeFloat32List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"EfficientLengthIterable":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeFloat64List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"EfficientLengthIterable":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeInt16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8ClampedList":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"_Error":{"Error":[]},"_TypeError":{"Error":[]},"_SyncStarIterator":{"Iterator":["1"]},"_SyncStarIterable":{"Iterable":["1"],"Iterable.E":"1"},"_Zone":{"Zone":[]},"_RootZone":{"Zone":[]},"MapBase":{"Map":["1","2"]},"_JsonMap":{"MapBase":["String","@"],"Map":["String","@"],"MapBase.K":"String","MapBase.V":"@"},"_JsonMapKeyIterable":{"ListIterable":["String"],"EfficientLengthIterable":["String"],"Iterable":["String"],"ListIterable.E":"String","Iterable.E":"String"},"double":{"num":[]},"int":{"num":[]},"String":{"Pattern":[]},"AssertionError":{"Error":[]},"TypeError":{"Error":[]},"ArgumentError":{"Error":[]},"RangeError":{"Error":[]},"IndexError":{"Error":[]},"UnsupportedError":{"Error":[]},"UnimplementedError":{"Error":[]},"StateError":{"Error":[]},"ConcurrentModificationError":{"Error":[]},"StackOverflowError":{"Error":[]},"FlintText":{"FlintNode":[]},"FlintFragment":{"FlintNode":[]},"FlintElement":{"FlintNode":[]},"FlintComponentNode":{"FlintNode":[]},"MissingFlintPage":{"FlintComponent":[]},"Text":{"FlintNode":[]},"Container":{"FlintNode":[]},"Column":{"FlintNode":[]},"Row":{"FlintNode":[]},"Button":{"FlintNode":[]},"CounterApp":{"FlintComponent":[]},"GuidePage":{"FlintComponent":[]},"LoginPage":{"FlintComponent":[]},"WelcomePage":{"FlintComponent":[]},"Int8List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint8List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint8ClampedList":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Int16List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint16List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Int32List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint32List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Float32List":{"List":["double"],"EfficientLengthIterable":["double"],"Iterable":["double"]},"Float64List":{"List":["double"],"EfficientLengthIterable":["double"],"Iterable":["double"]}}'));
-  A._Universe_addErasedTypes(init.typeUniverse, JSON.parse('{"EfficientLengthIterable":1,"NativeTypedArray":1,"Codec":2,"Converter":2}'));
+  A._Universe_addRules(init.typeUniverse, JSON.parse('{"PlainJavaScriptObject":"LegacyJavaScriptObject","UnknownJavaScriptObject":"LegacyJavaScriptObject","JavaScriptFunction":"LegacyJavaScriptObject","NativeArrayBuffer":"NativeByteBuffer","JSBool":{"bool":[],"TrustedGetRuntimeType":[]},"JSNull":{"TrustedGetRuntimeType":[]},"JavaScriptObject":{"JSObject":[]},"LegacyJavaScriptObject":{"JSObject":[]},"JSArray":{"List":["1"],"EfficientLengthIterable":["1"],"JSObject":[],"Iterable":["1"]},"JSArraySafeToStringHook":{"SafeToStringHook":[]},"JSUnmodifiableArray":{"JSArray":["1"],"List":["1"],"EfficientLengthIterable":["1"],"JSObject":[],"Iterable":["1"]},"ArrayIterator":{"Iterator":["1"]},"JSNumber":{"double":[],"num":[]},"JSInt":{"double":[],"int":[],"num":[],"TrustedGetRuntimeType":[]},"JSNumNotInt":{"double":[],"num":[],"TrustedGetRuntimeType":[]},"JSString":{"String":[],"Pattern":[],"TrustedGetRuntimeType":[]},"LateError":{"Error":[]},"CodeUnits":{"ListBase":["int"],"UnmodifiableListMixin":["int"],"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"],"ListBase.E":"int"},"EfficientLengthIterable":{"Iterable":["1"]},"ListIterable":{"EfficientLengthIterable":["1"],"Iterable":["1"]},"ListIterator":{"Iterator":["1"]},"MappedIterable":{"Iterable":["2"],"Iterable.E":"2"},"EfficientLengthMappedIterable":{"MappedIterable":["1","2"],"EfficientLengthIterable":["2"],"Iterable":["2"],"Iterable.E":"2"},"MappedIterator":{"Iterator":["2"]},"MappedListIterable":{"ListIterable":["2"],"EfficientLengthIterable":["2"],"Iterable":["2"],"ListIterable.E":"2","Iterable.E":"2"},"WhereIterable":{"Iterable":["1"],"Iterable.E":"1"},"WhereIterator":{"Iterator":["1"]},"WhereTypeIterable":{"Iterable":["1"],"Iterable.E":"1"},"WhereTypeIterator":{"Iterator":["1"]},"UnmodifiableListBase":{"ListBase":["1"],"UnmodifiableListMixin":["1"],"List":["1"],"EfficientLengthIterable":["1"],"Iterable":["1"]},"ConstantMap":{"Map":["1","2"]},"ConstantStringMap":{"ConstantMap":["1","2"],"Map":["1","2"]},"_KeysOrValues":{"Iterable":["1"],"Iterable.E":"1"},"_KeysOrValuesOrElementsIterator":{"Iterator":["1"]},"ConstantSet":{"SetBase":["1"],"EfficientLengthIterable":["1"],"Iterable":["1"]},"ConstantStringSet":{"ConstantSet":["1"],"SetBase":["1"],"EfficientLengthIterable":["1"],"Iterable":["1"]},"NullError":{"Error":[]},"JsNoSuchMethodError":{"Error":[]},"UnknownJsTypeError":{"Error":[]},"_StackTrace":{"StackTrace":[]},"Closure":{"Function":[]},"Closure0Args":{"Function":[]},"Closure2Args":{"Function":[]},"TearOffClosure":{"Function":[]},"StaticClosure":{"Function":[]},"BoundClosure":{"Function":[]},"RuntimeError":{"Error":[]},"JsLinkedHashMap":{"MapBase":["1","2"],"LinkedHashMap":["1","2"],"Map":["1","2"],"MapBase.K":"1","MapBase.V":"2"},"LinkedHashMapKeysIterable":{"EfficientLengthIterable":["1"],"Iterable":["1"],"Iterable.E":"1"},"LinkedHashMapKeyIterator":{"Iterator":["1"]},"LinkedHashMapValuesIterable":{"EfficientLengthIterable":["1"],"Iterable":["1"],"Iterable.E":"1"},"LinkedHashMapValueIterator":{"Iterator":["1"]},"LinkedHashMapEntriesIterable":{"EfficientLengthIterable":["MapEntry<1,2>"],"Iterable":["MapEntry<1,2>"],"Iterable.E":"MapEntry<1,2>"},"LinkedHashMapEntryIterator":{"Iterator":["MapEntry<1,2>"]},"JSSyntaxRegExp":{"RegExp":[],"Pattern":[]},"_MatchImplementation":{"RegExpMatch":[],"Match":[]},"_AllMatchesIterable":{"Iterable":["RegExpMatch"],"Iterable.E":"RegExpMatch"},"_AllMatchesIterator":{"Iterator":["RegExpMatch"]},"StringMatch":{"Match":[]},"_StringAllMatchesIterable":{"Iterable":["Match"],"Iterable.E":"Match"},"_StringAllMatchesIterator":{"Iterator":["Match"]},"NativeByteBuffer":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedData":{"JSObject":[]},"NativeByteData":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedArray":{"JavaScriptIndexingBehavior":["1"],"JSObject":[]},"NativeTypedArrayOfDouble":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"EfficientLengthIterable":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"]},"NativeTypedArrayOfInt":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"]},"NativeFloat32List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"EfficientLengthIterable":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeFloat64List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"EfficientLengthIterable":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeInt16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8ClampedList":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"EfficientLengthIterable":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"_Error":{"Error":[]},"_TypeError":{"Error":[]},"_SyncStarIterator":{"Iterator":["1"]},"_SyncStarIterable":{"Iterable":["1"],"Iterable.E":"1"},"_Zone":{"Zone":[]},"_RootZone":{"Zone":[]},"_LinkedHashSet":{"SetBase":["1"],"EfficientLengthIterable":["1"],"Iterable":["1"]},"_LinkedHashSetIterator":{"Iterator":["1"]},"ListBase":{"List":["1"],"EfficientLengthIterable":["1"],"Iterable":["1"]},"MapBase":{"Map":["1","2"]},"SetBase":{"EfficientLengthIterable":["1"],"Iterable":["1"]},"_SetBase":{"SetBase":["1"],"EfficientLengthIterable":["1"],"Iterable":["1"]},"_JsonMap":{"MapBase":["String","@"],"Map":["String","@"],"MapBase.K":"String","MapBase.V":"@"},"_JsonMapKeyIterable":{"ListIterable":["String"],"EfficientLengthIterable":["String"],"Iterable":["String"],"ListIterable.E":"String","Iterable.E":"String"},"double":{"num":[]},"int":{"num":[]},"RegExpMatch":{"Match":[]},"String":{"Pattern":[]},"AssertionError":{"Error":[]},"TypeError":{"Error":[]},"ArgumentError":{"Error":[]},"RangeError":{"Error":[]},"IndexError":{"Error":[]},"UnsupportedError":{"Error":[]},"UnimplementedError":{"Error":[]},"StateError":{"Error":[]},"ConcurrentModificationError":{"Error":[]},"OutOfMemoryError":{"Error":[]},"StackOverflowError":{"Error":[]},"FlintText":{"FlintNode":[]},"FlintFragment":{"FlintNode":[]},"FlintElement":{"FlintNode":[]},"FlintComponentNode":{"FlintNode":[]},"MissingFlintPage":{"FlintComponent":[]},"Button":{"FlintNode":[]},"Spinner":{"FlintNode":[]},"Column":{"FlintNode":[]},"Container":{"FlintNode":[]},"Row":{"FlintNode":[]},"Text":{"FlintNode":[]},"CounterApp":{"FlintComponent":[]},"GuidePage":{"FlintComponent":[]},"LoginPage":{"FlintComponent":[]},"WelcomePage":{"FlintComponent":[]},"Int8List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint8List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint8ClampedList":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Int16List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint16List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Int32List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Uint32List":{"List":["int"],"EfficientLengthIterable":["int"],"Iterable":["int"]},"Float32List":{"List":["double"],"EfficientLengthIterable":["double"],"Iterable":["double"]},"Float64List":{"List":["double"],"EfficientLengthIterable":["double"],"Iterable":["double"]}}'));
+  A._Universe_addErasedTypes(init.typeUniverse, JSON.parse('{"EfficientLengthIterable":1,"UnmodifiableListBase":1,"NativeTypedArray":1,"_SetBase":1,"Codec":2,"Converter":2}'));
   var type$ = (function rtii() {
     var findType = A.findType;
     return {
+      Breakpoint: findType("Breakpoint"),
+      CodeUnits: findType("CodeUnits"),
       ConstantStringMap_String_String: findType("ConstantStringMap<String,String>"),
+      ConstantStringMap_of_String_and_nullable_Object: findType("ConstantStringMap<String,Object?>"),
+      ConstantStringSet_String: findType("ConstantStringSet<String>"),
+      DartStyle: findType("DartStyle"),
       EfficientLengthIterable_dynamic: findType("EfficientLengthIterable<@>"),
       Error: findType("Error"),
       FlintNode: findType("FlintNode"),
       Function: findType("Function"),
       Iterable_dynamic: findType("Iterable<@>"),
+      JSArray_FlintNode: findType("JSArray<FlintNode>"),
+      JSArray_KeyframeStep: findType("JSArray<KeyframeStep>"),
       JSArray_Map_String_String: findType("JSArray<Map<String,String>>"),
       JSArray_String: findType("JSArray<String>"),
+      JSArray_StyleKeyframes: findType("JSArray<StyleKeyframes>"),
       JSArray_dynamic: findType("JSArray<@>"),
+      JSArray_nullable_String: findType("JSArray<String?>"),
       JSNull: findType("JSNull"),
       JSObject: findType("JSObject"),
       JavaScriptFunction: findType("JavaScriptFunction"),
       JavaScriptIndexingBehavior_dynamic: findType("JavaScriptIndexingBehavior<@>"),
+      KeyframeStep: findType("KeyframeStep"),
       List_FlintNode: findType("List<FlintNode>"),
       List_dynamic: findType("List<@>"),
+      MapEntry_Breakpoint_DartStyle: findType("MapEntry<Breakpoint,DartStyle>"),
+      MapEntry_String_DartStyle: findType("MapEntry<String,DartStyle>"),
       MapEntry_String_dynamic: findType("MapEntry<String,@>"),
       MapEntry_of_String_and_nullable_Object: findType("MapEntry<String,Object?>"),
       Map_String_String: findType("Map<String,String>"),
+      Map_String__ComponentMount: findType("Map<String,_ComponentMount>"),
       Map_String_dynamic: findType("Map<String,@>"),
       Map_dynamic_dynamic: findType("Map<@,@>"),
       Map_of_String_and_nullable_Object: findType("Map<String,Object?>"),
       Null: findType("Null"),
       Object: findType("Object"),
       Record: findType("Record"),
+      RegExpMatch: findType("RegExpMatch"),
       StackTrace: findType("StackTrace"),
       String: findType("String"),
+      StyleTransition: findType("StyleTransition"),
       TrustedGetRuntimeType: findType("TrustedGetRuntimeType"),
       UnknownJavaScriptObject: findType("UnknownJavaScriptObject"),
+      WhereIterable_String: findType("WhereIterable<String>"),
+      _ComponentMount: findType("_ComponentMount"),
       bool: findType("bool"),
+      bool_Function_String: findType("bool(String)"),
       double: findType("double"),
       dynamic: findType("@"),
       int: findType("int"),
@@ -5916,6 +7709,7 @@
       nullable_List_dynamic: findType("List<@>?"),
       nullable_Object: findType("Object?"),
       nullable_String: findType("String?"),
+      nullable__LinkedHashSetCell: findType("_LinkedHashSetCell?"),
       nullable_bool: findType("bool?"),
       nullable_double: findType("double?"),
       nullable_int: findType("int?"),
@@ -5931,11 +7725,16 @@
     B.Interceptor_methods = J.Interceptor.prototype;
     B.JSArray_methods = J.JSArray.prototype;
     B.JSInt_methods = J.JSInt.prototype;
+    B.JSNumber_methods = J.JSNumber.prototype;
     B.JSString_methods = J.JSString.prototype;
     B.JavaScriptFunction_methods = J.JavaScriptFunction.prototype;
     B.JavaScriptObject_methods = J.JavaScriptObject.prototype;
     B.PlainJavaScriptObject_methods = J.PlainJavaScriptObject.prototype;
     B.UnknownJavaScriptObject_methods = J.UnknownJavaScriptObject.prototype;
+    B.AlignItems_1_center = new A.AlignItems(1, "center");
+    B.C_Color = new A.Color();
+    B.Border_1_Color_solid = new A.Border(1, B.C_Color, "solid");
+    B.ButtonVariant_0 = new A.ButtonVariant(0, "solid");
     B.C_JS_CONST = function getTagFallback(o) {
   var s = Object.prototype.toString.call(o);
   return s.substring(8, s.length - 1);
@@ -6062,18 +7861,47 @@
     B.C_JS_CONST3 = function(hooks) { return hooks; }
 ;
     B.C_JsonCodec = new A.JsonCodec();
+    B.C_OutOfMemoryError = new A.OutOfMemoryError();
+    B.C_TextDecorationStyle = new A.TextDecorationStyle();
     B.C__RootZone = new A._RootZone();
+    B.ComponentSize_2 = new A.ComponentSize(2, "md");
+    B.Cursor_pointer = new A.Cursor("pointer");
+    B.EdgeInsets_8_8 = new A.EdgeInsets(8, 8);
+    B.DartStyle_7LF = new A.DartStyle(B.EdgeInsets_8_8, null, null, null, null, null, 28, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 12, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    B.EdgeInsets_14_14 = new A.EdgeInsets(14, 14);
+    B.DartStyle_Uy0 = new A.DartStyle(B.EdgeInsets_14_14, null, null, null, null, null, 40, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 14, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    B.DartStyle_WEp = new A.DartStyle(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 0, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    B.EdgeInsets_18_18 = new A.EdgeInsets(18, 18);
+    B.DartStyle_jLf = new A.DartStyle(B.EdgeInsets_18_18, null, null, null, null, null, 46, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 15, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    B.EdgeInsets_12_12 = new A.EdgeInsets(12, 12);
+    B.DartStyle_utZ = new A.DartStyle(B.EdgeInsets_12_12, null, null, null, null, null, 34, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 13, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    B.DartStyle_zkl = new A.DartStyle(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 1, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+    B.Display_4_inlineFlex = new A.Display(4, "inlineFlex");
     B.JsonDecoder_null = new A.JsonDecoder(null);
+    B.JustifyContent_1_center = new A.JustifyContent(1, "center");
     B.Object_title_0_body_1 = {title: 0, body: 1};
     B.Map_hWC1N = new A.ConstantStringMap(B.Object_title_0_body_1, ["Dart UI", "Write frontend pages with Flutter-style Flint widgets."], type$.ConstantStringMap_String_String);
     B.Map_hWyjG = new A.ConstantStringMap(B.Object_title_0_body_1, ["Backend Bridge", "Return page names and props from normal Flint routes."], type$.ConstantStringMap_String_String);
     B.Map_hWk3m = new A.ConstantStringMap(B.Object_title_0_body_1, ["One Toolchain", "Compile UI into web assets and serve them from Flint."], type$.ConstantStringMap_String_String);
     B.List_BqM = makeConstList([B.Map_hWC1N, B.Map_hWyjG, B.Map_hWk3m], type$.JSArray_Map_String_String);
-    B.List_empty0 = makeConstList([], type$.JSArray_Map_String_String);
-    B.List_empty = makeConstList([], A.findType("JSArray<Object?>"));
+    B.List_empty0 = makeConstList([], A.findType("JSArray<~(FlintPageContext)>"));
+    B.List_empty2 = makeConstList([], type$.JSArray_Map_String_String);
+    B.List_empty = makeConstList([], A.findType("JSArray<StyleSheet>"));
+    B.List_empty1 = makeConstList([], A.findType("JSArray<Object?>"));
+    B.Object_Tjt = {display: 0, "flex-direction": 1};
+    B.Map_IwAaL = new A.ConstantStringMap(B.Object_Tjt, ["flex", "row"], type$.ConstantStringMap_of_String_and_nullable_Object);
+    B.Map_IwXTo = new A.ConstantStringMap(B.Object_Tjt, ["flex", "column"], type$.ConstantStringMap_of_String_and_nullable_Object);
     B.Object_empty = {};
+    B.Map_empty1 = new A.ConstantStringMap(B.Object_empty, [], A.findType("ConstantStringMap<String,DartStyle>"));
     B.Map_empty0 = new A.ConstantStringMap(B.Object_empty, [], A.findType("ConstantStringMap<String,@>"));
-    B.Map_empty = new A.ConstantStringMap(B.Object_empty, [], A.findType("ConstantStringMap<String,Object?>"));
+    B.Map_empty = new A.ConstantStringMap(B.Object_empty, [], type$.ConstantStringMap_of_String_and_nullable_Object);
+    B.Object_tvd = {flex: 0, "flex-grow": 1, "flex-shrink": 2, "font-weight": 3, "line-height": 4, opacity: 5, "z-index": 6};
+    B.Set_a02Zq = new A.ConstantStringSet(B.Object_tvd, 7, type$.ConstantStringSet_String);
+    B.Object_edJ = {svg: 0, path: 1, line: 2, polyline: 3, polygon: 4, circle: 5, rect: 6, ellipse: 7, title: 8, g: 9};
+    B.Set_ammpx = new A.ConstantStringSet(B.Object_edJ, 10, type$.ConstantStringSet_String);
+    B.Tone_1 = new A.Tone(1, "primary");
+    B.Tone_3 = new A.Tone(3, "warning");
+    B.TransitionTiming_ease = new A.TransitionTiming("ease");
     B.Type_ByteBuffer_rqD = A.typeLiteral("ByteBuffer");
     B.Type_ByteData_9dB = A.typeLiteral("ByteData");
     B.Type_Float32List_9Kz = A.typeLiteral("Float32List");
@@ -6103,6 +7931,8 @@
     $._lastPriorityCallback = null;
     $._isInCallbackLoop = false;
     $.Zone__current = B.C__RootZone;
+    $._registeredStyleSheets = A.LinkedHashSet_LinkedHashSet$_empty(type$.String);
+    $._registeredRootDesigns = A.LinkedHashSet_LinkedHashSet$_empty(type$.String);
   })();
   (function lazyInitializers() {
     var _lazyFinal = hunkHelpers.lazyFinal;
@@ -6153,6 +7983,10 @@
       }
     }()));
     _lazyFinal($, "_AsyncRun__scheduleImmediateClosure", "$get$_AsyncRun__scheduleImmediateClosure", () => A._AsyncRun__initializeScheduleImmediate());
+    _lazyFinal($, "buttonBaseStyle", "$get$buttonBaseStyle", () => {
+      var _null = null;
+      return A.DartStyle$(_null, B.AlignItems_1_center, _null, _null, _null, _null, A.Border$all(B.C_Color), _null, _null, _null, _null, _null, _null, _null, _null, B.Cursor_pointer, _null, B.Display_4_inlineFlex, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, 600, 8, _null, _null, _null, _null, _null, B.JustifyContent_1_center, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, _null, 8, _null, _null, _null, _null, _null, _null, _null, B.C_TextDecorationStyle, _null, _null, _null, A.StyleTransition_StyleTransition$combine(A._setArrayType([A.StyleTransition_StyleTransition$property("color", 120, B.TransitionTiming_ease), A.StyleTransition_StyleTransition$property("background", 120, B.TransitionTiming_ease), A.StyleTransition_StyleTransition$property("border-color", 120, B.TransitionTiming_ease)], A.findType("JSArray<StyleTransition>"))), _null, _null, _null, _null);
+    });
     _lazyFinal($, "componentRegistry", "$get$componentRegistry", () => {
       var t1 = type$.String,
         t2 = A.findType("FlintComponent(Map<String,@>)"),
@@ -6197,11 +8031,11 @@
   Function.prototype.call$1 = function(a) {
     return this(a);
   };
-  Function.prototype.call$0 = function() {
-    return this();
-  };
   Function.prototype.call$2 = function(a, b) {
     return this(a, b);
+  };
+  Function.prototype.call$0 = function() {
+    return this();
   };
   Function.prototype.call$3 = function(a, b, c) {
     return this(a, b, c);

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
+import 'package:flint_dart/src/cli/db_admin_commands.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/env_parser.dart';
 
@@ -28,6 +29,14 @@ class DBMigrateCommand extends FlintCommand {
 
     try {
       await _runTableRegistry();
+      final databaseReady = await DBAdmin.ensureDatabaseExists(
+        promptIfMissing: !args.contains('--no-interaction'),
+        createIfMissing: args.contains('--create-db') || args.contains('--yes'),
+      );
+      if (!databaseReady) {
+        exitCode = 1;
+        return;
+      }
       await DB.autoConnect();
 
       if (_registeredTables.isEmpty) {

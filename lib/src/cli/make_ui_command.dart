@@ -59,8 +59,8 @@ class MakeUiCommand extends FlintCommand {
       return explicit;
     }
 
-    final nested = Directory(path.join(root.path, 'flint_ui', 'flint_ui'));
-    if (nested.existsSync()) return nested;
+    final appUi = Directory(path.join(root.path, 'lib', 'ui'));
+    if (appUi.existsSync()) return appUi;
 
     final flat = Directory(path.join(root.path, 'flint_ui'));
     if (flat.existsSync() &&
@@ -70,8 +70,11 @@ class MakeUiCommand extends FlintCommand {
       return flat;
     }
 
-    nested.createSync(recursive: true);
-    return nested;
+    final nested = Directory(path.join(root.path, 'flint_ui', 'flint_ui'));
+    if (nested.existsSync()) return nested;
+
+    appUi.createSync(recursive: true);
+    return appUi;
   }
 
   void _makePage(
@@ -418,7 +421,7 @@ Aliases:
   --path, --p, -p
 
 Examples:
-  flint --make-ui --p / -page Portfolio
+  flint --make-ui --p lib/ui -page Portfolio
   flint --make-ui --c / -component ProjectCard
   flint --make-ui -root-design
 ''');

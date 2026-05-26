@@ -130,9 +130,9 @@ class WebUiCommand extends FlintCommand {
 Usage: flint web [options]
 
 Options:
-  --entry <path>       Dart web entry file (default: flint_ui/main.dart)
+  --entry <path>       Dart web entry file (default: lib/ui/main.dart or flint_ui/main.dart)
   --web-dir <path>     Static web directory (default: sibling web/ directory)
-  --out <path>         JavaScript output path (default: <web-dir>/main.dart.js)
+  --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
   --port <number>      Local server port (default: 8080)
   --build-only         Compile JavaScript without starting the server
   --help, -h           Show this help
@@ -140,6 +140,7 @@ Options:
 Examples:
   flint web
   flint web --port 3000
+  flint web --entry lib/ui/main.dart --web-dir public
   flint web --entry flint_ui/main.dart --web-dir web
   flint web --build-only
 ''');

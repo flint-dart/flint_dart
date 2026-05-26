@@ -35,6 +35,40 @@ void main() {
       // Use the instance to avoid unused warnings.
       expect(app.normalizePath('/test'), '/test');
     });
+
+    test('default middleware serves public static assets', () async {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_assets_');
+
+      try {
+        Directory.current = tempDir;
+        final asset = File('public/assets/js/flint-ui/main.dart.js')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('console.log("ok");');
+
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          enableSwaggerDocs: false,
+        );
+
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/assets/js/flint-ui/main.dart.js'),
+        );
+        await app.handleRequest(raw);
+
+        final response = raw.response as FakeHttpResponse;
+        expect(asset.existsSync(), isTrue);
+        expect(response.statusCode, 200);
+        expect(response.buffer.toString(), 'console.log("ok");');
+        expect(response.headers.contentType?.mimeType, 'text/javascript');
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
   });
 
   group('env()', () {
