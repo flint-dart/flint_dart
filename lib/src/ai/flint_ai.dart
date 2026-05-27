@@ -8,7 +8,6 @@ import 'package:flint_dart/src/ai/runtime/runtime.dart';
 import 'package:flint_dart/src/ai/tools/tool.dart';
 import 'package:flint_dart/src/ai/workflows/workflow.dart';
 import 'package:flint_dart/src/context.dart';
-import 'package:flint_dart/logs.dart';
 
 /// Main facade for Flint's AI runtime.
 class FlintAi {
@@ -57,14 +56,7 @@ class FlintAi {
         planner = planner ?? DefaultAiPlanner(),
         executor = executor ?? DefaultAiExecutor(),
         toolPolicy = toolPolicy ?? const SafeDefaultAiToolPolicy(),
-        usesAutoMemoryStore = memoryStore == null {
-    if (memoryStore == null) {
-      Log.warning(
-        'FlintAi is using auto-configured AI memory. Connect the database or provide a shared memory store for production.',
-        tag: 'ai',
-      );
-    }
-  }
+        usesAutoMemoryStore = memoryStore == null;
 
   /// Creates an AI runtime configured for production-oriented defaults.
   factory FlintAi.production({

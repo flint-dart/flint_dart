@@ -5,6 +5,108 @@ import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/env_parser.dart';
 
+class DBAdmin {
+  static Future<bool> ensureDatabaseExists({
+    bool promptIfMissing = false,
+    bool createIfMissing = false,
+  }) async {
+    final dbName = FlintEnv.get('DB_NAME', '').trim();
+    if (dbName.isEmpty) {
+      Log.debug('Missing DB_NAME in .env');
+      return false;
+    }
+
+    final exists = await databaseExists(dbName);
+    if (exists) return true;
+
+    Log.warning('Database "$dbName" does not exist.');
+
+    var shouldCreate = createIfMissing;
+    if (!shouldCreate && promptIfMissing) {
+      shouldCreate = _confirm('Create database "$dbName" now? [y/N] ');
+    }
+
+    if (!shouldCreate) {
+      Log.info(
+        'Migration stopped. Create the database with `flint --db-create $dbName` or rerun with `flint migrate --create-db`.',
+      );
+      return false;
+    }
+
+    await createDatabase(dbName);
+    return true;
+  }
+
+  static Future<bool> databaseExists(String dbName) async {
+    final driver = FlintEnv.get('DB_CONNECTION', 'mysql').trim().toLowerCase();
+    await _connectToAdminDatabase(driver);
+    try {
+      final rows = driver == 'postgres'
+          ? await DB.query(
+              'SELECT 1 FROM pg_database WHERE datname = ?',
+              positionalParams: [dbName],
+            )
+          : await DB.query(
+              'SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?',
+              positionalParams: [dbName],
+            );
+      return rows.isNotEmpty;
+    } finally {
+      await _safeClose();
+    }
+  }
+
+  static Future<void> createDatabase(String dbName) async {
+    final driver = FlintEnv.get('DB_CONNECTION', 'mysql').trim().toLowerCase();
+    await _connectToAdminDatabase(driver);
+    try {
+      if (driver == 'postgres') {
+        await DB.execute('CREATE DATABASE "${_escapePgIdentifier(dbName)}"');
+      } else {
+        await DB.execute(
+          'CREATE DATABASE IF NOT EXISTS `${_escapeMySqlIdentifier(dbName)}`',
+        );
+      }
+      Log.info('Database ready: $dbName');
+    } finally {
+      await _safeClose();
+    }
+  }
+
+  static Future<void> _connectToAdminDatabase(String driver) async {
+    final host = FlintEnv.get('DB_HOST', 'localhost');
+    final port = driver == 'postgres'
+        ? FlintEnv.getInt('DB_PORT', 5432)
+        : FlintEnv.getInt('DB_PORT', 3306);
+    final user =
+        FlintEnv.get('DB_USER', driver == 'postgres' ? 'postgres' : 'root');
+    final password = FlintEnv.get('DB_PASSWORD', '');
+
+    await DB.connect(
+      database: driver == 'postgres' ? 'postgres' : 'mysql',
+      host: host,
+      port: port,
+      username: user,
+      password: password,
+    );
+  }
+
+  static bool _confirm(String prompt) {
+    if (!stdin.hasTerminal) return false;
+    stdout.write(prompt);
+    final answer = stdin.readLineSync()?.trim().toLowerCase() ?? '';
+    return answer == 'y' || answer == 'yes';
+  }
+
+  static String _escapeMySqlIdentifier(String value) {
+    return value.replaceAll('`', '``');
+  }
+
+  static String _escapePgIdentifier(String value) {
+    return value.replaceAll('"', '""');
+  }
+}
+
 class DBCreateCommand extends FlintCommand {
   DBCreateCommand()
       : super('--db-create', 'Creates database from .env or name');

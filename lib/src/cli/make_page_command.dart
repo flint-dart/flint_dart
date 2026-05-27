@@ -43,6 +43,7 @@ class MakePageCommand extends FlintCommand {
 
   Directory _resolveUiRoot() {
     final candidates = [
+      Directory(path.join('lib', 'ui')),
       Directory('flint_ui'),
       Directory(path.join('flint_ui', 'flint_ui')),
       Directory(path.join('lib', 'flint_ui')),
@@ -52,7 +53,7 @@ class MakePageCommand extends FlintCommand {
       if (candidate.existsSync()) return candidate;
     }
 
-    final dir = Directory('flint_ui');
+    final dir = Directory(path.join('lib', 'ui'));
     dir.createSync(recursive: true);
     return dir;
   }

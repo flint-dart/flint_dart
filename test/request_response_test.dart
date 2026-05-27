@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
+import 'package:path/path.dart' as path;
 
 import 'helpers/fakes.dart';
 
@@ -460,6 +461,41 @@ void main() {
       expect(body, contains('&quot;component&quot;:&quot;Dashboard&quot;'));
       expect(body, contains('&quot;name&quot;:&quot;Ada&quot;'));
       expect(body, contains('<script defer src="/main.dart.js"></script>'));
+    });
+
+    test('flintPage defaults to app-owned Flint UI public asset path', () {
+      final originalCurrent = Directory.current;
+      final tempDir = Directory.systemTemp.createTempSync('flint_page_assets_');
+      try {
+        Directory.current = tempDir;
+        File(
+          path.join(
+            tempDir.path,
+            'public',
+            'assets',
+            'js',
+            'flint-ui',
+            'main.dart.js',
+          ),
+        )
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Dashboard');
+
+        expect(
+          raw.buffer.toString(),
+          contains(
+            '<script defer src="/assets/js/flint-ui/main.dart.js"></script>',
+          ),
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
     });
 
     test('flintPage renders SEO metadata in the initial HTML head', () {

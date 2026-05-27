@@ -645,6 +645,45 @@ class User extends Model<User> {
 }
 ```
 
+### Models In Flint UI
+
+FlintDart models are server-side objects. Keep them in controllers, services, jobs, and seeders where database access is available.
+
+When sending data to Flint UI, convert models to maps:
+
+```dart
+class UiController {
+  Future<Response> dashboard(Request req, Response res) async {
+    final users = await User().all();
+
+    return res.page(
+      'Dashboard',
+      title: 'Dashboard',
+      script: '/main.dart.js',
+      props: {
+        'users': users.map((user) => user.toMap()).toList(),
+      },
+    );
+  }
+}
+```
+
+Then refresh the same resource in Flint UI with `FlintModelApi`:
+
+```dart
+final users = ResourceController<List<FlintModelRecord>>(
+  loader: () => FlintModelApi<FlintModelRecord>.records('/users').list(),
+);
+```
+
+Think of the bridge as:
+
+```text
+Model<T> on server -> JSON -> FlintModelRecord or typed DTO in browser
+```
+
+That keeps database code out of the browser while preserving a model-shaped developer experience.
+
 ---
 
 ## Relations

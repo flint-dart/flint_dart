@@ -256,10 +256,16 @@ class BuildCommand extends FlintCommand {
       return;
     }
 
-    final target = File(path.join(buildDir, 'docs', 'swagger.json'));
-    target.parent.createSync(recursive: true);
-    source.copySync(target.path);
-    Log.debug('Copied Swagger spec: ${source.path} -> ${target.path}');
+    final targets = [
+      File(path.join(buildDir, 'public', 'swagger.json')),
+      File(path.join(buildDir, 'public', 'docs', 'swagger.json')),
+    ];
+
+    for (final target in targets) {
+      target.parent.createSync(recursive: true);
+      source.copySync(target.path);
+      Log.debug('Copied Swagger spec: ${source.path} -> ${target.path}');
+    }
   }
 
   Future<void> _copySwaggerUiAssets(String buildDir) async {
@@ -270,7 +276,7 @@ class BuildCommand extends FlintCommand {
       return;
     }
 
-    final targetDir = Directory(path.join(buildDir, 'swagger-ui'));
+    final targetDir = Directory(path.join(buildDir, 'public', 'swagger-ui'));
     if (!targetDir.existsSync()) {
       targetDir.createSync(recursive: true);
     }

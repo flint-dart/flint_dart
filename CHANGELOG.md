@@ -2,6 +2,38 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.2] - 2026-05-26
+
+### Release Status
+- Public patch build.
+
+### Added
+- Added anti SQL injection middleware exports.
+- Added database administration CLI improvements.
+- Added request and response helpers for full-stack Flint UI apps.
+
+### Improved
+- Updated Flint UI build commands and generators for app-owned `lib/ui` entrypoints.
+- Improved static asset discovery for compiled Flint UI bundles.
+- Updated examples and README guidance for deploying FlintDart as a full-stack app host.
+
+### Tests
+- Expanded coverage for app middleware behavior, response page rendering, request helpers, UI generation, and web UI bundle building.
+
+## [1.1.1] - 2026-05-14
+
+### Release Status
+- Public patch build.
+
+### Fixed
+- Flint Web UI auto build now discovers app-owned `lib/ui/main.dart` entrypoints.
+- App-owned UI builds now default to `public/assets/js/flint-ui/main.dart.js` so deployed public assets stay organized.
+- `flintPage()` now loads app-owned Flint UI bundles from `/assets/js/flint-ui/main.dart.js` when present.
+- UI generators now prefer `lib/ui` for app-owned Flint UI source.
+- Flint's default middleware stack now serves `public` static assets automatically.
+- Development servers now bind exclusively to their port so stale workers cannot intercept hot-reload WebSocket traffic.
+- The browser hot-reload client now backs off and avoids repeated console errors while the dev server restarts.
+
 ## [1.1.0] - 2026-05-14
 
 ### Release Status
