@@ -260,7 +260,7 @@ class Response {
     try {
       final page = {
         'component': component,
-        'props': props,
+        'props': _jsonSafeValue(props),
         if (request != null) 'url': request!.uri.toString(),
       };
       final resolvedScript = script ?? _defaultFlintPageScript();
@@ -303,6 +303,36 @@ $hotReloadScript
 
     close();
     return this;
+  }
+
+  dynamic _jsonSafeValue(dynamic value) {
+    if (value == null || value is String || value is num || value is bool) {
+      return value;
+    }
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Uri) return value.toString();
+    if (value is Enum) return value.name;
+    if (value is Model) return _jsonSafeValue(value.toMap());
+    if (value is Map) {
+      return value.map(
+        (key, mapValue) => MapEntry(key.toString(), _jsonSafeValue(mapValue)),
+      );
+    }
+    if (value is Iterable) {
+      return value.map(_jsonSafeValue).toList(growable: false);
+    }
+
+    try {
+      final jsonValue = (value as dynamic).toJson();
+      if (!identical(jsonValue, value)) return _jsonSafeValue(jsonValue);
+    } catch (_) {}
+
+    try {
+      final mapValue = (value as dynamic).toMap();
+      if (!identical(mapValue, value)) return _jsonSafeValue(mapValue);
+    } catch (_) {}
+
+    return value.toString();
   }
 
   Response page(
