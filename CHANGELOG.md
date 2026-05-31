@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [1.1.5] - 2026-05-31
+
+### Changed
+- `flint build` now builds Flint Web UI assets first, generates page-level bundles by default when a component registry is detected, copies resources into `build/`, and then compiles the server executable.
+- `flint web` now treats page-level bundles as the default build mode and adds `--no-page-bundles` for projects that only want a single global JavaScript bundle.
+
 ## [1.1.4] - 2026-05-31
 
 ### Added

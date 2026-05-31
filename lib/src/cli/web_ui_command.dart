@@ -18,7 +18,7 @@ class WebUiCommand extends FlintCommand {
     String? outArg;
     String? pagesConfigArg;
     String? pageArg;
-    var pageBundles = false;
+    var pageBundles = true;
 
     for (var i = 0; i < args.length; i++) {
       final arg = args[i];
@@ -44,6 +44,8 @@ class WebUiCommand extends FlintCommand {
         buildOnly = true;
       } else if (arg == '--page-bundles') {
         pageBundles = true;
+      } else if (arg == '--no-page-bundles') {
+        pageBundles = false;
       } else if (arg == '--help' || arg == '-h') {
         _printHelp();
         return;
@@ -83,11 +85,16 @@ class WebUiCommand extends FlintCommand {
 
     await FlintWebUiBuilder.compile(build);
     if (pageBundles) {
-      await FlintWebUiBuilder.compilePageBundles(
-        build,
-        configPath: pagesConfigArg,
-        onlyPage: pageArg,
-      );
+      try {
+        await FlintWebUiBuilder.compilePageBundles(
+          build,
+          configPath: pagesConfigArg,
+          onlyPage: pageArg,
+        );
+      } on StateError catch (e) {
+        if (pageArg != null || pagesConfigArg != null) rethrow;
+        Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+      }
     }
 
     if (buildOnly) {
@@ -152,7 +159,8 @@ Options:
   --entry <path>       Dart web entry file (default: lib/ui/main.dart or flint_ui/main.dart)
   --web-dir <path>     Static web directory (default: sibling web/ directory)
   --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
-  --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml
+  --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml (default)
+  --no-page-bundles    Compile only the single global JavaScript bundle
   --pages-config <path> Page bundle config path (default: auto-detect, then flint_ui.yaml)
   --page <name>        Compile one page-level bundle by component name
   --port <number>      Local server port (default: 8080)
@@ -165,7 +173,7 @@ Examples:
   flint web --entry lib/ui/main.dart --web-dir public
   flint web --entry flint_ui/main.dart --web-dir web
   flint web --build-only
-  flint web --build-only --page-bundles
+  flint web --build-only --no-page-bundles
   flint web --build-only --page Home
 ''');
   }
