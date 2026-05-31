@@ -586,19 +586,17 @@ const FLINT_MANIFEST_URL = '/assets/js/flint-ui/manifest.json';
 
 async function flintCacheUrls(urls) {
   const cache = await caches.open(FLINT_CACHE);
-  await Promise.all(
-    Array.from(new Set(urls))
-      .filter(Boolean)
-      .map(async url => {
-        try {
-          const response = await fetch(url, { cache: 'reload' });
-          if (response.ok) await cache.put(url, response);
-        } catch (_) {}
-      })
-  );
+  for (const url of Array.from(new Set(urls)).filter(Boolean)) {
+    try {
+      if (await cache.match(url)) continue;
+      const response = await fetch(url, { cache: 'reload' });
+      if (response.ok) await cache.put(url, response);
+      await new Promise(resolve => setTimeout(resolve, 1200));
+    } catch (_) {}
+  }
 }
 
-async function flintManifestAssets() {
+async function flintManifestAssets({ includeFallback = false } = {}) {
   try {
     const response = await fetch(FLINT_MANIFEST_URL, { cache: 'reload' });
     if (!response.ok) return [FLINT_MANIFEST_URL];
@@ -606,7 +604,11 @@ async function flintManifestAssets() {
     const pages = manifest && manifest.pages && typeof manifest.pages === 'object'
       ? Object.values(manifest.pages)
       : [];
-    return [FLINT_MANIFEST_URL, manifest.fallback, ...pages];
+    return [
+      FLINT_MANIFEST_URL,
+      ...(includeFallback || pages.length === 0 ? [manifest.fallback] : []),
+      ...pages
+    ];
   } catch (_) {
     return [FLINT_MANIFEST_URL];
   }
@@ -614,7 +616,7 @@ async function flintManifestAssets() {
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    await flintCacheUrls(await flintManifestAssets());
+    await flintCacheUrls([FLINT_MANIFEST_URL]);
     await self.skipWaiting();
   })());
 });
@@ -634,6 +636,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'FLINT_PREFETCH') {
     event.waitUntil((async () => {
+      await new Promise(resolve => setTimeout(resolve, 12000));
       await flintCacheUrls(await flintManifestAssets());
     })());
   }
