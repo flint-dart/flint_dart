@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [1.1.6] - 2026-05-31
+
+### Fixed
+- `StaticFileMiddleware` now serves JavaScript, CSS, and source map assets with production cache headers unless hot reload is enabled.
+- `StaticFileMiddleware` now honors its gzip compression option for text-like assets when clients send `Accept-Encoding: gzip`.
+
 ## [1.1.5] - 2026-05-31
 
 ### Changed

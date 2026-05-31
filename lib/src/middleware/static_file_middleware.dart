@@ -106,6 +106,21 @@ class StaticFileMiddleware extends Middleware {
         }
       }
 
+      if (enableCompression && _canCompress(file.path, mime)) {
+        final acceptEncoding =
+            req.raw.headers.value(HttpHeaders.acceptEncodingHeader) ?? '';
+        if (acceptEncoding.split(',').any((value) => value.trim() == 'gzip')) {
+          final bytes = await file.readAsBytes();
+          final compressed = gzip.encode(bytes);
+          res.raw.headers.set(HttpHeaders.varyHeader, 'Accept-Encoding');
+          res.raw.headers.set(HttpHeaders.contentEncodingHeader, 'gzip');
+          res.raw.headers.contentLength = compressed.length;
+          res.raw.add(compressed);
+          await res.close();
+          return res;
+        }
+      }
+
       // Send full file
       await res.streamFile(file);
       return res;
@@ -148,17 +163,19 @@ class StaticFileMiddleware extends Middleware {
     return false;
   }
 
+  bool _canCompress(String filePath, String mime) {
+    return filePath.endsWith('.js') ||
+        filePath.endsWith('.css') ||
+        filePath.endsWith('.svg') ||
+        mime.startsWith('text/') ||
+        mime.contains('json') ||
+        mime.contains('javascript') ||
+        mime.contains('xml');
+  }
+
   void _setCacheHeaders(Response res, String eTag, DateTime lastModified,
       Duration duration, String filePath) {
-    // Files you want to bypass caching (e.g., for dev)
-    final bypassCacheExtensions = ['.css', '.js', '.map'];
-
-    // Check if file should bypass caching
-    final shouldBypass =
-        bypassCacheExtensions.any((ext) => filePath.endsWith(ext));
-
-    final cacheDuration = shouldBypass ? Duration(seconds: 0) : duration;
-
+    final shouldBypass = Platform.environment['FLINT_HOT'] == '1';
     res.raw.headers.set(HttpHeaders.etagHeader, eTag);
     res.raw.headers
         .set(HttpHeaders.lastModifiedHeader, HttpDate.format(lastModified));
