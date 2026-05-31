@@ -2,7 +2,7 @@
 
 A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
 
-- Website: flintdart.eulogia.net
+- Website: flintdart.dev
 - Status: Stable Release (v1.1.0)
 - Maintainers: Eulogia Technologies
 

@@ -16,6 +16,9 @@ class WebUiCommand extends FlintCommand {
     String? entryArg;
     String? webDirArg;
     String? outArg;
+    String? pagesConfigArg;
+    String? pageArg;
+    var pageBundles = false;
 
     for (var i = 0; i < args.length; i++) {
       final arg = args[i];
@@ -25,6 +28,11 @@ class WebUiCommand extends FlintCommand {
         webDirArg = args[++i];
       } else if (arg == '--out' && i + 1 < args.length) {
         outArg = args[++i];
+      } else if (arg == '--pages-config' && i + 1 < args.length) {
+        pagesConfigArg = args[++i];
+      } else if (arg == '--page' && i + 1 < args.length) {
+        pageArg = args[++i];
+        pageBundles = true;
       } else if (arg == '--port' && i + 1 < args.length) {
         final parsed = int.tryParse(args[++i]);
         if (parsed == null || parsed <= 0) {
@@ -34,12 +42,16 @@ class WebUiCommand extends FlintCommand {
         port = parsed;
       } else if (arg == '--build-only') {
         buildOnly = true;
+      } else if (arg == '--page-bundles') {
+        pageBundles = true;
       } else if (arg == '--help' || arg == '-h') {
         _printHelp();
         return;
       } else if (arg == '--entry' ||
           arg == '--web-dir' ||
           arg == '--out' ||
+          arg == '--pages-config' ||
+          arg == '--page' ||
           arg == '--port') {
         Log.debug('Missing value for $arg');
         _printHelp();
@@ -70,6 +82,13 @@ class WebUiCommand extends FlintCommand {
     }
 
     await FlintWebUiBuilder.compile(build);
+    if (pageBundles) {
+      await FlintWebUiBuilder.compilePageBundles(
+        build,
+        configPath: pagesConfigArg,
+        onlyPage: pageArg,
+      );
+    }
 
     if (buildOnly) {
       Log.debug('Web bundle generated: ${build.jsOut}');
@@ -133,6 +152,9 @@ Options:
   --entry <path>       Dart web entry file (default: lib/ui/main.dart or flint_ui/main.dart)
   --web-dir <path>     Static web directory (default: sibling web/ directory)
   --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
+  --page-bundles       Compile page-level bundles using flint_ui.yaml
+  --pages-config <path> Page bundle config path (default: flint_ui.yaml)
+  --page <name>        Compile one page-level bundle by component name
   --port <number>      Local server port (default: 8080)
   --build-only         Compile JavaScript without starting the server
   --help, -h           Show this help
@@ -143,6 +165,8 @@ Examples:
   flint web --entry lib/ui/main.dart --web-dir public
   flint web --entry flint_ui/main.dart --web-dir web
   flint web --build-only
+  flint web --build-only --page-bundles
+  flint web --build-only --page Home
 ''');
   }
 }

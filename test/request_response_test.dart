@@ -488,9 +488,111 @@ void main() {
 
         expect(
           raw.buffer.toString(),
-          contains(
-            '<script defer src="/assets/js/flint-ui/main.dart.js"></script>',
-          ),
+          contains('/assets/js/flint-ui/main.dart.js'),
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('flintPage uses manifest page script when available', () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_manifest_');
+      try {
+        Directory.current = tempDir;
+        final assetDir =
+            Directory(path.join('public', 'assets', 'js', 'flint-ui'))
+              ..createSync(recursive: true);
+        File(path.join(assetDir.path, 'manifest.json')).writeAsStringSync(
+          jsonEncode({
+            'fallback': '/assets/js/flint-ui/main.dart.js',
+            'pages': {
+              'Home': '/assets/js/flint-ui/pages/home.dart.js',
+            },
+          }),
+        );
+        File(path.join(assetDir.path, 'pages', 'home.dart.js'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Home');
+
+        expect(
+          raw.buffer.toString(),
+          contains('/assets/js/flint-ui/pages/home.dart.js'),
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('flintPage uses manifest fallback when page script is missing', () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_manifest_fallback_');
+      try {
+        Directory.current = tempDir;
+        final assetDir =
+            Directory(path.join('public', 'assets', 'js', 'flint-ui'))
+              ..createSync(recursive: true);
+        File(path.join(assetDir.path, 'manifest.json')).writeAsStringSync(
+          jsonEncode({
+            'fallback': '/assets/js/flint-ui/main.dart.js',
+            'pages': {
+              'Home': '/assets/js/flint-ui/pages/home.dart.js',
+            },
+          }),
+        );
+        File(path.join(assetDir.path, 'main.dart.js'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Dashboard');
+
+        expect(
+          raw.buffer.toString(),
+          contains('/assets/js/flint-ui/main.dart.js'),
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('flintPage explicit script overrides manifest lookup', () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_manifest_override_');
+      try {
+        Directory.current = tempDir;
+        final assetDir =
+            Directory(path.join('public', 'assets', 'js', 'flint-ui'))
+              ..createSync(recursive: true);
+        File(path.join(assetDir.path, 'manifest.json')).writeAsStringSync(
+          jsonEncode({
+            'pages': {
+              'Home': '/assets/js/flint-ui/pages/home.dart.js',
+            },
+          }),
+        );
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Home', script: '/custom.js');
+
+        expect(
+          raw.buffer.toString(),
+          contains('<script defer src="/custom.js"></script>'),
         );
       } finally {
         Directory.current = originalCurrent;

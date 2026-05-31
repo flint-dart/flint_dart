@@ -84,5 +84,77 @@ void main() {
         ),
       );
     });
+
+    test('discovers page bundle config from component registry', () {
+      File('pubspec.yaml').writeAsStringSync('name: demo_app\n');
+      final uiDir = Directory(path.join('lib', 'ui'))
+        ..createSync(recursive: true);
+      Directory(path.join(uiDir.path, 'styles')).createSync(recursive: true);
+      Directory('public').createSync();
+
+      File(path.join(uiDir.path, 'main.dart')).writeAsStringSync('''
+import 'package:flint_ui/flint_ui.dart';
+
+import 'component_registry.dart';
+import 'styles/demo_design.dart';
+
+void main() {
+  createFlintApp(
+    '#app',
+    registry: componentRegistry,
+    rootDesign: demoRootDesign,
+  );
+}
+''');
+      File(path.join(uiDir.path, 'styles', 'demo_design.dart'))
+          .writeAsStringSync('''
+import 'package:flint_ui/flint_ui.dart';
+
+final demoRootDesign = RootDesign(name: 'demo');
+''');
+      File(path.join(uiDir.path, 'component_registry.dart')).writeAsStringSync(
+        '''
+import 'package:flint_ui/flint_ui.dart';
+
+import 'pages/home_page.dart';
+import 'pages/staff_dashboard_page.dart';
+
+final componentRegistry = FlintComponentRegistry({
+  'Home': (props) => HomePage(props),
+  'StaffDashboard': (props) => StaffDashboardPage(props),
+});
+''',
+      );
+      Directory(path.join(uiDir.path, 'pages')).createSync(recursive: true);
+      File(path.join(uiDir.path, 'pages', 'home_page.dart')).writeAsStringSync(
+        'class HomePage { HomePage(Map<String, dynamic> props); }',
+      );
+      File(path.join(uiDir.path, 'pages', 'staff_dashboard_page.dart'))
+          .writeAsStringSync(
+        'class StaffDashboardPage { StaffDashboardPage(Map<String, dynamic> props); }',
+      );
+
+      final build = FlintWebUiBuilder.resolve();
+      final config = FlintWebUiBuilder.discoverPageBundleConfig(build!);
+
+      expect(config, isNotNull);
+      expect(config!.registryImport,
+          'package:demo_app/ui/component_registry.dart');
+      expect(config.registryName, 'componentRegistry');
+      expect(config.rootDesignImport,
+          'package:demo_app/ui/styles/demo_design.dart');
+      expect(config.rootDesignName, 'demoRootDesign');
+      expect(config.pages, {
+        'Home': 'home',
+        'StaffDashboard': 'staff_dashboard',
+      });
+      expect(config.pageTargets['Home']!.importUri,
+          'package:demo_app/ui/pages/home_page.dart');
+      expect(config.pageTargets['Home']!.className, 'HomePage');
+      expect(config.pageTargets['StaffDashboard']!.importUri,
+          'package:demo_app/ui/pages/staff_dashboard_page.dart');
+      expect(config.pageTargets['StaffDashboard']!.className,
+          'StaffDashboardPage');
+    });
   });
 }

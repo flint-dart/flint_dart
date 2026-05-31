@@ -263,7 +263,7 @@ class Response {
         'props': _jsonSafeValue(props),
         if (request != null) 'url': request!.uri.toString(),
       };
-      final resolvedScript = script ?? _defaultFlintPageScript();
+      final resolvedScript = script ?? _flintPageScriptForComponent(component);
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
@@ -458,6 +458,38 @@ $hotReloadScript
     final version = file.lastModifiedSync().millisecondsSinceEpoch.toString();
     final separator = trimmed.contains('?') ? '&' : '?';
     return '$trimmed${separator}v=$version';
+  }
+
+  String _flintPageScriptForComponent(String component) {
+    return _scriptFromFlintUiManifest(component) ?? _defaultFlintPageScript();
+  }
+
+  String? _scriptFromFlintUiManifest(String component) {
+    final manifestFile =
+        File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json'));
+    if (!manifestFile.existsSync()) return null;
+
+    try {
+      final decoded = jsonDecode(manifestFile.readAsStringSync());
+      if (decoded is! Map) return null;
+
+      final pages = decoded['pages'];
+      if (pages is Map) {
+        final script = pages[component];
+        if (script is String && script.trim().isNotEmpty) {
+          return script.trim();
+        }
+      }
+
+      final fallback = decoded['fallback'];
+      if (fallback is String && fallback.trim().isNotEmpty) {
+        return fallback.trim();
+      }
+    } catch (e) {
+      Log.debug('[Flint] Failed to read Flint UI manifest: $e');
+    }
+
+    return null;
   }
 
   String? _resolveIconUrl(String? explicitUrl, {bool preferPng = false}) {
