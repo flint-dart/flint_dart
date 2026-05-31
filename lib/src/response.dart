@@ -555,10 +555,17 @@ $hotReloadScript
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('$scriptUrl', { scope: '/' }).then(registration => {
-            const worker = registration.active || registration.waiting || registration.installing;
-            if (worker) worker.postMessage({ type: 'FLINT_PREFETCH' });
-          }).catch(() => {});
+          const startFlintServiceWorker = () => {
+            navigator.serviceWorker.register('$scriptUrl', { scope: '/' }).then(registration => {
+              const worker = registration.active || registration.waiting || registration.installing;
+              if (worker) worker.postMessage({ type: 'FLINT_PREFETCH' });
+            }).catch(() => {});
+          };
+          if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(startFlintServiceWorker, { timeout: 4000 });
+          } else {
+            window.setTimeout(startFlintServiceWorker, 2000);
+          }
         });
       }
     </script>''';
