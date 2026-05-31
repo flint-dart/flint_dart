@@ -182,6 +182,7 @@ class FlintWebUiBuilder {
   static Future<void> compile(FlintWebUiBuild build) async {
     await _compileTailwind(build);
     await _compileDart(build);
+    _writeServiceWorker(build);
   }
 
   static Future<void> compilePageBundles(
@@ -258,6 +259,7 @@ class FlintWebUiBuilder {
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
     Log.debug('Flint UI manifest generated: ${manifestFile.path}');
+    _writeServiceWorker(build);
   }
 
   static File? _resolveTailwindInput(Directory uiDir) {
@@ -566,6 +568,103 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
   static String _assetUrlFor(Directory webDir, String filePath) {
     final relative = path.relative(filePath, from: webDir.path);
     return '/${path.split(relative).join('/')}';
+  }
+
+  static void _writeServiceWorker(FlintWebUiBuild build) {
+    final file = File(path.join(build.webDir.path, 'flint-sw.js'));
+    file.parent.createSync(recursive: true);
+    final cacheName =
+        'flint-ui-${DateTime.now().millisecondsSinceEpoch.toString()}';
+    file.writeAsStringSync(_serviceWorkerSource(cacheName));
+    Log.debug('Flint service worker generated: ${file.path}');
+  }
+
+  static String _serviceWorkerSource(String cacheName) {
+    return r'''
+const FLINT_CACHE = '__CACHE_NAME__';
+const FLINT_MANIFEST_URL = '/assets/js/flint-ui/manifest.json';
+
+async function flintCacheUrls(urls) {
+  const cache = await caches.open(FLINT_CACHE);
+  await Promise.all(
+    Array.from(new Set(urls))
+      .filter(Boolean)
+      .map(async url => {
+        try {
+          const response = await fetch(url, { cache: 'reload' });
+          if (response.ok) await cache.put(url, response);
+        } catch (_) {}
+      })
+  );
+}
+
+async function flintManifestAssets() {
+  try {
+    const response = await fetch(FLINT_MANIFEST_URL, { cache: 'reload' });
+    if (!response.ok) return [FLINT_MANIFEST_URL];
+    const manifest = await response.json();
+    const pages = manifest && manifest.pages && typeof manifest.pages === 'object'
+      ? Object.values(manifest.pages)
+      : [];
+    return [FLINT_MANIFEST_URL, manifest.fallback, ...pages];
+  } catch (_) {
+    return [FLINT_MANIFEST_URL];
+  }
+}
+
+self.addEventListener('install', event => {
+  event.waitUntil((async () => {
+    await flintCacheUrls(await flintManifestAssets());
+    await self.skipWaiting();
+  })());
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(key => key.startsWith('flint-ui-') && key !== FLINT_CACHE)
+        .map(key => caches.delete(key))
+    );
+    await self.clients.claim();
+  })());
+});
+
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'FLINT_PREFETCH') {
+    event.waitUntil((async () => {
+      await flintCacheUrls(await flintManifestAssets());
+    })());
+  }
+});
+
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
+    return;
+  }
+
+  const cacheFirst =
+    url.pathname.startsWith('/assets/js/flint-ui/') ||
+    url.pathname.startsWith('/assets/css/flint-ui/') ||
+    url.pathname === FLINT_MANIFEST_URL;
+
+  if (!cacheFirst) return;
+
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request);
+    if (cached) return cached;
+    const response = await fetch(event.request);
+    if (response.ok) {
+      const cache = await caches.open(FLINT_CACHE);
+      await cache.put(event.request, response.clone());
+    }
+    return response;
+  })());
+});
+'''
+        .replaceAll('__CACHE_NAME__', cacheName);
   }
 
   static String _readPackageName() {

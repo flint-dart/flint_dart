@@ -532,6 +532,33 @@ void main() {
       }
     });
 
+    test('flintPage registers generated service worker when available', () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_service_worker_');
+      try {
+        Directory.current = tempDir;
+        File(path.join('public', 'flint-sw.js'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('self.addEventListener("install", () => {});');
+        File(path.join('public', 'assets', 'js', 'flint-ui', 'main.dart.js'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Home');
+
+        expect(raw.buffer.toString(), contains('serviceWorker'));
+        expect(raw.buffer.toString(), contains("register('/flint-sw.js"));
+        expect(raw.buffer.toString(), contains('FLINT_PREFETCH'));
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
     test('flintPage uses manifest fallback when page script is missing', () {
       final originalCurrent = Directory.current;
       final tempDir =

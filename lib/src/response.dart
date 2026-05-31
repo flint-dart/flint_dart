@@ -281,6 +281,7 @@ class Response {
       raw.statusCode = status ?? raw.statusCode;
       raw.headers.contentType = ContentType.html;
       final hotReloadScript = _hotReloadScript();
+      final serviceWorkerScript = _flintServiceWorkerScript();
       raw.write('''
 <!DOCTYPE html>
 <html lang="en">
@@ -290,6 +291,7 @@ $headTags
   <body>
     <main id="$safeRootId" data-flint-page="$encodedPage"></main>
     <script defer src="$safeScript"></script>
+$serviceWorkerScript
 $hotReloadScript
   </body>
 </html>
@@ -542,6 +544,24 @@ $hotReloadScript
       return const ['/style.css'];
     }
     return const [];
+  }
+
+  String _flintServiceWorkerScript() {
+    if (Platform.environment['FLINT_HOT'] == '1') return '';
+    final file = File(p.join('public', 'flint-sw.js'));
+    if (!file.existsSync()) return '';
+    final scriptUrl = _escapeHtmlAttribute(_versionedAssetUrl('/flint-sw.js'));
+    return '''
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('$scriptUrl', { scope: '/' }).then(registration => {
+            const worker = registration.active || registration.waiting || registration.installing;
+            if (worker) worker.postMessage({ type: 'FLINT_PREFETCH' });
+          }).catch(() => {});
+        });
+      }
+    </script>''';
   }
 
   String _escapeHtmlAttribute(String value) {
