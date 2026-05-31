@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [1.1.4] - 2026-05-31
+
 ### Added
 - Added manifest-aware Flint UI script selection for `res.page(...)` so pages can automatically use page-level JavaScript bundles when `public/assets/js/flint-ui/manifest.json` is present.
 - Added opt-in `flint web --page-bundles`, `--pages-config`, and `--page <name>` CLI support for generating page-level Flint UI bundles and a manifest.
