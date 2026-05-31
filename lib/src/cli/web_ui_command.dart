@@ -152,8 +152,8 @@ Options:
   --entry <path>       Dart web entry file (default: lib/ui/main.dart or flint_ui/main.dart)
   --web-dir <path>     Static web directory (default: sibling web/ directory)
   --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
-  --page-bundles       Compile page-level bundles using flint_ui.yaml
-  --pages-config <path> Page bundle config path (default: flint_ui.yaml)
+  --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml
+  --pages-config <path> Page bundle config path (default: auto-detect, then flint_ui.yaml)
   --page <name>        Compile one page-level bundle by component name
   --port <number>      Local server port (default: 8080)
   --build-only         Compile JavaScript without starting the server
