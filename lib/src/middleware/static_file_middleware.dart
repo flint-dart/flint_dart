@@ -175,7 +175,8 @@ class StaticFileMiddleware extends Middleware {
 
   void _setCacheHeaders(Response res, String eTag, DateTime lastModified,
       Duration duration, String filePath) {
-    final shouldBypass = Platform.environment['FLINT_HOT'] == '1';
+    final shouldBypass =
+        Platform.environment['FLINT_HOT'] == '1' || filePath.endsWith('-sw.js');
     res.raw.headers.set(HttpHeaders.etagHeader, eTag);
     res.raw.headers
         .set(HttpHeaders.lastModifiedHeader, HttpDate.format(lastModified));

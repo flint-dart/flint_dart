@@ -10,6 +10,9 @@ All notable changes to this project are documented in this file.
 - Flint Web UI builds now generate `/flint-sw.js`, a service worker that caches the Flint UI manifest, fallback bundle, and page-level bundles in the browser.
 - `res.page(...)` now automatically registers the generated service worker during browser idle time when it exists and hot reload is disabled.
 
+### Fixed
+- Service worker files now bypass immutable static caching so clients can pick up updated background caching behavior promptly.
+
 ## [1.1.6] - 2026-05-31
 
 ### Fixed
