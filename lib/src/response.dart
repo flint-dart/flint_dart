@@ -267,13 +267,14 @@ class Response {
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
-      final safeScript =
-          _escapeHtmlAttribute(_versionedAssetUrl(resolvedScript));
+      final versionedScript = _versionedAssetUrl(resolvedScript);
+      final safeScript = _escapeHtmlAttribute(versionedScript);
       final resolvedMeta =
           meta ?? (title == null ? null : FlintPageMeta(title: title));
       final headTags = _renderFlintPageHead(
         title: title ?? resolvedMeta?.title ?? component,
         stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
+        scriptPreloads: [versionedScript],
         meta: resolvedMeta,
         requestUrl: request?.uri.toString(),
       );
@@ -361,6 +362,7 @@ $hotReloadScript
   String _renderFlintPageHead({
     required String title,
     required List<String> stylesheets,
+    List<String> scriptPreloads = const [],
     required FlintPageMeta? meta,
     required String? requestUrl,
   }) {
@@ -412,6 +414,7 @@ $hotReloadScript
           _metaName(entry.key, entry.value),
       ],
       for (final href in stylesheets) _linkTag('stylesheet', href),
+      for (final href in scriptPreloads) _preloadScriptTag(href),
       if (meta?.structuredData != null)
         _jsonLdTag(jsonEncode(meta!.structuredData)),
     ];
@@ -429,6 +432,10 @@ $hotReloadScript
 
   String _linkTag(String rel, String href) {
     return '    <link rel="${_escapeHtmlAttribute(rel)}" href="${_escapeHtmlAttribute(href)}">';
+  }
+
+  String _preloadScriptTag(String href) {
+    return '    <link rel="preload" as="script" href="${_escapeHtmlAttribute(href)}">';
   }
 
   String _jsonLdTag(String json) {

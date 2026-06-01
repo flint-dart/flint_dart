@@ -460,6 +460,10 @@ void main() {
       expect(body, contains('data-flint-page='));
       expect(body, contains('&quot;component&quot;:&quot;Dashboard&quot;'));
       expect(body, contains('&quot;name&quot;:&quot;Ada&quot;'));
+      expect(
+        body,
+        contains('<link rel="preload" as="script" href="/main.dart.js">'),
+      );
       expect(body, contains('<script defer src="/main.dart.js"></script>'));
     });
 
@@ -525,6 +529,12 @@ void main() {
         expect(
           raw.buffer.toString(),
           contains('/assets/js/flint-ui/pages/home.dart.js'),
+        );
+        expect(
+          raw.buffer.toString(),
+          contains(
+            '<link rel="preload" as="script" href="/assets/js/flint-ui/pages/home.dart.js',
+          ),
         );
       } finally {
         Directory.current = originalCurrent;
@@ -620,6 +630,10 @@ void main() {
         expect(
           raw.buffer.toString(),
           contains('<script defer src="/custom.js"></script>'),
+        );
+        expect(
+          raw.buffer.toString(),
+          contains('<link rel="preload" as="script" href="/custom.js">'),
         );
       } finally {
         Directory.current = originalCurrent;
