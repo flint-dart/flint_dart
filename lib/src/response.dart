@@ -19,6 +19,12 @@ enum RespondType {
   plain,
 }
 
+/// Renders a Flint page component to server-side HTML.
+typedef FlintPageServerRenderer = String? Function(
+  String component,
+  Map<String, dynamic> props,
+);
+
 class FlintPageMeta {
   final String? title;
   final String? description;
@@ -80,6 +86,12 @@ class Response {
   final HttpResponse raw;
   final Request? request;
   bool _closed = false;
+
+  /// Optional app-level renderer used by [flintPage] to send initial HTML.
+  static FlintPageServerRenderer? flintPageServerRenderer;
+
+  /// Enables app-level server rendering for Flint pages when a renderer exists.
+  static bool flintPageServerRenderingEnabled = false;
 
   /// Creates a new [Response] instance with the given [HttpResponse].
   Response(this.raw, {this.request});
@@ -255,6 +267,8 @@ class Response {
     List<String>? stylesheets,
     String? title,
     FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
     int? status,
   }) {
     try {
@@ -267,6 +281,12 @@ class Response {
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
+      final renderedHtml = serverHtml ??
+          _renderFlintPageOnServer(
+            component,
+            Map<String, dynamic>.from(page['props'] as Map),
+            serverRender: serverRender,
+          );
       final versionedScript = _versionedAssetUrl(resolvedScript);
       final safeScript = _escapeHtmlAttribute(versionedScript);
       final resolvedMeta =
@@ -290,7 +310,7 @@ class Response {
 $headTags
   </head>
   <body>
-    <main id="$safeRootId" data-flint-page="$encodedPage"></main>
+    <main id="$safeRootId" data-flint-page="$encodedPage">$renderedHtml</main>
     <script defer src="$safeScript"></script>
 $serviceWorkerScript
 $hotReloadScript
@@ -346,6 +366,8 @@ $hotReloadScript
     List<String>? stylesheets,
     String? title,
     FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
     int? status,
   }) =>
       flintPage(
@@ -356,8 +378,28 @@ $hotReloadScript
         stylesheets: stylesheets,
         title: title,
         meta: meta,
+        serverHtml: serverHtml,
+        serverRender: serverRender,
         status: status,
       );
+
+  String _renderFlintPageOnServer(
+    String component,
+    Map<String, dynamic> props, {
+    bool? serverRender,
+  }) {
+    final shouldRender =
+        serverRender ?? Response.flintPageServerRenderingEnabled;
+    final renderer = Response.flintPageServerRenderer;
+    if (!shouldRender || renderer == null) return '';
+
+    try {
+      return renderer(component, props) ?? '';
+    } catch (e, stack) {
+      Log.debug('[Flint] Server render failed for "$component": $e\n$stack');
+      return '';
+    }
+  }
 
   String _renderFlintPageHead({
     required String title,

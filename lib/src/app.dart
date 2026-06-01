@@ -195,11 +195,15 @@ class Flint {
   Flint(
       {this.rootPath = "lib",
       String? viewPath,
+      FlintPageServerRenderer? flintPageServerRenderer,
+      bool serverRenderFlintPages = false,
       this.autoConnectDb = true,
       this.autoConnectMail = true,
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false}) {
     DB.setLazyAutoConnect(autoConnectDb);
+    Response.flintPageServerRenderer = flintPageServerRenderer;
+    Response.flintPageServerRenderingEnabled = serverRenderFlintPages;
 
     if (withDefaultMiddleware) {
       _middlewares.add(ExceptionMiddleware());

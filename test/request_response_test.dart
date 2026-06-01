@@ -439,6 +439,8 @@ void main() {
     });
 
     test('flintPage renders page payload for browser UI', () {
+      Response.flintPageServerRenderer = null;
+      Response.flintPageServerRenderingEnabled = false;
       final raw = FakeHttpResponse();
       final req = Request(FakeHttpRequest(
         method: 'GET',
@@ -465,6 +467,51 @@ void main() {
         contains('<link rel="preload" as="script" href="/main.dart.js">'),
       );
       expect(body, contains('<script defer src="/main.dart.js"></script>'));
+    });
+
+    test('flintPage can include server-rendered HTML', () {
+      final raw = FakeHttpResponse();
+      final res = Response(raw);
+
+      res.flintPage(
+        'Dashboard',
+        script: '/main.dart.js',
+        serverHtml: '<section><h1>Ready now</h1></section>',
+      );
+
+      final body = raw.buffer.toString();
+      expect(
+        body,
+        contains(
+          '<main id="app" data-flint-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{}}"><section><h1>Ready now</h1></section></main>',
+        ),
+      );
+      expect(body, contains('<script defer src="/main.dart.js"></script>'));
+    });
+
+    test('flintPage uses app-level server renderer when enabled', () {
+      final previousRenderer = Response.flintPageServerRenderer;
+      final previousEnabled = Response.flintPageServerRenderingEnabled;
+      try {
+        Response.flintPageServerRenderer = (component, props) {
+          return '<p>$component ${props['name']}</p>';
+        };
+        Response.flintPageServerRenderingEnabled = true;
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage(
+          'Home',
+          props: {'name': 'Ada'},
+          script: '/main.dart.js',
+        );
+
+        expect(raw.buffer.toString(), contains('<p>Home Ada</p>'));
+      } finally {
+        Response.flintPageServerRenderer = previousRenderer;
+        Response.flintPageServerRenderingEnabled = previousEnabled;
+      }
     });
 
     test('flintPage defaults to app-owned Flint UI public asset path', () {
