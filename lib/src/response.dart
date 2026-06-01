@@ -85,6 +85,8 @@ class Response {
   /// The underlying raw [HttpResponse] object.
   final HttpResponse raw;
   final Request? request;
+  final FlintPageServerRenderer? _flintPageServerRenderer;
+  final bool _flintPageServerRenderingEnabled;
   bool _closed = false;
 
   /// Optional app-level renderer used by [flintPage] to send initial HTML.
@@ -94,7 +96,13 @@ class Response {
   static bool flintPageServerRenderingEnabled = false;
 
   /// Creates a new [Response] instance with the given [HttpResponse].
-  Response(this.raw, {this.request});
+  Response(
+    this.raw, {
+    this.request,
+    FlintPageServerRenderer? flintPageServerRenderer,
+    bool? serverRenderFlintPages,
+  })  : _flintPageServerRenderer = flintPageServerRenderer,
+        _flintPageServerRenderingEnabled = serverRenderFlintPages ?? false;
   bool get isClosed => _closed;
 
   Future<void> close() async {
@@ -388,9 +396,11 @@ $hotReloadScript
     Map<String, dynamic> props, {
     bool? serverRender,
   }) {
-    final shouldRender =
-        serverRender ?? Response.flintPageServerRenderingEnabled;
-    final renderer = Response.flintPageServerRenderer;
+    final shouldRender = serverRender ??
+        (_flintPageServerRenderingEnabled ||
+            Response.flintPageServerRenderingEnabled);
+    final renderer =
+        _flintPageServerRenderer ?? Response.flintPageServerRenderer;
     if (!shouldRender || renderer == null) return '';
 
     try {

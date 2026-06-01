@@ -514,6 +514,25 @@ void main() {
       }
     });
 
+    test('flintPage uses instance server renderer when enabled', () {
+      final raw = FakeHttpResponse();
+      final res = Response(
+        raw,
+        flintPageServerRenderer: (component, props) {
+          return '<p>$component ${props['name']}</p>';
+        },
+        serverRenderFlintPages: true,
+      );
+
+      res.flintPage(
+        'Home',
+        props: {'name': 'Ada'},
+        script: '/main.dart.js',
+      );
+
+      expect(raw.buffer.toString(), contains('<p>Home Ada</p>'));
+    });
+
     test('flintPage defaults to app-owned Flint UI public asset path', () {
       final originalCurrent = Directory.current;
       final tempDir = Directory.systemTemp.createTempSync('flint_page_assets_');
