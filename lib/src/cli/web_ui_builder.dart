@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/logs.dart';
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 
 class FlintWebUiBuild {
@@ -182,6 +183,7 @@ class FlintWebUiBuilder {
   static Future<void> compile(FlintWebUiBuild build) async {
     await _compileTailwind(build);
     await _compileDart(build);
+    _hashDartJsAssetFamily(build.jsOut);
     _writeServiceWorker(build);
   }
 
@@ -227,7 +229,8 @@ class FlintWebUiBuilder {
 
       Log.debug('Compiling Flint UI page bundle: $component');
       await _compileDartFile(generatedEntry.path, jsOut);
-      manifestPages[component] = _assetUrlFor(build.webDir, jsOut);
+      final hashedJsOut = _hashDartJsAssetFamily(jsOut);
+      manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
     }
 
     final manifestFile =
@@ -248,7 +251,10 @@ class FlintWebUiBuilder {
 
     final manifest = {
       'mode': 'page-bundles',
-      'fallback': _assetUrlFor(build.webDir, build.jsOut),
+      'fallback': _assetUrlFor(
+        build.webDir,
+        _currentHashedDartJsAsset(build.jsOut) ?? build.jsOut,
+      ),
       'pages': {
         ...existingPages,
         ...manifestPages,
@@ -288,6 +294,7 @@ class FlintWebUiBuilder {
   static Future<void> _compileDartFile(String entryPath, String jsOut) async {
     final output = File(jsOut);
     output.parent.createSync(recursive: true);
+    _deleteHashedDartJsSiblings(jsOut);
 
     final result = await Process.run(
       'dart',
@@ -568,6 +575,120 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
   static String _assetUrlFor(Directory webDir, String filePath) {
     final relative = path.relative(filePath, from: webDir.path);
     return '/${path.split(relative).join('/')}';
+  }
+
+  static String _hashDartJsAssetFamily(String jsOut) {
+    final jsFile = File(jsOut);
+    if (!jsFile.existsSync()) return jsOut;
+
+    final hash = _shortFileHash(jsFile);
+    final hashedJsPath = _hashedDartJsPath(jsOut, hash);
+    final hashedJsFile = File(hashedJsPath);
+    final hashedMapFile = File('$hashedJsPath.map');
+    final hashedDepsFile = File('$hashedJsPath.deps');
+    final sourceMapName = path.basename(hashedMapFile.path);
+
+    var js = jsFile.readAsStringSync();
+    js = _rewriteSourceMapUrl(js, sourceMapName);
+    hashedJsFile.writeAsStringSync(js);
+
+    final mapFile = File('$jsOut.map');
+    if (mapFile.existsSync()) {
+      hashedMapFile.parent.createSync(recursive: true);
+      if (hashedMapFile.existsSync()) hashedMapFile.deleteSync();
+      mapFile.renameSync(hashedMapFile.path);
+    }
+
+    final depsFile = File('$jsOut.deps');
+    if (depsFile.existsSync()) {
+      hashedDepsFile.parent.createSync(recursive: true);
+      if (hashedDepsFile.existsSync()) hashedDepsFile.deleteSync();
+      depsFile.renameSync(hashedDepsFile.path);
+    }
+
+    jsFile.deleteSync();
+    Log.debug('Hashed Flint UI asset: ${hashedJsFile.path}');
+    return hashedJsFile.path;
+  }
+
+  static String? _currentHashedDartJsAsset(String jsOut) {
+    final exact = File(jsOut);
+    if (exact.existsSync()) return exact.path;
+
+    final dir = Directory(path.dirname(jsOut));
+    if (!dir.existsSync()) return null;
+
+    final basename = path.basename(jsOut);
+    final pattern = _hashedDartJsSiblingPattern(basename);
+    final matches = dir
+        .listSync()
+        .whereType<File>()
+        .where((file) => pattern.hasMatch(path.basename(file.path)))
+        .toList()
+      ..sort((a, b) {
+        return b.lastModifiedSync().compareTo(a.lastModifiedSync());
+      });
+
+    return matches.isEmpty ? null : matches.first.path;
+  }
+
+  static void _deleteHashedDartJsSiblings(String jsOut) {
+    final dir = Directory(path.dirname(jsOut));
+    if (!dir.existsSync()) return;
+
+    final basename = path.basename(jsOut);
+    final pattern = _hashedDartJsSiblingPattern(basename);
+    for (final file in dir.listSync().whereType<File>()) {
+      if (pattern.hasMatch(path.basename(file.path))) {
+        file.deleteSync();
+      }
+    }
+  }
+
+  static RegExp _hashedDartJsSiblingPattern(String basename) {
+    if (basename.endsWith('.dart.js')) {
+      final prefix = RegExp.escape(
+        basename.substring(0, basename.length - '.dart.js'.length),
+      );
+      return RegExp('^$prefix\\.[a-f0-9]{12}\\.dart\\.js(\\.map|\\.deps)?\$');
+    }
+
+    final extension = path.extension(basename);
+    final stem = RegExp.escape(
+      extension.isEmpty
+          ? basename
+          : basename.substring(0, basename.length - extension.length),
+    );
+    final ext = RegExp.escape(extension);
+    return RegExp('^$stem\\.[a-f0-9]{12}$ext(\\.map|\\.deps)?\$');
+  }
+
+  static String _hashedDartJsPath(String jsOut, String hash) {
+    if (jsOut.endsWith('.dart.js')) {
+      return '${jsOut.substring(0, jsOut.length - '.dart.js'.length)}.$hash.dart.js';
+    }
+
+    final extension = path.extension(jsOut);
+    if (extension.isEmpty) return '$jsOut.$hash';
+    return '${jsOut.substring(0, jsOut.length - extension.length)}.$hash$extension';
+  }
+
+  static String _shortFileHash(File file) {
+    return sha256.convert(file.readAsBytesSync()).toString().substring(0, 12);
+  }
+
+  static String _rewriteSourceMapUrl(String js, String sourceMapName) {
+    final sourceMapPattern =
+        RegExp(r'//# sourceMappingURL=.*$', multiLine: true);
+    if (sourceMapPattern.hasMatch(js)) {
+      return js.replaceFirst(
+        sourceMapPattern,
+        '//# sourceMappingURL=$sourceMapName',
+      );
+    }
+
+    final newline = js.endsWith('\n') ? '' : '\n';
+    return '$js$newline//# sourceMappingURL=$sourceMapName\n';
   }
 
   static void _writeServiceWorker(FlintWebUiBuild build) {

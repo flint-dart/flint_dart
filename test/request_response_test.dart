@@ -547,6 +547,79 @@ void main() {
       }
     });
 
+    test('flintPage defaults to hashed app-owned Flint UI public asset path',
+        () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_hashed_assets_');
+      try {
+        Directory.current = tempDir;
+        File(
+          path.join(
+            tempDir.path,
+            'public',
+            'assets',
+            'js',
+            'flint-ui',
+            'main.abcdef123456.dart.js',
+          ),
+        )
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Dashboard');
+
+        expect(
+          raw.buffer.toString(),
+          contains('/assets/js/flint-ui/main.abcdef123456.dart.js'),
+        );
+        expect(raw.buffer.toString(), isNot(contains('?v=')));
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('flintPage does not query-version hashed manifest scripts', () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_hashed_manifest_');
+      try {
+        Directory.current = tempDir;
+        final assetDir =
+            Directory(path.join('public', 'assets', 'js', 'flint-ui'))
+              ..createSync(recursive: true);
+        File(path.join(assetDir.path, 'manifest.json')).writeAsStringSync(
+          jsonEncode({
+            'fallback': '/assets/js/flint-ui/main.111111111111.dart.js',
+            'pages': {
+              'Home': '/assets/js/flint-ui/pages/home.abcdef123456.dart.js',
+            },
+          }),
+        );
+        File(path.join(assetDir.path, 'pages', 'home.abcdef123456.dart.js'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Home');
+
+        expect(
+          raw.buffer.toString(),
+          contains('/assets/js/flint-ui/pages/home.abcdef123456.dart.js'),
+        );
+        expect(raw.buffer.toString(), isNot(contains('?v=')));
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
     test('flintPage uses manifest page script when available', () {
       final originalCurrent = Directory.current;
       final tempDir =

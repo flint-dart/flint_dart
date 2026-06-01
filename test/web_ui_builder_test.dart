@@ -156,5 +156,45 @@ final componentRegistry = FlintComponentRegistry({
       expect(config.pageTargets['StaffDashboard']!.className,
           'StaffDashboardPage');
     });
+
+    test('compile writes hashed app bundle filenames', () async {
+      final uiDir = Directory(path.join('lib', 'ui'))
+        ..createSync(recursive: true);
+      final publicDir = Directory('public')..createSync();
+      final entry = File(path.join(uiDir.path, 'main.dart'))
+        ..writeAsStringSync('void main() { print("hello"); }');
+      final build = FlintWebUiBuild(
+        entry: entry,
+        uiDir: uiDir,
+        webDir: publicDir,
+        jsOut: path.join(
+          publicDir.path,
+          'assets',
+          'js',
+          'flint-ui',
+          'main.dart.js',
+        ),
+      );
+
+      await FlintWebUiBuilder.compile(build);
+
+      final outDir = Directory(path.dirname(build.jsOut));
+      final scripts = outDir
+          .listSync()
+          .whereType<File>()
+          .map((file) => path.basename(file.path))
+          .toList();
+
+      expect(scripts, isNot(contains('main.dart.js')));
+      expect(
+        scripts,
+        contains(matches(RegExp(r'^main\.[a-f0-9]{12}\.dart\.js$'))),
+      );
+      expect(
+        scripts,
+        contains(matches(RegExp(r'^main\.[a-f0-9]{12}\.dart\.js\.map$'))),
+      );
+      expect(File(path.join(publicDir.path, 'flint-sw.js')).existsSync(), true);
+    });
   });
 }

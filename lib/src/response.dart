@@ -498,6 +498,7 @@ $hotReloadScript
     final parsed = Uri.tryParse(trimmed);
     final pathOnly = parsed?.path ?? trimmed.split('?').first.split('#').first;
     if (!pathOnly.startsWith('/')) return url;
+    if (_isHashedFlintAssetPath(pathOnly)) return url;
 
     final publicPath = p.joinAll([
       'public',
@@ -562,9 +563,12 @@ $hotReloadScript
   }
 
   String _defaultFlintPageScript() {
-    if (File(p.join('public', 'assets', 'js', 'flint-ui', 'main.dart.js'))
-        .existsSync()) {
-      return '/assets/js/flint-ui/main.dart.js';
+    final appOwnedScript = _findFlintUiAsset(
+      p.join('public', 'assets', 'js', 'flint-ui'),
+      'main',
+    );
+    if (appOwnedScript != null) {
+      return appOwnedScript;
     }
     if (File(p.join('flint_ui', 'web', 'main.dart.js')).existsSync()) {
       return '/web/main.dart.js';
@@ -576,6 +580,31 @@ $hotReloadScript
       return '/main.dart.js';
     }
     return '/main.dart.js';
+  }
+
+  String? _findFlintUiAsset(String directoryPath, String stem) {
+    final directory = Directory(directoryPath);
+    if (!directory.existsSync()) return null;
+
+    final exact = File(p.join(directory.path, '$stem.dart.js'));
+    if (exact.existsSync()) {
+      return '/${p.split(p.relative(exact.path, from: 'public')).join('/')}';
+    }
+
+    final hashedPattern = RegExp(
+      '^${RegExp.escape(stem)}\\.[a-f0-9]{12}\\.dart\\.js\$',
+    );
+    final matches = directory
+        .listSync()
+        .whereType<File>()
+        .where((file) => hashedPattern.hasMatch(p.basename(file.path)))
+        .toList()
+      ..sort((a, b) {
+        return b.lastModifiedSync().compareTo(a.lastModifiedSync());
+      });
+
+    if (matches.isEmpty) return null;
+    return '/${p.split(p.relative(matches.first.path, from: 'public')).join('/')}';
   }
 
   List<String> _defaultFlintPageStylesheets() {
@@ -618,6 +647,15 @@ $hotReloadScript
         });
       }
     </script>''';
+  }
+
+  bool _isHashedFlintAssetPath(String pathOnly) {
+    if (!pathOnly.startsWith('/assets/js/flint-ui/') &&
+        !pathOnly.startsWith('/assets/css/flint-ui/')) {
+      return false;
+    }
+
+    return RegExp(r'\.[a-f0-9]{12}\.[^/]+$').hasMatch(pathOnly);
   }
 
   String _escapeHtmlAttribute(String value) {
