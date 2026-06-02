@@ -320,7 +320,10 @@ class FlintWebUiBuilder {
     Log.debug('Compiling Flint UI shared runtime bundle...');
     await _compileDartFile(generatedEntry.path, runtimeOut);
 
-    final deferredChunks = _deferredPartFiles(runtimeOut);
+    final deferredChunks = _hashDeferredPartFiles(
+      _deferredPartFiles(runtimeOut),
+      runtimeOut,
+    );
     final hashedRuntimeOut = _hashDartJsAssetFamily(runtimeOut);
     await _compressAssetFamily(hashedRuntimeOut);
     for (final chunk in deferredChunks) {
@@ -802,10 +805,15 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       final name = path.basename(file.path);
       if (name.startsWith('${basename}_') &&
           (name.endsWith('.part.js') ||
+              RegExp(r'\.[a-f0-9]{12}\.part\.js$').hasMatch(name) ||
               name.endsWith('.part.js.map') ||
+              RegExp(r'\.[a-f0-9]{12}\.part\.js\.map$').hasMatch(name) ||
               name.endsWith('.part.js.gz') ||
+              RegExp(r'\.[a-f0-9]{12}\.part\.js\.gz$').hasMatch(name) ||
               name.endsWith('.part.js.br') ||
+              RegExp(r'\.[a-f0-9]{12}\.part\.js\.br$').hasMatch(name) ||
               name.endsWith('.part.js.map.gz') ||
+              RegExp(r'\.[a-f0-9]{12}\.part\.js\.map\.gz$').hasMatch(name) ||
               name.endsWith('.part.js.map.br'))) {
         file.deleteSync();
       }
@@ -824,6 +832,71 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       ..sort((a, b) => path.basename(a.path).compareTo(path.basename(b.path)));
 
     return files;
+  }
+
+  static List<File> _hashDeferredPartFiles(
+    List<File> chunks,
+    String runtimeOut,
+  ) {
+    if (chunks.isEmpty) return const [];
+
+    final runtimeFile = File(runtimeOut);
+    final depsFile = File('$runtimeOut.deps');
+    final replacements = <String, String>{};
+    final hashedChunks = <File>[];
+
+    for (final chunk in chunks) {
+      if (!chunk.existsSync()) continue;
+
+      final hash = _shortFileHash(chunk);
+      final oldName = path.basename(chunk.path);
+      final hashedPath = _hashedDeferredPartPath(chunk.path, hash);
+      final hashedName = path.basename(hashedPath);
+      final hashedFile = File(hashedPath);
+      final hashedMapFile = File('$hashedPath.map');
+      final sourceMapName = path.basename(hashedMapFile.path);
+
+      var js = chunk.readAsStringSync();
+      js = _rewriteSourceMapUrl(js, sourceMapName);
+      hashedFile.writeAsStringSync(js);
+
+      final mapFile = File('${chunk.path}.map');
+      if (mapFile.existsSync()) {
+        if (hashedMapFile.existsSync()) hashedMapFile.deleteSync();
+        mapFile.renameSync(hashedMapFile.path);
+      }
+
+      chunk.deleteSync();
+      replacements[oldName] = hashedName;
+      hashedChunks.add(hashedFile);
+      Log.debug('Hashed Flint UI deferred asset: ${hashedFile.path}');
+    }
+
+    if (runtimeFile.existsSync() && replacements.isNotEmpty) {
+      var runtime = runtimeFile.readAsStringSync();
+      for (final entry in replacements.entries) {
+        runtime = runtime.replaceAll(entry.key, entry.value);
+      }
+      runtimeFile.writeAsStringSync(runtime);
+    }
+
+    if (depsFile.existsSync() && replacements.isNotEmpty) {
+      var deps = depsFile.readAsStringSync();
+      for (final entry in replacements.entries) {
+        deps = deps.replaceAll(entry.key, entry.value);
+      }
+      depsFile.writeAsStringSync(deps);
+    }
+
+    return hashedChunks;
+  }
+
+  static String _hashedDeferredPartPath(String filePath, String hash) {
+    const suffix = '.part.js';
+    if (filePath.endsWith(suffix)) {
+      return '${filePath.substring(0, filePath.length - suffix.length)}.$hash$suffix';
+    }
+    return _hashedDartJsPath(filePath, hash);
   }
 
   static RegExp _hashedDartJsSiblingPattern(String basename) {
