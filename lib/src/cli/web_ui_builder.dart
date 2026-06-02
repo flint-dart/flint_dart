@@ -453,7 +453,9 @@ void main() {
     final output = File(build.cssOut!);
     output.parent.createSync(recursive: true);
 
-    final existing = output.existsSync() ? output.readAsStringSync().trim() : '';
+    final existing = output.existsSync()
+        ? _stripGeneratedRootDesignCss(output.readAsStringSync()).trim()
+        : '';
     final generated = [
       existing,
       '/* Generated from Flint UI root design. */',
@@ -465,6 +467,13 @@ void main() {
 
     output.writeAsStringSync('$generated\n');
     Log.debug('Root design stylesheet generated: ${output.path}');
+  }
+
+  static String _stripGeneratedRootDesignCss(String cssText) {
+    const marker = '/* Generated from Flint UI root design. */';
+    final markerIndex = cssText.indexOf(marker);
+    if (markerIndex == -1) return cssText;
+    return cssText.substring(0, markerIndex).trimRight();
   }
 
   static Future<void> _compileDartFile(String entryPath, String jsOut) async {
