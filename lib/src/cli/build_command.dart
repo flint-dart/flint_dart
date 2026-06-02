@@ -77,6 +77,9 @@ class BuildCommand extends FlintCommand {
         Directory.current, buildDirectory, buildDir);
     _copySwaggerSpec(buildDir);
     await _copySwaggerUiAssets(buildDir);
+    await FlintWebUiBuilder.precompressDirectory(
+      Directory(path.join(buildDir, 'public')),
+    );
 
     final builtExecutables = <String, String>{};
     for (final target in compileTargets) {

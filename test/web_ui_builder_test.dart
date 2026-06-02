@@ -194,7 +194,30 @@ final componentRegistry = FlintComponentRegistry({
         scripts,
         contains(matches(RegExp(r'^main\.[a-f0-9]{12}\.dart\.js\.map$'))),
       );
+      expect(
+        scripts,
+        contains(matches(RegExp(r'^main\.[a-f0-9]{12}\.dart\.js\.gz$'))),
+      );
+      expect(
+        scripts,
+        contains(matches(RegExp(r'^main\.[a-f0-9]{12}\.dart\.js\.map\.gz$'))),
+      );
       expect(File(path.join(publicDir.path, 'flint-sw.js')).existsSync(), true);
+    });
+
+    test('precompressDirectory writes gzip for JSON and SVG assets', () async {
+      final publicDir = Directory('public')..createSync();
+      File(path.join(publicDir.path, 'manifest.json'))
+          .writeAsStringSync('{"ok":true}');
+      File(path.join(publicDir.path, 'logo.svg')).writeAsStringSync(
+        '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+      );
+
+      await FlintWebUiBuilder.precompressDirectory(publicDir);
+
+      expect(File(path.join(publicDir.path, 'manifest.json.gz')).existsSync(),
+          true);
+      expect(File(path.join(publicDir.path, 'logo.svg.gz')).existsSync(), true);
     });
   });
 }

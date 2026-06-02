@@ -183,8 +183,15 @@ class FlintWebUiBuilder {
   static Future<void> compile(FlintWebUiBuild build) async {
     await _compileTailwind(build);
     await _compileDart(build);
-    _hashDartJsAssetFamily(build.jsOut);
+    final hashedJsOut = _hashDartJsAssetFamily(build.jsOut);
+    await _compressAssetFamily(hashedJsOut);
+    if (build.cssOut != null) {
+      await _compressAssetIfUseful(File(build.cssOut!));
+    }
     _writeServiceWorker(build);
+    await _compressAssetIfUseful(
+      File(path.join(build.webDir.path, 'flint-sw.js')),
+    );
   }
 
   static Future<void> compilePageBundles(
@@ -230,6 +237,7 @@ class FlintWebUiBuilder {
       Log.debug('Compiling Flint UI page bundle: $component');
       await _compileDartFile(generatedEntry.path, jsOut);
       final hashedJsOut = _hashDartJsAssetFamily(jsOut);
+      await _compressAssetFamily(hashedJsOut);
       manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
     }
 
@@ -265,7 +273,23 @@ class FlintWebUiBuilder {
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
     Log.debug('Flint UI manifest generated: ${manifestFile.path}');
+    await _compressAssetIfUseful(manifestFile);
     _writeServiceWorker(build);
+    await _compressAssetIfUseful(
+      File(path.join(build.webDir.path, 'flint-sw.js')),
+    );
+  }
+
+  static Future<void> precompressDirectory(Directory directory) async {
+    if (!directory.existsSync()) return;
+    if (Platform.environment['FLINT_HOT'] == '1') return;
+
+    for (final entity in directory.listSync(recursive: true)) {
+      if (entity is! File) continue;
+      final lower = entity.path.toLowerCase();
+      if (lower.endsWith('.gz') || lower.endsWith('.br')) continue;
+      await _compressAssetIfUseful(entity);
+    }
   }
 
   static File? _resolveTailwindInput(Directory uiDir) {
@@ -650,7 +674,9 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       final prefix = RegExp.escape(
         basename.substring(0, basename.length - '.dart.js'.length),
       );
-      return RegExp('^$prefix\\.[a-f0-9]{12}\\.dart\\.js(\\.map|\\.deps)?\$');
+      return RegExp(
+        '^$prefix\\.[a-f0-9]{12}\\.dart\\.js(\\.map|\\.deps)?(\\.gz|\\.br)?\$',
+      );
     }
 
     final extension = path.extension(basename);
@@ -660,7 +686,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
           : basename.substring(0, basename.length - extension.length),
     );
     final ext = RegExp.escape(extension);
-    return RegExp('^$stem\\.[a-f0-9]{12}$ext(\\.map|\\.deps)?\$');
+    return RegExp('^$stem\\.[a-f0-9]{12}$ext(\\.map|\\.deps)?(\\.gz|\\.br)?\$');
   }
 
   static String _hashedDartJsPath(String jsOut, String hash) {
@@ -689,6 +715,70 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
 
     final newline = js.endsWith('\n') ? '' : '\n';
     return '$js$newline//# sourceMappingURL=$sourceMapName\n';
+  }
+
+  static Future<void> _compressAssetFamily(String jsPath) async {
+    final files = [
+      File(jsPath),
+      File('$jsPath.map'),
+      File('$jsPath.deps'),
+    ];
+
+    for (final file in files) {
+      await _compressAssetIfUseful(file);
+    }
+  }
+
+  static Future<void> _compressAssetIfUseful(File file) async {
+    if (!file.existsSync()) return;
+    if (!_shouldPrecompress(file.path)) return;
+    if (Platform.environment['FLINT_HOT'] == '1') return;
+
+    final bytes = file.readAsBytesSync();
+    final gzipFile = File('${file.path}.gz');
+    gzipFile.writeAsBytesSync(gzip.encode(bytes));
+    Log.debug('Compressed Flint asset: ${gzipFile.path}');
+
+    final brotli = await _resolveBrotliBinary();
+    if (brotli == null) return;
+
+    final brFile = File('${file.path}.br');
+    final result = await Process.run(
+      brotli,
+      ['-f', '-q', '11', '-o', brFile.path, file.path],
+      runInShell: true,
+    );
+    if (result.exitCode == 0 && brFile.existsSync()) {
+      Log.debug('Compressed Flint asset: ${brFile.path}');
+    } else {
+      final stderrText = result.stderr.toString().trim();
+      if (stderrText.isNotEmpty) {
+        Log.debug('Brotli compression skipped for ${file.path}: $stderrText');
+      }
+    }
+  }
+
+  static bool _shouldPrecompress(String filePath) {
+    final lower = filePath.toLowerCase();
+    return lower.endsWith('.js') ||
+        lower.endsWith('.css') ||
+        lower.endsWith('.json') ||
+        lower.endsWith('.svg') ||
+        lower.endsWith('.map') ||
+        lower.endsWith('.deps');
+  }
+
+  static Future<String?> _resolveBrotliBinary() async {
+    final explicit = Platform.environment['FLINT_BROTLI_BIN'];
+    if (explicit != null && explicit.trim().isNotEmpty) {
+      return explicit.trim();
+    }
+
+    for (final candidate in ['brotli', 'brotli.exe']) {
+      if (await _commandExists(candidate)) return candidate;
+    }
+
+    return null;
   }
 
   static void _writeServiceWorker(FlintWebUiBuild build) {

@@ -6,9 +6,19 @@ import 'dart:typed_data';
 class FakeHttpHeaders implements HttpHeaders {
   final Map<String, List<String>> _headers = {};
   ContentType? _contentType;
+  int? _contentLength;
 
   @override
   ContentType? get contentType => _contentType;
+
+  @override
+  int get contentLength => _contentLength ?? -1;
+
+  @override
+  set contentLength(int value) {
+    _contentLength = value;
+    set(HttpHeaders.contentLengthHeader, value.toString());
+  }
 
   @override
   set contentType(ContentType? value) {
@@ -56,17 +66,26 @@ class FakeHttpResponse implements HttpResponse {
   int statusCode = 200;
 
   final StringBuffer buffer = StringBuffer();
+  final List<int> bodyBytes = [];
   bool closed = false;
 
   @override
   void write(Object? obj) {
-    buffer.write(obj);
+    final value = obj.toString();
+    buffer.write(value);
+    bodyBytes.addAll(utf8.encode(value));
+  }
+
+  @override
+  void add(List<int> data) {
+    bodyBytes.addAll(data);
+    buffer.write(utf8.decode(data, allowMalformed: true));
   }
 
   @override
   Future<void> addStream(Stream<List<int>> stream) async {
     await for (final chunk in stream) {
-      buffer.write(utf8.decode(chunk));
+      add(chunk);
     }
   }
 
