@@ -163,12 +163,13 @@ Page bundles reduce what each route loads, but each page still carries repeated 
 /assets/js/flint-ui/pages/blog.2ab44d.dart.js
 ```
 
-The page HTML should load:
+The page HTML should load the shared runtime:
 
 ```html
 <script defer src="/assets/js/flint-ui/runtime.4aa91c.dart.js"></script>
-<script defer src="/assets/js/flint-ui/pages/home.8f31c9.dart.js"></script>
 ```
+
+The runtime then loads the matching deferred chunk for the current page.
 
 ### Recommended Architecture
 
@@ -198,8 +199,8 @@ Future<void> loadPage(String component) async {
 1. Generate a deferred browser entrypoint from `component_registry.dart`.
 2. Compile that one entrypoint with deferred loading enabled.
 3. Emit runtime and deferred page chunks into `public/assets/js/flint-ui/`.
-4. Generate a manifest that maps components to the runtime and chunk URLs.
-5. Update `Response.flintPage()` to inject the runtime script plus the selected page chunk.
+4. Generate a manifest that lists the runtime and deferred chunk URLs.
+5. Update `Response.flintPage()` to inject the runtime script for shared-runtime manifests.
 6. Update the service worker to cache the runtime immediately and prefetch route chunks in the background.
 7. Keep the current independent page-bundle mode as a fallback while the deferred mode matures.
 
@@ -212,11 +213,36 @@ Future<void> loadPage(String component) async {
 
 ## 5. Rollout Order
 
-1. Preload current page bundle. This is already low-risk and can ship first.
-2. Hashed filenames. This unlocks stronger cache rules and cleaner manifests.
-3. Brotli compression. This reduces transfer size without changing app code.
-4. Server-rendered HTML first. This gives the biggest visible first-load win.
-5. Shared runtime bundle. This is the deepest compiler/build change and should ship after the cache and SSR pipeline is stable.
+### Shipped Foundation
+
+1. Server-rendered HTML first.
+   - Added Flint UI server rendering and wired `Response.flintPage()`/`res.page()` to render meaningful HTML before hydration.
+   - Enabled SSR in `flint-docs` first.
+2. Hashed asset filenames.
+   - Build output now writes content-hashed Flint UI JS assets and keeps hashed assets free of `?v=` query versions.
+3. Brotli-ready compression.
+   - Build output generates gzip and can generate Brotli when `brotli` or `FLINT_BROTLI_BIN` is available.
+   - Static middleware prefers Brotli, then gzip, then raw files.
+4. Shared runtime bundle.
+   - `flint build` now prefers a shared runtime generated from `component_registry.dart`.
+   - `flint web --build-only --shared-runtime` is available for explicit local testing.
+   - Deferred page chunks are content-hashed and listed in `manifest.json`.
+
+### Production Rollout
+
+1. Keep `flint-docs` on shared runtime first.
+   - Watch `/`, `/ui`, `/guides`, and blog/detail routes for first paint, hydration, navigation, and console errors.
+2. Run the same build mode in `eulogia`.
+   - Confirm the generated manifest includes every component from `lib/ui/component_registry.dart`.
+   - Smoke `/`, `/staff/login`, and authenticated staff/client pages.
+3. Compare network behavior.
+   - First visit should load SSR HTML, the runtime, and only the deferred chunks needed by the page.
+   - Repeat visits should reuse cached hashed assets and service-worker-prefetched chunks.
+4. Turn on Brotli in deployment images.
+   - Install a Brotli binary or set `FLINT_BROTLI_BIN` so `.br` files are generated during Docker builds.
+5. Keep page-bundles fallback for one release cycle.
+   - If shared runtime auto-detection fails, `flint build` falls back to the older `main.dart.js` plus page-bundle flow.
+6. After docs and eulogia are stable, make shared runtime the documented production path.
 
 ## 6. Compatibility Rules
 
