@@ -785,6 +785,40 @@ void main() {
       }
     });
 
+    test('flintPage supports old fallback-only manifests', () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_old_manifest_');
+      try {
+        Directory.current = tempDir;
+        final assetDir =
+            Directory(path.join('public', 'assets', 'js', 'flint-ui'))
+              ..createSync(recursive: true);
+        File(path.join(assetDir.path, 'manifest.json')).writeAsStringSync(
+          jsonEncode({
+            'fallback': '/assets/js/flint-ui/main.abcdef123456.dart.js',
+          }),
+        );
+        File(path.join(assetDir.path, 'main.abcdef123456.dart.js'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Home');
+
+        expect(
+          raw.buffer.toString(),
+          contains('/assets/js/flint-ui/main.abcdef123456.dart.js'),
+        );
+        expect(raw.buffer.toString(), isNot(contains('?v=')));
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
     test('flintPage explicit script overrides manifest lookup', () {
       final originalCurrent = Directory.current;
       final tempDir =

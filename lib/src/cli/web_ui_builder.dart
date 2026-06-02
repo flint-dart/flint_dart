@@ -182,6 +182,7 @@ class FlintWebUiBuilder {
 
   static Future<void> compile(FlintWebUiBuild build) async {
     await _compileTailwind(build);
+    await _compileRootDesignCss(build);
     await _compileDart(build);
     final hashedJsOut = _hashDartJsAssetFamily(build.jsOut);
     await _compressAssetFamily(hashedJsOut);
@@ -216,6 +217,8 @@ class FlintWebUiBuilder {
     if (requestedPages.isEmpty) {
       throw StateError('No page bundle target found for "$onlyPage".');
     }
+
+    await _compileRootDesignCss(build);
 
     final pagesOutDir = Directory(path.join(path.dirname(build.jsOut), 'pages'))
       ..createSync(recursive: true);
@@ -307,6 +310,7 @@ class FlintWebUiBuilder {
     }
 
     await _compileTailwind(build);
+    await _compileRootDesignCss(build);
 
     final generatedDir =
         Directory(path.join('.dart_tool', 'flint_ui', 'shared_runtime'))
@@ -396,6 +400,71 @@ class FlintWebUiBuilder {
     output.parent.createSync(recursive: true);
 
     await _compileDartFile(build.entry.path, build.jsOut);
+  }
+
+  static Future<void> _compileRootDesignCss(FlintWebUiBuild build) async {
+    if (build.cssOut == null) return;
+    if (Platform.environment['FLINT_HOT'] == '1') return;
+
+    final packageName = _readPackageName();
+    final entryImport = _packageImportFor(packageName, build.entry.path);
+    final generatedDir =
+        Directory(path.join('.dart_tool', 'flint_ui', 'root_design_css'))
+          ..createSync(recursive: true);
+    final generatedEntry = File(path.join(generatedDir.path, 'extract.dart'));
+
+    generatedEntry.writeAsStringSync('''
+import 'dart:io';
+
+import 'package:flint_ui/flint_ui.dart' as flint;
+import '$entryImport' as app;
+
+void main() {
+  flint.resetCollectedStyleCss();
+  app.main();
+  stdout.write(flint.consumeCollectedStyleCss());
+}
+''');
+
+    final result = await Process.run(
+      'dart',
+      ['run', generatedEntry.path],
+      runInShell: true,
+    );
+
+    if (result.exitCode != 0) {
+      final stderrText = result.stderr.toString().trim();
+      final stdoutText = result.stdout.toString().trim();
+      final detail = [stdoutText, stderrText]
+          .where((text) => text.isNotEmpty)
+          .join('\n')
+          .trim();
+      Log.debug(
+        detail.isEmpty
+            ? 'Skipped Flint root design CSS extraction.'
+            : 'Skipped Flint root design CSS extraction.\n$detail',
+      );
+      return;
+    }
+
+    final cssText = result.stdout.toString().trim();
+    if (cssText.isEmpty) return;
+
+    final output = File(build.cssOut!);
+    output.parent.createSync(recursive: true);
+
+    final existing = output.existsSync() ? output.readAsStringSync().trim() : '';
+    final generated = [
+      existing,
+      '/* Generated from Flint UI root design. */',
+      cssText,
+      '[data-flint-page] { min-height: 100vh; }',
+      'img, picture, video, canvas, svg { max-width: 100%; }',
+      'button, input, textarea, select { font: inherit; }',
+    ].where((chunk) => chunk.trim().isNotEmpty).join('\n');
+
+    output.writeAsStringSync('$generated\n');
+    Log.debug('Root design stylesheet generated: ${output.path}');
   }
 
   static Future<void> _compileDartFile(String entryPath, String jsOut) async {
