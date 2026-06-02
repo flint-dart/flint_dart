@@ -280,6 +280,86 @@ class FlintWebUiBuilder {
     );
   }
 
+  static Future<void> compileSharedRuntimeBundle(
+    FlintWebUiBuild build, {
+    String? configPath,
+  }) async {
+    final config = discoverPageBundleConfig(build, configPath: configPath);
+    if (config == null) {
+      throw StateError(
+        'No Flint UI page config found. Create component_registry.dart or pass --pages-config <path>.',
+      );
+    }
+    if (config.pageTargets.isEmpty) {
+      throw StateError(
+        'Shared runtime needs direct page imports in component_registry.dart.',
+      );
+    }
+
+    final missingTargets = [
+      for (final component in config.pages.keys)
+        if (!config.pageTargets.containsKey(component)) component,
+    ];
+    if (missingTargets.isNotEmpty) {
+      throw StateError(
+        'Shared runtime could not resolve page imports for: ${missingTargets.join(', ')}.',
+      );
+    }
+
+    await _compileTailwind(build);
+
+    final generatedDir =
+        Directory(path.join('.dart_tool', 'flint_ui', 'shared_runtime'))
+          ..createSync(recursive: true);
+    final generatedEntry = File(path.join(generatedDir.path, 'runtime.dart'));
+    final runtimeOut = path.join(path.dirname(build.jsOut), 'runtime.dart.js');
+
+    generatedEntry.writeAsStringSync(_sharedRuntimeEntrypointSource(config));
+    _deleteDeferredPartSiblings(runtimeOut);
+
+    Log.debug('Compiling Flint UI shared runtime bundle...');
+    await _compileDartFile(generatedEntry.path, runtimeOut);
+
+    final deferredChunks = _deferredPartFiles(runtimeOut);
+    final hashedRuntimeOut = _hashDartJsAssetFamily(runtimeOut);
+    await _compressAssetFamily(hashedRuntimeOut);
+    for (final chunk in deferredChunks) {
+      await _compressAssetIfUseful(chunk);
+      final mapFile = File('${chunk.path}.map');
+      await _compressAssetIfUseful(mapFile);
+    }
+    if (build.cssOut != null) {
+      await _compressAssetIfUseful(File(build.cssOut!));
+    }
+
+    final runtimeUrl = _assetUrlFor(build.webDir, hashedRuntimeOut);
+    final manifestFile =
+        File(path.join(path.dirname(build.jsOut), 'manifest.json'));
+    final manifest = {
+      'mode': 'shared-runtime',
+      'runtime': runtimeUrl,
+      'fallback': runtimeUrl,
+      'chunks': [
+        for (final chunk in deferredChunks)
+          _assetUrlFor(build.webDir, chunk.path),
+      ],
+      'pages': {
+        for (final component in config.pages.keys) component: runtimeUrl,
+      },
+    };
+
+    manifestFile.writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert(manifest),
+    );
+    Log.debug(
+        'Flint UI shared runtime manifest generated: ${manifestFile.path}');
+    await _compressAssetIfUseful(manifestFile);
+    _writeServiceWorker(build);
+    await _compressAssetIfUseful(
+      File(path.join(build.webDir.path, 'flint-sw.js')),
+    );
+  }
+
   static Future<void> precompressDirectory(Directory directory) async {
     if (!directory.existsSync()) return;
     if (Platform.environment['FLINT_HOT'] == '1') return;
@@ -596,6 +676,50 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
 ''';
   }
 
+  static String _sharedRuntimeEntrypointSource(
+    FlintWebUiPageBundleConfig config,
+  ) {
+    final sortedPages = config.pages.keys.toList()..sort();
+    final imports = StringBuffer()
+      ..writeln("import 'package:flint_ui/flint_ui.dart';");
+    final cases = StringBuffer();
+
+    if (config.rootDesignImport != null) {
+      imports.writeln("import '${config.rootDesignImport}';");
+    }
+
+    for (var i = 0; i < sortedPages.length; i++) {
+      final component = sortedPages[i];
+      final target = config.pageTargets[component]!;
+      final alias = 'p$i';
+      imports.writeln("import '${target.importUri}' deferred as $alias;");
+      cases.writeln('''
+    case ${jsonEncode(component)}:
+      await $alias.loadLibrary();
+      return (props) => $alias.${target.className}(props);
+''');
+    }
+
+    final rootDesignName = config.rootDesignName;
+
+    return '''
+${imports.toString()}
+
+Future<FlintPageBuilder?> resolveFlintPage(String component) async {
+  switch (component) {
+${cases.toString()}  }
+  return null;
+}
+
+void main() {
+  createFlintApp(
+    '#app',
+    resolvePage: resolveFlintPage,
+${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
+}
+''';
+  }
+
   static String _assetUrlFor(Directory webDir, String filePath) {
     final relative = path.relative(filePath, from: webDir.path);
     return '/${path.split(relative).join('/')}';
@@ -667,6 +791,39 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
         file.deleteSync();
       }
     }
+  }
+
+  static void _deleteDeferredPartSiblings(String jsOut) {
+    final dir = Directory(path.dirname(jsOut));
+    if (!dir.existsSync()) return;
+
+    final basename = path.basename(jsOut);
+    for (final file in dir.listSync().whereType<File>()) {
+      final name = path.basename(file.path);
+      if (name.startsWith('${basename}_') &&
+          (name.endsWith('.part.js') ||
+              name.endsWith('.part.js.map') ||
+              name.endsWith('.part.js.gz') ||
+              name.endsWith('.part.js.br') ||
+              name.endsWith('.part.js.map.gz') ||
+              name.endsWith('.part.js.map.br'))) {
+        file.deleteSync();
+      }
+    }
+  }
+
+  static List<File> _deferredPartFiles(String jsOut) {
+    final dir = Directory(path.dirname(jsOut));
+    if (!dir.existsSync()) return const [];
+
+    final basename = path.basename(jsOut);
+    final files = dir.listSync().whereType<File>().where((file) {
+      final name = path.basename(file.path);
+      return name.startsWith('${basename}_') && name.endsWith('.part.js');
+    }).toList()
+      ..sort((a, b) => path.basename(a.path).compareTo(path.basename(b.path)));
+
+    return files;
   }
 
   static RegExp _hashedDartJsSiblingPattern(String basename) {
@@ -815,10 +972,15 @@ async function flintManifestAssets({ includeFallback = false } = {}) {
     const pages = manifest && manifest.pages && typeof manifest.pages === 'object'
       ? Object.values(manifest.pages)
       : [];
+    const chunks = Array.isArray(manifest && manifest.chunks)
+      ? manifest.chunks
+      : [];
     return [
       FLINT_MANIFEST_URL,
+      manifest.runtime,
       ...(includeFallback || pages.length === 0 ? [manifest.fallback] : []),
-      ...pages
+      ...pages,
+      ...chunks
     ];
   } catch (_) {
     return [FLINT_MANIFEST_URL];

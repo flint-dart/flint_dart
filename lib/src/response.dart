@@ -535,6 +535,13 @@ $hotReloadScript
       final decoded = jsonDecode(manifestFile.readAsStringSync());
       if (decoded is! Map) return null;
 
+      if (decoded['mode'] == 'shared-runtime') {
+        final runtime = decoded['runtime'];
+        if (runtime is String && runtime.trim().isNotEmpty) {
+          return runtime.trim();
+        }
+      }
+
       final pages = decoded['pages'];
       if (pages is Map) {
         final script = pages[component];

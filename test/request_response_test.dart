@@ -681,6 +681,47 @@ void main() {
       }
     });
 
+    test('flintPage uses shared runtime script when manifest requests it', () {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_page_shared_runtime_');
+      try {
+        Directory.current = tempDir;
+        final assetDir =
+            Directory(path.join('public', 'assets', 'js', 'flint-ui'))
+              ..createSync(recursive: true);
+        File(path.join(assetDir.path, 'manifest.json')).writeAsStringSync(
+          jsonEncode({
+            'mode': 'shared-runtime',
+            'runtime': '/assets/js/flint-ui/runtime.abcdef123456.dart.js',
+            'fallback': '/assets/js/flint-ui/runtime.abcdef123456.dart.js',
+            'chunks': ['/assets/js/flint-ui/runtime.dart.js_1.part.js'],
+            'pages': {
+              'Home': '/assets/js/flint-ui/runtime.abcdef123456.dart.js',
+            },
+          }),
+        );
+        File(path.join(assetDir.path, 'runtime.abcdef123456.dart.js'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('void main() {}');
+
+        final raw = FakeHttpResponse();
+        final res = Response(raw);
+
+        res.flintPage('Home');
+
+        expect(
+          raw.buffer.toString(),
+          contains('/assets/js/flint-ui/runtime.abcdef123456.dart.js'),
+        );
+        expect(raw.buffer.toString(), isNot(contains('runtime.dart.js_1')));
+        expect(raw.buffer.toString(), isNot(contains('?v=')));
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
     test('flintPage registers generated service worker when available', () {
       final originalCurrent = Directory.current;
       final tempDir =

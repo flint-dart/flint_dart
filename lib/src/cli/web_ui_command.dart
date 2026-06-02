@@ -19,6 +19,7 @@ class WebUiCommand extends FlintCommand {
     String? pagesConfigArg;
     String? pageArg;
     var pageBundles = true;
+    var sharedRuntime = false;
 
     for (var i = 0; i < args.length; i++) {
       final arg = args[i];
@@ -44,8 +45,14 @@ class WebUiCommand extends FlintCommand {
         buildOnly = true;
       } else if (arg == '--page-bundles') {
         pageBundles = true;
+        sharedRuntime = false;
       } else if (arg == '--no-page-bundles') {
         pageBundles = false;
+      } else if (arg == '--shared-runtime') {
+        sharedRuntime = true;
+        pageBundles = false;
+      } else if (arg == '--no-shared-runtime') {
+        sharedRuntime = false;
       } else if (arg == '--help' || arg == '-h') {
         _printHelp();
         return;
@@ -83,8 +90,16 @@ class WebUiCommand extends FlintCommand {
       exit(1);
     }
 
-    await FlintWebUiBuilder.compile(build);
-    if (pageBundles) {
+    if (sharedRuntime) {
+      await FlintWebUiBuilder.compileSharedRuntimeBundle(
+        build,
+        configPath: pagesConfigArg,
+      );
+    } else {
+      await FlintWebUiBuilder.compile(build);
+    }
+
+    if (pageBundles && !sharedRuntime) {
       try {
         await FlintWebUiBuilder.compilePageBundles(
           build,
@@ -161,6 +176,8 @@ Options:
   --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
   --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml (default)
   --no-page-bundles    Compile only the single global JavaScript bundle
+  --shared-runtime     Compile one shared runtime with deferred page chunks
+  --no-shared-runtime  Disable shared runtime mode
   --pages-config <path> Page bundle config path (default: auto-detect, then flint_ui.yaml)
   --page <name>        Compile one page-level bundle by component name
   --port <number>      Local server port (default: 8080)
@@ -173,6 +190,7 @@ Examples:
   flint web --entry lib/ui/main.dart --web-dir public
   flint web --entry flint_ui/main.dart --web-dir web
   flint web --build-only
+  flint web --build-only --shared-runtime
   flint web --build-only --no-page-bundles
   flint web --build-only --page Home
 ''');
