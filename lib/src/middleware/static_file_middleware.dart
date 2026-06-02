@@ -90,10 +90,21 @@ class StaticFileMiddleware extends Middleware {
       // MIME type with charset for text files
       final mime = lookupMimeType(file.path) ?? 'application/octet-stream';
       _setContentType(res, mime, file.path);
+      final precompressed =
+          enableCompression ? _selectPrecompressedFile(req, file, mime) : null;
 
       // Handle HEAD request
       if (req.method == 'HEAD') {
-        res.raw.headers.contentLength = fileStat.size;
+        if (precompressed != null) {
+          final compressedStat = await precompressed.file.stat();
+          _setEncodedResponseHeaders(
+            res,
+            precompressed.encoding,
+            compressedStat.size,
+          );
+        } else {
+          res.raw.headers.contentLength = fileStat.size;
+        }
         return res;
       }
 
@@ -103,6 +114,29 @@ class StaticFileMiddleware extends Middleware {
             await _handleRangeRequest(req, res, file, fileStat.size, mime);
         if (rangeResponse != null) {
           return rangeResponse;
+        }
+      }
+
+      if (enableCompression && _canCompress(file.path, mime)) {
+        if (precompressed != null) {
+          _setEncodedResponseHeaders(
+            res,
+            precompressed.encoding,
+            await precompressed.file.length(),
+          );
+          await res.streamFile(precompressed.file);
+          return res;
+        }
+
+        final acceptEncoding =
+            req.raw.headers.value(HttpHeaders.acceptEncodingHeader) ?? '';
+        if (_acceptsEncoding(acceptEncoding, 'gzip')) {
+          final bytes = await file.readAsBytes();
+          final compressed = gzip.encode(bytes);
+          _setEncodedResponseHeaders(res, 'gzip', compressed.length);
+          res.raw.add(compressed);
+          await res.close();
+          return res;
         }
       }
 
@@ -148,17 +182,77 @@ class StaticFileMiddleware extends Middleware {
     return false;
   }
 
+  bool _canCompress(String filePath, String mime) {
+    return filePath.endsWith('.js') ||
+        filePath.endsWith('.css') ||
+        filePath.endsWith('.json') ||
+        filePath.endsWith('.svg') ||
+        filePath.endsWith('.map') ||
+        filePath.endsWith('.deps') ||
+        mime.startsWith('text/') ||
+        mime.contains('json') ||
+        mime.contains('javascript') ||
+        mime.contains('xml');
+  }
+
+  _EncodedStaticFile? _selectPrecompressedFile(
+    Request req,
+    File file,
+    String mime,
+  ) {
+    if (!_canCompress(file.path, mime)) return null;
+    final acceptEncoding =
+        req.raw.headers.value(HttpHeaders.acceptEncodingHeader) ?? '';
+
+    if (_acceptsEncoding(acceptEncoding, 'br')) {
+      final brFile = File('${file.path}.br');
+      if (brFile.existsSync()) {
+        return _EncodedStaticFile(brFile, 'br');
+      }
+    }
+
+    if (_acceptsEncoding(acceptEncoding, 'gzip')) {
+      final gzFile = File('${file.path}.gz');
+      if (gzFile.existsSync()) {
+        return _EncodedStaticFile(gzFile, 'gzip');
+      }
+    }
+
+    return null;
+  }
+
+  bool _acceptsEncoding(String acceptEncoding, String encoding) {
+    final expected = encoding.toLowerCase();
+    return acceptEncoding.split(',').any((part) {
+      final pieces = part.trim().split(';');
+      if (pieces.isEmpty || pieces.first.trim().toLowerCase() != expected) {
+        return false;
+      }
+      for (final parameter in pieces.skip(1)) {
+        final trimmed = parameter.trim();
+        if (trimmed.startsWith('q=')) {
+          final quality = double.tryParse(trimmed.substring(2));
+          if (quality != null && quality <= 0) return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  void _setEncodedResponseHeaders(
+    Response res,
+    String encoding,
+    int contentLength,
+  ) {
+    res.raw.headers.set(HttpHeaders.varyHeader, 'Accept-Encoding');
+    res.raw.headers.set(HttpHeaders.contentEncodingHeader, encoding);
+    res.raw.headers.contentLength = contentLength;
+  }
+
   void _setCacheHeaders(Response res, String eTag, DateTime lastModified,
       Duration duration, String filePath) {
-    // Files you want to bypass caching (e.g., for dev)
-    final bypassCacheExtensions = ['.css', '.js', '.map'];
-
-    // Check if file should bypass caching
     final shouldBypass =
-        bypassCacheExtensions.any((ext) => filePath.endsWith(ext));
-
-    final cacheDuration = shouldBypass ? Duration(seconds: 0) : duration;
-
+        Platform.environment['FLINT_HOT'] == '1' || filePath.endsWith('-sw.js');
     res.raw.headers.set(HttpHeaders.etagHeader, eTag);
     res.raw.headers
         .set(HttpHeaders.lastModifiedHeader, HttpDate.format(lastModified));
@@ -268,4 +362,11 @@ class FileRange {
   final int end;
 
   FileRange(this.start, this.end);
+}
+
+class _EncodedStaticFile {
+  final File file;
+  final String encoding;
+
+  _EncodedStaticFile(this.file, this.encoding);
 }

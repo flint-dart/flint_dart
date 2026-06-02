@@ -64,6 +64,10 @@ void main() {
         expect(response.statusCode, 200);
         expect(response.buffer.toString(), 'console.log("ok");');
         expect(response.headers.contentType?.mimeType, 'text/javascript');
+        expect(
+          response.headers.value(HttpHeaders.cacheControlHeader),
+          'public, max-age=2592000, immutable',
+        );
       } finally {
         Directory.current = originalCurrent;
         tempDir.deleteSync(recursive: true);

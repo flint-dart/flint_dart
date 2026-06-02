@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
+import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:path/path.dart' as path;
 import 'package:package_config/package_config.dart';
 
@@ -61,6 +62,8 @@ class BuildCommand extends FlintCommand {
     }
     buildDirectory.createSync(recursive: true);
 
+    await _buildWebUiAssets();
+
     final pubspec = await File('pubspec.yaml').readAsString();
     final match = RegExp(r'name:\s*(\S+)').firstMatch(pubspec);
     if (match == null) {
@@ -68,6 +71,15 @@ class BuildCommand extends FlintCommand {
       exit(1);
     }
     final projectName = match.group(1)!.trim();
+
+    Log.debug('Copying non-Dart resources...');
+    await _copyNonDartFilesWithSpinner(
+        Directory.current, buildDirectory, buildDir);
+    _copySwaggerSpec(buildDir);
+    await _copySwaggerUiAssets(buildDir);
+    await FlintWebUiBuilder.precompressDirectory(
+      Directory(path.join(buildDir, 'public')),
+    );
 
     final builtExecutables = <String, String>{};
     for (final target in compileTargets) {
@@ -90,12 +102,6 @@ class BuildCommand extends FlintCommand {
       builtExecutables[target] = exeName;
       Log.debug('Executable generated: $exePath');
     }
-
-    Log.debug('Copying non-Dart resources...');
-    await _copyNonDartFilesWithSpinner(
-        Directory.current, buildDirectory, buildDir);
-    _copySwaggerSpec(buildDir);
-    await _copySwaggerUiAssets(buildDir);
 
     _createStartScripts(buildDir, builtExecutables, targetPlatform);
     _createDockerfile(
@@ -151,6 +157,29 @@ class BuildCommand extends FlintCommand {
         'No entry point found. Expected one of: ${candidates.join(', ')}');
     Log.debug('Or provide a custom entry with --entry <path>');
     exit(1);
+  }
+
+  Future<void> _buildWebUiAssets() async {
+    final build = FlintWebUiBuilder.resolve();
+    if (build == null) {
+      Log.debug('No Flint Web UI entry point found. Skipping web asset build.');
+      return;
+    }
+
+    Log.debug('Building Flint Web UI assets...');
+    try {
+      await FlintWebUiBuilder.compileSharedRuntimeBundle(build);
+      return;
+    } on StateError catch (e) {
+      Log.debug('Shared Flint UI runtime skipped: ${e.message}');
+    }
+
+    await FlintWebUiBuilder.compile(build);
+    try {
+      await FlintWebUiBuilder.compilePageBundles(build);
+    } on StateError catch (e) {
+      Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+    }
   }
 
   Future<void> _copyNonDartFilesWithSpinner(

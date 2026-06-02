@@ -39,6 +39,83 @@ class ShortCircuitMiddleware extends Middleware {
 }
 
 void main() {
+  group('StaticFileMiddleware', () {
+    test('serves precompressed Brotli before gzip when accepted', () async {
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_brotli_');
+      try {
+        File('${tempDir.path}/main.dart.js')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('console.log("raw");');
+        File('${tempDir.path}/main.dart.js.gz').writeAsStringSync('gzip-body');
+        File('${tempDir.path}/main.dart.js.br')
+            .writeAsStringSync('brotli-body');
+
+        final headers = FakeHttpHeaders()
+          ..set(HttpHeaders.acceptEncodingHeader, 'gzip, br');
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/main.dart.js'),
+          headers: headers,
+        );
+        final response = Response(raw.response, request: Request(raw));
+        final handler = StaticFileMiddleware(publicFolder: tempDir.path).handle(
+          (_) => throw StateError('static file should be handled'),
+        );
+
+        await handler(Context(req: Request(raw), res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 200);
+        expect(rawResponse.buffer.toString(), 'brotli-body');
+        expect(
+          rawResponse.headers.value(HttpHeaders.contentEncodingHeader),
+          'br',
+        );
+        expect(
+          rawResponse.headers.value(HttpHeaders.varyHeader),
+          'Accept-Encoding',
+        );
+        expect(rawResponse.headers.contentType?.mimeType, 'text/javascript');
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('serves precompressed gzip when Brotli is unavailable', () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_static_gzip_');
+      try {
+        File('${tempDir.path}/main.dart.js')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('console.log("raw");');
+        File('${tempDir.path}/main.dart.js.gz').writeAsStringSync('gzip-body');
+
+        final headers = FakeHttpHeaders()
+          ..set(HttpHeaders.acceptEncodingHeader, 'br;q=0, gzip');
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/main.dart.js'),
+          headers: headers,
+        );
+        final response = Response(raw.response, request: Request(raw));
+        final handler = StaticFileMiddleware(publicFolder: tempDir.path).handle(
+          (_) => throw StateError('static file should be handled'),
+        );
+
+        await handler(Context(req: Request(raw), res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.buffer.toString(), 'gzip-body');
+        expect(
+          rawResponse.headers.value(HttpHeaders.contentEncodingHeader),
+          'gzip',
+        );
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+  });
+
   group('Middleware', () {
     test('applies in declared order (outer wraps inner)', () async {
       final log = <String>[];

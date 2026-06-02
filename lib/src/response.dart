@@ -19,6 +19,12 @@ enum RespondType {
   plain,
 }
 
+/// Renders a Flint page component to server-side HTML.
+typedef FlintPageServerRenderer = String? Function(
+  String component,
+  Map<String, dynamic> props,
+);
+
 class FlintPageMeta {
   final String? title;
   final String? description;
@@ -79,10 +85,24 @@ class Response {
   /// The underlying raw [HttpResponse] object.
   final HttpResponse raw;
   final Request? request;
+  final FlintPageServerRenderer? _flintPageServerRenderer;
+  final bool _flintPageServerRenderingEnabled;
   bool _closed = false;
 
+  /// Optional app-level renderer used by [flintPage] to send initial HTML.
+  static FlintPageServerRenderer? flintPageServerRenderer;
+
+  /// Enables app-level server rendering for Flint pages when a renderer exists.
+  static bool flintPageServerRenderingEnabled = false;
+
   /// Creates a new [Response] instance with the given [HttpResponse].
-  Response(this.raw, {this.request});
+  Response(
+    this.raw, {
+    this.request,
+    FlintPageServerRenderer? flintPageServerRenderer,
+    bool? serverRenderFlintPages,
+  })  : _flintPageServerRenderer = flintPageServerRenderer,
+        _flintPageServerRenderingEnabled = serverRenderFlintPages ?? false;
   bool get isClosed => _closed;
 
   Future<void> close() async {
@@ -255,25 +275,34 @@ class Response {
     List<String>? stylesheets,
     String? title,
     FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
     int? status,
   }) {
     try {
       final page = {
         'component': component,
-        'props': props,
+        'props': _jsonSafeValue(props),
         if (request != null) 'url': request!.uri.toString(),
       };
-      final resolvedScript = script ?? _defaultFlintPageScript();
+      final resolvedScript = script ?? _flintPageScriptForComponent(component);
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
-      final safeScript =
-          _escapeHtmlAttribute(_versionedAssetUrl(resolvedScript));
+      final renderedHtml = serverHtml ??
+          _renderFlintPageOnServer(
+            component,
+            Map<String, dynamic>.from(page['props'] as Map),
+            serverRender: serverRender,
+          );
+      final versionedScript = _versionedAssetUrl(resolvedScript);
+      final safeScript = _escapeHtmlAttribute(versionedScript);
       final resolvedMeta =
           meta ?? (title == null ? null : FlintPageMeta(title: title));
       final headTags = _renderFlintPageHead(
         title: title ?? resolvedMeta?.title ?? component,
         stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
+        scriptPreloads: [versionedScript],
         meta: resolvedMeta,
         requestUrl: request?.uri.toString(),
       );
@@ -281,6 +310,7 @@ class Response {
       raw.statusCode = status ?? raw.statusCode;
       raw.headers.contentType = ContentType.html;
       final hotReloadScript = _hotReloadScript();
+      final serviceWorkerScript = _flintServiceWorkerScript();
       raw.write('''
 <!DOCTYPE html>
 <html lang="en">
@@ -288,8 +318,9 @@ class Response {
 $headTags
   </head>
   <body>
-    <main id="$safeRootId" data-flint-page="$encodedPage"></main>
+    <main id="$safeRootId" data-flint-page="$encodedPage">$renderedHtml</main>
     <script defer src="$safeScript"></script>
+$serviceWorkerScript
 $hotReloadScript
   </body>
 </html>
@@ -305,6 +336,36 @@ $hotReloadScript
     return this;
   }
 
+  dynamic _jsonSafeValue(dynamic value) {
+    if (value == null || value is String || value is num || value is bool) {
+      return value;
+    }
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Uri) return value.toString();
+    if (value is Enum) return value.name;
+    if (value is Model) return _jsonSafeValue(value.toMap());
+    if (value is Map) {
+      return value.map(
+        (key, mapValue) => MapEntry(key.toString(), _jsonSafeValue(mapValue)),
+      );
+    }
+    if (value is Iterable) {
+      return value.map(_jsonSafeValue).toList(growable: false);
+    }
+
+    try {
+      final jsonValue = (value as dynamic).toJson();
+      if (!identical(jsonValue, value)) return _jsonSafeValue(jsonValue);
+    } catch (_) {}
+
+    try {
+      final mapValue = (value as dynamic).toMap();
+      if (!identical(mapValue, value)) return _jsonSafeValue(mapValue);
+    } catch (_) {}
+
+    return value.toString();
+  }
+
   Response page(
     String component, {
     Map<String, dynamic> props = const {},
@@ -313,6 +374,8 @@ $hotReloadScript
     List<String>? stylesheets,
     String? title,
     FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
     int? status,
   }) =>
       flintPage(
@@ -323,12 +386,35 @@ $hotReloadScript
         stylesheets: stylesheets,
         title: title,
         meta: meta,
+        serverHtml: serverHtml,
+        serverRender: serverRender,
         status: status,
       );
+
+  String _renderFlintPageOnServer(
+    String component,
+    Map<String, dynamic> props, {
+    bool? serverRender,
+  }) {
+    final shouldRender = serverRender ??
+        (_flintPageServerRenderingEnabled ||
+            Response.flintPageServerRenderingEnabled);
+    final renderer =
+        _flintPageServerRenderer ?? Response.flintPageServerRenderer;
+    if (!shouldRender || renderer == null) return '';
+
+    try {
+      return renderer(component, props) ?? '';
+    } catch (e, stack) {
+      Log.debug('[Flint] Server render failed for "$component": $e\n$stack');
+      return '';
+    }
+  }
 
   String _renderFlintPageHead({
     required String title,
     required List<String> stylesheets,
+    List<String> scriptPreloads = const [],
     required FlintPageMeta? meta,
     required String? requestUrl,
   }) {
@@ -380,6 +466,7 @@ $hotReloadScript
           _metaName(entry.key, entry.value),
       ],
       for (final href in stylesheets) _linkTag('stylesheet', href),
+      for (final href in scriptPreloads) _preloadScriptTag(href),
       if (meta?.structuredData != null)
         _jsonLdTag(jsonEncode(meta!.structuredData)),
     ];
@@ -397,6 +484,10 @@ $hotReloadScript
 
   String _linkTag(String rel, String href) {
     return '    <link rel="${_escapeHtmlAttribute(rel)}" href="${_escapeHtmlAttribute(href)}">';
+  }
+
+  String _preloadScriptTag(String href) {
+    return '    <link rel="preload" as="script" href="${_escapeHtmlAttribute(href)}">';
   }
 
   String _jsonLdTag(String json) {
@@ -417,6 +508,7 @@ $hotReloadScript
     final parsed = Uri.tryParse(trimmed);
     final pathOnly = parsed?.path ?? trimmed.split('?').first.split('#').first;
     if (!pathOnly.startsWith('/')) return url;
+    if (_isHashedFlintAssetPath(pathOnly)) return url;
 
     final publicPath = p.joinAll([
       'public',
@@ -428,6 +520,45 @@ $hotReloadScript
     final version = file.lastModifiedSync().millisecondsSinceEpoch.toString();
     final separator = trimmed.contains('?') ? '&' : '?';
     return '$trimmed${separator}v=$version';
+  }
+
+  String _flintPageScriptForComponent(String component) {
+    return _scriptFromFlintUiManifest(component) ?? _defaultFlintPageScript();
+  }
+
+  String? _scriptFromFlintUiManifest(String component) {
+    final manifestFile =
+        File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json'));
+    if (!manifestFile.existsSync()) return null;
+
+    try {
+      final decoded = jsonDecode(manifestFile.readAsStringSync());
+      if (decoded is! Map) return null;
+
+      if (decoded['mode'] == 'shared-runtime') {
+        final runtime = decoded['runtime'];
+        if (runtime is String && runtime.trim().isNotEmpty) {
+          return runtime.trim();
+        }
+      }
+
+      final pages = decoded['pages'];
+      if (pages is Map) {
+        final script = pages[component];
+        if (script is String && script.trim().isNotEmpty) {
+          return script.trim();
+        }
+      }
+
+      final fallback = decoded['fallback'];
+      if (fallback is String && fallback.trim().isNotEmpty) {
+        return fallback.trim();
+      }
+    } catch (e) {
+      Log.debug('[Flint] Failed to read Flint UI manifest: $e');
+    }
+
+    return null;
   }
 
   String? _resolveIconUrl(String? explicitUrl, {bool preferPng = false}) {
@@ -449,9 +580,12 @@ $hotReloadScript
   }
 
   String _defaultFlintPageScript() {
-    if (File(p.join('public', 'assets', 'js', 'flint-ui', 'main.dart.js'))
-        .existsSync()) {
-      return '/assets/js/flint-ui/main.dart.js';
+    final appOwnedScript = _findFlintUiAsset(
+      p.join('public', 'assets', 'js', 'flint-ui'),
+      'main',
+    );
+    if (appOwnedScript != null) {
+      return appOwnedScript;
     }
     if (File(p.join('flint_ui', 'web', 'main.dart.js')).existsSync()) {
       return '/web/main.dart.js';
@@ -463,6 +597,31 @@ $hotReloadScript
       return '/main.dart.js';
     }
     return '/main.dart.js';
+  }
+
+  String? _findFlintUiAsset(String directoryPath, String stem) {
+    final directory = Directory(directoryPath);
+    if (!directory.existsSync()) return null;
+
+    final exact = File(p.join(directory.path, '$stem.dart.js'));
+    if (exact.existsSync()) {
+      return '/${p.split(p.relative(exact.path, from: 'public')).join('/')}';
+    }
+
+    final hashedPattern = RegExp(
+      '^${RegExp.escape(stem)}\\.[a-f0-9]{12}\\.dart\\.js\$',
+    );
+    final matches = directory
+        .listSync()
+        .whereType<File>()
+        .where((file) => hashedPattern.hasMatch(p.basename(file.path)))
+        .toList()
+      ..sort((a, b) {
+        return b.lastModifiedSync().compareTo(a.lastModifiedSync());
+      });
+
+    if (matches.isEmpty) return null;
+    return '/${p.split(p.relative(matches.first.path, from: 'public')).join('/')}';
   }
 
   List<String> _defaultFlintPageStylesheets() {
@@ -480,6 +639,40 @@ $hotReloadScript
       return const ['/style.css'];
     }
     return const [];
+  }
+
+  String _flintServiceWorkerScript() {
+    if (Platform.environment['FLINT_HOT'] == '1') return '';
+    final file = File(p.join('public', 'flint-sw.js'));
+    if (!file.existsSync()) return '';
+    final scriptUrl = _escapeHtmlAttribute(_versionedAssetUrl('/flint-sw.js'));
+    return '''
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          const startFlintServiceWorker = () => {
+            navigator.serviceWorker.register('$scriptUrl', { scope: '/' }).then(registration => {
+              const worker = registration.active || registration.waiting || registration.installing;
+              if (worker) worker.postMessage({ type: 'FLINT_PREFETCH' });
+            }).catch(() => {});
+          };
+          if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(startFlintServiceWorker, { timeout: 4000 });
+          } else {
+            window.setTimeout(startFlintServiceWorker, 2000);
+          }
+        });
+      }
+    </script>''';
+  }
+
+  bool _isHashedFlintAssetPath(String pathOnly) {
+    if (!pathOnly.startsWith('/assets/js/flint-ui/') &&
+        !pathOnly.startsWith('/assets/css/flint-ui/')) {
+      return false;
+    }
+
+    return RegExp(r'\.[a-f0-9]{12}\.[^/]+$').hasMatch(pathOnly);
   }
 
   String _escapeHtmlAttribute(String value) {

@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+## [1.1.7] - 2026-05-31
+
+### Added
+- Flint Web UI builds now generate `/flint-sw.js`, a service worker that caches the Flint UI manifest, fallback bundle, and page-level bundles in the browser.
+- `res.page(...)` now automatically registers the generated service worker during browser idle time when it exists and hot reload is disabled.
+
+### Fixed
+- Service worker files now bypass immutable static caching so clients can pick up updated background caching behavior promptly.
+
+## [1.1.6] - 2026-05-31
+
+### Fixed
+- `StaticFileMiddleware` now serves JavaScript, CSS, and source map assets with production cache headers unless hot reload is enabled.
+- `StaticFileMiddleware` now honors its gzip compression option for text-like assets when clients send `Accept-Encoding: gzip`.
+
+## [1.1.5] - 2026-05-31
+
+### Changed
+- `flint build` now builds Flint Web UI assets first, generates page-level bundles by default when a component registry is detected, copies resources into `build/`, and then compiles the server executable.
+- `flint web` now treats page-level bundles as the default build mode and adds `--no-page-bundles` for projects that only want a single global JavaScript bundle.
+
+## [1.1.4] - 2026-05-31
+
+### Added
+- Added manifest-aware Flint UI script selection for `res.page(...)` so pages can automatically use page-level JavaScript bundles when `public/assets/js/flint-ui/manifest.json` is present.
+- Added opt-in `flint web --page-bundles`, `--pages-config`, and `--page <name>` CLI support for generating page-level Flint UI bundles and a manifest.
+- Added automatic page bundle discovery from `lib/ui/component_registry.dart`, including direct imports for each registered page so generated page bundles do not import the full registry.
+
+## [1.1.3] - 2026-05-31
+
+### Release Status
+- Public patch build.
+
+### Fixed
+- Flint page props are now sanitized before being embedded in the `data-flint-page` payload.
+- `DateTime`, `Uri`, enum values, models, maps, iterables, and objects with `toJson()` or `toMap()` are converted into JSON-safe values for Flint UI pages.
+- Non-serializable prop values now fall back to strings instead of breaking page rendering.
+
 ## [1.1.2] - 2026-05-26
 
 ### Release Status

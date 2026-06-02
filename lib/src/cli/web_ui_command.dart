@@ -16,6 +16,10 @@ class WebUiCommand extends FlintCommand {
     String? entryArg;
     String? webDirArg;
     String? outArg;
+    String? pagesConfigArg;
+    String? pageArg;
+    var pageBundles = true;
+    var sharedRuntime = false;
 
     for (var i = 0; i < args.length; i++) {
       final arg = args[i];
@@ -25,6 +29,11 @@ class WebUiCommand extends FlintCommand {
         webDirArg = args[++i];
       } else if (arg == '--out' && i + 1 < args.length) {
         outArg = args[++i];
+      } else if (arg == '--pages-config' && i + 1 < args.length) {
+        pagesConfigArg = args[++i];
+      } else if (arg == '--page' && i + 1 < args.length) {
+        pageArg = args[++i];
+        pageBundles = true;
       } else if (arg == '--port' && i + 1 < args.length) {
         final parsed = int.tryParse(args[++i]);
         if (parsed == null || parsed <= 0) {
@@ -34,12 +43,24 @@ class WebUiCommand extends FlintCommand {
         port = parsed;
       } else if (arg == '--build-only') {
         buildOnly = true;
+      } else if (arg == '--page-bundles') {
+        pageBundles = true;
+        sharedRuntime = false;
+      } else if (arg == '--no-page-bundles') {
+        pageBundles = false;
+      } else if (arg == '--shared-runtime') {
+        sharedRuntime = true;
+        pageBundles = false;
+      } else if (arg == '--no-shared-runtime') {
+        sharedRuntime = false;
       } else if (arg == '--help' || arg == '-h') {
         _printHelp();
         return;
       } else if (arg == '--entry' ||
           arg == '--web-dir' ||
           arg == '--out' ||
+          arg == '--pages-config' ||
+          arg == '--page' ||
           arg == '--port') {
         Log.debug('Missing value for $arg');
         _printHelp();
@@ -69,7 +90,27 @@ class WebUiCommand extends FlintCommand {
       exit(1);
     }
 
-    await FlintWebUiBuilder.compile(build);
+    if (sharedRuntime) {
+      await FlintWebUiBuilder.compileSharedRuntimeBundle(
+        build,
+        configPath: pagesConfigArg,
+      );
+    } else {
+      await FlintWebUiBuilder.compile(build);
+    }
+
+    if (pageBundles && !sharedRuntime) {
+      try {
+        await FlintWebUiBuilder.compilePageBundles(
+          build,
+          configPath: pagesConfigArg,
+          onlyPage: pageArg,
+        );
+      } on StateError catch (e) {
+        if (pageArg != null || pagesConfigArg != null) rethrow;
+        Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+      }
+    }
 
     if (buildOnly) {
       Log.debug('Web bundle generated: ${build.jsOut}');
@@ -133,6 +174,12 @@ Options:
   --entry <path>       Dart web entry file (default: lib/ui/main.dart or flint_ui/main.dart)
   --web-dir <path>     Static web directory (default: sibling web/ directory)
   --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
+  --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml (default)
+  --no-page-bundles    Compile only the single global JavaScript bundle
+  --shared-runtime     Compile one shared runtime with deferred page chunks
+  --no-shared-runtime  Disable shared runtime mode
+  --pages-config <path> Page bundle config path (default: auto-detect, then flint_ui.yaml)
+  --page <name>        Compile one page-level bundle by component name
   --port <number>      Local server port (default: 8080)
   --build-only         Compile JavaScript without starting the server
   --help, -h           Show this help
@@ -143,6 +190,9 @@ Examples:
   flint web --entry lib/ui/main.dart --web-dir public
   flint web --entry flint_ui/main.dart --web-dir web
   flint web --build-only
+  flint web --build-only --shared-runtime
+  flint web --build-only --no-page-bundles
+  flint web --build-only --page Home
 ''');
   }
 }

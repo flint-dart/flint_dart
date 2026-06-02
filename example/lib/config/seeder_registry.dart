@@ -1,5 +1,5 @@
 import 'package:flint_dart/flint_dart.dart';
-import '../seeders/user_modelhj_seeder.dart';
+import 'package:sample/seeders/demo_user_seeder.dart';
 
 /// This registry is the canonical entry point for seeders in this sample.
 ///
@@ -10,6 +10,6 @@ import '../seeders/user_modelhj_seeder.dart';
 /// `flint --db-seed`
 Future<void> main() async {
   await runSeeders([
-    UserModelhjSeeder(),
+    DemoUserSeeder(),
   ]);
 }

@@ -187,6 +187,8 @@ class Flint {
   final bool withDefaultMiddleware;
   final bool enableSwaggerDocs;
   final bool autoConnectMail;
+  final FlintPageServerRenderer? _flintPageServerRenderer;
+  final bool _serverRenderFlintPages;
 
   /// Creates a new Flint application instance.
   ///
@@ -195,11 +197,17 @@ class Flint {
   Flint(
       {this.rootPath = "lib",
       String? viewPath,
+      FlintPageServerRenderer? flintPageServerRenderer,
+      bool serverRenderFlintPages = false,
       this.autoConnectDb = true,
       this.autoConnectMail = true,
       this.withDefaultMiddleware = true,
-      this.enableSwaggerDocs = false}) {
+      this.enableSwaggerDocs = false})
+      : _flintPageServerRenderer = flintPageServerRenderer,
+        _serverRenderFlintPages = serverRenderFlintPages {
     DB.setLazyAutoConnect(autoConnectDb);
+    Response.flintPageServerRenderer = flintPageServerRenderer;
+    Response.flintPageServerRenderingEnabled = serverRenderFlintPages;
 
     if (withDefaultMiddleware) {
       _middlewares.add(ExceptionMiddleware());
@@ -955,7 +963,12 @@ class Flint {
 
     // ===== HTTP Request handling =====
     final request = Request(req);
-    final response = Response(req.response, request: request);
+    final response = Response(
+      req.response,
+      request: request,
+      flintPageServerRenderer: _flintPageServerRenderer,
+      serverRenderFlintPages: _serverRenderFlintPages,
+    );
 
     final normalizedPath = normalizePath(request.path);
 
