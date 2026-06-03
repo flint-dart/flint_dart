@@ -90,13 +90,6 @@ class FakeHttpResponse implements HttpResponse {
   }
 
   @override
-  Future<void> addStream(Stream<List<int>> stream) async {
-    await for (final chunk in stream) {
-      buffer.write(utf8.decode(chunk));
-    }
-  }
-
-  @override
   Future<void> close() async {
     closed = true;
   }

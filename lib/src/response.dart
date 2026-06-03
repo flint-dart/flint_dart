@@ -273,6 +273,7 @@ class Response {
     String rootId = 'app',
     String? script,
     List<String>? stylesheets,
+    bool preloadScript = true,
     String? title,
     FlintPageMeta? meta,
     String? serverHtml,
@@ -302,7 +303,7 @@ class Response {
       final headTags = _renderFlintPageHead(
         title: title ?? resolvedMeta?.title ?? component,
         stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
-        scriptPreloads: [versionedScript],
+        scriptPreloads: preloadScript ? [versionedScript] : const [],
         meta: resolvedMeta,
         requestUrl: request?.uri.toString(),
       );
@@ -372,6 +373,7 @@ $hotReloadScript
     String rootId = 'app',
     String? script,
     List<String>? stylesheets,
+    bool preloadScript = true,
     String? title,
     FlintPageMeta? meta,
     String? serverHtml,
@@ -384,6 +386,7 @@ $hotReloadScript
         rootId: rootId,
         script: script,
         stylesheets: stylesheets,
+        preloadScript: preloadScript,
         title: title,
         meta: meta,
         serverHtml: serverHtml,
