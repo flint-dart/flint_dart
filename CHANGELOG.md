@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+## [1.1.12] - 2026-06-16
+
+### Changed
+- Updated the Flint UI dependency to `flint_ui: ^0.1.10`.
+
+## [1.1.11] - 2026-06-12
+
+### Fixed
+- `flint run` now uses `PORT` from `.env` as its default port before falling back to `8080`, so the hot-reload launcher and app server agree without requiring `--port`.
+
+## [1.1.10] - 2026-06-12
+
+### Fixed
+- Hot reload now updates its watcher port when the worker announces a different listening port, preventing false restart failures such as checking port `8080` after the app starts on `3030`.
+- Hot reload worker processes now receive the selected port through the `PORT` environment variable as well as the positional CLI argument.
+
+## [1.1.9] - 2026-06-12
+
+### Fixed
+- Hot reload now serializes overlapping restarts so rapid save events cannot start multiple workers at the same time.
+- Hot reload now waits for the old worker to release the configured port before starting the next worker.
+- Hot reload now force-stops stale listeners on the configured port before startup, using `taskkill` on Windows and `lsof`, `ss`, or `netstat` plus process signals on Linux and macOS.
+- Restarted hot reload workers now inherit `FLINT_HOT=1`, keeping worker processes from launching nested hot-reload parents.
+- Browser reload notifications now recover by restarting the server when the internal hot-reload endpoint is unavailable.
+- `flint run` now accepts `--port=<port>` and `--port <port>` in addition to a positional port argument.
+
+### Changed
+- Flint Web UI builds are deferred to the hot-reload watcher during development so the server can start first.
+- Default Flint Web UI compilation now builds both the main bundle and page-level bundles when available.
+- Flint Web UI output cleanup now removes stale bundle, manifest, compressed, and deferred-part files more safely.
+- Updated the Flint UI dependency to `flint_ui: ^0.1.9`.
+
 ## [1.1.7] - 2026-05-31
 
 ### Added

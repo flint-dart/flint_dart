@@ -469,6 +469,27 @@ void main() {
       expect(body, contains('<script defer src="/main.dart.js"></script>'));
     });
 
+    test('flintPage can skip eager script preload', () {
+      Response.flintPageServerRenderer = null;
+      Response.flintPageServerRenderingEnabled = false;
+      final raw = FakeHttpResponse();
+      final res = Response(raw);
+
+      res.flintPage(
+        'Home',
+        script: '/main.dart.js',
+        preloadScript: false,
+      );
+
+      final body = raw.buffer.toString();
+      expect(
+        body,
+        isNot(
+            contains('<link rel="preload" as="script" href="/main.dart.js">')),
+      );
+      expect(body, contains('<script defer src="/main.dart.js"></script>'));
+    });
+
     test('flintPage can include server-rendered HTML', () {
       final raw = FakeHttpResponse();
       final res = Response(raw);

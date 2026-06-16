@@ -16,6 +16,171 @@ Timer? _debounce;
 HttpClient? _httpClient;
 int _serverPort = FlintEnv.getInt('PORT', 3001);
 FlintWebUiBuild? _webBuild;
+Future<void>? _restartFuture;
+bool _restartAgain = false;
+
+int? extractServerWorkerPortFromLog(String line) {
+  final match = RegExp(
+    r'Server Worker running on http://localhost:(\d+)',
+  ).firstMatch(line);
+  return match == null ? null : int.tryParse(match.group(1)!);
+}
+
+Future<bool> _isServerListening(int port) async {
+  try {
+    final socket = await Socket.connect(
+      InternetAddress.loopbackIPv4,
+      port,
+      timeout: const Duration(milliseconds: 700),
+    );
+    await socket.close();
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<bool> _waitForServerStopped(
+  int port, {
+  Duration timeout = const Duration(seconds: 10),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    if (!await _isServerListening(port)) return true;
+    await Future.delayed(const Duration(milliseconds: 200));
+  }
+  return !await _isServerListening(port);
+}
+
+Future<Set<int>> _findListeningProcessIds(int port) async {
+  if (Platform.isWindows) {
+    return _findListeningProcessIdsOnWindows(port);
+  }
+  return _findListeningProcessIdsOnUnix(port);
+}
+
+Future<Set<int>> _findListeningProcessIdsOnWindows(int port) async {
+  final result = await Process.run('netstat', ['-ano'], runInShell: true);
+  if (result.exitCode != 0) return {};
+
+  final pids = <int>{};
+  final currentPid = pid;
+  for (final line in LineSplitter.split(result.stdout.toString())) {
+    final parts = line.trim().split(RegExp(r'\s+'));
+    if (parts.length < 5 || parts.first.toUpperCase() != 'TCP') continue;
+    if (parts[3].toUpperCase() != 'LISTENING') continue;
+
+    final localAddress = parts[1];
+    if (!localAddress.endsWith(':$port')) continue;
+
+    final ownerPid = int.tryParse(parts[4]);
+    if (ownerPid != null && ownerPid != 0 && ownerPid != currentPid) {
+      pids.add(ownerPid);
+    }
+  }
+  return pids;
+}
+
+Future<Set<int>> _findListeningProcessIdsOnUnix(int port) async {
+  final currentPid = pid;
+  final lsof = await _tryRun('lsof', ['-nP', '-tiTCP:$port', '-sTCP:LISTEN']);
+  if (lsof.exitCode == 0) {
+    return LineSplitter.split(lsof.stdout.toString())
+        .map((line) => int.tryParse(line.trim()))
+        .whereType<int>()
+        .where((ownerPid) => ownerPid != 0 && ownerPid != currentPid)
+        .toSet();
+  }
+
+  final ss = await _tryRun('ss', ['-ltnp']);
+  if (ss.exitCode == 0) {
+    final pidPattern = RegExp(r'pid=(\d+)');
+    final pids = <int>{};
+    for (final line in LineSplitter.split(ss.stdout.toString())) {
+      if (!line.contains(':$port ')) continue;
+      for (final match in pidPattern.allMatches(line)) {
+        final ownerPid = int.tryParse(match.group(1)!);
+        if (ownerPid != null && ownerPid != 0 && ownerPid != currentPid) {
+          pids.add(ownerPid);
+        }
+      }
+    }
+    return pids;
+  }
+
+  final netstat = await _tryRun('netstat', ['-ltnp']);
+  if (netstat.exitCode != 0) return {};
+
+  final pids = <int>{};
+  for (final line in LineSplitter.split(netstat.stdout.toString())) {
+    if (!line.contains(':$port ')) continue;
+    final parts = line.trim().split(RegExp(r'\s+'));
+    if (parts.length < 7) continue;
+    final ownerPid = int.tryParse(parts.last.split('/').first);
+    if (ownerPid != null && ownerPid != 0 && ownerPid != currentPid) {
+      pids.add(ownerPid);
+    }
+  }
+  return pids;
+}
+
+Future<ProcessResult> _tryRun(String executable, List<String> arguments) async {
+  try {
+    return Process.run(executable, arguments);
+  } catch (_) {
+    return ProcessResult(0, 1, '', '');
+  }
+}
+
+Future<bool> _forceStopListenersOnPort(int port) async {
+  final pids = await _findListeningProcessIds(port);
+  if (pids.isEmpty) return false;
+
+  for (final pid in pids) {
+    Log.debug('[HOT-RELOAD] Force stopping PID $pid on port $port...');
+    if (Platform.isWindows) {
+      await Process.run(
+        'taskkill',
+        ['/PID', pid.toString(), '/T', '/F'],
+        runInShell: true,
+      );
+    } else {
+      try {
+        Process.killPid(pid, ProcessSignal.sigterm);
+      } catch (e) {
+        Log.debug('[HOT-RELOAD] Could not stop PID $pid: $e');
+      }
+    }
+  }
+
+  if (await _waitForServerStopped(port, timeout: const Duration(seconds: 4))) {
+    return true;
+  }
+
+  if (!Platform.isWindows) {
+    for (final pid in pids) {
+      try {
+        Process.killPid(pid, ProcessSignal.sigkill);
+      } catch (e) {
+        Log.debug('[HOT-RELOAD] Could not force stop PID $pid: $e');
+      }
+    }
+  }
+  return _waitForServerStopped(port);
+}
+
+Future<void> _killProcessTree(Process process) async {
+  if (Platform.isWindows) {
+    await Process.run(
+      'taskkill',
+      ['/PID', process.pid.toString(), '/T', '/F'],
+      runInShell: true,
+    );
+    return;
+  }
+
+  process.kill(ProcessSignal.sigint);
+}
 
 Future<bool> _notifyServerHotReload(
   String sourceName,
@@ -52,12 +217,43 @@ Future<bool> _notifyServerHotReload(
 }
 
 Future<bool> startServer() async {
+  if (await _isServerListening(_serverPort)) {
+    Log.debug(
+      '[HOT-RELOAD] Port $_serverPort is already in use. Force stopping listener...',
+    );
+    final stopped = await _forceStopListenersOnPort(_serverPort);
+    if (!stopped && !await _waitForServerStopped(_serverPort)) {
+      Log.debug(
+        '[HOT-RELOAD] Port $_serverPort is still busy; server start skipped.',
+      );
+      return false;
+    }
+  }
+
   Log.debug('[HOT-RELOAD] Starting server...');
+  int? announcedPort;
   server = await Process.start(
     'dart',
     ['run', 'lib/main.dart', _serverPort.toString()],
-    mode: ProcessStartMode.inheritStdio,
+    environment: {
+      'FLINT_HOT': '1',
+      'PORT': _serverPort.toString(),
+    },
   );
+
+  void pipeOutput(Stream<List<int>> stream) {
+    stream
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen((line) {
+      stdout.writeln(line);
+      final port = extractServerWorkerPortFromLog(line);
+      if (port != null) announcedPort = port;
+    });
+  }
+
+  pipeOutput(server!.stdout);
+  pipeOutput(server!.stderr);
 
   final exitCode = await server!.exitCode.timeout(
     const Duration(seconds: 2),
@@ -69,36 +265,125 @@ Future<bool> startServer() async {
     return false;
   }
 
-  Log.debug('[HOT-RELOAD] Server started');
-  await Future.delayed(const Duration(seconds: 1));
+  final listeningPort = await _waitForStartedServerPort(
+    expectedPort: _serverPort,
+    announcedPort: () => announcedPort,
+  );
+  if (listeningPort == null) {
+    Log.debug(
+      '[HOT-RELOAD] Server process started but port $_serverPort is not reachable.',
+    );
+    await _killProcessTree(server!);
+    return false;
+  }
+
+  if (listeningPort != _serverPort) {
+    Log.debug(
+      '[HOT-RELOAD] Worker is listening on port $listeningPort; updating watcher port from $_serverPort.',
+    );
+    _serverPort = listeningPort;
+  }
+
+  Log.debug('[HOT-RELOAD] Server started on http://localhost:$_serverPort');
   return true;
+}
+
+Future<int?> _waitForStartedServerPort({
+  required int expectedPort,
+  required int? Function() announcedPort,
+  Duration timeout = const Duration(seconds: 45),
+}) async {
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    if (await _isServerListening(expectedPort)) return expectedPort;
+
+    final workerPort = announcedPort();
+    if (workerPort != null && await _isServerListening(workerPort)) {
+      return workerPort;
+    }
+
+    await Future.delayed(const Duration(milliseconds: 350));
+  }
+
+  return null;
 }
 
 Future<void> _triggerBrowserReload(int port,
     {required String sourceName}) async {
-  await _notifyServerHotReload(sourceName, '', port);
+  var notified = await _notifyServerHotReload(sourceName, '', port);
+  if (!notified) {
+    Log.debug(
+      '[HOT-RELOAD] Server reload endpoint is not reachable. Restarting server...',
+    );
+    await restartServer();
+    notified = await _notifyServerHotReload(sourceName, '', port);
+  }
+  if (!notified) {
+    Log.debug('[HOT-RELOAD] Browser reload skipped; server is still down.');
+  }
 }
 
 Future<void> _triggerBrowserBuildStart(
   int port, {
   required String sourceName,
 }) async {
-  await _notifyServerHotReload(
+  final notified = await _notifyServerHotReload(
     sourceName,
     '',
     port,
     event: 'flint:building',
     message: 'Rebuilding Flint UI...',
   );
+  if (!notified && !await _isServerListening(port)) {
+    Log.debug(
+      '[HOT-RELOAD] Build notice skipped because server is not listening.',
+    );
+  }
 }
 
 Future<void> restartServer() async {
+  if (_restartFuture != null) {
+    _restartAgain = true;
+    return _restartFuture;
+  }
+
+  _restartFuture = _restartServerOnce();
+  try {
+    await _restartFuture;
+  } finally {
+    _restartFuture = null;
+  }
+
+  if (_restartAgain) {
+    _restartAgain = false;
+    await restartServer();
+  }
+}
+
+Future<void> _restartServerOnce() async {
   if (server != null) {
     Log.debug('[HOT-RELOAD] Stopping old server...');
-    server!.kill(ProcessSignal.sigint);
-    await server!.exitCode;
+    await _killProcessTree(server!);
+    try {
+      await server!.exitCode.timeout(const Duration(seconds: 5));
+    } catch (_) {
+      Log.debug('[HOT-RELOAD] Old server did not exit cleanly.');
+    }
+    server = null;
+
+    if (!await _waitForServerStopped(_serverPort)) {
+      Log.debug(
+        '[HOT-RELOAD] Old server is still holding port $_serverPort.',
+      );
+      return;
+    }
   }
-  await startServer();
+
+  final started = await startServer();
+  if (!started) {
+    Log.debug('[HOT-RELOAD] Server restart failed.');
+    return;
+  }
   await generateSwaggerDocs();
 }
 
@@ -147,7 +432,7 @@ void watchFiles(int serverPort) {
               serverPort,
               sourceName: 'flint_ui:${p.basename(event.path)}',
             );
-            await FlintWebUiBuilder.compile(_webBuild!);
+            await FlintWebUiBuilder.compileDefault(_webBuild!);
             await _triggerBrowserReload(
               serverPort,
               sourceName: 'flint_ui:${p.basename(event.path)}',
@@ -267,11 +552,35 @@ Future<void> main(List<String> args) async {
     '[HOT-RELOAD] Endpoint: http://localhost:$_serverPort/_flint/internal/hot-reload',
   );
 
-  if (_webBuild != null) {
-    await FlintWebUiBuilder.compile(_webBuild!);
+  await restartServer();
+
+  if (_webBuild != null && await _isServerListening(_serverPort)) {
+    await _triggerBrowserBuildStart(
+      _serverPort,
+      sourceName: 'flint_ui:initial',
+    );
+    try {
+      await FlintWebUiBuilder.compileDefault(_webBuild!);
+      await _triggerBrowserReload(
+        _serverPort,
+        sourceName: 'flint_ui:initial',
+      );
+    } catch (e, stack) {
+      await _notifyServerHotReload(
+        'flint_ui:initial',
+        '',
+        _serverPort,
+        event: 'flint:error',
+        message: 'Flint UI build failed. Check the terminal.',
+      );
+      Log.error(
+        '[HOT-RELOAD] Error rebuilding Flint UI',
+        error: e,
+        stackTrace: stack,
+      );
+    }
   }
 
-  await restartServer();
   watchFiles(_serverPort);
 
   await Future.delayed(const Duration(days: 365));

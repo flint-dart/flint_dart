@@ -176,11 +176,24 @@ class FlintWebUiBuilder {
   static Future<bool> compileIfPresent() async {
     final build = resolve();
     if (build == null) return false;
-    await compile(build);
+    await compileDefault(build);
     return true;
   }
 
+  static Future<void> compileDefault(
+    FlintWebUiBuild build, {
+    String? configPath,
+  }) async {
+    await compile(build);
+    try {
+      await compilePageBundles(build, configPath: configPath);
+    } on StateError catch (e) {
+      Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+    }
+  }
+
   static Future<void> compile(FlintWebUiBuild build) async {
+    _cleanCompiledAssetFamily(build.jsOut);
     await _compileTailwind(build);
     await _compileRootDesignCss(build);
     await _compileDart(build);
@@ -222,6 +235,11 @@ class FlintWebUiBuilder {
 
     final pagesOutDir = Directory(path.join(path.dirname(build.jsOut), 'pages'))
       ..createSync(recursive: true);
+    if (onlyPage == null && pagesOutDir.existsSync()) {
+      for (final entity in pagesOutDir.listSync()) {
+        if (entity is File) _deleteFileIfExists(entity);
+      }
+    }
     final generatedDir =
         Directory(path.join('.dart_tool', 'flint_ui', 'page_bundles'))
           ..createSync(recursive: true);
@@ -319,6 +337,7 @@ class FlintWebUiBuilder {
     final runtimeOut = path.join(path.dirname(build.jsOut), 'runtime.dart.js');
 
     generatedEntry.writeAsStringSync(_sharedRuntimeEntrypointSource(config));
+    _cleanCompiledAssetFamily(runtimeOut);
     _deleteDeferredPartSiblings(runtimeOut);
 
     Log.debug('Compiling Flint UI shared runtime bundle...');
@@ -849,11 +868,10 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
 
     final basename = path.basename(jsOut);
     final pattern = _hashedDartJsSiblingPattern(basename);
-    final matches = dir
-        .listSync()
-        .whereType<File>()
-        .where((file) => pattern.hasMatch(path.basename(file.path)))
-        .toList()
+    final matches = dir.listSync().whereType<File>().where((file) {
+      final name = path.basename(file.path);
+      return pattern.hasMatch(name) && name.endsWith('.dart.js');
+    }).toList()
       ..sort((a, b) {
         return b.lastModifiedSync().compareTo(a.lastModifiedSync());
       });
@@ -869,9 +887,37 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     final pattern = _hashedDartJsSiblingPattern(basename);
     for (final file in dir.listSync().whereType<File>()) {
       if (pattern.hasMatch(path.basename(file.path))) {
-        file.deleteSync();
+        _deleteFileIfExists(file);
       }
     }
+  }
+
+  static void _cleanCompiledAssetFamily(String jsOut) {
+    final dir = Directory(path.dirname(jsOut));
+    if (!dir.existsSync()) return;
+
+    final directFiles = [
+      jsOut,
+      '$jsOut.map',
+      '$jsOut.deps',
+      '$jsOut.gz',
+      '$jsOut.br',
+      '$jsOut.map.gz',
+      '$jsOut.map.br',
+      '$jsOut.deps.gz',
+      '$jsOut.deps.br',
+      path.join(dir.path, 'manifest.json'),
+      path.join(dir.path, 'manifest.json.gz'),
+      path.join(dir.path, 'manifest.json.br'),
+    ];
+
+    for (final filePath in directFiles) {
+      final file = File(filePath);
+      _deleteFileIfExists(file);
+    }
+
+    _deleteHashedDartJsSiblings(jsOut);
+    _deleteDeferredPartSiblings(jsOut);
   }
 
   static void _deleteDeferredPartSiblings(String jsOut) {
@@ -893,8 +939,20 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
               name.endsWith('.part.js.map.gz') ||
               RegExp(r'\.[a-f0-9]{12}\.part\.js\.map\.gz$').hasMatch(name) ||
               name.endsWith('.part.js.map.br'))) {
-        file.deleteSync();
+        _deleteFileIfExists(file);
       }
+    }
+  }
+
+  static bool _deleteFileIfExists(File file) {
+    if (!file.existsSync()) return true;
+    try {
+      file.deleteSync();
+      return true;
+    } on FileSystemException catch (e) {
+      Log.debug(
+          'Skipped locked Flint asset: ${file.path} (${e.osError?.message ?? e.message})');
+      return false;
     }
   }
 

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/web_ui_builder.dart';
+import 'package:flint_dart/src/env_parser.dart';
 
 /// Base class for all Flint CLI commands.
 abstract class FlintCommand {
@@ -17,31 +18,72 @@ abstract class FlintCommand {
 class RunServerCommand extends FlintCommand {
   RunServerCommand() : super('run', 'Runs the development server');
 
-  @override
-  Future<void> execute(List<String> args) async {
-    var buildWeb = true;
-    int port = 8080;
+  static int resolveDefaultPort() {
+    return FlintEnv.getInt('PORT', 8080);
+  }
 
-    for (final arg in args) {
-      if (arg == '--no-web-build') {
-        buildWeb = false;
+  static int resolvePort(List<String> args, {int? defaultPort}) {
+    defaultPort ??= resolveDefaultPort();
+    var port = defaultPort;
+
+    for (var i = 0; i < args.length; i++) {
+      final arg = args[i];
+      if (arg.startsWith('--port=')) {
+        port = int.tryParse(arg.substring('--port='.length)) ?? port;
+      } else if (arg == '--port' && i + 1 < args.length) {
+        port = int.tryParse(args[++i]) ?? port;
       } else if (!arg.startsWith('--')) {
         port = int.tryParse(arg) ?? port;
       }
     }
 
-    if (buildWeb) {
+    return port;
+  }
+
+  @override
+  Future<void> execute(List<String> args) async {
+    var buildWeb = true;
+    final port = resolvePort(args);
+
+    for (final arg in args) {
+      if (arg == '--no-web-build') {
+        buildWeb = false;
+      }
+    }
+
+    final hotFlag = Platform.environment['FLINT_HOT']?.toLowerCase().trim();
+    final hotReloadDisabled = hotFlag == '0' || hotFlag == 'false';
+    if (buildWeb && hotReloadDisabled) {
       final built = await FlintWebUiBuilder.compileIfPresent();
       if (!built) {
         Log.debug('[FLINT] No Flint Web UI entry found. Skipping web build.');
       }
+    } else if (buildWeb) {
+      Log.debug(
+        '[FLINT] Web UI build deferred to hot reload so the server can start first.',
+      );
     }
 
-    final child = await Process.start(
-      'dart',
-      ['run', 'lib/main.dart', port.toString()],
-      mode: ProcessStartMode.inheritStdio,
-    );
+    final child = hotReloadDisabled
+        ? await Process.start(
+            'dart',
+            ['run', 'lib/main.dart', port.toString()],
+            environment: {'FLINT_HOT': '0'},
+            mode: ProcessStartMode.inheritStdio,
+          )
+        : await Process.start(
+            'dart',
+            [
+              '--enable-vm-service',
+              'run',
+              'flint_dart:hot_reload',
+              'lib',
+              '--port=$port',
+            ],
+            environment: {'FLINT_HOT': '1'},
+            mode: ProcessStartMode.inheritStdio,
+            runInShell: true,
+          );
 
     // Graceful shutdown
     ProcessSignal.sigint.watch().listen((_) async {
