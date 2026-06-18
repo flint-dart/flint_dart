@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flint_dart/flint_dart.dart';
@@ -6,11 +7,18 @@ class RichTextUpload extends Middleware {
   final String uploadPath;
   final String urlPrefix;
   final bool requireAuth;
+  final FutureOr<void> Function(
+    String filename,
+    String storagePath,
+    int sizeBytes,
+    Map<String, dynamic>? user,
+  )? onUploadSuccess;
 
   RichTextUpload({
     this.uploadPath = 'public/uploads/content',
     this.urlPrefix = '/uploads/content',
     this.requireAuth = true,
+    this.onUploadSuccess,
   });
 
   @override
@@ -85,6 +93,11 @@ class RichTextUpload extends Middleware {
           final bytes = base64Decode(base64Data);
           final targetFile = File('${dir.path}/$safeName');
           await targetFile.writeAsBytes(bytes);
+
+          if (onUploadSuccess != null) {
+            final user = await req.user;
+            await onUploadSuccess!(safeName, targetFile.path, bytes.length, user);
+          }
 
           return await res.json({
             'status': true,
