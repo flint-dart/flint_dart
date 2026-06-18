@@ -408,6 +408,7 @@ void watchFiles(int serverPort) {
         (ext == '.dart' || p.basename(event.path) == 'tailwind.css');
     final isWebAsset = _webBuild != null &&
         _isWithin(_webBuild!.webDir.path, event.path) &&
+        !_isWithin(p.join(_webBuild!.webDir.path, 'uploads'), event.path) &&
         !p.equals(p.normalize(event.path), p.normalize(_webBuild!.jsOut)) &&
         ext != '.deps' &&
         ext != '.map';
