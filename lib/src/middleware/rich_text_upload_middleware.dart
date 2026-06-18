@@ -11,6 +11,7 @@ class RichTextUpload extends Middleware {
     String filename,
     String storagePath,
     int sizeBytes,
+    Map<String, dynamic> body,
     Map<String, dynamic>? user,
   )? onUploadSuccess;
 
@@ -96,7 +97,7 @@ class RichTextUpload extends Middleware {
 
           if (onUploadSuccess != null) {
             final user = await req.user;
-            await onUploadSuccess!(safeName, targetFile.path, bytes.length, user);
+            await onUploadSuccess!(safeName, targetFile.path, bytes.length, body, user);
           }
 
           return await res.json({
