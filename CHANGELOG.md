@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## Unreleased
 
+### Added
+- Added `RichTextUpload` middleware to handle secure rich text image/media uploads, featuring strict file extension whitelisting (blocking executables/scripts) and double-extension bypass mitigation (sanitizing intermediate dots).
+- Added `onUploadSuccess` callback hook to `RichTextUpload` middleware to allow custom actions (like saving file metadata to a database) when uploads complete successfully.
+
 ## [1.1.12] - 2026-06-16
 
 ### Changed
