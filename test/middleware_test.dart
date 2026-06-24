@@ -360,4 +360,112 @@ void main() {
       );
     });
   });
+
+  group('RichTextUpload', () {
+    test('allows uploading a valid file and sanitizes double extensions', () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_upload_test_');
+      try {
+        final middleware = RichTextUpload(
+          uploadPath: tempDir.path,
+          requireAuth: false,
+        );
+
+        final handler = middleware.handle((ctx) async => ctx.res?.send('next'));
+
+        final headers = FakeHttpHeaders()
+          ..contentType = ContentType('application', 'json');
+
+        // Test normal image
+        final raw = FakeHttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/api/content-media/upload'),
+          headers: headers,
+          bodyBytes: utf8Bytes('{"filename":"test.png","base64":"YmFzZTY0"}'),
+        );
+        final request = Request(raw);
+        final response = Response(raw.response);
+
+        await handler(Context(req: request, res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 200);
+        expect(rawResponse.buffer.toString(), contains('/uploads/content/test.png'));
+
+        final createdFile = File('${tempDir.path}/test.png');
+        expect(createdFile.existsSync(), isTrue);
+        expect(createdFile.readAsStringSync(), 'base64');
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('blocks invalid/malicious file extensions', () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_upload_test_');
+      try {
+        final middleware = RichTextUpload(
+          uploadPath: tempDir.path,
+          requireAuth: false,
+        );
+
+        final handler = middleware.handle((ctx) async => ctx.res?.send('next'));
+
+        final headers = FakeHttpHeaders()
+          ..contentType = ContentType('application', 'json');
+
+        // Test PHP file
+        final raw = FakeHttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/api/content-media/upload'),
+          headers: headers,
+          bodyBytes: utf8Bytes('{"filename":"malicious.php","base64":"YmFzZTY0"}'),
+        );
+        final request = Request(raw);
+        final response = Response(raw.response);
+
+        await handler(Context(req: request, res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 400);
+        expect(rawResponse.buffer.toString(), contains('Forbidden file type'));
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('sanitizes double extensions to prevent bypass', () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_upload_test_');
+      try {
+        final middleware = RichTextUpload(
+          uploadPath: tempDir.path,
+          requireAuth: false,
+        );
+
+        final handler = middleware.handle((ctx) async => ctx.res?.send('next'));
+
+        final headers = FakeHttpHeaders()
+          ..contentType = ContentType('application', 'json');
+
+        // Test malicious double extension
+        final raw = FakeHttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/api/content-media/upload'),
+          headers: headers,
+          bodyBytes: utf8Bytes('{"filename":"test.php.png","base64":"YmFzZTY0"}'),
+        );
+        final request = Request(raw);
+        final response = Response(raw.response);
+
+        await handler(Context(req: request, res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 200);
+        expect(rawResponse.buffer.toString(), contains('/uploads/content/test_php.png'));
+
+        final createdFile = File('${tempDir.path}/test_php.png');
+        expect(createdFile.existsSync(), isTrue);
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+  });
 }

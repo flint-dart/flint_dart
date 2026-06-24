@@ -320,6 +320,30 @@ void main() {
       expect(response.buffer.toString(), contains('"sameInstance":true'));
     });
 
+    test('app.ai uses Flint database adapters with memory fallback', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+
+      expect(app.ai.memoryStore, isA<FlintAutoAiMemoryStore>());
+      expect(app.ai.repository, isA<FlintAutoAiRepository>());
+
+      final result = await app.ai.run(
+        agent: BasicTaskAgent(),
+        goal: const AiGoal(task: 'Use Flint adapters'),
+        userId: 'adapter-user',
+      );
+
+      final repository = app.ai.repository as FlintAutoAiRepository;
+      final savedRun = await repository.fallbackRuns.loadRun(result.run.id);
+
+      expect(savedRun, isNotNull);
+      expect(savedRun!['status'], AiRunStatus.completed.name);
+    });
+
     test('ctx.ai can execute an agent from an HTTP route', () async {
       final app = Flint(
         autoConnectDb: false,
@@ -521,6 +545,12 @@ class _FakeAiHttpClient implements AiHttpClient {
     }
     return _responses.removeAt(0);
   }
+
+  @override
+  Stream<String> stream(AiHttpRequest request) async* {
+    final response = await send(request);
+    yield response.body;
+  }
 }
 
 class _FlakyAiHttpClient implements AiHttpClient {
@@ -534,11 +564,22 @@ class _FlakyAiHttpClient implements AiHttpClient {
     requests.add(request);
     return responses.removeAt(0);
   }
+
+  @override
+  Stream<String> stream(AiHttpRequest request) async* {
+    final response = await send(request);
+    yield response.body;
+  }
 }
 
 class _ThrowingAiHttpClient implements AiHttpClient {
   @override
   Future<AiHttpResponse> send(AiHttpRequest request) async {
+    throw const AiHttpException('boom');
+  }
+
+  @override
+  Stream<String> stream(AiHttpRequest request) async* {
     throw const AiHttpException('boom');
   }
 }

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'ai/flint_ai.dart';
+import 'package:flint_ai/flint_ai.dart';
 import 'request.dart';
 import 'response.dart';
 import 'websocket/websocket.dart';

@@ -1,6 +1,6 @@
 # Flint Dart
 
-A modern, production‑ready backend framework for Dart. Flint Dart gives you routing, middleware, ORM, authentication, validation, views, and auto‑generated Swagger docs—built for real apps, not just demos.
+A modern, production‑ready **Full-Stack Framework** for Dart. Flint Dart empowers you to build complete, end-to-end applications (declarative browser frontend, real-time WebSocket communication, database ORM, mail/SMTP engine, authentication, and background task AI runtime) entirely in Dart.
 
 - Website: flintdart.dev
 - Status: Stable Release (v1.1.0)
@@ -8,16 +8,19 @@ A modern, production‑ready backend framework for Dart. Flint Dart gives you ro
 
 ---
 
-## Why Flint Dart
+## The Full-Stack Dart Advantage
 
-- **Fast, clean routing** for REST APIs
-- **Middleware-first** design for security and control
-- **Built‑in ORM** for MySQL and PostgreSQL
-- **Auth helpers** (JWT + social providers)
-- **Validation** on requests (JSON + form)
-- **Views** with a simple template engine
-- **Swagger UI** auto‑docs from route annotations
-- **CLI** to scaffold projects and files
+Flint Dart unifies client-side declarative UI rendering and server-side systems under one language:
+
+- **Frontend & UI (Flint UI)**: Flutter-like declarative UI widget engine for HTML, email templates, and high-performance server-side rendering (SSR) with progressive loading in the browser.
+- **Fast, Clean Routing**: REST APIs and route groups with middleware-first security.
+- **Real-Time WebSockets**: High-performance event-driven sockets with Socket.IO-like rooms and automated model payload serialization.
+- **Active Record ORM**: Built‑in database mapping for MySQL and PostgreSQL with safe migrations.
+- **Request Validation**: Auto-normalizes and validates incoming payloads (JSON, URL-encoded, or Multipart/Forms).
+- **Authentication**: JWT + OAuth + refresh tokens and rate-limiting lockout.
+- **Mail Engine**: SMTP client with `.flint.html` template rendering support.
+- **Swagger UI**: Auto‑generated Swagger documentation from code annotations.
+- **Developer CLI**: Full-featured toolchain to scaffold files, migrate databases, and run hot-reloads.
 
 ---
 
@@ -822,7 +825,7 @@ The AI layer is organized around:
 ```dart
 final app = Flint();
 
-app.ai.registerChatProvider(OpenAiChatProvider(apiKey: 'openai-key'));
+app.ai.useOpenAiFromEnv();
 
 app.get('/ai/chat', (Context ctx) async {
   final result = await ctx.ai.chat(
@@ -839,12 +842,27 @@ app.get('/ai/chat', (Context ctx) async {
 });
 ```
 
+Provider credentials can come from `.env`:
+
+```dart
+app.ai.useOpenAiFromEnv();
+app.ai.useGeminiFromEnv();
+app.ai.useAnthropicFromEnv();
+
+// Or register every provider that has credentials configured.
+final providers = app.ai.useChatProvidersFromEnv();
+```
+
+Supported keys are `OPENAI_API_KEY`, `OPENAI_BEARER_TOKEN`,
+`GEMINI_API_KEY`, `GEMINI_BEARER_TOKEN`, `ANTHROPIC_API_KEY`, plus optional
+`*_CHAT_ENDPOINT` overrides.
+
 You can also opt into stricter production defaults:
 
 ```dart
 final ai = FlintAi.production(
-  memoryStore: AutoAiMemoryStore(),
-  repository: AutoAiRepository(),
+  memoryStore: FlintAutoAiMemoryStore(),
+  repository: FlintAutoAiRepository(),
 );
 ```
 
@@ -853,16 +871,35 @@ final ai = FlintAi.production(
 ```dart
 final app = Flint();
 
-app.ai.registerChatProvider(OpenAiChatProvider(apiKey: 'openai-key'));
+app.ai.useChatProvidersFromEnv();
 app.ai.registerTool(SummarizeTicketTool());
 app.ai.registerWorkflow(SupportEscalationWorkflow());
 
 // Optional explicit production wiring
 final hardenedAi = FlintAi.production(
-  memoryStore: AutoAiMemoryStore(),
-  repository: AutoAiRepository(),
+  memoryStore: FlintAutoAiMemoryStore(),
+  repository: FlintAutoAiRepository(),
 );
 ```
+
+Tool policy can also be hardened from `.env`:
+
+```dart
+app.ai.useProductionToolPolicyFromEnv();
+
+await ctx.ai.run(
+  agent: SupportAgent(),
+  goal: const AiGoal(task: 'Summarize ticket'),
+  userId: staff.id.toString(),
+  metadata: {
+    'role': staff.role,
+    'capabilities': ['support:write'],
+  },
+);
+```
+
+Use `AI_ALLOWED_TOOLS`, `AI_ALLOWED_CAPABILITIES`, and `AI_ALLOWED_ROLES` for
+explicit allow-lists.
 
 ### Runtime model
 
@@ -979,6 +1016,12 @@ app.post('/ai/support', (Context ctx) async {
   });
 });
 ```
+
+The sample app also includes real agent endpoints:
+
+- `POST /ai-demo/support`
+- `GET /ai-demo/reporting`
+- `POST /ai-demo/content-email`
 
 ---
 
