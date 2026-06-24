@@ -1122,6 +1122,3 @@ Contributions are welcome. Open issues, suggest improvements, or submit PRs.
 ## License
 
 MIT
-#   w e b - a p p 
- 
- 
