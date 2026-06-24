@@ -40,6 +40,9 @@ All notable changes to this project are documented in this file.
 - Removed the duplicated internal `lib/src/ai/*` runtime implementation from `flint_dart`.
 - Removed internal Flint Dart copies of AI providers, tools, workflows, memory stores, repository stores, and the basic agent example because these now live in `flint_ai`.
 
+### Fixed
+- Fixed route parenthesis counting in Swagger route extraction so static analysis no longer reports unrelated int/string equality checks.
+
 ## [1.1.13] - 2026-06-18
 
 ### Added
