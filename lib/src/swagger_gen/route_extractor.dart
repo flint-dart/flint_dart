@@ -56,8 +56,8 @@ class RouteExtractor {
   int _countParentheses(String line) {
     int balance = 0;
     for (var char in line.runes) {
-      if (char == '(') balance++;
-      if (char == ')') balance--;
+      if (char == 0x28) balance++;
+      if (char == 0x29) balance--;
     }
     return balance;
   }
