@@ -24,5 +24,13 @@ class AiRoutes extends RouteGroup {
       '/support',
       controllerAction(AiRuntimeController.new, (c) => c.support()),
     );
+    app.get(
+      '/reporting',
+      controllerAction(AiRuntimeController.new, (c) => c.reporting()),
+    );
+    app.post(
+      '/content-email',
+      controllerAction(AiRuntimeController.new, (c) => c.contentEmail()),
+    );
   }
 }

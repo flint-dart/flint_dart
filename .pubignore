@@ -2,3 +2,5 @@ doc/api/**
 example/doc/api/**
 logs/**
 example/logs/**
+pubspec_overrides.yaml
+example/pubspec_overrides.yaml

@@ -328,7 +328,10 @@ class Flint {
 
   final Router _router = Router();
   final List<Middleware> _middlewares = [];
-  final FlintAi _ai = FlintAi();
+  final FlintAi _ai = FlintAi(
+    memoryStore: FlintAutoAiMemoryStore(),
+    repository: FlintAutoAiRepository(),
+  );
 
   bool _dbInitialized = false;
 

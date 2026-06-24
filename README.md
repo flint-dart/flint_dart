@@ -825,7 +825,7 @@ The AI layer is organized around:
 ```dart
 final app = Flint();
 
-app.ai.registerChatProvider(OpenAiChatProvider(apiKey: 'openai-key'));
+app.ai.useOpenAiFromEnv();
 
 app.get('/ai/chat', (Context ctx) async {
   final result = await ctx.ai.chat(
@@ -842,12 +842,27 @@ app.get('/ai/chat', (Context ctx) async {
 });
 ```
 
+Provider credentials can come from `.env`:
+
+```dart
+app.ai.useOpenAiFromEnv();
+app.ai.useGeminiFromEnv();
+app.ai.useAnthropicFromEnv();
+
+// Or register every provider that has credentials configured.
+final providers = app.ai.useChatProvidersFromEnv();
+```
+
+Supported keys are `OPENAI_API_KEY`, `OPENAI_BEARER_TOKEN`,
+`GEMINI_API_KEY`, `GEMINI_BEARER_TOKEN`, `ANTHROPIC_API_KEY`, plus optional
+`*_CHAT_ENDPOINT` overrides.
+
 You can also opt into stricter production defaults:
 
 ```dart
 final ai = FlintAi.production(
-  memoryStore: AutoAiMemoryStore(),
-  repository: AutoAiRepository(),
+  memoryStore: FlintAutoAiMemoryStore(),
+  repository: FlintAutoAiRepository(),
 );
 ```
 
@@ -856,16 +871,35 @@ final ai = FlintAi.production(
 ```dart
 final app = Flint();
 
-app.ai.registerChatProvider(OpenAiChatProvider(apiKey: 'openai-key'));
+app.ai.useChatProvidersFromEnv();
 app.ai.registerTool(SummarizeTicketTool());
 app.ai.registerWorkflow(SupportEscalationWorkflow());
 
 // Optional explicit production wiring
 final hardenedAi = FlintAi.production(
-  memoryStore: AutoAiMemoryStore(),
-  repository: AutoAiRepository(),
+  memoryStore: FlintAutoAiMemoryStore(),
+  repository: FlintAutoAiRepository(),
 );
 ```
+
+Tool policy can also be hardened from `.env`:
+
+```dart
+app.ai.useProductionToolPolicyFromEnv();
+
+await ctx.ai.run(
+  agent: SupportAgent(),
+  goal: const AiGoal(task: 'Summarize ticket'),
+  userId: staff.id.toString(),
+  metadata: {
+    'role': staff.role,
+    'capabilities': ['support:write'],
+  },
+);
+```
+
+Use `AI_ALLOWED_TOOLS`, `AI_ALLOWED_CAPABILITIES`, and `AI_ALLOWED_ROLES` for
+explicit allow-lists.
 
 ### Runtime model
 
@@ -982,6 +1016,12 @@ app.post('/ai/support', (Context ctx) async {
   });
 });
 ```
+
+The sample app also includes real agent endpoints:
+
+- `POST /ai-demo/support`
+- `GET /ai-demo/reporting`
+- `POST /ai-demo/content-email`
 
 ---
 

@@ -22,6 +22,7 @@ dependencies:
   path: ^1.9.1
   flint_ui: ^0.1.11
   flint_client: ^0.0.3
+  flint_ai: ^0.1.0
   worker_manager: ^7.2.7
   args: ^2.7.0
   watcher: ^1.2.1
