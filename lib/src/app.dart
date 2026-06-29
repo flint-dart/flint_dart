@@ -6,6 +6,7 @@ import 'package:flint_dart/middlewares.dart';
 import 'package:flint_dart/model.dart';
 import 'package:flint_dart/src/controller.dart' as controller_api;
 import 'package:flint_dart/src/database/db.dart';
+import 'package:flint_dart/src/database/migrations.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
@@ -187,6 +188,10 @@ class Flint {
   final bool withDefaultMiddleware;
   final bool enableSwaggerDocs;
   final bool autoConnectMail;
+  final bool? autoMigrate;
+  final bool autoMigrateCreateDatabase;
+  final bool autoMigrateDuringHotReload;
+  final bool autoMigrateVerbose;
   final FlintPageServerRenderer? _flintPageServerRenderer;
   final bool _serverRenderFlintPages;
 
@@ -201,6 +206,10 @@ class Flint {
       bool serverRenderFlintPages = false,
       this.autoConnectDb = true,
       this.autoConnectMail = true,
+      this.autoMigrate,
+      this.autoMigrateCreateDatabase = false,
+      this.autoMigrateDuringHotReload = false,
+      this.autoMigrateVerbose = false,
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false})
       : _flintPageServerRenderer = flintPageServerRenderer,
@@ -933,6 +942,7 @@ class Flint {
   Future<void> _runServer(int port) async {
     HttpServer? server;
     try {
+      await _ensureMigrationsIfEnabled();
       server = await HttpServer.bind(InternetAddress.anyIPv4, port);
       Log.debug(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
@@ -954,6 +964,25 @@ class Flint {
     await for (var req in server) {
       _handleIncomingRequest(req);
     }
+  }
+
+  Future<void> _ensureMigrationsIfEnabled() async {
+    final enabled = autoMigrate ?? FlintMigrations.enabledFromEnv();
+    if (!enabled) return;
+
+    final hotFlag = env('FLINT_HOT', '').toString().toLowerCase().trim();
+    final isHotReloadWorker = hotFlag == '1';
+    if (isHotReloadWorker && !autoMigrateDuringHotReload) {
+      Log.debug('[FLINT] Auto migration skipped during hot reload worker.');
+      return;
+    }
+
+    await FlintMigrations.ensure(
+      enabled: true,
+      createDatabase:
+          autoMigrateCreateDatabase || FlintMigrations.createDatabaseFromEnv(),
+      verbose: autoMigrateVerbose || FlintMigrations.verboseFromEnv(),
+    );
   }
 
   /// Dispatches requests to WebSockets or HTTP Routes

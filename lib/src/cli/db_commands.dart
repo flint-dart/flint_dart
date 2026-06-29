@@ -5,7 +5,9 @@ import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/db_admin_commands.dart';
 import 'package:flint_dart/src/database/db.dart';
+import 'package:flint_dart/src/database/orm/dialect.dart' show TableSQL;
 import 'package:flint_dart/src/env_parser.dart';
+import 'package:flint_dart/schema.dart' show Table;
 
 List<_RegisteredTableDefinition> _registeredTables = [];
 
@@ -13,7 +15,10 @@ class DBMigrateCommand extends FlintCommand {
   DBMigrateCommand() : super('migrate', 'Runs database migrations');
 
   @override
-  Future<void> execute(List<String> args) async {
+  Future<void> execute(
+    List<String> args, {
+    List<Table>? tables,
+  }) async {
     final drop = args.contains('--drop');
     final force = args.contains('--force');
 
@@ -28,7 +33,6 @@ class DBMigrateCommand extends FlintCommand {
     }
 
     try {
-      await _runTableRegistry();
       final databaseReady = await DBAdmin.ensureDatabaseExists(
         promptIfMissing: !args.contains('--no-interaction'),
         createIfMissing: args.contains('--create-db') || args.contains('--yes'),
@@ -38,6 +42,12 @@ class DBMigrateCommand extends FlintCommand {
         return;
       }
       await DB.autoConnect();
+
+      if (tables != null) {
+        _registeredTables = _tableDefinitionsFromTables(tables);
+      } else {
+        await _runTableRegistry();
+      }
 
       if (_registeredTables.isEmpty) {
         Log.debug(
@@ -125,6 +135,32 @@ class DBMigrateCommand extends FlintCommand {
     } finally {
       await DB.close();
     }
+  }
+
+  List<_RegisteredTableDefinition> _tableDefinitionsFromTables(
+    List<Table> tables,
+  ) {
+    return tables.map((table) {
+      return _RegisteredTableDefinition.fromPayload({
+        'tableName': table.name,
+        'createSql': table.toCreateSQL(),
+        'indexes': table.indexes
+            .map((index) => {
+                  'name': index.name,
+                  'columns': index.columns,
+                  'isUnique': index.isUnique,
+                })
+            .toList(),
+        'columns': table.columns
+            .map((column) => {
+                  'name': column.name,
+                  'comment': column.comment,
+                  'after': column.after,
+                  'renamedFrom': column.renamedFrom,
+                })
+            .toList(),
+      });
+    }).toList();
   }
 
   Future<void> _runTableRegistry() async {

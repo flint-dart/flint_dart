@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Added
+- Added framework-level startup migrations through `Flint(autoMigrate: true)` and the `FLINT_AUTO_MIGRATE` environment flag.
+- Added public `FlintMigrations.ensure()` helpers for apps that want explicit deployment-time migration control.
+
 ## [1.1.14] - 2026-06-24
 
 ### Added
