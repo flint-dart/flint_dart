@@ -119,7 +119,7 @@ import 'package:flint_ui/flint_ui.dart';
 import 'pages/home_page.dart';
 import 'pages/staff_dashboard_page.dart';
 
-final componentRegistry = FlintComponentRegistry({
+final componentRegistry = PageRegistry({
   'Home': (props) => HomePage(props),
   'StaffDashboard': (props) => StaffDashboardPage(props),
 });

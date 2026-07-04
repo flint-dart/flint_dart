@@ -258,7 +258,9 @@ class FlintWebUiBuilder {
       Log.debug('Compiling Flint UI page bundle: $component');
       await _compileDartFile(generatedEntry.path, jsOut);
       final hashedJsOut = _hashDartJsAssetFamily(jsOut);
-      await _compressAssetFamily(hashedJsOut);
+      if (onlyPage == null) {
+        await _compressAssetFamily(hashedJsOut);
+      }
       manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
     }
 
@@ -269,10 +271,14 @@ class FlintWebUiBuilder {
       try {
         final decoded = jsonDecode(manifestFile.readAsStringSync());
         if (decoded is Map && decoded['pages'] is Map) {
-          existingPages.addAll(
-            (decoded['pages'] as Map).map(
-              (key, value) => MapEntry(key.toString(), value.toString()),
-            ),
+          existingPages.addEntries(
+            (decoded['pages'] as Map)
+                .entries
+                .map(
+                  (entry) =>
+                      MapEntry(entry.key.toString(), entry.value.toString()),
+                )
+                .where((entry) => entry.value.contains('/pages/')),
           );
         }
       } catch (_) {}
@@ -294,11 +300,15 @@ class FlintWebUiBuilder {
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
     Log.debug('Flint UI manifest generated: ${manifestFile.path}');
-    await _compressAssetIfUseful(manifestFile);
+    if (onlyPage == null) {
+      await _compressAssetIfUseful(manifestFile);
+    }
     _writeServiceWorker(build);
-    await _compressAssetIfUseful(
-      File(path.join(build.webDir.path, 'flint-sw.js')),
-    );
+    if (onlyPage == null) {
+      await _compressAssetIfUseful(
+        File(path.join(build.webDir.path, 'flint-sw.js')),
+      );
+    }
   }
 
   static Future<void> compileSharedRuntimeBundle(
@@ -628,7 +638,7 @@ void main() {
 
   static String? _detectRegistryName(String source) {
     final match = RegExp(
-      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*FlintComponentRegistry\s*\(',
+      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry|FlintComponentRegistry)\s*\(',
       multiLine: true,
     ).firstMatch(source);
     return match?.group(1);
@@ -640,7 +650,8 @@ void main() {
     String packageName,
   ) {
     final registryStart =
-        RegExp(r'FlintComponentRegistry\s*\(\s*\{').firstMatch(source);
+        RegExp(r'(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{')
+            .firstMatch(source);
     if (registryStart == null) return const {};
 
     final start = registryStart.end;
