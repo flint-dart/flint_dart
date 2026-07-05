@@ -670,8 +670,11 @@ bool _isGeneratedFlintUiAsset(FlintWebUiBuild build, String filePath) {
     if (_isWithin(cssOutDir, filePath)) return true;
   }
 
-  return p.equals(
-    p.normalize(p.absolute(filePath)),
-    p.normalize(p.absolute(p.join(build.webDir.path, 'flint-sw.js'))),
+  final normalizedFile = p.normalize(p.absolute(filePath));
+  final serviceWorkerPath = p.normalize(
+    p.absolute(p.join(build.webDir.path, 'flint-sw.js')),
   );
+  return normalizedFile == serviceWorkerPath ||
+      normalizedFile == '$serviceWorkerPath.gz' ||
+      normalizedFile == '$serviceWorkerPath.br';
 }

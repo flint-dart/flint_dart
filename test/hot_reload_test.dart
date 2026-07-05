@@ -54,6 +54,13 @@ void main() {
     expect(
       hot_reload.isHotReloadWebAsset(
         build,
+        p.join('public', 'flint-sw.js.gz'),
+      ),
+      isFalse,
+    );
+    expect(
+      hot_reload.isHotReloadWebAsset(
+        build,
         p.join('public', 'assets', 'js', 'site.js'),
       ),
       isTrue,
