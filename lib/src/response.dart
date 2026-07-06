@@ -27,6 +27,13 @@ typedef FlintPageServerRenderer = String? Function(
   Map<String, dynamic> props,
 );
 
+class _FlintPageScriptResolution {
+  const _FlintPageScriptResolution(this.script, {this.isBuilding = false});
+
+  final String script;
+  final bool isBuilding;
+}
+
 class FlintPageMeta {
   final String? title;
   final String? description;
@@ -294,7 +301,18 @@ class Response {
         'props': _jsonSafeValue(props),
         if (request != null) 'url': request!.uri.toString(),
       };
-      final resolvedScript = script ?? _flintPageScriptForComponent(component);
+      final scriptResolution = script == null
+          ? _flintPageScriptForComponent(component)
+          : _FlintPageScriptResolution(script);
+      if (scriptResolution.isBuilding) {
+        return _flintPageBundleLoading(
+          component,
+          title: title,
+          meta: meta,
+          status: status,
+        );
+      }
+      final resolvedScript = scriptResolution.script;
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
@@ -535,15 +553,119 @@ $hotReloadScript
     return '$trimmed${separator}v=$version';
   }
 
-  String _flintPageScriptForComponent(String component) {
+  Response _flintPageBundleLoading(
+    String component, {
+    String? title,
+    FlintPageMeta? meta,
+    int? status,
+  }) {
+    final resolvedTitle =
+        meta?.title ?? title ?? 'Building ${_escapeHtmlText(component)}';
+    final safeComponent = _escapeHtmlText(component);
+    final safeJsonComponent = jsonEncode(component).replaceAll('</', '<\\/');
+    final headTags = _renderFlintPageHead(
+      title: resolvedTitle,
+      stylesheets: const [],
+      meta: meta ?? FlintPageMeta(title: resolvedTitle, noIndex: true),
+      requestUrl: request?.uri.toString(),
+    );
+
+    raw.statusCode = status ?? HttpStatus.accepted;
+    raw.headers.contentType = ContentType.html;
+    raw.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
+    raw.write('''
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+$headTags
+    <style>
+      :root { color-scheme: light dark; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f5fbf8;
+        color: #0f172a;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        body { background: #030712; color: #f8fafc; }
+        .flint-build-card { background: rgba(15, 23, 42, 0.88); border-color: rgba(148, 163, 184, 0.24); }
+        .flint-build-muted { color: #a7b5c8; }
+      }
+      .flint-build-card {
+        width: min(440px, calc(100vw - 32px));
+        padding: 28px;
+        border: 1px solid rgba(15, 23, 42, 0.10);
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+      }
+      .flint-build-spinner {
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        border: 3px solid rgba(15, 23, 42, 0.14);
+        border-top-color: #0f766e;
+        animation: flint-spin 0.8s linear infinite;
+      }
+      .flint-build-title {
+        margin: 18px 0 8px;
+        font-size: 22px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+      .flint-build-muted {
+        margin: 0;
+        color: #526170;
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      @keyframes flint-spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <main class="flint-build-card" aria-live="polite">
+      <div class="flint-build-spinner" aria-hidden="true"></div>
+      <h1 class="flint-build-title">Building Flint UI page</h1>
+      <p class="flint-build-muted">$safeComponent is compiling. This page will reload automatically when it is ready.</p>
+    </main>
+    <script>
+      window.__FLINT_BUILDING_PAGE__ = $safeJsonComponent;
+      window.setTimeout(function () {
+        window.location.reload();
+      }, 1500);
+    </script>
+  </body>
+</html>
+''');
+    close();
+    return this;
+  }
+
+  _FlintPageScriptResolution _flintPageScriptForComponent(String component) {
     final pageScript = _scriptFromFlintUiManifest(
       component,
       includeFallback: false,
     );
-    if (pageScript != null) return pageScript;
+    if (pageScript != null) return _FlintPageScriptResolution(pageScript);
 
-    _buildFlintPageBundleOnDemand(component);
-    return _scriptFromFlintUiManifest(component) ?? _defaultFlintPageScript();
+    if (Platform.environment['FLINT_HOT'] == '1' &&
+        !_flintPageBundlesUnavailable.contains(component)) {
+      _buildFlintPageBundleOnDemand(component);
+      if (_flintPageBundlesBuilding.contains(component)) {
+        return _FlintPageScriptResolution(
+          _defaultFlintPageScript(),
+          isBuilding: true,
+        );
+      }
+    }
+
+    return _FlintPageScriptResolution(
+      _scriptFromFlintUiManifest(component) ?? _defaultFlintPageScript(),
+    );
   }
 
   void _buildFlintPageBundleOnDemand(String component) {
