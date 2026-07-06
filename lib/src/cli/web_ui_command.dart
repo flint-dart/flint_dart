@@ -91,22 +91,22 @@ class WebUiCommand extends FlintCommand {
     }
 
     if (sharedRuntime) {
-      Log.debug('Building Flint UI...');
+      Log.info('Building Flint UI...');
       await FlintWebUiBuilder.compileSharedRuntimeBundle(
         build,
         configPath: pagesConfigArg,
       );
-      Log.debug('Done building Flint UI.');
+      Log.info('Done building Flint UI.');
     } else if (pageArg != null) {
-      Log.debug('Building Flint UI...');
+      Log.info('Building Flint UI...');
       await FlintWebUiBuilder.compilePageBundles(
         build,
         configPath: pagesConfigArg,
         onlyPage: pageArg,
       );
-      Log.debug('Done building Flint UI.');
+      Log.info('Done building Flint UI.');
     } else {
-      Log.debug('Building Flint UI...');
+      Log.info('Building Flint UI...');
       await FlintWebUiBuilder.compile(build);
 
       if (pageBundles) {
@@ -120,7 +120,7 @@ class WebUiCommand extends FlintCommand {
           Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
         }
       }
-      Log.debug('Done building Flint UI.');
+      Log.info('Done building Flint UI.');
     }
 
     if (buildOnly) {

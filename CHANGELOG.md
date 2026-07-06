@@ -15,6 +15,7 @@ All notable changes to this project are documented in this file.
 - Quieted Flint UI build output so normal builds show a single `Building Flint UI...` message and save-triggered hot reload shows `Rebuilding Flint UI...`; detailed asset/compiler logs are now opt-in with `FLINT_WEB_UI_VERBOSE=true`.
 - Added completion messages after successful Flint UI builds and rebuilds.
 - Serialized save-triggered Flint UI rebuilds so repeated file events queue one follow-up rebuild instead of launching overlapping compilers.
+- Changed the default console log level to `info` while keeping Flint UI build/rebuild start and completion messages visible.
 
 ## [1.1.14] - 2026-06-24
 

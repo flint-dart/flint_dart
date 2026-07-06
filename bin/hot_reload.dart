@@ -149,7 +149,7 @@ Future<bool> _forceStopListenersOnPort(int port) async {
   if (pids.isEmpty) return false;
 
   for (final pid in pids) {
-    Log.debug('[HOT-RELOAD] Force stopping PID $pid on port $port...');
+    _logVerbose('[HOT-RELOAD] Force stopping PID $pid on port $port...');
     if (Platform.isWindows) {
       await Process.run(
         'taskkill',
@@ -160,7 +160,7 @@ Future<bool> _forceStopListenersOnPort(int port) async {
       try {
         Process.killPid(pid, ProcessSignal.sigterm);
       } catch (e) {
-        Log.debug('[HOT-RELOAD] Could not stop PID $pid: $e');
+        _logVerbose('[HOT-RELOAD] Could not stop PID $pid: $e');
       }
     }
   }
@@ -230,12 +230,12 @@ Future<bool> _notifyServerHotReload(
 
 Future<bool> startServer() async {
   if (await _isServerListening(_serverPort)) {
-    Log.debug(
+    _logVerbose(
       '[HOT-RELOAD] Port $_serverPort is already in use. Force stopping listener...',
     );
     final stopped = await _forceStopListenersOnPort(_serverPort);
     if (!stopped && !await _waitForServerStopped(_serverPort)) {
-      Log.debug(
+      _logVerbose(
         '[HOT-RELOAD] Port $_serverPort is still busy; server start skipped.',
       );
       return false;
@@ -273,7 +273,7 @@ Future<bool> startServer() async {
   );
 
   if (exitCode != -1) {
-    Log.debug('[HOT-RELOAD] Server failed to start: $exitCode');
+    Log.warning('[HOT-RELOAD] Server failed to start: $exitCode');
     return false;
   }
 
@@ -290,13 +290,13 @@ Future<bool> startServer() async {
   }
 
   if (listeningPort != _serverPort) {
-    Log.debug(
+    _logVerbose(
       '[HOT-RELOAD] Worker is listening on port $listeningPort; updating watcher port from $_serverPort.',
     );
     _serverPort = listeningPort;
   }
 
-  Log.debug('[HOT-RELOAD] Server started on http://localhost:$_serverPort');
+  _logVerbose('[HOT-RELOAD] Server started on http://localhost:$_serverPort');
   return true;
 }
 
@@ -521,7 +521,7 @@ Future<void> _queueFlintUiRebuild(String filePath, int serverPort) async {
 
 Future<void> _rebuildFlintUi(String filePath, int serverPort) async {
   try {
-    Log.debug('Rebuilding Flint UI...');
+    Log.info('Rebuilding Flint UI...');
     if (_webBuild != null) {
       await _triggerBrowserBuildStart(
         serverPort,
@@ -537,7 +537,7 @@ Future<void> _rebuildFlintUi(String filePath, int serverPort) async {
             ? 'flint_ui:${p.basename(filePath)}'
             : 'flint_ui:page:$rebuiltPage',
       );
-      Log.debug('Done rebuilding Flint UI.');
+      Log.info('Done rebuilding Flint UI.');
     }
   } catch (e, stack) {
     await _notifyServerHotReload(
@@ -660,11 +660,13 @@ Future<void> main(List<String> args) async {
       sourceName: 'flint_ui:initial',
     );
     try {
+      Log.info('Building Flint UI...');
       await FlintWebUiBuilder.compileDefault(_webBuild!);
       await _triggerBrowserReload(
         _serverPort,
         sourceName: 'flint_ui:initial',
       );
+      Log.info('Done building Flint UI.');
     } catch (e, stack) {
       await _notifyServerHotReload(
         'flint_ui:initial',
