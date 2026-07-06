@@ -58,11 +58,20 @@ class RunServerCommand extends FlintCommand {
       if (!built) {
         Log.debug('[FLINT] No Flint Web UI entry found. Skipping web build.');
       }
-    } else if (buildWeb) {
-      Log.debug(
-        '[FLINT] Web UI build deferred to hot reload so the server can start first.',
-      );
     }
+
+    final debugVmService =
+        Platform.environment['FLINT_DEBUG_VM_SERVICE']?.toLowerCase().trim();
+    final enableVmService = debugVmService == '1' ||
+        debugVmService == 'true' ||
+        debugVmService == 'yes';
+    final hotReloadArgs = [
+      if (enableVmService) '--enable-vm-service',
+      'run',
+      'flint_dart:hot_reload',
+      'lib',
+      '--port=$port',
+    ];
 
     final child = hotReloadDisabled
         ? await Process.start(
@@ -73,13 +82,7 @@ class RunServerCommand extends FlintCommand {
           )
         : await Process.start(
             'dart',
-            [
-              '--enable-vm-service',
-              'run',
-              'flint_dart:hot_reload',
-              'lib',
-              '--port=$port',
-            ],
+            hotReloadArgs,
             environment: {'FLINT_HOT': '1'},
             mode: ProcessStartMode.inheritStdio,
             runInShell: true,

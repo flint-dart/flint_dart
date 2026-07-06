@@ -8,6 +8,11 @@ All notable changes to this project are documented in this file.
 - Added framework-level startup migrations through `Flint(autoMigrate: true)` and the `FLINT_AUTO_MIGRATE` environment flag.
 - Added public `FlintMigrations.ensure()` helpers for apps that want explicit deployment-time migration control.
 
+### Changed
+- Updated the Flint UI dependency to `flint_ui: ^0.1.12` for built-in light/dark theme provider support, global theme state, and theme-scoped styles.
+- Quieted default hot-reload startup logging so watcher paths, debounce details, endpoint URLs, and duplicate restart messages are only shown when verbose hot reload logging is enabled.
+- Made the Dart VM service for hot reload opt-in through `FLINT_DEBUG_VM_SERVICE=true` instead of enabling it by default.
+
 ## [1.1.14] - 2026-06-24
 
 ### Added

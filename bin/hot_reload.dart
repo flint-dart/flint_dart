@@ -19,6 +19,16 @@ FlintWebUiBuild? _webBuild;
 Future<void>? _restartFuture;
 bool _restartAgain = false;
 
+bool get _verboseHotReload {
+  final value =
+      Platform.environment['FLINT_HOT_RELOAD_VERBOSE']?.toLowerCase().trim();
+  return value == '1' || value == 'true' || value == 'yes';
+}
+
+void _logVerbose(String message) {
+  if (_verboseHotReload) Log.debug(message);
+}
+
 int? extractServerWorkerPortFromLog(String line) {
   final match = RegExp(
     r'Server Worker running on http://localhost:(\d+)',
@@ -230,7 +240,7 @@ Future<bool> startServer() async {
     }
   }
 
-  Log.debug('[HOT-RELOAD] Starting server...');
+  _logVerbose('[HOT-RELOAD] Starting server...');
   int? announcedPort;
   server = await Process.start(
     'dart',
@@ -270,7 +280,7 @@ Future<bool> startServer() async {
     announcedPort: () => announcedPort,
   );
   if (listeningPort == null) {
-    Log.debug(
+    Log.warning(
       '[HOT-RELOAD] Server process started but port $_serverPort is not reachable.',
     );
     await _killProcessTree(server!);
@@ -384,7 +394,6 @@ Future<void> _restartServerOnce() async {
 
   final started = await startServer();
   if (!started) {
-    Log.debug('[HOT-RELOAD] Server restart failed.');
     return;
   }
   await generateSwaggerDocs();
@@ -605,15 +614,15 @@ Future<void> main(List<String> args) async {
   _serverPort = int.tryParse(results['port']) ?? 3000;
   _webBuild = FlintWebUiBuilder.resolve();
 
-  Log.debug('[HOT-RELOAD] Flint watcher started');
-  Log.debug('[HOT-RELOAD] Watching: lib/');
-  Log.debug('[HOT-RELOAD] Watching: .env');
+  _logVerbose('[HOT-RELOAD] Flint watcher started');
+  _logVerbose('[HOT-RELOAD] Watching: lib/');
+  _logVerbose('[HOT-RELOAD] Watching: .env');
   if (_webBuild != null) {
-    Log.debug('[HOT-RELOAD] Watching: ${_webBuild!.uiDir.path}');
-    Log.debug('[HOT-RELOAD] Watching: ${_webBuild!.webDir.path}');
+    _logVerbose('[HOT-RELOAD] Watching: ${_webBuild!.uiDir.path}');
+    _logVerbose('[HOT-RELOAD] Watching: ${_webBuild!.webDir.path}');
   }
-  Log.debug('[HOT-RELOAD] Debounce: 300ms templates, 500ms server code');
-  Log.debug(
+  _logVerbose('[HOT-RELOAD] Debounce: 300ms templates, 500ms server code');
+  _logVerbose(
     '[HOT-RELOAD] Endpoint: http://localhost:$_serverPort/_flint/internal/hot-reload',
   );
 

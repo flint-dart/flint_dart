@@ -894,11 +894,7 @@ class Flint {
     if (shouldUseHotReload) {
       _registerFlintTemReload();
       _registerHotReloadEndpoint();
-      Log.debug('[FLINT] ⚠️ Hot reload is ENABLED.');
-    } else {
-      Log.debug('[FLINT] Hot reload is DISABLED.');
     }
-    Log.debug('FLINT_HOT=$hotFlag');
 
     // 2. THE LAUNCHER CHECK
     // If we are in the Parent Process, start the watcher and STOP here.
@@ -914,12 +910,16 @@ class Flint {
 
   /// Handles the Process forking for hot reload
   Future<void> _startHotReloadLauncher(int port) async {
-    Log.debug('[FLINT] Starting Parent Launcher (PID: $pid)...');
+    final debugVmService =
+        Platform.environment['FLINT_DEBUG_VM_SERVICE']?.toLowerCase().trim();
+    final enableVmService = debugVmService == '1' ||
+        debugVmService == 'true' ||
+        debugVmService == 'yes';
 
     final child = await Process.start(
       'dart',
       [
-        '--enable-vm-service',
+        if (enableVmService) '--enable-vm-service',
         'run',
         'flint_dart:hot_reload',
         rootPath,
