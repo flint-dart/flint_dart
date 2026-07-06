@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:path/path.dart' as p;
@@ -97,6 +99,9 @@ class Response {
 
   /// Enables app-level server rendering for Flint pages when a renderer exists.
   static bool flintPageServerRenderingEnabled = false;
+
+  static final Set<String> _flintPageBundlesBuilding = {};
+  static final Set<String> _flintPageBundlesUnavailable = {};
 
   /// Creates a new [Response] instance with the given [HttpResponse].
   Response(
@@ -531,10 +536,49 @@ $hotReloadScript
   }
 
   String _flintPageScriptForComponent(String component) {
+    final pageScript = _scriptFromFlintUiManifest(
+      component,
+      includeFallback: false,
+    );
+    if (pageScript != null) return pageScript;
+
+    _buildFlintPageBundleOnDemand(component);
     return _scriptFromFlintUiManifest(component) ?? _defaultFlintPageScript();
   }
 
-  String? _scriptFromFlintUiManifest(String component) {
+  void _buildFlintPageBundleOnDemand(String component) {
+    if (Platform.environment['FLINT_HOT'] != '1') return;
+    if (_flintPageBundlesBuilding.contains(component)) return;
+    if (_flintPageBundlesUnavailable.contains(component)) return;
+
+    final build = FlintWebUiBuilder.resolve();
+    if (build == null) return;
+
+    _flintPageBundlesBuilding.add(component);
+    unawaited(
+      Future<void>(() async {
+        try {
+          Log.info('Building Flint UI page: $component...');
+          await FlintWebUiBuilder.compilePageBundles(build,
+              onlyPage: component);
+          Log.info('Done building Flint UI page: $component.');
+        } on StateError catch (e) {
+          _flintPageBundlesUnavailable.add(component);
+          Log.debug(
+              'Flint UI page bundle skipped for "$component": ${e.message}');
+        } catch (e, stack) {
+          Log.debug('Flint UI page bundle failed for "$component": $e\n$stack');
+        } finally {
+          _flintPageBundlesBuilding.remove(component);
+        }
+      }),
+    );
+  }
+
+  String? _scriptFromFlintUiManifest(
+    String component, {
+    bool includeFallback = true,
+  }) {
     final manifestFile =
         File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json'));
     if (!manifestFile.existsSync()) return null;
@@ -558,9 +602,11 @@ $hotReloadScript
         }
       }
 
-      final fallback = decoded['fallback'];
-      if (fallback is String && fallback.trim().isNotEmpty) {
-        return fallback.trim();
+      if (includeFallback) {
+        final fallback = decoded['fallback'];
+        if (fallback is String && fallback.trim().isNotEmpty) {
+          return fallback.trim();
+        }
       }
     } catch (e) {
       Log.debug('[Flint] Failed to read Flint UI manifest: $e');
