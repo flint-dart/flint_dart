@@ -82,6 +82,9 @@ class FlintPageMeta {
 /// });
 /// ```
 class Response {
+  static String? defaultIconUrl;
+  static String? defaultAppleTouchIconUrl;
+
   /// The underlying raw [HttpResponse] object.
   final HttpResponse raw;
   final Request? request;
@@ -425,9 +428,11 @@ $hotReloadScript
     final description = meta?.description;
     final canonicalUrl = meta?.canonicalUrl ?? requestUrl;
     final imageUrl = meta?.imageUrl;
-    final iconUrl = _resolveIconUrl(meta?.iconUrl);
-    final appleTouchIconUrl =
-        _resolveIconUrl(meta?.appleTouchIconUrl, preferPng: true);
+    final iconUrl = _resolveIconUrl(meta?.iconUrl ?? defaultIconUrl);
+    final appleTouchIconUrl = _resolveIconUrl(
+      meta?.appleTouchIconUrl ?? defaultAppleTouchIconUrl ?? defaultIconUrl,
+      preferPng: true,
+    );
     final tags = <String>[
       '    <meta charset="utf-8">',
       '    <meta name="viewport" content="width=device-width, initial-scale=1">',

@@ -185,7 +185,7 @@ class MakeUiCommand extends FlintCommand {
     file.writeAsStringSync('''
 import 'package:flint_ui/flint_ui.dart';
 
-final componentRegistry = FlintComponentRegistry({
+final componentRegistry = PageRegistry({
 });
 ''');
     Log.info('Created component registry: ${file.path}');
@@ -260,8 +260,8 @@ final appRootDesign = RootDesign(
     }
 
     if (!content.contains("'$pageName':")) {
-      final match =
-          RegExp(r'FlintComponentRegistry\s*\(\s*\{').firstMatch(content);
+      final match = RegExp(r'(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{')
+          .firstMatch(content);
       if (match == null) {
         Log.debug(
             'Could not update registry automatically: ${registryFile.path}');

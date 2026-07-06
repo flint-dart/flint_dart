@@ -19,6 +19,16 @@ FlintWebUiBuild? _webBuild;
 Future<void>? _restartFuture;
 bool _restartAgain = false;
 
+bool get _verboseHotReload {
+  final value =
+      Platform.environment['FLINT_HOT_RELOAD_VERBOSE']?.toLowerCase().trim();
+  return value == '1' || value == 'true' || value == 'yes';
+}
+
+void _logVerbose(String message) {
+  if (_verboseHotReload) Log.debug(message);
+}
+
 int? extractServerWorkerPortFromLog(String line) {
   final match = RegExp(
     r'Server Worker running on http://localhost:(\d+)',
@@ -230,7 +240,7 @@ Future<bool> startServer() async {
     }
   }
 
-  Log.debug('[HOT-RELOAD] Starting server...');
+  _logVerbose('[HOT-RELOAD] Starting server...');
   int? announcedPort;
   server = await Process.start(
     'dart',
@@ -270,7 +280,7 @@ Future<bool> startServer() async {
     announcedPort: () => announcedPort,
   );
   if (listeningPort == null) {
-    Log.debug(
+    Log.warning(
       '[HOT-RELOAD] Server process started but port $_serverPort is not reachable.',
     );
     await _killProcessTree(server!);
@@ -308,10 +318,13 @@ Future<int?> _waitForStartedServerPort({
   return null;
 }
 
-Future<void> _triggerBrowserReload(int port,
-    {required String sourceName}) async {
+Future<void> _triggerBrowserReload(
+  int port, {
+  required String sourceName,
+  bool restartServerIfUnavailable = true,
+}) async {
   var notified = await _notifyServerHotReload(sourceName, '', port);
-  if (!notified) {
+  if (!notified && restartServerIfUnavailable) {
     Log.debug(
       '[HOT-RELOAD] Server reload endpoint is not reachable. Restarting server...',
     );
@@ -381,7 +394,6 @@ Future<void> _restartServerOnce() async {
 
   final started = await startServer();
   if (!started) {
-    Log.debug('[HOT-RELOAD] Server restart failed.');
     return;
   }
   await generateSwaggerDocs();
@@ -406,12 +418,8 @@ void watchFiles(int serverPort) {
     final isUiSource = _webBuild != null &&
         _isWithin(_webBuild!.uiDir.path, event.path) &&
         (ext == '.dart' || p.basename(event.path) == 'tailwind.css');
-    final isWebAsset = _webBuild != null &&
-        _isWithin(_webBuild!.webDir.path, event.path) &&
-        !_isWithin(p.join(_webBuild!.webDir.path, 'uploads'), event.path) &&
-        !p.equals(p.normalize(event.path), p.normalize(_webBuild!.jsOut)) &&
-        ext != '.deps' &&
-        ext != '.map';
+    final isWebAsset =
+        _webBuild != null && isHotReloadWebAsset(_webBuild!, event.path);
 
     if (!isTemplate && !isServerCode && !isUiSource && !isWebAsset) return;
     if (event.type == ChangeType.REMOVE && !isEnvFile) return;
@@ -433,10 +441,15 @@ void watchFiles(int serverPort) {
               serverPort,
               sourceName: 'flint_ui:${p.basename(event.path)}',
             );
-            await FlintWebUiBuilder.compileDefault(_webBuild!);
+            final rebuiltPage = await _compileChangedUiSource(event.path);
+            if (rebuiltPage == null) {
+              await FlintWebUiBuilder.compileDefault(_webBuild!);
+            }
             await _triggerBrowserReload(
               serverPort,
-              sourceName: 'flint_ui:${p.basename(event.path)}',
+              sourceName: rebuiltPage == null
+                  ? 'flint_ui:${p.basename(event.path)}'
+                  : 'flint_ui:page:$rebuiltPage',
             );
           }
         } catch (e, stack) {
@@ -465,6 +478,7 @@ void watchFiles(int serverPort) {
           await _triggerBrowserReload(
             serverPort,
             sourceName: 'web_asset:${p.basename(event.path)}',
+            restartServerIfUnavailable: false,
           );
         } catch (e, stack) {
           Log.error(
@@ -515,6 +529,60 @@ void watchFiles(int serverPort) {
   webWatcher?.events.listen(onEvent);
 }
 
+Future<String?> _compileChangedUiSource(String filePath) async {
+  final build = _webBuild;
+  if (build == null) return null;
+
+  if (p.basename(filePath) == 'tailwind.css') return null;
+  if (p.equals(p.normalize(filePath), p.normalize(build.entry.path))) {
+    return null;
+  }
+
+  final config = FlintWebUiBuilder.discoverPageBundleConfig(build);
+  if (config == null || config.pageTargets.isEmpty) return null;
+
+  final changedImport = _packageImportForSource(filePath);
+  if (changedImport == null) return null;
+
+  for (final entry in config.pageTargets.entries) {
+    if (entry.value.importUri != changedImport) continue;
+
+    Log.debug(
+      '[HOT-RELOAD] Rebuilding Flint UI page bundle only: ${entry.key}',
+    );
+    await FlintWebUiBuilder.compilePageBundles(build, onlyPage: entry.key);
+    return entry.key;
+  }
+
+  return null;
+}
+
+String? _packageImportForSource(String filePath) {
+  final packageName = _readPackageName();
+  if (packageName == null) return null;
+
+  final absolute = p.normalize(p.absolute(filePath));
+  final libRoot = p.normalize(p.absolute('lib'));
+  if (!_isWithin(libRoot, absolute)) return null;
+
+  final relative = p.relative(absolute, from: libRoot);
+  return 'package:$packageName/${p.split(relative).join('/')}';
+}
+
+String? _readPackageName() {
+  final pubspec = File('pubspec.yaml');
+  if (!pubspec.existsSync()) return null;
+
+  for (final rawLine in pubspec.readAsLinesSync()) {
+    final line = rawLine.trim();
+    if (line.startsWith('name:')) {
+      final name = line.substring(5).trim();
+      return name.isEmpty ? null : name;
+    }
+  }
+  return null;
+}
+
 DirectoryWatcher? _watchDirectoryIfPresent(String? path) {
   if (path == null) return null;
   final dir = Directory(path);
@@ -535,21 +603,26 @@ Future<void> main(List<String> args) async {
       'port',
       abbr: 'p',
       defaultsTo: FlintEnv.getInt('PORT', 3001).toString(),
-    );
+    )
+    ..addFlag('help', abbr: 'h', negatable: false);
 
   final results = parser.parse(args);
+  if (results['help'] == true) {
+    Log.debug('Usage: dart run flint_dart:hot_reload [--port <port>]');
+    return;
+  }
   _serverPort = int.tryParse(results['port']) ?? 3000;
   _webBuild = FlintWebUiBuilder.resolve();
 
-  Log.debug('[HOT-RELOAD] Flint watcher started');
-  Log.debug('[HOT-RELOAD] Watching: lib/');
-  Log.debug('[HOT-RELOAD] Watching: .env');
+  _logVerbose('[HOT-RELOAD] Flint watcher started');
+  _logVerbose('[HOT-RELOAD] Watching: lib/');
+  _logVerbose('[HOT-RELOAD] Watching: .env');
   if (_webBuild != null) {
-    Log.debug('[HOT-RELOAD] Watching: ${_webBuild!.uiDir.path}');
-    Log.debug('[HOT-RELOAD] Watching: ${_webBuild!.webDir.path}');
+    _logVerbose('[HOT-RELOAD] Watching: ${_webBuild!.uiDir.path}');
+    _logVerbose('[HOT-RELOAD] Watching: ${_webBuild!.webDir.path}');
   }
-  Log.debug('[HOT-RELOAD] Debounce: 300ms templates, 500ms server code');
-  Log.debug(
+  _logVerbose('[HOT-RELOAD] Debounce: 300ms templates, 500ms server code');
+  _logVerbose(
     '[HOT-RELOAD] Endpoint: http://localhost:$_serverPort/_flint/internal/hot-reload',
   );
 
@@ -585,4 +658,32 @@ Future<void> main(List<String> args) async {
   watchFiles(_serverPort);
 
   await Future.delayed(const Duration(days: 365));
+}
+
+bool isHotReloadWebAsset(FlintWebUiBuild build, String filePath) {
+  final ext = p.extension(filePath);
+  if (!_isWithin(build.webDir.path, filePath)) return false;
+  if (_isWithin(p.join(build.webDir.path, 'uploads'), filePath)) return false;
+  if (_isGeneratedFlintUiAsset(build, filePath)) return false;
+  if (ext == '.deps' || ext == '.map') return false;
+  return true;
+}
+
+bool _isGeneratedFlintUiAsset(FlintWebUiBuild build, String filePath) {
+  final jsOutDir = p.dirname(build.jsOut);
+  if (_isWithin(jsOutDir, filePath)) return true;
+
+  final cssOut = build.cssOut;
+  if (cssOut != null) {
+    final cssOutDir = p.dirname(cssOut);
+    if (_isWithin(cssOutDir, filePath)) return true;
+  }
+
+  final normalizedFile = p.normalize(p.absolute(filePath));
+  final serviceWorkerPath = p.normalize(
+    p.absolute(p.join(build.webDir.path, 'flint-sw.js')),
+  );
+  return normalizedFile == serviceWorkerPath ||
+      normalizedFile == '$serviceWorkerPath.gz' ||
+      normalizedFile == '$serviceWorkerPath.br';
 }

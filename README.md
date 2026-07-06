@@ -91,6 +91,28 @@ void main() {
 
 ---
 
+## Deployment Migrations
+
+Flint can run the normal table registry migration path once during server
+startup, before the HTTP port is bound:
+
+```dart
+final app = Flint(autoMigrate: true);
+```
+
+You can also enable it per environment without changing code:
+
+```env
+FLINT_AUTO_MIGRATE=true
+FLINT_AUTO_MIGRATE_CREATE_DB=false
+FLINT_AUTO_MIGRATE_VERBOSE=false
+```
+
+Auto migration is off by default. When enabled, it runs once per server process
+and uses the same migration engine as `flint migrate`.
+
+---
+
 ## Routing
 
 ```dart

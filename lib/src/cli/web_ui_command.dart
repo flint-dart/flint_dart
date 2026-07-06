@@ -95,20 +95,25 @@ class WebUiCommand extends FlintCommand {
         build,
         configPath: pagesConfigArg,
       );
+    } else if (pageArg != null) {
+      await FlintWebUiBuilder.compilePageBundles(
+        build,
+        configPath: pagesConfigArg,
+        onlyPage: pageArg,
+      );
     } else {
       await FlintWebUiBuilder.compile(build);
-    }
 
-    if (pageBundles && !sharedRuntime) {
-      try {
-        await FlintWebUiBuilder.compilePageBundles(
-          build,
-          configPath: pagesConfigArg,
-          onlyPage: pageArg,
-        );
-      } on StateError catch (e) {
-        if (pageArg != null || pagesConfigArg != null) rethrow;
-        Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+      if (pageBundles) {
+        try {
+          await FlintWebUiBuilder.compilePageBundles(
+            build,
+            configPath: pagesConfigArg,
+          );
+        } on StateError catch (e) {
+          if (pagesConfigArg != null) rethrow;
+          Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+        }
       }
     }
 

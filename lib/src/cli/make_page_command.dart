@@ -81,7 +81,7 @@ void main() {
     file.writeAsStringSync('''
 import 'package:flint_ui/flint_ui.dart';
 
-final componentRegistry = FlintComponentRegistry({
+final componentRegistry = PageRegistry({
 });
 ''');
     Log.info('Created component registry: ${file.path}');
@@ -112,7 +112,8 @@ final componentRegistry = FlintComponentRegistry({
     }
 
     if (!content.contains("'$pageName':")) {
-      final registryStart = RegExp(r'FlintComponentRegistry\s*\(\s*\{');
+      final registryStart =
+          RegExp(r'(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{');
       final match = registryStart.firstMatch(content);
       if (match == null) {
         Log.debug(

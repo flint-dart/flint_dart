@@ -46,6 +46,7 @@ void main() {
       expect(page, contains('PageShell('));
 
       final registry = await registryFile.readAsString();
+      expect(registry, contains('final componentRegistry = PageRegistry({'));
       expect(registry, contains("import 'pages/portfolio_page.dart';"));
       expect(
         registry,
@@ -94,7 +95,7 @@ void main() {
           .writeAsString('''
 import 'package:flint_ui/flint_ui.dart';
 
-final componentRegistry = FlintComponentRegistry({
+final componentRegistry = PageRegistry({
 });
 ''');
 
