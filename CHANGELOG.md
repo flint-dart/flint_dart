@@ -16,6 +16,7 @@ All notable changes to this project are documented in this file.
 - Added completion messages after successful Flint UI builds and rebuilds.
 - Serialized save-triggered Flint UI rebuilds so repeated file events queue one follow-up rebuild instead of launching overlapping compilers.
 - Changed the default console log level to `info` while keeping Flint UI build/rebuild start and completion messages visible.
+- Changed hot reload startup to silently compile only the main Flint UI bundle after the server starts; page bundles are rebuilt on page/source saves or by `flint web --build-only`.
 
 ## [1.1.14] - 2026-06-24
 

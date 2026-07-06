@@ -31,6 +31,12 @@ void _logVerbose(String message) {
   if (_verboseHotReload) Log.debug(message);
 }
 
+bool get _initialUiBuildDisabled {
+  final value =
+      Platform.environment['FLINT_INITIAL_UI_BUILD']?.toLowerCase().trim();
+  return value == '0' || value == 'false' || value == 'no';
+}
+
 int? extractServerWorkerPortFromLog(String line) {
   final match = RegExp(
     r'Server Worker running on http://localhost:(\d+)',
@@ -654,19 +660,15 @@ Future<void> main(List<String> args) async {
 
   await restartServer();
 
-  if (_webBuild != null && await _isServerListening(_serverPort)) {
-    await _triggerBrowserBuildStart(
-      _serverPort,
-      sourceName: 'flint_ui:initial',
-    );
+  if (_webBuild != null &&
+      !_initialUiBuildDisabled &&
+      await _isServerListening(_serverPort)) {
     try {
-      Log.info('Building Flint UI...');
-      await FlintWebUiBuilder.compileDefault(_webBuild!);
+      await FlintWebUiBuilder.compile(_webBuild!);
       await _triggerBrowserReload(
         _serverPort,
         sourceName: 'flint_ui:initial',
       );
-      Log.info('Done building Flint UI.');
     } catch (e, stack) {
       await _notifyServerHotReload(
         'flint_ui:initial',
@@ -681,6 +683,10 @@ Future<void> main(List<String> args) async {
         stackTrace: stack,
       );
     }
+  } else if (_webBuild != null) {
+    _logVerbose(
+      '[HOT-RELOAD] Initial Flint UI build skipped. Save a UI file to rebuild, or run `flint web --build-only` for a full build.',
+    );
   }
 
   watchFiles(_serverPort);
