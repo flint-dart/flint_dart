@@ -561,7 +561,6 @@ $hotReloadScript
   }) {
     final resolvedTitle =
         meta?.title ?? title ?? 'Building ${_escapeHtmlText(component)}';
-    final safeComponent = _escapeHtmlText(component);
     final safeJsonComponent = jsonEncode(component).replaceAll('</', '<\\/');
     final headTags = _renderFlintPageHead(
       title: resolvedTitle,
@@ -584,53 +583,46 @@ $headTags
       body {
         margin: 0;
         min-height: 100vh;
-        display: grid;
-        place-items: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         background: #f5fbf8;
         color: #0f172a;
         font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       @media (prefers-color-scheme: dark) {
         body { background: #030712; color: #f8fafc; }
-        .flint-build-card { background: rgba(15, 23, 42, 0.88); border-color: rgba(148, 163, 184, 0.24); }
-        .flint-build-muted { color: #a7b5c8; }
       }
-      .flint-build-card {
-        width: min(440px, calc(100vw - 32px));
-        padding: 28px;
-        border: 1px solid rgba(15, 23, 42, 0.10);
-        border-radius: 10px;
-        background: #ffffff;
-        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+      .flint-build-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0;
       }
       .flint-build-spinner {
-        width: 34px;
-        height: 34px;
+        width: 16px;
+        height: 16px;
         border-radius: 999px;
-        border: 3px solid rgba(15, 23, 42, 0.14);
+        border: 2px solid rgba(15, 23, 42, 0.16);
         border-top-color: #0f766e;
         animation: flint-spin 0.8s linear infinite;
       }
-      .flint-build-title {
-        margin: 18px 0 8px;
-        font-size: 22px;
-        line-height: 1.2;
-        letter-spacing: 0;
-      }
-      .flint-build-muted {
-        margin: 0;
-        color: #526170;
-        font-size: 14px;
-        line-height: 1.55;
+      @media (prefers-color-scheme: dark) {
+        .flint-build-spinner {
+          border-color: rgba(248, 250, 252, 0.18);
+          border-top-color: #2dd4bf;
+        }
       }
       @keyframes flint-spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
-    <main class="flint-build-card" aria-live="polite">
+    <main class="flint-build-status" aria-live="polite">
       <div class="flint-build-spinner" aria-hidden="true"></div>
-      <h1 class="flint-build-title">Building Flint UI page</h1>
-      <p class="flint-build-muted">$safeComponent is compiling. This page will reload automatically when it is ready.</p>
+      <span>Building Flint UI...</span>
     </main>
     <script>
       window.__FLINT_BUILDING_PAGE__ = $safeJsonComponent;
