@@ -649,13 +649,13 @@ $headTags
     final pageScript = _scriptFromFlintUiManifest(
       component,
       includeFallback: false,
+      requireExistingFile: true,
     );
     if (pageScript != null) return _FlintPageScriptResolution(pageScript);
 
     if (Platform.environment['FLINT_HOT'] == '1' &&
         !_flintPageBundlesUnavailable.contains(component)) {
-      _buildFlintPageBundleOnDemand(component);
-      if (_flintPageBundlesBuilding.contains(component)) {
+      if (_buildFlintPageBundleOnDemand(component)) {
         return _FlintPageScriptResolution(
           _defaultFlintPageScript(),
           isBuilding: true,
@@ -664,17 +664,21 @@ $headTags
     }
 
     return _FlintPageScriptResolution(
-      _scriptFromFlintUiManifest(component) ?? _defaultFlintPageScript(),
+      _scriptFromFlintUiManifest(
+            component,
+            requireExistingFile: true,
+          ) ??
+          _defaultFlintPageScript(),
     );
   }
 
-  void _buildFlintPageBundleOnDemand(String component) {
-    if (Platform.environment['FLINT_HOT'] != '1') return;
-    if (_flintPageBundlesBuilding.contains(component)) return;
-    if (_flintPageBundlesUnavailable.contains(component)) return;
+  bool _buildFlintPageBundleOnDemand(String component) {
+    if (Platform.environment['FLINT_HOT'] != '1') return false;
+    if (_flintPageBundlesBuilding.contains(component)) return true;
+    if (_flintPageBundlesUnavailable.contains(component)) return false;
 
     final build = FlintWebUiBuilder.resolve();
-    if (build == null) return;
+    if (build == null) return false;
 
     _flintPageBundlesBuilding.add(component);
     unawaited(
@@ -695,11 +699,13 @@ $headTags
         }
       }),
     );
+    return true;
   }
 
   String? _scriptFromFlintUiManifest(
     String component, {
     bool includeFallback = true,
+    bool requireExistingFile = false,
   }) {
     final manifestFile =
         File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json'));
@@ -711,23 +717,32 @@ $headTags
 
       if (decoded['mode'] == 'shared-runtime') {
         final runtime = decoded['runtime'];
-        if (runtime is String && runtime.trim().isNotEmpty) {
-          return runtime.trim();
+        if (_isUsableManifestScript(
+          runtime,
+          requireExistingFile: requireExistingFile,
+        )) {
+          return runtime.toString().trim();
         }
       }
 
       final pages = decoded['pages'];
       if (pages is Map) {
         final script = pages[component];
-        if (script is String && script.trim().isNotEmpty) {
-          return script.trim();
+        if (_isUsableManifestScript(
+          script,
+          requireExistingFile: requireExistingFile,
+        )) {
+          return script.toString().trim();
         }
       }
 
       if (includeFallback) {
         final fallback = decoded['fallback'];
-        if (fallback is String && fallback.trim().isNotEmpty) {
-          return fallback.trim();
+        if (_isUsableManifestScript(
+          fallback,
+          requireExistingFile: requireExistingFile,
+        )) {
+          return fallback.toString().trim();
         }
       }
     } catch (e) {
@@ -735,6 +750,36 @@ $headTags
     }
 
     return null;
+  }
+
+  bool _isUsableManifestScript(
+    Object? value, {
+    required bool requireExistingFile,
+  }) {
+    if (value is! String || value.trim().isEmpty) return false;
+    if (!requireExistingFile) return true;
+    return _publicAssetExists(value.trim());
+  }
+
+  bool _publicAssetExists(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('data:')) {
+      return true;
+    }
+
+    final parsed = Uri.tryParse(trimmed);
+    final pathOnly = parsed?.path ?? trimmed.split('?').first.split('#').first;
+    if (!pathOnly.startsWith('/')) return true;
+
+    final publicPath = p.joinAll([
+      'public',
+      ...pathOnly.split('/').where((part) => part.isNotEmpty),
+    ]);
+    return File(publicPath).existsSync();
   }
 
   String? _resolveIconUrl(String? explicitUrl, {bool preferPng = false}) {
