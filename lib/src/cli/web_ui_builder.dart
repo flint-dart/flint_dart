@@ -328,12 +328,12 @@ class FlintWebUiBuilder {
     final config = discoverPageBundleConfig(build, configPath: configPath);
     if (config == null) {
       throw StateError(
-        'No Flint UI page config found. Create component_registry.dart or pass --pages-config <path>.',
+        'No Flint UI page config found. Create component_registry.dart, registry.dart, or pass --pages-config <path>.',
       );
     }
     if (config.pageTargets.isEmpty) {
       throw StateError(
-        'Shared runtime needs direct page imports in component_registry.dart.',
+        'Shared runtime needs direct page imports in component_registry.dart or registry.dart.',
       );
     }
 
@@ -597,8 +597,8 @@ void main() {
 
     if (pages.isEmpty) return null;
 
-    final registryImport = values['registry_import'] ??
-        _packageImportFor(packageName, 'lib/ui/component_registry.dart');
+    final registryImport =
+        values['registry_import'] ?? _defaultRegistryImport(packageName);
     final rootDesignImport = values['root_design_import'];
     final rootDesignName = values['root_design'];
 
@@ -614,9 +614,8 @@ void main() {
   static FlintWebUiPageBundleConfig? _detectPageBundleConfig(
     FlintWebUiBuild build,
   ) {
-    final registryFile =
-        File(path.join('lib', 'ui', 'component_registry.dart'));
-    if (!registryFile.existsSync()) return null;
+    final registryFile = _findRegistryFile();
+    if (registryFile == null) return null;
 
     final packageName = _readPackageName();
     final registrySource = registryFile.readAsStringSync();
@@ -635,7 +634,7 @@ void main() {
     return FlintWebUiPageBundleConfig(
       registryImport: _packageImportFor(
         packageName,
-        path.join('lib', 'ui', 'component_registry.dart'),
+        registryFile.path,
       ),
       registryName: _detectRegistryName(registrySource) ?? 'componentRegistry',
       rootDesignImport: rootDesign?.importUri,
@@ -644,6 +643,28 @@ void main() {
         for (final page in pageTargets.keys) page: _safeSlug(page),
       },
       pageTargets: pageTargets,
+    );
+  }
+
+  static File? _findRegistryFile() {
+    final candidates = [
+      path.join('lib', 'ui', 'component_registry.dart'),
+      path.join('lib', 'ui', 'registry.dart'),
+    ];
+
+    for (final candidate in candidates) {
+      final file = File(candidate);
+      if (file.existsSync()) return file;
+    }
+
+    return null;
+  }
+
+  static String _defaultRegistryImport(String packageName) {
+    final registryFile = _findRegistryFile();
+    return _packageImportFor(
+      packageName,
+      registryFile?.path ?? path.join('lib', 'ui', 'component_registry.dart'),
     );
   }
 
