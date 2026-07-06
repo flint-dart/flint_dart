@@ -91,17 +91,20 @@ class WebUiCommand extends FlintCommand {
     }
 
     if (sharedRuntime) {
+      Log.debug('Building Flint UI...');
       await FlintWebUiBuilder.compileSharedRuntimeBundle(
         build,
         configPath: pagesConfigArg,
       );
     } else if (pageArg != null) {
+      Log.debug('Building Flint UI...');
       await FlintWebUiBuilder.compilePageBundles(
         build,
         configPath: pagesConfigArg,
         onlyPage: pageArg,
       );
     } else {
+      Log.debug('Building Flint UI...');
       await FlintWebUiBuilder.compile(build);
 
       if (pageBundles) {
@@ -118,10 +121,6 @@ class WebUiCommand extends FlintCommand {
     }
 
     if (buildOnly) {
-      Log.debug('Web bundle generated: ${build.jsOut}');
-      if (build.cssOut != null && File(build.cssOut!).existsSync()) {
-        Log.debug('Stylesheet available: ${build.cssOut}');
-      }
       return;
     }
 

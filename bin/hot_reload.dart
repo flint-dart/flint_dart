@@ -435,7 +435,7 @@ void watchFiles(int serverPort) {
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 350), () async {
         try {
-          Log.debug('[HOT-RELOAD] Flint UI changed: ${event.path}');
+          Log.debug('Rebuilding Flint UI...');
           if (_webBuild != null) {
             await _triggerBrowserBuildStart(
               serverPort,
@@ -547,7 +547,7 @@ Future<String?> _compileChangedUiSource(String filePath) async {
   for (final entry in config.pageTargets.entries) {
     if (entry.value.importUri != changedImport) continue;
 
-    Log.debug(
+    _logVerbose(
       '[HOT-RELOAD] Rebuilding Flint UI page bundle only: ${entry.key}',
     );
     await FlintWebUiBuilder.compilePageBundles(build, onlyPage: entry.key);

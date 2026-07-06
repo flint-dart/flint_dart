@@ -5,6 +5,16 @@ import 'package:flint_dart/logs.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 
+bool get _verboseWebUiBuild {
+  final value =
+      Platform.environment['FLINT_WEB_UI_VERBOSE']?.toLowerCase().trim();
+  return value == '1' || value == 'true' || value == 'yes';
+}
+
+void _logVerbose(String message) {
+  if (_verboseWebUiBuild) Log.debug(message);
+}
+
 class FlintWebUiBuild {
   final File entry;
   final Directory uiDir;
@@ -255,7 +265,7 @@ class FlintWebUiBuilder {
         _pageEntrypointSource(component, config),
       );
 
-      Log.debug('Compiling Flint UI page bundle: $component');
+      _logVerbose('Compiling Flint UI page bundle: $component');
       await _compileDartFile(generatedEntry.path, jsOut);
       final hashedJsOut = _hashDartJsAssetFamily(jsOut);
       if (onlyPage == null) {
@@ -299,7 +309,7 @@ class FlintWebUiBuilder {
     manifestFile.writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
-    Log.debug('Flint UI manifest generated: ${manifestFile.path}');
+    _logVerbose('Flint UI manifest generated: ${manifestFile.path}');
     if (onlyPage == null) {
       await _compressAssetIfUseful(manifestFile);
     }
@@ -350,7 +360,7 @@ class FlintWebUiBuilder {
     _cleanCompiledAssetFamily(runtimeOut);
     _deleteDeferredPartSiblings(runtimeOut);
 
-    Log.debug('Compiling Flint UI shared runtime bundle...');
+    _logVerbose('Compiling Flint UI shared runtime bundle...');
     await _compileDartFile(generatedEntry.path, runtimeOut);
 
     final deferredChunks = _hashDeferredPartFiles(
@@ -387,8 +397,9 @@ class FlintWebUiBuilder {
     manifestFile.writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
-    Log.debug(
-        'Flint UI shared runtime manifest generated: ${manifestFile.path}');
+    _logVerbose(
+      'Flint UI shared runtime manifest generated: ${manifestFile.path}',
+    );
     await _compressAssetIfUseful(manifestFile);
     _writeServiceWorker(build);
     await _compressAssetIfUseful(
@@ -422,8 +433,8 @@ class FlintWebUiBuilder {
   }
 
   static Future<void> _compileDart(FlintWebUiBuild build) async {
-    Log.debug('Compiling Flint Web UI...');
-    Log.debug('Entry: ${build.entry.path}');
+    _logVerbose('Compiling Flint Web UI...');
+    _logVerbose('Entry: ${build.entry.path}');
 
     final output = File(build.jsOut);
     output.parent.createSync(recursive: true);
@@ -495,7 +506,7 @@ void main() {
     ].where((chunk) => chunk.trim().isNotEmpty).join('\n');
 
     output.writeAsStringSync('$generated\n');
-    Log.debug('Root design stylesheet generated: ${output.path}');
+    _logVerbose('Root design stylesheet generated: ${output.path}');
   }
 
   static String _stripGeneratedRootDesignCss(String cssText) {
@@ -534,7 +545,7 @@ void main() {
       );
     }
 
-    if (stdoutText.isNotEmpty) Log.debug(stdoutText);
+    if (stdoutText.isNotEmpty) _logVerbose(stdoutText);
   }
 
   static FlintWebUiPageBundleConfig? discoverPageBundleConfig(
@@ -866,7 +877,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     }
 
     jsFile.deleteSync();
-    Log.debug('Hashed Flint UI asset: ${hashedJsFile.path}');
+    _logVerbose('Hashed Flint UI asset: ${hashedJsFile.path}');
     return hashedJsFile.path;
   }
 
@@ -961,8 +972,9 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       file.deleteSync();
       return true;
     } on FileSystemException catch (e) {
-      Log.debug(
-          'Skipped locked Flint asset: ${file.path} (${e.osError?.message ?? e.message})');
+      _logVerbose(
+        'Skipped locked Flint asset: ${file.path} (${e.osError?.message ?? e.message})',
+      );
       return false;
     }
   }
@@ -1016,7 +1028,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       chunk.deleteSync();
       replacements[oldName] = hashedName;
       hashedChunks.add(hashedFile);
-      Log.debug('Hashed Flint UI deferred asset: ${hashedFile.path}');
+      _logVerbose('Hashed Flint UI deferred asset: ${hashedFile.path}');
     }
 
     if (runtimeFile.existsSync() && replacements.isNotEmpty) {
@@ -1114,7 +1126,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     final bytes = file.readAsBytesSync();
     final gzipFile = File('${file.path}.gz');
     gzipFile.writeAsBytesSync(gzip.encode(bytes));
-    Log.debug('Compressed Flint asset: ${gzipFile.path}');
+    _logVerbose('Compressed Flint asset: ${gzipFile.path}');
 
     final brotli = await _resolveBrotliBinary();
     if (brotli == null) return;
@@ -1126,11 +1138,11 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       runInShell: true,
     );
     if (result.exitCode == 0 && brFile.existsSync()) {
-      Log.debug('Compressed Flint asset: ${brFile.path}');
+      _logVerbose('Compressed Flint asset: ${brFile.path}');
     } else {
       final stderrText = result.stderr.toString().trim();
       if (stderrText.isNotEmpty) {
-        Log.debug('Brotli compression skipped for ${file.path}: $stderrText');
+        _logVerbose('Brotli compression skipped for ${file.path}: $stderrText');
       }
     }
   }
@@ -1164,7 +1176,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     final cacheName =
         'flint-ui-${DateTime.now().millisecondsSinceEpoch.toString()}';
     file.writeAsStringSync(_serviceWorkerSource(cacheName));
-    Log.debug('Flint service worker generated: ${file.path}');
+    _logVerbose('Flint service worker generated: ${file.path}');
   }
 
   static String _serviceWorkerSource(String cacheName) {
@@ -1316,8 +1328,8 @@ self.addEventListener('fetch', event => {
       return;
     }
 
-    Log.debug('Compiling Tailwind CSS...');
-    Log.debug('Input: ${input.path}');
+    _logVerbose('Compiling Tailwind CSS...');
+    _logVerbose('Input: ${input.path}');
 
     final result = await Process.run(
       binary,
@@ -1333,7 +1345,7 @@ self.addEventListener('fetch', event => {
     }
 
     final stdoutText = result.stdout.toString().trim();
-    if (stdoutText.isNotEmpty) Log.debug(stdoutText);
+    if (stdoutText.isNotEmpty) _logVerbose(stdoutText);
   }
 
   static Future<String?> _resolveTailwindBinary() async {

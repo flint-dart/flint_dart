@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - Updated the Flint UI dependency to `flint_ui: ^0.1.12` for built-in light/dark theme provider support, global theme state, and theme-scoped styles.
 - Quieted default hot-reload startup logging so watcher paths, debounce details, endpoint URLs, and duplicate restart messages are only shown when verbose hot reload logging is enabled.
 - Made the Dart VM service for hot reload opt-in through `FLINT_DEBUG_VM_SERVICE=true` instead of enabling it by default.
+- Quieted Flint UI build output so normal builds show a single `Building Flint UI...` message and save-triggered hot reload shows `Rebuilding Flint UI...`; detailed asset/compiler logs are now opt-in with `FLINT_WEB_UI_VERBOSE=true`.
 
 ## [1.1.14] - 2026-06-24
 
