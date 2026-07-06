@@ -328,12 +328,12 @@ class FlintWebUiBuilder {
     final config = discoverPageBundleConfig(build, configPath: configPath);
     if (config == null) {
       throw StateError(
-        'No Flint UI page config found. Create component_registry.dart, registry.dart, or pass --pages-config <path>.',
+        'No Flint UI page config found. Create component_registry.dart, registry.dart, page_registry.dart, or pass --pages-config <path>.',
       );
     }
     if (config.pageTargets.isEmpty) {
       throw StateError(
-        'Shared runtime needs direct page imports in component_registry.dart or registry.dart.',
+        'Shared runtime needs direct page imports in component_registry.dart, registry.dart, or page_registry.dart.',
       );
     }
 
@@ -650,6 +650,7 @@ void main() {
     final candidates = [
       path.join('lib', 'ui', 'component_registry.dart'),
       path.join('lib', 'ui', 'registry.dart'),
+      path.join('lib', 'ui', 'page_registry.dart'),
     ];
 
     for (final candidate in candidates) {
