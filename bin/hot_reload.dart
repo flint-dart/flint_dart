@@ -451,6 +451,7 @@ void watchFiles(int serverPort) {
                   ? 'flint_ui:${p.basename(event.path)}'
                   : 'flint_ui:page:$rebuiltPage',
             );
+            Log.debug('Done rebuilding Flint UI.');
           }
         } catch (e, stack) {
           await _notifyServerHotReload(

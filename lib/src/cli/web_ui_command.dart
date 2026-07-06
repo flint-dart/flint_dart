@@ -96,6 +96,7 @@ class WebUiCommand extends FlintCommand {
         build,
         configPath: pagesConfigArg,
       );
+      Log.debug('Done building Flint UI.');
     } else if (pageArg != null) {
       Log.debug('Building Flint UI...');
       await FlintWebUiBuilder.compilePageBundles(
@@ -103,6 +104,7 @@ class WebUiCommand extends FlintCommand {
         configPath: pagesConfigArg,
         onlyPage: pageArg,
       );
+      Log.debug('Done building Flint UI.');
     } else {
       Log.debug('Building Flint UI...');
       await FlintWebUiBuilder.compile(build);
@@ -118,6 +120,7 @@ class WebUiCommand extends FlintCommand {
           Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
         }
       }
+      Log.debug('Done building Flint UI.');
     }
 
     if (buildOnly) {
