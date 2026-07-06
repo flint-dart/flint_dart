@@ -2,11 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## [1.1.15] - 2026-07-06
 
 ### Added
 - Added framework-level startup migrations through `Flint(autoMigrate: true)` and the `FLINT_AUTO_MIGRATE` environment flag.
 - Added public `FlintMigrations.ensure()` helpers for apps that want explicit deployment-time migration control.
+- Added dev-only on-demand Flint UI page bundle builds when a requested page bundle is missing during hot reload.
+- Added automatic page registry discovery for `lib/ui/registry.dart` and `lib/ui/page_registry.dart` in addition to `lib/ui/component_registry.dart`.
 
 ### Changed
 - Updated the Flint UI dependency to `flint_ui: ^0.1.12` for built-in light/dark theme provider support, global theme state, and theme-scoped styles.
@@ -17,6 +19,7 @@ All notable changes to this project are documented in this file.
 - Serialized save-triggered Flint UI rebuilds so repeated file events queue one follow-up rebuild instead of launching overlapping compilers.
 - Changed the default console log level to `info` while keeping Flint UI build/rebuild start and completion messages visible.
 - Changed hot reload startup to silently compile only the main Flint UI bundle after the server starts; page bundles are rebuilt on page/source saves or by `flint web --build-only`.
+- Changed save-triggered Flint UI rebuilds to rebuild only the directly changed page bundle when the changed source maps to a page registry entry.
 
 ## [1.1.14] - 2026-06-24
 
