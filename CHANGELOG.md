@@ -14,6 +14,7 @@ All notable changes to this project are documented in this file.
 - Made the Dart VM service for hot reload opt-in through `FLINT_DEBUG_VM_SERVICE=true` instead of enabling it by default.
 - Quieted Flint UI build output so normal builds show a single `Building Flint UI...` message and save-triggered hot reload shows `Rebuilding Flint UI...`; detailed asset/compiler logs are now opt-in with `FLINT_WEB_UI_VERBOSE=true`.
 - Added completion messages after successful Flint UI builds and rebuilds.
+- Serialized save-triggered Flint UI rebuilds so repeated file events queue one follow-up rebuild instead of launching overlapping compilers.
 
 ## [1.1.14] - 2026-06-24
 

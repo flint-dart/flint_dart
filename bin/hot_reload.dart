@@ -18,6 +18,8 @@ int _serverPort = FlintEnv.getInt('PORT', 3001);
 FlintWebUiBuild? _webBuild;
 Future<void>? _restartFuture;
 bool _restartAgain = false;
+Future<void>? _uiBuildFuture;
+bool _uiBuildAgain = false;
 
 bool get _verboseHotReload {
   final value =
@@ -434,39 +436,7 @@ void watchFiles(int serverPort) {
     if (isUiSource) {
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 350), () async {
-        try {
-          Log.debug('Rebuilding Flint UI...');
-          if (_webBuild != null) {
-            await _triggerBrowserBuildStart(
-              serverPort,
-              sourceName: 'flint_ui:${p.basename(event.path)}',
-            );
-            final rebuiltPage = await _compileChangedUiSource(event.path);
-            if (rebuiltPage == null) {
-              await FlintWebUiBuilder.compileDefault(_webBuild!);
-            }
-            await _triggerBrowserReload(
-              serverPort,
-              sourceName: rebuiltPage == null
-                  ? 'flint_ui:${p.basename(event.path)}'
-                  : 'flint_ui:page:$rebuiltPage',
-            );
-            Log.debug('Done rebuilding Flint UI.');
-          }
-        } catch (e, stack) {
-          await _notifyServerHotReload(
-            'flint_ui:${p.basename(event.path)}',
-            '',
-            serverPort,
-            event: 'flint:error',
-            message: 'Flint UI build failed. Check the terminal.',
-          );
-          Log.error(
-            '[HOT-RELOAD] Error rebuilding Flint UI',
-            error: e,
-            stackTrace: stack,
-          );
-        }
+        await _queueFlintUiRebuild(event.path, serverPort);
       });
       return;
     }
@@ -528,6 +498,61 @@ void watchFiles(int serverPort) {
   envWatcher.events.listen(onEvent);
   uiWatcher?.events.listen(onEvent);
   webWatcher?.events.listen(onEvent);
+}
+
+Future<void> _queueFlintUiRebuild(String filePath, int serverPort) async {
+  if (_uiBuildFuture != null) {
+    _uiBuildAgain = true;
+    _logVerbose(
+        '[HOT-RELOAD] Flint UI rebuild already running; queued another rebuild.');
+    return _uiBuildFuture;
+  }
+
+  do {
+    _uiBuildAgain = false;
+    _uiBuildFuture = _rebuildFlintUi(filePath, serverPort);
+    try {
+      await _uiBuildFuture;
+    } finally {
+      _uiBuildFuture = null;
+    }
+  } while (_uiBuildAgain);
+}
+
+Future<void> _rebuildFlintUi(String filePath, int serverPort) async {
+  try {
+    Log.debug('Rebuilding Flint UI...');
+    if (_webBuild != null) {
+      await _triggerBrowserBuildStart(
+        serverPort,
+        sourceName: 'flint_ui:${p.basename(filePath)}',
+      );
+      final rebuiltPage = await _compileChangedUiSource(filePath);
+      if (rebuiltPage == null) {
+        await FlintWebUiBuilder.compileDefault(_webBuild!);
+      }
+      await _triggerBrowserReload(
+        serverPort,
+        sourceName: rebuiltPage == null
+            ? 'flint_ui:${p.basename(filePath)}'
+            : 'flint_ui:page:$rebuiltPage',
+      );
+      Log.debug('Done rebuilding Flint UI.');
+    }
+  } catch (e, stack) {
+    await _notifyServerHotReload(
+      'flint_ui:${p.basename(filePath)}',
+      '',
+      serverPort,
+      event: 'flint:error',
+      message: 'Flint UI build failed. Check the terminal.',
+    );
+    Log.error(
+      '[HOT-RELOAD] Error rebuilding Flint UI',
+      error: e,
+      stackTrace: stack,
+    );
+  }
 }
 
 Future<String?> _compileChangedUiSource(String filePath) async {
