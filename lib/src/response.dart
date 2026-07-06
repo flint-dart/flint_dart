@@ -304,14 +304,7 @@ class Response {
       final scriptResolution = script == null
           ? _flintPageScriptForComponent(component)
           : _FlintPageScriptResolution(script);
-      if (scriptResolution.isBuilding) {
-        return _flintPageBundleLoading(
-          component,
-          title: title,
-          meta: meta,
-          status: status,
-        );
-      }
+      final isBuildingPageBundle = scriptResolution.isBuilding;
       final resolvedScript = scriptResolution.script;
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
@@ -329,15 +322,26 @@ class Response {
       final headTags = _renderFlintPageHead(
         title: title ?? resolvedMeta?.title ?? component,
         stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
-        scriptPreloads: preloadScript ? [versionedScript] : const [],
+        scriptPreloads: preloadScript && !isBuildingPageBundle
+            ? [versionedScript]
+            : const [],
         meta: resolvedMeta,
         requestUrl: request?.uri.toString(),
       );
 
-      raw.statusCode = status ?? raw.statusCode;
+      raw.statusCode = status ??
+          (isBuildingPageBundle ? HttpStatus.accepted : raw.statusCode);
       raw.headers.contentType = ContentType.html;
+      if (isBuildingPageBundle) {
+        raw.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
+      }
       final hotReloadScript = _hotReloadScript();
       final serviceWorkerScript = _flintServiceWorkerScript();
+      final buildOverlayScript =
+          isBuildingPageBundle ? _lazyPageBuildOverlayScript(component) : '';
+      final pageScriptTag = isBuildingPageBundle
+          ? ''
+          : '    <script defer src="$safeScript"></script>';
       raw.write('''
 <!DOCTYPE html>
 <html lang="en">
@@ -346,7 +350,8 @@ $headTags
   </head>
   <body>
     <main id="$safeRootId" data-flint-page="$encodedPage">$renderedHtml</main>
-    <script defer src="$safeScript"></script>
+$pageScriptTag
+$buildOverlayScript
 $serviceWorkerScript
 $hotReloadScript
   </body>
@@ -553,88 +558,77 @@ $hotReloadScript
     return '$trimmed${separator}v=$version';
   }
 
-  Response _flintPageBundleLoading(
-    String component, {
-    String? title,
-    FlintPageMeta? meta,
-    int? status,
-  }) {
-    final resolvedTitle =
-        meta?.title ?? title ?? 'Building ${_escapeHtmlText(component)}';
+  String _lazyPageBuildOverlayScript(String component) {
     final safeJsonComponent = jsonEncode(component).replaceAll('</', '<\\/');
-    final headTags = _renderFlintPageHead(
-      title: resolvedTitle,
-      stylesheets: const [],
-      meta: meta ?? FlintPageMeta(title: resolvedTitle, noIndex: true),
-      requestUrl: request?.uri.toString(),
-    );
-
-    raw.statusCode = status ?? HttpStatus.accepted;
-    raw.headers.contentType = ContentType.html;
-    raw.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
-    raw.write('''
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-$headTags
-    <style>
-      :root { color-scheme: light dark; }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f5fbf8;
-        color: #0f172a;
-        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      }
-      @media (prefers-color-scheme: dark) {
-        body { background: #030712; color: #f8fafc; }
-      }
-      .flint-build-status {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        font-size: 14px;
-        font-weight: 700;
-        letter-spacing: 0;
-      }
-      .flint-build-spinner {
-        width: 16px;
-        height: 16px;
-        border-radius: 999px;
-        border: 2px solid rgba(15, 23, 42, 0.16);
-        border-top-color: #0f766e;
-        animation: flint-spin 0.8s linear infinite;
-      }
-      @media (prefers-color-scheme: dark) {
-        .flint-build-spinner {
-          border-color: rgba(248, 250, 252, 0.18);
-          border-top-color: #2dd4bf;
-        }
-      }
-      @keyframes flint-spin { to { transform: rotate(360deg); } }
-    </style>
-  </head>
-  <body>
-    <main class="flint-build-status" aria-live="polite">
-      <div class="flint-build-spinner" aria-hidden="true"></div>
-      <span>Building Flint UI...</span>
-    </main>
+    return '''
     <script>
-      window.__FLINT_BUILDING_PAGE__ = $safeJsonComponent;
-      window.setTimeout(function () {
-        window.location.reload();
-      }, 1500);
-    </script>
-  </body>
-</html>
-''');
-    close();
-    return this;
+      (function () {
+        window.__FLINT_BUILDING_PAGE__ = $safeJsonComponent;
+
+        function ensureFlintLazyBuildIndicator() {
+          var overlay = document.getElementById('flint-hot-reload-indicator');
+          if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'flint-hot-reload-indicator';
+            overlay.setAttribute('role', 'status');
+            overlay.setAttribute('aria-live', 'polite');
+            overlay.innerHTML = '<span class="flint-hot-reload-spinner"></span><span class="flint-hot-reload-text">Building Flint UI...</span>';
+
+            var style = document.createElement('style');
+            style.textContent = `
+              #flint-hot-reload-indicator {
+                align-items: center;
+                backdrop-filter: blur(14px);
+                background: rgba(15, 23, 42, 0.86);
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 12px;
+                box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
+                color: #ffffff;
+                display: none;
+                font: 700 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                gap: 10px;
+                left: 50%;
+                max-width: calc(100vw - 32px);
+                padding: 12px 14px;
+                position: fixed;
+                top: 18px;
+                transform: translateX(-50%);
+                z-index: 2147483647;
+              }
+
+              #flint-hot-reload-indicator[data-visible="true"] {
+                display: inline-flex;
+              }
+
+              .flint-hot-reload-spinner {
+                animation: flint-hot-reload-spin 0.75s linear infinite;
+                border: 2px solid rgba(255, 255, 255, 0.28);
+                border-top-color: #38bdf8;
+                border-radius: 999px;
+                height: 16px;
+                width: 16px;
+              }
+
+              @keyframes flint-hot-reload-spin {
+                to { transform: rotate(360deg); }
+              }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(overlay);
+          }
+
+          var text = overlay.querySelector('.flint-hot-reload-text');
+          if (text) text.textContent = 'Building Flint UI...';
+          overlay.dataset.visible = 'true';
+          return overlay;
+        }
+
+        ensureFlintLazyBuildIndicator();
+        window.setTimeout(function () {
+          window.location.reload();
+        }, 1500);
+      })();
+    </script>''';
   }
 
   _FlintPageScriptResolution _flintPageScriptForComponent(String component) {
