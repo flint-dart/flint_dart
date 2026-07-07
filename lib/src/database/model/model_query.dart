@@ -165,7 +165,21 @@ extension ModelQuery<T extends Model<T>> on Model<T> {
       'per_page': result['per_page'],
       'total': result['total'],
       'last_page': result['last_page'],
+      'page': result['page'],
+      'perPage': result['perPage'],
+      'totalPages': result['totalPages'],
+      'from': result['from'],
+      'to': result['to'],
+      'hasPreviousPage': result['hasPreviousPage'],
+      'hasNextPage': result['hasNextPage'],
     };
+  }
+
+  /// Count matching rows without loading the whole result set.
+  Future<int> count([String column = '*']) async {
+    final result = await qb.count(column);
+    resetQuery();
+    return result;
   }
 
   /// Get max value

@@ -510,15 +510,20 @@ class QueryBuilder {
 
   /// Paginate results
   Future<Map<String, dynamic>> paginate(int page, [int perPage = 15]) async {
-    final offset = (page - 1) * perPage;
+    final safePage = page < 1 ? 1 : page;
+    final safePerPage = perPage < 1 ? 15 : perPage;
+    final offset = (safePage - 1) * safePerPage;
     final originalLimit = _limit;
     final originalOffset = _offset;
 
-    _limit = perPage;
+    _limit = safePerPage;
     _offset = offset;
 
     final data = await get();
     final total = await count();
+    final lastPage = total == 0 ? 1 : (total / safePerPage).ceil();
+    final from = total == 0 ? 0 : offset + 1;
+    final to = total == 0 ? 0 : offset + data.length;
 
     // Restore original state
     _limit = originalLimit;
@@ -526,10 +531,17 @@ class QueryBuilder {
 
     return {
       'data': data,
-      'current_page': page,
-      'per_page': perPage,
+      'current_page': safePage,
+      'per_page': safePerPage,
       'total': total,
-      'last_page': (total / perPage).ceil(),
+      'last_page': lastPage,
+      'page': safePage,
+      'perPage': safePerPage,
+      'totalPages': lastPage,
+      'from': from,
+      'to': to,
+      'hasPreviousPage': safePage > 1,
+      'hasNextPage': safePage < lastPage,
     };
   }
 
