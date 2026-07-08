@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.17] - 2026-07-08
+
+### Changed
+- Changed `flint web --build-only` and default `flint web` production-style builds to use the shared runtime bundle by default instead of compiling every registered page one by one.
+- Kept page-level bundle compilation available through `--page-bundles` and single-page compilation through `--page <name>`.
+- Updated `flint web --help` to make shared runtime the documented default and page bundles opt-in.
+
 ## [1.1.16] - 2026-07-08
 
 ### Added
