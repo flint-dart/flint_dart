@@ -66,7 +66,117 @@ void main() {
         expect(response.headers.contentType?.mimeType, 'text/javascript');
         expect(
           response.headers.value(HttpHeaders.cacheControlHeader),
-          'public, max-age=2592000, immutable',
+          'public, max-age=2592000',
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('static middleware uses immutable cache for fingerprinted assets',
+        () async {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_hash_assets_');
+
+      try {
+        Directory.current = tempDir;
+        File('public/assets/js/flint-ui/pages/home.abcdef123456.dart.js')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('console.log("home");');
+
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          enableSwaggerDocs: false,
+        );
+
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse(
+            '/assets/js/flint-ui/pages/home.abcdef123456.dart.js',
+          ),
+        );
+        await app.handleRequest(raw);
+
+        final response = raw.response as FakeHttpResponse;
+        expect(
+          response.headers.value(HttpHeaders.cacheControlHeader),
+          'public, max-age=31536000, immutable',
+        );
+        expect(
+          response.headers.value(HttpHeaders.varyHeader),
+          'Accept-Encoding',
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('static middleware revalidates manifest assets', () async {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_manifest_');
+
+      try {
+        Directory.current = tempDir;
+        File('public/assets/js/flint-ui/manifest.json')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('{"mode":"page-bundles"}');
+
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          enableSwaggerDocs: false,
+        );
+
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/assets/js/flint-ui/manifest.json'),
+        );
+        await app.handleRequest(raw);
+
+        final response = raw.response as FakeHttpResponse;
+        expect(
+          response.headers.value(HttpHeaders.cacheControlHeader),
+          'no-cache, no-store, must-revalidate',
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('static middleware treats query-versioned assets as immutable',
+        () async {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_query_assets_');
+
+      try {
+        Directory.current = tempDir;
+        File('public/assets/css/flint-ui/style.css')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('body{}');
+
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          enableSwaggerDocs: false,
+        );
+
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/assets/css/flint-ui/style.css?v=123'),
+        );
+        await app.handleRequest(raw);
+
+        final response = raw.response as FakeHttpResponse;
+        expect(
+          response.headers.value(HttpHeaders.cacheControlHeader),
+          'public, max-age=31536000, immutable',
         );
       } finally {
         Directory.current = originalCurrent;

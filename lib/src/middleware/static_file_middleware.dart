@@ -82,7 +82,7 @@ class StaticFileMiddleware extends Middleware {
       }
 
       // Set cache headers
-      _setCacheHeaders(res, eTag, lastModified, cacheDuration, req.path);
+      _setCacheHeaders(res, eTag, lastModified, req);
 
       // Security headers
       _setSecurityHeaders(res);
@@ -92,6 +92,9 @@ class StaticFileMiddleware extends Middleware {
       _setContentType(res, mime, file.path);
       final precompressed =
           enableCompression ? _selectPrecompressedFile(req, file, mime) : null;
+      if (enableCompression && _canCompress(file.path, mime)) {
+        res.raw.headers.set(HttpHeaders.varyHeader, 'Accept-Encoding');
+      }
 
       // Handle HEAD request
       if (req.method == 'HEAD') {
@@ -249,10 +252,13 @@ class StaticFileMiddleware extends Middleware {
     res.raw.headers.contentLength = contentLength;
   }
 
-  void _setCacheHeaders(Response res, String eTag, DateTime lastModified,
-      Duration duration, String filePath) {
-    final shouldBypass =
-        Platform.environment['FLINT_HOT'] == '1' || filePath.endsWith('-sw.js');
+  void _setCacheHeaders(
+      Response res, String eTag, DateTime lastModified, Request req) {
+    final filePath = req.path;
+    final shouldBypass = Platform.environment['FLINT_HOT'] == '1' ||
+        _shouldRevalidateEveryRequest(filePath);
+    final isVersioned =
+        _hasFingerprint(filePath) || req.uri.queryParameters.containsKey('v');
     res.raw.headers.set(HttpHeaders.etagHeader, eTag);
     res.raw.headers
         .set(HttpHeaders.lastModifiedHeader, HttpDate.format(lastModified));
@@ -260,7 +266,22 @@ class StaticFileMiddleware extends Middleware {
         HttpHeaders.cacheControlHeader,
         shouldBypass
             ? 'no-cache, no-store, must-revalidate'
-            : 'public, max-age=${cacheDuration.inSeconds}, immutable');
+            : isVersioned
+                ? 'public, max-age=31536000, immutable'
+                : 'public, max-age=${cacheDuration.inSeconds}');
+  }
+
+  bool _shouldRevalidateEveryRequest(String filePath) {
+    final basename = path.basename(filePath).toLowerCase();
+    return basename == 'index.html' ||
+        basename == 'manifest.json' ||
+        basename == 'flint-sw.js' ||
+        basename.endsWith('-sw.js');
+  }
+
+  bool _hasFingerprint(String filePath) {
+    final basename = path.basename(filePath).toLowerCase();
+    return RegExp(r'\.[0-9a-f]{8,}\.').hasMatch(basename);
   }
 
   void _setSecurityHeaders(Response res) {

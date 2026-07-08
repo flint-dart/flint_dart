@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.18] - 2026-07-08
+
+### Changed
+- Restored page-level Flint UI bundles as the default for `flint web` and production `flint build` web asset generation.
+- Kept the shared runtime available through `flint web --shared-runtime` for projects that prefer one deferred runtime bundle.
+- Made static asset caching production-aware: fingerprinted or query-versioned assets now use one-year immutable caching, while HTML, `manifest.json`, and service workers revalidate on every request.
+
 ## [1.1.17] - 2026-07-08
 
 ### Changed

@@ -18,8 +18,8 @@ class WebUiCommand extends FlintCommand {
     String? outArg;
     String? pagesConfigArg;
     String? pageArg;
-    var pageBundles = false;
-    var sharedRuntime = true;
+    var pageBundles = true;
+    var sharedRuntime = false;
 
     for (var i = 0; i < args.length; i++) {
       final arg = args[i];
@@ -183,8 +183,8 @@ Options:
   --entry <path>       Dart web entry file (default: lib/ui/main.dart or flint_ui/main.dart)
   --web-dir <path>     Static web directory (default: sibling web/ directory)
   --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
-  --shared-runtime     Compile one shared runtime with deferred page chunks (default)
-  --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml
+  --shared-runtime     Compile one shared runtime with deferred page chunks
+  --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml (default)
   --no-page-bundles    Compile only the single global JavaScript bundle
   --no-shared-runtime  Disable shared runtime mode
   --pages-config <path> Page bundle config path (default: auto-detect, then flint_ui.yaml)
@@ -199,7 +199,7 @@ Examples:
   flint web --entry lib/ui/main.dart --web-dir public
   flint web --entry flint_ui/main.dart --web-dir web
   flint web --build-only
-  flint web --build-only --page-bundles
+  flint web --build-only --shared-runtime
   flint web --build-only --no-page-bundles
   flint web --build-only --page Home
 ''');
