@@ -253,27 +253,6 @@ class FlintWebUiBuilder {
     final generatedDir =
         Directory(path.join('.dart_tool', 'flint_ui', 'page_bundles'))
           ..createSync(recursive: true);
-    final manifestPages = <String, String>{};
-
-    for (final entry in requestedPages.entries) {
-      final component = entry.key;
-      final slug = entry.value;
-      final generatedEntry = File(path.join(generatedDir.path, '$slug.dart'));
-      final jsOut = path.join(pagesOutDir.path, '$slug.dart.js');
-
-      generatedEntry.writeAsStringSync(
-        _pageEntrypointSource(component, config),
-      );
-
-      _logVerbose('Compiling Flint UI page bundle: $component');
-      await _compileDartFile(generatedEntry.path, jsOut);
-      final hashedJsOut = _hashDartJsAssetFamily(jsOut);
-      if (onlyPage == null) {
-        await _compressAssetFamily(hashedJsOut);
-      }
-      manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
-    }
-
     final manifestFile =
         File(path.join(path.dirname(build.jsOut), 'manifest.json'));
     final existingPages = <String, String>{};
@@ -294,6 +273,59 @@ class FlintWebUiBuilder {
       } catch (_) {}
     }
 
+    final manifestPages = <String, String>{};
+
+    for (final entry in requestedPages.entries) {
+      final component = entry.key;
+      final slug = entry.value;
+      final generatedEntry = File(path.join(generatedDir.path, '$slug.dart'));
+      final jsOut = path.join(pagesOutDir.path, '$slug.dart.js');
+
+      generatedEntry.writeAsStringSync(
+        _pageEntrypointSource(component, config),
+      );
+
+      _logVerbose('Compiling Flint UI page bundle: $component');
+      await _compileDartFile(generatedEntry.path, jsOut);
+      final hashedJsOut = _hashDartJsAssetFamily(jsOut);
+      if (onlyPage == null) {
+        await _compressAssetFamily(hashedJsOut);
+      }
+      manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
+      if (onlyPage == null) {
+        _writePageBundlesManifest(
+          build,
+          manifestFile,
+          existingPages: existingPages,
+          manifestPages: manifestPages,
+        );
+      }
+    }
+
+    _writePageBundlesManifest(
+      build,
+      manifestFile,
+      existingPages: existingPages,
+      manifestPages: manifestPages,
+    );
+    _logVerbose('Flint UI manifest generated: ${manifestFile.path}');
+    if (onlyPage == null) {
+      await _compressAssetIfUseful(manifestFile);
+    }
+    _writeServiceWorker(build);
+    if (onlyPage == null) {
+      await _compressAssetIfUseful(
+        File(path.join(build.webDir.path, 'flint-sw.js')),
+      );
+    }
+  }
+
+  static void _writePageBundlesManifest(
+    FlintWebUiBuild build,
+    File manifestFile, {
+    required Map<String, String> existingPages,
+    required Map<String, String> manifestPages,
+  }) {
     final manifest = {
       'mode': 'page-bundles',
       'fallback': _assetUrlFor(
@@ -309,16 +341,6 @@ class FlintWebUiBuilder {
     manifestFile.writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
-    _logVerbose('Flint UI manifest generated: ${manifestFile.path}');
-    if (onlyPage == null) {
-      await _compressAssetIfUseful(manifestFile);
-    }
-    _writeServiceWorker(build);
-    if (onlyPage == null) {
-      await _compressAssetIfUseful(
-        File(path.join(build.webDir.path, 'flint-sw.js')),
-      );
-    }
   }
 
   static Future<void> compileSharedRuntimeBundle(

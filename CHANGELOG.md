@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.19] - 2026-07-08
+
+### Changed
+- Made page-bundle production builds write `manifest.json` progressively after each successful page compile, so interrupted large builds keep a valid manifest and can fall back to the global bundle for unfinished pages.
+
 ## [1.1.18] - 2026-07-08
 
 ### Changed
