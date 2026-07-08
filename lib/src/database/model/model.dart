@@ -222,6 +222,72 @@ abstract class Model<T extends Model<T>> {
     return relation;
   }
 
+  /// Build a query for a relation using this model's relation definition.
+  ///
+  /// This is useful when you need filtered relation counts or existence checks
+  /// without loading every related model.
+  QueryBuilder relationQuery(
+    String name, {
+    void Function(QueryBuilder query)? constrain,
+  }) {
+    final definition = relations[name];
+    if (definition == null) {
+      throw Exception(
+          "Relation '$name' not found for ${runtimeType.toString()}. "
+          "Available relations: ${relations.keys.join(', ')}");
+    }
+
+    final query = definition.relatedFactory().resetQuery().qb;
+
+    switch (definition.type) {
+      case RelationType.belongsTo:
+        final fkValue = getAttribute(definition.foreignKey);
+        if (fkValue == null) {
+          throw StateError(
+            "Cannot query relation '$name' because "
+            "'${definition.foreignKey}' is null.",
+          );
+        }
+        query.where(definition.ownerKey, '=', fkValue);
+        break;
+      case RelationType.hasOne:
+      case RelationType.hasMany:
+        final parentId = id;
+        if (parentId == null) {
+          throw StateError(
+            "Cannot query relation '$name' because '$primaryKey' is null.",
+          );
+        }
+        query.where(definition.foreignKey, '=', parentId);
+        break;
+      case RelationType.belongsToMany:
+      case RelationType.hasManyThrough:
+        throw UnsupportedError(
+          "Relation query for '${definition.type.name}' is not supported yet.",
+        );
+    }
+
+    constrain?.call(query);
+    return query;
+  }
+
+  /// Count related records without loading the relation.
+  Future<int> countRelation(
+    String name, {
+    void Function(QueryBuilder query)? constrain,
+    String column = '*',
+  }) {
+    return relationQuery(name, constrain: constrain).count(column);
+  }
+
+  /// Check whether at least one related record exists.
+  Future<bool> hasRelated(
+    String name, {
+    void Function(QueryBuilder query)? constrain,
+  }) async {
+    return await countRelation(name, constrain: constrain) > 0;
+  }
+
   // ========== PRIVATE METHODS ==========
 
   /// Load relations for a list of models

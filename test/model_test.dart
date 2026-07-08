@@ -16,7 +16,38 @@ class User extends Model<User> {
       );
 
   @override
+  Map<String, RelationDefinition> get relations => {
+        'posts': Relations.hasMany<Post>(
+          'posts',
+          Post.new,
+          foreignKey: 'user_id',
+        ),
+      };
+
+  @override
   List<String> get conceal => ['password'];
+}
+
+class Post extends Model<Post> {
+  Post() : super(Post.new);
+
+  @override
+  Table get table => Table(
+        name: 'posts',
+        columns: [
+          Column(name: 'user_id', type: ColumnType.string),
+          Column(name: 'status', type: ColumnType.string),
+        ],
+      );
+
+  @override
+  Map<String, RelationDefinition> get relations => {
+        'user': Relations.belongsTo<User>(
+          'user',
+          User.new,
+          foreignKey: 'user_id',
+        ),
+      };
 }
 
 void main() {
@@ -58,6 +89,39 @@ void main() {
       expect(
         () => user.load('missing'),
         throwsA(isA<Exception>()),
+      );
+    });
+
+    test('relationQuery builds a hasMany query from relation metadata', () {
+      final user = User()..setAttribute('id', 'user-1');
+
+      final query = user.relationQuery(
+        'posts',
+        constrain: (query) => query.where('status', '=', 'active'),
+      );
+
+      expect(query.table, 'posts');
+      expect(query.compileWhereSql(), contains('user_id ='));
+      expect(query.compileWhereSql(), contains('status ='));
+      expect(query.whereParams.values, containsAll(['user-1', 'active']));
+    });
+
+    test('relationQuery builds a belongsTo query from relation metadata', () {
+      final post = Post()..setAttribute('user_id', 'user-2');
+
+      final query = post.relationQuery('user');
+
+      expect(query.table, 'users');
+      expect(query.compileWhereSql(), contains('id ='));
+      expect(query.whereParams.values, contains('user-2'));
+    });
+
+    test('relationQuery fails clearly when parent key is missing', () {
+      final user = User();
+
+      expect(
+        () => user.relationQuery('posts'),
+        throwsA(isA<StateError>()),
       );
     });
   });
