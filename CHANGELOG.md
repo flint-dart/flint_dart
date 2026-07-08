@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.16] - 2026-07-08
+
+### Added
+- Added `relationQuery()` so model relation metadata can be reused as the starting point for constrained relation queries.
+- Added `countRelation()` and `hasRelated()` for common relation count and existence checks.
+- Added `relationCounts()` for grouped counts from the same relation, useful for dashboards, sidebars, and product ownership checks.
+- Added `loadRelationCount()` to store a related record count directly on a model attribute.
+- Added ORM pagination metadata helpers for page/per-page list responses.
+
+### Changed
+- Updated the Flint UI dependency to `flint_ui: ^0.1.13` for media/device APIs, server-safe media stubs, and canvas editor primitives.
+
 ## [1.1.15] - 2026-07-06
 
 ### Added

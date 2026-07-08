@@ -1,6 +1,6 @@
 name: flint_dart
 description: A modern, expressive, and extensible server-side framework by Eulogia Technologies.
-version: 1.1.15
+version: 1.1.16
 homepage: https://flintdart.dev
 repository: https://github.com/flint-dart/flint_dart
 issue_tracker: https://github.com/flint-dart/flint_dart/issues
@@ -20,7 +20,7 @@ dependencies:
   mailer: ^7.1.0
   package_config: ^2.2.0
   path: ^1.9.1
-  flint_ui: ^0.1.12
+  flint_ui: ^0.1.13
   flint_client: ^0.0.3
   flint_ai: ^0.1.0
   worker_manager: ^7.2.7
