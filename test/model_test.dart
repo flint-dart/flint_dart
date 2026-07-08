@@ -124,5 +124,23 @@ void main() {
         throwsA(isA<StateError>()),
       );
     });
+
+    test('relationCounts supports empty grouped count requests', () async {
+      final user = User()..setAttribute('id', 'user-1');
+
+      final counts = await user.relationCounts('posts', const {});
+
+      expect(counts, isEmpty);
+    });
+
+    test('loadRelationCount fails before DB work when parent key is missing',
+        () async {
+      final user = User();
+
+      expect(
+        () => user.loadRelationCount('posts', as: 'postCount'),
+        throwsA(isA<StateError>()),
+      );
+    });
   });
 }

@@ -280,6 +280,39 @@ abstract class Model<T extends Model<T>> {
     return relationQuery(name, constrain: constrain).count(column);
   }
 
+  /// Count the same relation multiple ways without repeating relation metadata.
+  Future<Map<String, int>> relationCounts(
+    String name,
+    Map<String, void Function(QueryBuilder query)?> groups, {
+    String column = '*',
+  }) async {
+    final counts = <String, int>{};
+    for (final entry in groups.entries) {
+      counts[entry.key] = await countRelation(
+        name,
+        constrain: entry.value,
+        column: column,
+      );
+    }
+    return counts;
+  }
+
+  /// Count related records and store the count as an attribute on this model.
+  Future<T> loadRelationCount(
+    String name, {
+    String? as,
+    void Function(QueryBuilder query)? constrain,
+    String column = '*',
+  }) async {
+    final count = await countRelation(
+      name,
+      constrain: constrain,
+      column: column,
+    );
+    setAttribute(as ?? '${name}Count', count);
+    return this as T;
+  }
+
   /// Check whether at least one related record exists.
   Future<bool> hasRelated(
     String name, {
