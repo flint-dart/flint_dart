@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.1.20] - 2026-07-08
+
+### Added
+- Added response cache helpers: `cachePublic`, `cachePrivate`, `revalidate`, `noStore`, `etag`, `lastModified`, and `header`.
+- Added `CacheMiddleware` for route-level browser/CDN cache headers and `ETagMiddleware` for simple conditional GET handling.
+
 ## [1.1.19] - 2026-07-08
 
 ### Changed

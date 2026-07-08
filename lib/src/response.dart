@@ -120,6 +120,92 @@ class Response {
         _flintPageServerRenderingEnabled = serverRenderFlintPages ?? false;
   bool get isClosed => _closed;
 
+  Response header(String name, Object value) {
+    raw.headers.set(name, value);
+    return this;
+  }
+
+  Response cachePublic(
+    Duration maxAge, {
+    Duration? sharedMaxAge,
+    bool immutable = false,
+    bool mustRevalidate = false,
+  }) {
+    return _setCacheControl(
+      public: true,
+      maxAge: maxAge,
+      sharedMaxAge: sharedMaxAge,
+      immutable: immutable,
+      mustRevalidate: mustRevalidate,
+    );
+  }
+
+  Response cachePrivate(
+    Duration maxAge, {
+    bool mustRevalidate = false,
+  }) {
+    return _setCacheControl(
+      public: false,
+      maxAge: maxAge,
+      mustRevalidate: mustRevalidate,
+    );
+  }
+
+  Response revalidate() {
+    raw.headers.set(
+      HttpHeaders.cacheControlHeader,
+      'no-cache, must-revalidate',
+    );
+    return this;
+  }
+
+  Response noStore() {
+    raw.headers.set(
+      HttpHeaders.cacheControlHeader,
+      'no-store, no-cache, must-revalidate',
+    );
+    raw.headers.set(HttpHeaders.pragmaHeader, 'no-cache');
+    raw.headers.set(HttpHeaders.expiresHeader, '0');
+    return this;
+  }
+
+  Response etag(String value, {bool weak = false}) {
+    if (value.startsWith('W/')) {
+      raw.headers.set(HttpHeaders.etagHeader, value);
+      return this;
+    }
+
+    final tag = value.startsWith('"') ? value : '"$value"';
+    raw.headers.set(HttpHeaders.etagHeader, weak ? 'W/$tag' : tag);
+    return this;
+  }
+
+  Response lastModified(DateTime value) {
+    raw.headers.set(
+      HttpHeaders.lastModifiedHeader,
+      HttpDate.format(value.toUtc()),
+    );
+    return this;
+  }
+
+  Response _setCacheControl({
+    required bool public,
+    required Duration maxAge,
+    Duration? sharedMaxAge,
+    bool immutable = false,
+    bool mustRevalidate = false,
+  }) {
+    final directives = <String>[
+      public ? 'public' : 'private',
+      'max-age=${maxAge.inSeconds}',
+      if (sharedMaxAge != null) 's-maxage=${sharedMaxAge.inSeconds}',
+      if (immutable) 'immutable',
+      if (mustRevalidate) 'must-revalidate',
+    ];
+    raw.headers.set(HttpHeaders.cacheControlHeader, directives.join(', '));
+    return this;
+  }
+
   Future<void> close() async {
     if (!_closed) {
       _closed = true;
