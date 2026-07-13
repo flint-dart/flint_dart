@@ -2,7 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
-## [1.1.20] - 2026-07-08
+## [1.2.0] - 2026-07-13
+
+### Added
+- Added first-class HTTP `QUERY` route registration with `app.query(...)` and controller route builder support.
+- Added QUERY support to route matching, middleware, automatic OPTIONS/Allow responses, CORS defaults, cache middleware, route discovery, and generated Swagger vendor extensions.
+- Preserved explicit `null` values in ORM update data maps so apps can intentionally clear nullable columns.
+
+### Changed
+- Updated Flint UI dependency to `flint_ui: ^0.1.14`.
+- Updated Flint Client dependency to `flint_client: ^0.0.5`.
+- Made ORM `where(...).orWhere(...)` chains compile in chain order, so `orWhere` now combines with the previous condition using `OR` instead of being grouped behind an `AND`.
+
 
 ### Added
 - Added response cache helpers: `cachePublic`, `cachePrivate`, `revalidate`, `noStore`, `etag`, `lastModified`, and `header`.

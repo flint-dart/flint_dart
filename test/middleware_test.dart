@@ -138,6 +138,27 @@ void main() {
       expect(rawResponse.buffer.toString(), 'ok');
     });
 
+    test('CacheMiddleware applies public cache headers to QUERY requests',
+        () async {
+      final handler = CacheMiddleware.public(
+        const Duration(minutes: 5),
+        sharedMaxAge: const Duration(minutes: 10),
+      ).handle((ctx) async => ctx.res?.send('ok'));
+
+      final raw = FakeHttpRequest(method: 'QUERY', uri: Uri.parse('/cached'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(
+        rawResponse.headers.value(HttpHeaders.cacheControlHeader),
+        'public, max-age=300, s-maxage=600',
+      );
+      expect(rawResponse.buffer.toString(), 'ok');
+    });
+
     test('CacheMiddleware skips non-cacheable methods', () async {
       final handler = CacheMiddleware.public(const Duration(minutes: 5)).handle(
         (ctx) async => ctx.res?.send('created'),
@@ -398,6 +419,32 @@ void main() {
       expect(rawResponse.statusCode, 400);
     });
 
+    test('blocks SQL injection in QUERY JSON request body', () async {
+      var handlerCalled = false;
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        handlerCalled = true;
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType('application', 'json');
+      final raw = FakeHttpRequest(
+        method: 'QUERY',
+        uri: Uri.parse('/search'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"filter":"x\' OR 1=1 --"}'),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 400);
+    });
+
     test('allows ordinary text and preserves the body for handlers', () async {
       final middleware = AntiSqlInjectionMiddleware();
       final handler = middleware.handle((ctx) async {
@@ -537,6 +584,32 @@ void main() {
       } finally {
         tempDir.deleteSync(recursive: true);
       }
+    });
+  });
+
+  group('CorsMiddleware', () {
+    test('includes QUERY in default allowed methods', () async {
+      final handler = CorsMiddleware().handle((ctx) async {
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()..set('origin', 'https://example.com');
+      final raw = FakeHttpRequest(
+        method: 'OPTIONS',
+        uri: Uri.parse('/search'),
+        headers: headers,
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 204);
+      expect(
+        rawResponse.headers.value('Access-Control-Allow-Methods'),
+        contains('QUERY'),
+      );
     });
   });
 }

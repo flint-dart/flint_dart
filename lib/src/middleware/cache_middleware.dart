@@ -94,7 +94,7 @@ class CacheMiddleware extends Middleware {
 
   static bool _supportsCacheHeaders(String method) {
     final normalized = method.toUpperCase();
-    return normalized == 'GET' || normalized == 'HEAD';
+    return normalized == 'GET' || normalized == 'HEAD' || normalized == 'QUERY';
   }
 }
 

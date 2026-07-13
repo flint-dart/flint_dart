@@ -127,6 +127,34 @@ app.post('/users', (Context ctx) async {
 });
 ```
 
+### HTTP QUERY routes
+
+Flint supports the HTTP `QUERY` method from RFC 10008. `QUERY` is safe and
+idempotent like `GET`, but it can carry request content like `POST`. Use it
+for complex search or filter operations where the query expression is too large
+or too structured for a URL query string, but the operation must not mutate
+server state.
+
+```dart
+app.query('/products/search', (Context ctx) async {
+  final filters = await ctx.req.json();
+  final page = ctx.req.queryParam('page') ?? '1';
+
+  return ctx.res?.json({
+    'filters': filters,
+    'page': page,
+  });
+});
+```
+
+`ctx.req.query` and `ctx.req.queryParam()` still read URI query string values
+such as `?page=2`. The QUERY request body is separate query content and can use
+the same JSON, text, and form helpers as other body-carrying routes.
+
+Compatibility note: some proxies, API gateways, browsers, servers, and API
+tools may not support `QUERY` yet. See RFC 10008:
+https://www.rfc-editor.org/rfc/rfc10008.html.
+
 ### Controller-based routes (v1.0.2)
 
 Flint also supports request-scoped controllers for both HTTP and WebSocket routes.
@@ -1065,6 +1093,12 @@ Flint parses annotations above your routes:
 /// @body {"name": "string", "email": "string"}
 app.post('/users', controller.create);
 ```
+
+HTTP `QUERY` routes are preserved in generated docs as Flint vendor
+extensions, because OpenAPI 3.0 does not define a standard `query` operation
+key. Flint does not map them to `GET` or `POST`; it emits `x-http-method:
+QUERY` and a top-level `x-flint-query-routes` section so tools can discover the
+route without changing its semantics.
 
 ---
 

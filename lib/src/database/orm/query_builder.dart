@@ -7,8 +7,7 @@ class QueryBuilder {
   final String table;
 
   final List<String> _selects = [];
-  final List<String> _wheres = [];
-  final List<String> _orWheres = [];
+  final List<_WhereClause> _whereClauses = [];
   final List<String> _orderBys = [];
   final List<String> _groups = [];
   final List<String> _relations = [];
@@ -23,7 +22,7 @@ class QueryBuilder {
   List<String> get withRelations => List.from(_withRelations);
   Map<String, dynamic> get modelContext => Map.from(_modelContext);
   Map<String, List<String>> get withColumns => Map.from(_withColumns);
-  bool get hasWhereClause => _wheres.isNotEmpty || _orWheres.isNotEmpty;
+  bool get hasWhereClause => _whereClauses.isNotEmpty;
   String compileWhereSql() {
     final whereBody = _compileWhereBody();
     if (whereBody.isEmpty) return '';
@@ -50,6 +49,10 @@ class QueryBuilder {
     }
 
     return this;
+  }
+
+  void _addWhere(String connector, String sql) {
+    _whereClauses.add(_WhereClause(connector, sql));
   }
 
   /// Add model context for relation loading
@@ -95,11 +98,11 @@ class QueryBuilder {
       final sql = caseSensitive
           ? '$field LIKE :$paramName'
           : '$field ILIKE :$paramName';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     } else {
       final sql =
           caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     }
 
     _bindings[paramName] = processedPattern;
@@ -121,12 +124,12 @@ class QueryBuilder {
       final sql = caseSensitive
           ? '$field NOT LIKE :$paramName'
           : '$field NOT ILIKE :$paramName';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     } else {
       final sql = caseSensitive
           ? '$field NOT LIKE ?'
           : 'LOWER($field) NOT LIKE LOWER(?)';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     }
 
     _bindings[paramName] = processedPattern;
@@ -145,11 +148,11 @@ class QueryBuilder {
       final sql = caseSensitive
           ? '$field LIKE :$paramName'
           : '$field ILIKE :$paramName';
-      _orWheres.add(sql);
+      _addWhere('OR', sql);
     } else {
       final sql =
           caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
-      _orWheres.add(sql);
+      _addWhere('OR', sql);
     }
 
     _bindings[paramName] = processedPattern;
@@ -208,9 +211,9 @@ class QueryBuilder {
     final paramEnd = 'p${_paramIndex++}';
 
     if (DB.driver == DBDriver.postgres) {
-      _wheres.add('$field BETWEEN :$paramStart AND :$paramEnd');
+      _addWhere('AND', '$field BETWEEN :$paramStart AND :$paramEnd');
     } else {
-      _wheres.add('$field BETWEEN ? AND ?');
+      _addWhere('AND', '$field BETWEEN ? AND ?');
     }
 
     _bindings[paramStart] = start;
@@ -225,9 +228,9 @@ class QueryBuilder {
     final paramEnd = 'p${_paramIndex++}';
 
     if (DB.driver == DBDriver.postgres) {
-      _wheres.add('$field NOT BETWEEN :$paramStart AND :$paramEnd');
+      _addWhere('AND', '$field NOT BETWEEN :$paramStart AND :$paramEnd');
     } else {
-      _wheres.add('$field NOT BETWEEN ? AND ?');
+      _addWhere('AND', '$field NOT BETWEEN ? AND ?');
     }
 
     _bindings[paramStart] = start;
@@ -241,9 +244,9 @@ class QueryBuilder {
     final paramName = 'p${_paramIndex++}';
 
     if (DB.driver == DBDriver.postgres) {
-      _wheres.add("DATE($field) = DATE(:$paramName)");
+      _addWhere('AND', "DATE($field) = DATE(:$paramName)");
     } else {
-      _wheres.add("DATE($field) = DATE(?)");
+      _addWhere('AND', "DATE($field) = DATE(?)");
     }
 
     _bindings[paramName] = date.toIso8601String();
@@ -255,9 +258,9 @@ class QueryBuilder {
     final paramName = 'p${_paramIndex++}';
 
     if (DB.driver == DBDriver.postgres) {
-      _wheres.add('$field $operator :$paramName');
+      _addWhere('AND', '$field $operator :$paramName');
     } else {
-      _wheres.add('$field $operator ?');
+      _addWhere('AND', '$field $operator ?');
     }
 
     _bindings[paramName] = value;
@@ -267,7 +270,7 @@ class QueryBuilder {
   /// WHERE IN clause
   QueryBuilder whereIn(String field, List<dynamic> values) {
     if (values.isEmpty) {
-      _wheres.add('1 = 0'); // Always false if no values
+      _addWhere('AND', '1 = 0'); // Always false if no values
       return this;
     }
 
@@ -277,14 +280,14 @@ class QueryBuilder {
       return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
     }).join(', ');
 
-    _wheres.add('$field IN ($paramNames)');
+    _addWhere('AND', '$field IN ($paramNames)');
     return this;
   }
 
   /// WHERE NOT IN clause
   QueryBuilder whereNotIn(String field, List<dynamic> values) {
     if (values.isEmpty) {
-      _wheres.add('1 = 1'); // Always true if no values
+      _addWhere('AND', '1 = 1'); // Always true if no values
       return this;
     }
 
@@ -294,7 +297,7 @@ class QueryBuilder {
       return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
     }).join(', ');
 
-    _wheres.add('$field NOT IN ($paramNames)');
+    _addWhere('AND', '$field NOT IN ($paramNames)');
     return this;
   }
 
@@ -303,9 +306,9 @@ class QueryBuilder {
     final paramName = 'p${_paramIndex++}';
 
     if (DB.driver == DBDriver.postgres) {
-      _orWheres.add('$field $operator :$paramName');
+      _addWhere('OR', '$field $operator :$paramName');
     } else {
-      _orWheres.add('$field $operator ?');
+      _addWhere('OR', '$field $operator ?');
     }
 
     _bindings[paramName] = value;
@@ -314,13 +317,13 @@ class QueryBuilder {
 
   /// WHERE NULL clause
   QueryBuilder whereNull(String field) {
-    _wheres.add('$field IS NULL');
+    _addWhere('AND', '$field IS NULL');
     return this;
   }
 
   /// WHERE NOT NULL clause
   QueryBuilder whereNotNull(String field) {
-    _wheres.add('$field IS NOT NULL');
+    _addWhere('AND', '$field IS NOT NULL');
     return this;
   }
 
@@ -354,7 +357,7 @@ class QueryBuilder {
       String table, String first, String operator, String second) {
     // Simple JOIN implementation - you can extend this for different JOIN types
     _selects.add('$table.*'); // Add joined table columns
-    _wheres.add('$first $operator $second');
+    _addWhere('AND', '$first $operator $second');
     return this;
   }
 
@@ -640,17 +643,14 @@ class QueryBuilder {
   }
 
   String _compileWhereBody() {
-    final whereParts = <String>[];
+    if (_whereClauses.isEmpty) return '';
 
-    if (_wheres.isNotEmpty) {
-      whereParts.add(_wheres.join(' AND '));
+    final parts = <String>[_whereClauses.first.sql];
+    for (final clause in _whereClauses.skip(1)) {
+      parts.add('${clause.connector} ${clause.sql}');
     }
 
-    if (_orWheres.isNotEmpty) {
-      whereParts.add('(${_orWheres.join(' OR ')})');
-    }
-
-    return whereParts.join(' AND ');
+    return parts.join(' ');
   }
 
   /// --- Load primary key info from the database ---
@@ -826,4 +826,11 @@ class _ColumnInfo {
   final bool isString;
 
   _ColumnInfo({required this.isAutoIncrement, required this.isString});
+}
+
+class _WhereClause {
+  final String connector;
+  final String sql;
+
+  _WhereClause(this.connector, this.sql);
 }

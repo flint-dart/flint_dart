@@ -76,6 +76,13 @@ class ControllerRouteBuilder<T extends controller_api.Controller> {
     return _app.patch(path, controller_api.controller(_factory, action));
   }
 
+  RouteBuilder query(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.query(path, controller_api.controller(_factory, action));
+  }
+
   RouteBuilder delete(
     String path,
     controller_api.ControllerCallback<T> action,
@@ -558,6 +565,18 @@ class Flint {
   RouteBuilder patch(String path, Object handler) {
     final rb =
         RouteBuilder(_router, 'PATCH', path, _coerceHttpHandler(handler));
+    rb.register();
+    return rb;
+  }
+
+  /// Registers a **QUERY** HTTP route on the application.
+  ///
+  /// QUERY requests are safe and idempotent like GET, but can carry request
+  /// content like POST. This is useful for complex search/filter operations
+  /// where the query expression belongs in the request body.
+  RouteBuilder query(String path, Object handler) {
+    final rb =
+        RouteBuilder(_router, 'QUERY', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
