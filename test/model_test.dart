@@ -1,5 +1,41 @@
 import 'package:test/test.dart';
 import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/src/database/mysql_connection.dart';
+
+class _CapturingMySqlConnection extends MySqlConnectionWrapper {
+  final List<List<Map<String, dynamic>>> queuedResults;
+  final queries = <String>[];
+  final params = <List<dynamic>?>[];
+
+  _CapturingMySqlConnection(this.queuedResults);
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<void> close() async {}
+
+  @override
+  Future<List<Map<String, dynamic>>> query(
+    String sql, {
+    List<dynamic>? positionalParams,
+    Map<String, dynamic>? namedParams,
+  }) async {
+    queries.add(sql);
+    params.add(
+      positionalParams == null ? null : List<dynamic>.from(positionalParams),
+    );
+
+    if (queuedResults.isEmpty) {
+      return const [];
+    }
+
+    return queuedResults
+        .removeAt(0)
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList(growable: false);
+  }
+}
 
 class User extends Model<User> {
   User() : super(User.new);
@@ -141,6 +177,41 @@ void main() {
         () => user.loadRelationCount('posts', as: 'postCount'),
         throwsA(isA<StateError>()),
       );
+    });
+
+    test('withRelations eager loads hasMany rows by foreign key', () async {
+      final connection = _CapturingMySqlConnection([
+        [
+          {'id': 'user-1', 'name': 'Ada'},
+          {'id': 'user-2', 'name': 'Grace'},
+        ],
+        [
+          {'id': 'post-1', 'user_id': 'user-1', 'status': 'published'},
+          {'id': 'post-2', 'user_id': 'user-1', 'status': 'draft'},
+        ],
+      ]);
+      DB.overrideConnection(connection);
+
+      final users = await User().withRelations(['posts']).get();
+
+      expect(connection.queries, [
+        'SELECT * FROM users',
+        'SELECT * FROM posts WHERE user_id IN (?, ?)',
+      ]);
+      expect(connection.params.last, ['user-1', 'user-2']);
+      expect(users, hasLength(2));
+
+      final firstPosts = users.first.getRelation<List>('posts');
+      expect(firstPosts, hasLength(2));
+      expect((firstPosts!.first as Post).getAttribute<String>('status'),
+          'published');
+
+      final firstPostMaps =
+          users.first.getRelation<List<Map<String, dynamic>>>('posts');
+      expect(firstPostMaps, hasLength(2));
+      expect(firstPostMaps!.first['status'], 'published');
+
+      expect(users.last.getRelation<List>('posts'), isEmpty);
     });
   });
 }

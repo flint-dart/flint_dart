@@ -37,6 +37,9 @@ abstract class Model<T extends Model<T>> {
     if (value is R) return value;
     if (R == dynamic) return value;
 
+    final modelValue = _coerceModelValueForRequestedType<R>(value);
+    if (modelValue is R) return modelValue;
+
     // List of typed items
 
     // DateTime parsing
@@ -183,6 +186,32 @@ abstract class Model<T extends Model<T>> {
 
   /// Get loaded relation
   R? getRelation<R>(String name) => getAttribute<R>(name);
+
+  dynamic _coerceModelValueForRequestedType<R>(dynamic value) {
+    final requestedType = R.toString();
+
+    if (value is Model && requestedType == 'Map<String, dynamic>') {
+      return value.toMap();
+    }
+
+    if (value is List && requestedType == 'List<Map<String, dynamic>>') {
+      final maps = <Map<String, dynamic>>[];
+
+      for (final item in value) {
+        if (item is Model) {
+          maps.add(item.toMap());
+        } else if (item is Map) {
+          maps.add(Map<String, dynamic>.from(item));
+        } else {
+          return null;
+        }
+      }
+
+      return maps;
+    }
+
+    return null;
+  }
 
   /// Load a relation for this single model
   Future<T> load(String relation, {List<String>? columns}) async {
