@@ -141,8 +141,9 @@ abstract class Model<T extends Model<T>> {
 
   Future<List<T>> get() async {
     final results = await qb.get();
-    final models =
-        results.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
+    final models = results
+        .map((map) => fromMap(_convertDatabaseTypes(map)))
+        .toList();
 
     // If we have requested relations, load them
     if (qb.withRelations.isNotEmpty) {
@@ -220,8 +221,9 @@ abstract class Model<T extends Model<T>> {
 
     if (loader == null) {
       throw Exception(
-          "Relation '$relation' not found for ${runtimeType.toString()}. "
-          "Available relations: ${relations.keys.join(', ')}");
+        "Relation '$relation' not found for ${runtimeType.toString()}. "
+        "Available relations: ${relations.keys.join(', ')}",
+      );
     }
 
     await loader([this as Model], RelationConfig(columns: columns));
@@ -446,9 +448,9 @@ abstract class Model<T extends Model<T>> {
     if (fkValues.isEmpty) return;
 
     // Fetch related models
-    final relatedResults = await relatedFactory()
-        .resetQuery()
-        .qb
+    final relatedQuery = relatedFactory().resetQuery().qb;
+    _applyRelationColumns(relatedQuery, config, [definition.ownerKey]);
+    final relatedResults = await relatedQuery
         .whereIn(definition.ownerKey, fkValues.toList())
         .get();
     // Map related models by their owner key
@@ -493,9 +495,9 @@ abstract class Model<T extends Model<T>> {
     if (parentIds.isEmpty) return;
 
     // Fetch related models
-    final relatedResults = await relatedFactory()
-        .resetQuery()
-        .qb
+    final relatedQuery = relatedFactory().resetQuery().qb;
+    _applyRelationColumns(relatedQuery, config, [definition.foreignKey]);
+    final relatedResults = await relatedQuery
         .whereIn(definition.foreignKey, parentIds.toList())
         .get();
 
@@ -546,9 +548,9 @@ abstract class Model<T extends Model<T>> {
     }
 
     // Fetch related models
-    final relatedResults = await relatedFactory()
-        .resetQuery()
-        .qb
+    final relatedQuery = relatedFactory().resetQuery().qb;
+    _applyRelationColumns(relatedQuery, config, [definition.foreignKey]);
+    final relatedResults = await relatedQuery
         .whereIn(definition.foreignKey, parentIds.toList())
         .get();
 
@@ -570,6 +572,23 @@ abstract class Model<T extends Model<T>> {
         parent.setAttribute(definition.name, relatedList);
       }
     }
+  }
+
+  void _applyRelationColumns(
+    QueryBuilder query,
+    RelationConfig? config,
+    List<String> requiredColumns,
+  ) {
+    final columns = config?.columns;
+    if (columns == null || columns.isEmpty) return;
+
+    final selected = <String>[];
+    for (final column in [...columns, ...requiredColumns]) {
+      final clean = column.trim();
+      if (clean.isEmpty || selected.contains(clean)) continue;
+      selected.add(clean);
+    }
+    query.select(selected);
   }
 
   /// Load belongsToMany relationship
@@ -689,7 +708,8 @@ abstract class Model<T extends Model<T>> {
               converted[key] = jsonDecode(value);
             } catch (_) {
               print(
-                  "Warning: Failed to decode JSON for key '$key'. Keeping original string.");
+                "Warning: Failed to decode JSON for key '$key'. Keeping original string.",
+              );
               converted[key] = value;
             }
           } else if (value is List<int>) {

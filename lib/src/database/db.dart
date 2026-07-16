@@ -132,8 +132,10 @@ class DB {
   }
 
   /// Attempt auto-connect with retries.
-  static Future<void> tryAutoConnect(
-      {int retries = 5, int delaySeconds = 3}) async {
+  static Future<void> tryAutoConnect({
+    int retries = 5,
+    int delaySeconds = 3,
+  }) async {
     for (int i = 1; i <= retries; i++) {
       try {
         await autoConnect();
@@ -141,7 +143,8 @@ class DB {
       } catch (e) {
         if (i == retries) {
           throw Exception(
-              "❌ Could not connect to DB after $retries attempts: $e");
+            "❌ Could not connect to DB after $retries attempts: $e",
+          );
         }
         await Future.delayed(Duration(seconds: delaySeconds));
       }
@@ -151,9 +154,9 @@ class DB {
   static void overrideConnection(DBWrapper connection) {
     _mysql = connection is MySqlConnectionWrapper ? connection : null;
     _pg = connection is PgConnectionWrapper ? connection : null;
-    if (connection is MySqlConnectionWrapper) {
+    if (_mysql != null) {
       _driver = DBDriver.mysql;
-    } else if (connection is PgConnectionWrapper) {
+    } else if (_pg != null) {
       _driver = DBDriver.postgres;
     }
     _isConnected = true;
@@ -222,8 +225,9 @@ class DB {
         if (!namedParams.containsKey(paramName)) {
           throw ArgumentError("Named parameter :$paramName not provided");
         }
-        paramList
-            .add(_normalizeValueForDb(namedParams[paramName])); // ✅ normalize
+        paramList.add(
+          _normalizeValueForDb(namedParams[paramName]),
+        ); // ✅ normalize
         return '?';
       });
       return (normalizedSql, paramList);
@@ -251,8 +255,9 @@ class DB {
         if (!namedParams.containsKey(paramName)) {
           throw ArgumentError("Named parameter :$paramName not provided");
         }
-        paramList
-            .add(_normalizeValueForDb(namedParams[paramName])); // ✅ normalize
+        paramList.add(
+          _normalizeValueForDb(namedParams[paramName]),
+        ); // ✅ normalize
         return '\$${paramIndex++}';
       });
 
@@ -260,10 +265,13 @@ class DB {
     } else {
       // Convert ? to $1, $2, ...
       var paramIndex = 1;
-      final normalizedSql =
-          sql.replaceAllMapped(RegExp(r'\?'), (_) => '\$${paramIndex++}');
-      final params =
-          (positionalParams ?? []).map(_normalizeValueForDb).toList(); // ✅ norm
+      final normalizedSql = sql.replaceAllMapped(
+        RegExp(r'\?'),
+        (_) => '\$${paramIndex++}',
+      );
+      final params = (positionalParams ?? [])
+          .map(_normalizeValueForDb)
+          .toList(); // ✅ norm
       return (normalizedSql, params);
     }
   }
@@ -304,7 +312,9 @@ class DB {
 
   /// Get the last inserted ID (DB-specific).
   static Future<dynamic> getLastInsertId(
-      String tableName, String primaryKey) async {
+    String tableName,
+    String primaryKey,
+  ) async {
     await _ensureConnected();
 
     if (_driver == DBDriver.postgres) {
@@ -399,23 +409,29 @@ class DB {
 
   static Future<bool> columnExists(String tableName, String columnName) async {
     if (driver == DBDriver.mysql) {
-      final results = await query('''
+      final results = await query(
+        '''
         SELECT COLUMN_NAME 
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE() 
           AND TABLE_NAME = ?
           AND COLUMN_NAME = ?;
-      ''', positionalParams: [tableName, columnName]);
+      ''',
+        positionalParams: [tableName, columnName],
+      );
 
       return results.isNotEmpty;
     } else if (driver == DBDriver.postgres) {
-      final results = await query('''
+      final results = await query(
+        '''
         SELECT column_name
         FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = @table
           AND column_name = @column;
-      ''', namedParams: {'table': tableName, 'column': columnName});
+      ''',
+        namedParams: {'table': tableName, 'column': columnName},
+      );
 
       return results.isNotEmpty;
     } else {
