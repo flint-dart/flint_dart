@@ -101,12 +101,40 @@ abstract class Model<T extends Model<T>> {
   T fromMap(Map<dynamic, dynamic> map) {
     final model = _factory();
     map.forEach((key, value) {
-      model.setAttribute(key.toString(), value);
+      final attributeKey = key.toString();
+      model.setAttribute(
+        attributeKey,
+        _hydrateRelationValue(attributeKey, value),
+      );
     });
     return model;
   }
 
   T fromJson(String json) => fromMap(jsonDecode(json));
+
+  dynamic _hydrateRelationValue(String key, dynamic value) {
+    final definition = relations[key];
+    if (definition == null || value == null) return value;
+
+    if (value is Map) {
+      return definition.relatedFactory().fromMap(
+        Map<dynamic, dynamic>.from(value),
+      );
+    }
+
+    if (value is List) {
+      return value.map((item) {
+        if (item is Map) {
+          return definition.relatedFactory().fromMap(
+            Map<dynamic, dynamic>.from(item),
+          );
+        }
+        return item;
+      }).toList();
+    }
+
+    return value;
+  }
 
   /// Get or create query builder
   QueryBuilder get qb {
@@ -141,8 +169,9 @@ abstract class Model<T extends Model<T>> {
 
   Future<List<T>> get() async {
     final results = await qb.get();
-    final models =
-        results.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
+    final models = results
+        .map((map) => fromMap(_convertDatabaseTypes(map)))
+        .toList();
 
     // If we have requested relations, load them
     if (qb.withRelations.isNotEmpty) {
@@ -220,8 +249,9 @@ abstract class Model<T extends Model<T>> {
 
     if (loader == null) {
       throw Exception(
-          "Relation '$relation' not found for ${runtimeType.toString()}. "
-          "Available relations: ${relations.keys.join(', ')}");
+        "Relation '$relation' not found for ${runtimeType.toString()}. "
+        "Available relations: ${relations.keys.join(', ')}",
+      );
     }
 
     await loader([this as Model], RelationConfig(columns: columns));
@@ -262,8 +292,9 @@ abstract class Model<T extends Model<T>> {
     final definition = relations[name];
     if (definition == null) {
       throw Exception(
-          "Relation '$name' not found for ${runtimeType.toString()}. "
-          "Available relations: ${relations.keys.join(', ')}");
+        "Relation '$name' not found for ${runtimeType.toString()}. "
+        "Available relations: ${relations.keys.join(', ')}",
+      );
     }
 
     final query = definition.relatedFactory().resetQuery().qb;
@@ -689,7 +720,8 @@ abstract class Model<T extends Model<T>> {
               converted[key] = jsonDecode(value);
             } catch (_) {
               print(
-                  "Warning: Failed to decode JSON for key '$key'. Keeping original string.");
+                "Warning: Failed to decode JSON for key '$key'. Keeping original string.",
+              );
               converted[key] = value;
             }
           } else if (value is List<int>) {

@@ -42,23 +42,19 @@ class User extends Model<User> {
 
   @override
   Table get table => Table(
-        name: 'users',
-        columns: [
-          Column(name: 'name', type: ColumnType.string),
-          Column(name: 'age', type: ColumnType.integer),
-          Column(name: 'active', type: ColumnType.boolean),
-          Column(name: 'created_at', type: ColumnType.datetime),
-        ],
-      );
+    name: 'users',
+    columns: [
+      Column(name: 'name', type: ColumnType.string),
+      Column(name: 'age', type: ColumnType.integer),
+      Column(name: 'active', type: ColumnType.boolean),
+      Column(name: 'created_at', type: ColumnType.datetime),
+    ],
+  );
 
   @override
   Map<String, RelationDefinition> get relations => {
-        'posts': Relations.hasMany<Post>(
-          'posts',
-          Post.new,
-          foreignKey: 'user_id',
-        ),
-      };
+    'posts': Relations.hasMany<Post>('posts', Post.new, foreignKey: 'user_id'),
+  };
 
   @override
   List<String> get conceal => ['password'];
@@ -69,21 +65,17 @@ class Post extends Model<Post> {
 
   @override
   Table get table => Table(
-        name: 'posts',
-        columns: [
-          Column(name: 'user_id', type: ColumnType.string),
-          Column(name: 'status', type: ColumnType.string),
-        ],
-      );
+    name: 'posts',
+    columns: [
+      Column(name: 'user_id', type: ColumnType.string),
+      Column(name: 'status', type: ColumnType.string),
+    ],
+  );
 
   @override
   Map<String, RelationDefinition> get relations => {
-        'user': Relations.belongsTo<User>(
-          'user',
-          User.new,
-          foreignKey: 'user_id',
-        ),
-      };
+    'user': Relations.belongsTo<User>('user', User.new, foreignKey: 'user_id'),
+  };
 }
 
 void main() {
@@ -97,17 +89,16 @@ void main() {
 
       expect(user.getAttribute<int>('age'), 42);
       expect(user.getAttribute<bool>('active'), isTrue);
-      expect(user.getAttribute<DateTime>('created_at'),
-          DateTime.parse('2025-01-02T03:04:05Z'));
+      expect(
+        user.getAttribute<DateTime>('created_at'),
+        DateTime.parse('2025-01-02T03:04:05Z'),
+      );
       expect(user.getAttribute<String>('name'), '123');
     });
 
     test('toMap omits concealed fields', () {
       final user = User();
-      user.setAttributes({
-        'name': 'Ada',
-        'password': 'secret',
-      });
+      user.setAttributes({'name': 'Ada', 'password': 'secret'});
 
       final map = user.toMap();
       expect(map['name'], 'Ada');
@@ -120,12 +111,24 @@ void main() {
       expect(user.getAttribute<int>('age'), 30);
     });
 
+    test('fromMap hydrates belongsTo relation maps', () {
+      final post = Post().fromMap({
+        'status': 'published',
+        'user_id': 'user-1',
+        'user': {'id': 'user-1', 'name': 'Tari', 'age': '30'},
+      });
+
+      final user = post.getRelation<User>('user');
+
+      expect(user, isNotNull);
+      expect(user!.id, 'user-1');
+      expect(user.getAttribute<String>('name'), 'Tari');
+      expect(user.getAttribute<int>('age'), 30);
+    });
+
     test('load throws when relation is missing', () async {
       final user = User();
-      expect(
-        () => user.load('missing'),
-        throwsA(isA<Exception>()),
-      );
+      expect(() => user.load('missing'), throwsA(isA<Exception>()));
     });
 
     test('relationQuery builds a hasMany query from relation metadata', () {
@@ -155,10 +158,7 @@ void main() {
     test('relationQuery fails clearly when parent key is missing', () {
       final user = User();
 
-      expect(
-        () => user.relationQuery('posts'),
-        throwsA(isA<StateError>()),
-      );
+      expect(() => user.relationQuery('posts'), throwsA(isA<StateError>()));
     });
 
     test('relationCounts supports empty grouped count requests', () async {
@@ -169,15 +169,17 @@ void main() {
       expect(counts, isEmpty);
     });
 
-    test('loadRelationCount fails before DB work when parent key is missing',
-        () async {
-      final user = User();
+    test(
+      'loadRelationCount fails before DB work when parent key is missing',
+      () async {
+        final user = User();
 
-      expect(
-        () => user.loadRelationCount('posts', as: 'postCount'),
-        throwsA(isA<StateError>()),
-      );
-    });
+        expect(
+          () => user.loadRelationCount('posts', as: 'postCount'),
+          throwsA(isA<StateError>()),
+        );
+      },
+    );
 
     test('withRelations eager loads hasMany rows by foreign key', () async {
       final connection = _CapturingMySqlConnection([
@@ -203,11 +205,14 @@ void main() {
 
       final firstPosts = users.first.getRelation<List>('posts');
       expect(firstPosts, hasLength(2));
-      expect((firstPosts!.first as Post).getAttribute<String>('status'),
-          'published');
+      expect(
+        (firstPosts!.first as Post).getAttribute<String>('status'),
+        'published',
+      );
 
-      final firstPostMaps =
-          users.first.getRelation<List<Map<String, dynamic>>>('posts');
+      final firstPostMaps = users.first.getRelation<List<Map<String, dynamic>>>(
+        'posts',
+      );
       expect(firstPostMaps, hasLength(2));
       expect(firstPostMaps!.first['status'], 'published');
 
