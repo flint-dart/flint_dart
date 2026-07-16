@@ -36,10 +36,7 @@ class QueryBuilder {
 
   QueryBuilder({required this.table});
 
-  QueryBuilder withRelation(
-    String name, {
-    List<String>? columns,
-  }) {
+  QueryBuilder withRelation(String name, {List<String>? columns}) {
     if (!_withRelations.contains(name)) {
       _withRelations.add(name);
     }
@@ -89,8 +86,12 @@ class QueryBuilder {
   /// [pattern] is the SQL pattern (supports % as wildcard).
   /// [caseSensitive] determines if the match is case-sensitive.
   /// [escape] determines if special characters in the pattern are escaped.
-  QueryBuilder whereLike(String field, String pattern,
-      {bool caseSensitive = false, bool escape = true}) {
+  QueryBuilder whereLike(
+    String field,
+    String pattern, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
@@ -100,8 +101,9 @@ class QueryBuilder {
           : '$field ILIKE :$paramName';
       _addWhere('AND', sql);
     } else {
-      final sql =
-          caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
+      final sql = caseSensitive
+          ? '$field LIKE ?'
+          : 'LOWER($field) LIKE LOWER(?)';
       _addWhere('AND', sql);
     }
 
@@ -115,8 +117,12 @@ class QueryBuilder {
   /// [pattern] is the SQL pattern.
   /// [caseSensitive] determines if the match is case-sensitive.
   /// [escape] determines if special characters in the pattern are escaped.
-  QueryBuilder whereNotLike(String field, String pattern,
-      {bool caseSensitive = false, bool escape = true}) {
+  QueryBuilder whereNotLike(
+    String field,
+    String pattern, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
@@ -139,8 +145,12 @@ class QueryBuilder {
   /// Adds an OR LIKE condition to the query.
   ///
   /// Works similarly to [whereLike] but combines with OR logic.
-  QueryBuilder orWhereLike(String field, String pattern,
-      {bool caseSensitive = false, bool escape = true}) {
+  QueryBuilder orWhereLike(
+    String field,
+    String pattern, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
@@ -150,8 +160,9 @@ class QueryBuilder {
           : '$field ILIKE :$paramName';
       _addWhere('OR', sql);
     } else {
-      final sql =
-          caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
+      final sql = caseSensitive
+          ? '$field LIKE ?'
+          : 'LOWER($field) LIKE LOWER(?)';
       _addWhere('OR', sql);
     }
 
@@ -165,48 +176,80 @@ class QueryBuilder {
   // ------------------------
 
   /// Adds a WHERE condition that checks if [field] contains [value].
-  QueryBuilder whereContains(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      whereLike(field, '%$value%',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder whereContains(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) => whereLike(
+    field,
+    '%$value%',
+    caseSensitive: caseSensitive,
+    escape: escape,
+  );
 
   /// Adds a WHERE condition that checks if [field] starts with [value].
-  QueryBuilder whereStartsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
+  QueryBuilder whereStartsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
       whereLike(field, '$value%', caseSensitive: caseSensitive, escape: escape);
 
   /// Adds a WHERE condition that checks if [field] ends with [value].
-  QueryBuilder whereEndsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
+  QueryBuilder whereEndsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
       whereLike(field, '%$value', caseSensitive: caseSensitive, escape: escape);
 
   /// Adds an OR condition that checks if [field] contains [value].
-  QueryBuilder orWhereContains(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      orWhereLike(field, '%$value%',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder orWhereContains(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) => orWhereLike(
+    field,
+    '%$value%',
+    caseSensitive: caseSensitive,
+    escape: escape,
+  );
 
   /// Adds an OR condition that checks if [field] starts with [value].
-  QueryBuilder orWhereStartsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      orWhereLike(field, '$value%',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder orWhereStartsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) => orWhereLike(
+    field,
+    '$value%',
+    caseSensitive: caseSensitive,
+    escape: escape,
+  );
 
   /// Adds an OR condition that checks if [field] ends with [value].
-  QueryBuilder orWhereEndsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      orWhereLike(field, '%$value',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder orWhereEndsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) => orWhereLike(
+    field,
+    '%$value',
+    caseSensitive: caseSensitive,
+    escape: escape,
+  );
   // ------------------------
   // Range / Date Methods
   // ------------------------
 
   /// Adds a WHERE condition that filters [field] between [start] and [end].
-  QueryBuilder whereBetween(
-    String field,
-    dynamic start,
-    dynamic end,
-  ) {
+  QueryBuilder whereBetween(String field, dynamic start, dynamic end) {
     final paramStart = 'p${_paramIndex++}';
     final paramEnd = 'p${_paramIndex++}';
 
@@ -354,7 +397,11 @@ class QueryBuilder {
 
   /// JOIN clause
   QueryBuilder join(
-      String table, String first, String operator, String second) {
+    String table,
+    String first,
+    String operator,
+    String second,
+  ) {
     // Simple JOIN implementation - you can extend this for different JOIN types
     _selects.add('$table.*'); // Add joined table columns
     _addWhere('AND', '$first $operator $second');
@@ -455,10 +502,12 @@ class QueryBuilder {
     final whereSql = compileWhereSql();
     final whereClause = whereSql.isEmpty ? '' : ' $whereSql';
 
-    final groupClause =
-        _groups.isNotEmpty ? ' GROUP BY ${_groups.join(', ')}' : '';
-    final orderClause =
-        _orderBys.isNotEmpty ? ' ORDER BY ${_orderBys.join(', ')}' : '';
+    final groupClause = _groups.isNotEmpty
+        ? ' GROUP BY ${_groups.join(', ')}'
+        : '';
+    final orderClause = _orderBys.isNotEmpty
+        ? ' ORDER BY ${_orderBys.join(', ')}'
+        : '';
     final limitClause = _limit != null ? ' LIMIT $_limit' : '';
     final offsetClause = _offset != null ? ' OFFSET $_offset' : '';
 
@@ -470,8 +519,9 @@ class QueryBuilder {
     final result = await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
-      positionalParams:
-          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+      positionalParams: DB.driver == DBDriver.mysql
+          ? _bindings.values.toList()
+          : null,
     );
 
     // Normalize maps and convert DateTime to ISO string
@@ -549,8 +599,10 @@ class QueryBuilder {
   }
 
   /// INSERT
-  Future<void> insert(Map<String, dynamic> data,
-      {String idColumn = 'id'}) async {
+  Future<void> insert(
+    Map<String, dynamic> data, {
+    String idColumn = 'id',
+  }) async {
     _ColumnInfo columnInfo;
 
     if (_columnCache.containsKey(table)) {
@@ -581,8 +633,9 @@ class QueryBuilder {
     await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? data : null,
-      positionalParams:
-          DB.driver == DBDriver.mysql ? data.values.toList() : null,
+      positionalParams: DB.driver == DBDriver.mysql
+          ? data.values.toList()
+          : null,
     );
 
     return;
@@ -605,10 +658,7 @@ class QueryBuilder {
       });
 
       final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
-      await DB.query(
-        sql,
-        namedParams: bindings,
-      );
+      await DB.query(sql, namedParams: bindings);
     } else {
       final positionalParams = <dynamic>[];
       data.forEach((k, v) {
@@ -619,10 +669,7 @@ class QueryBuilder {
       positionalParams.addAll(_bindings.values);
 
       final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
-      await DB.query(
-        sql,
-        positionalParams: positionalParams,
-      );
+      await DB.query(sql, positionalParams: positionalParams);
     }
   }
 
@@ -637,8 +684,9 @@ class QueryBuilder {
     await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
-      positionalParams:
-          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+      positionalParams: DB.driver == DBDriver.mysql
+          ? _bindings.values.toList()
+          : null,
     );
   }
 
@@ -657,17 +705,20 @@ class QueryBuilder {
   Future<_ColumnInfo> _loadIdColumnInfo(String idColumn) async {
     try {
       if (DB.driver == DBDriver.mysql) {
-        final result = await DB.query('''
+        final result = await DB.query(
+          '''
         SELECT DATA_TYPE, EXTRA
         FROM information_schema.columns
         WHERE TABLE_SCHEMA = :db
           AND TABLE_NAME = :table
           AND COLUMN_NAME = :id
-      ''', namedParams: {
-          'db': FlintEnv.get("DB_NAME", ''),
-          'table': table,
-          'id': idColumn,
-        });
+      ''',
+          namedParams: {
+            'db': FlintEnv.get("DB_NAME", ''),
+            'table': table,
+            'id': idColumn,
+          },
+        );
 
         if (result.isNotEmpty) {
           final dt = result.first['DATA_TYPE'];
@@ -684,16 +735,16 @@ class QueryBuilder {
           );
         }
       } else if (DB.driver == DBDriver.postgres) {
-        final result = await DB.query('''
+        final result = await DB.query(
+          '''
         SELECT data_type, is_identity
         FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = :table
           AND column_name = :id
-      ''', namedParams: {
-          'table': table,
-          'id': idColumn,
-        });
+      ''',
+          namedParams: {'table': table, 'id': idColumn},
+        );
 
         if (result.isNotEmpty) {
           final dataType = (result.first['data_type'] as String).toLowerCase();
@@ -736,8 +787,7 @@ class QueryBuilder {
     // Create model instances from results
     final models = <Model>[];
     for (final result in mainResults) {
-      final model = factory() as Model;
-      (model as dynamic).fromMap(result);
+      final model = (factory() as dynamic).fromMap(result) as Model;
       models.add(model);
     }
 

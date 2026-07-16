@@ -67,11 +67,8 @@ class User extends Model<User> {
 
   @override
   Map<String, RelationDefinition> get relations => {
-        'posts': Relations.hasMany<Post>(
-          'posts',
-          Post.new,
-          foreignKey: 'user_id',
-        ),
+        'posts':
+            Relations.hasMany<Post>('posts', Post.new, foreignKey: 'user_id'),
       };
 
   @override
@@ -114,6 +111,25 @@ class Hosting extends Model<Hosting> {
   );
 }
 
+class Hosting extends Model<Hosting> {
+  Hosting() : super(Hosting.new);
+
+  @override
+  Map<String, RelationDefinition> get relations => {
+        'user':
+            Relations.belongsTo<User>('user', User.new, foreignKey: 'userId'),
+      };
+
+  @override
+  Table get table => Table(
+        name: 'hostings',
+        columns: [
+          Column(name: 'domain', type: ColumnType.string),
+          Column(name: 'userId', type: ColumnType.string),
+        ],
+      );
+}
+
 void main() {
   group('Model', () {
     test('getAttribute coerces basic types', () {
@@ -143,6 +159,21 @@ void main() {
 
     test('fromMap populates attributes', () {
       final user = User().fromMap({'name': 'Tari', 'age': 30});
+      expect(user.getAttribute<String>('name'), 'Tari');
+      expect(user.getAttribute<int>('age'), 30);
+    });
+
+    test('fromMap hydrates belongsTo relation maps', () {
+      final post = Post().fromMap({
+        'status': 'published',
+        'user_id': 'user-1',
+        'user': {'id': 'user-1', 'name': 'Tari', 'age': '30'},
+      });
+
+      final user = post.getRelation<User>('user');
+
+      expect(user, isNotNull);
+      expect(user!.id, 'user-1');
       expect(user.getAttribute<String>('name'), 'Tari');
       expect(user.getAttribute<int>('age'), 30);
     });
