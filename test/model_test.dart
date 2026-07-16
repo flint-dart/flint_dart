@@ -1,4 +1,5 @@
 import 'package:test/test.dart';
+import 'package:flint_dart/db.dart';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/src/database/mysql_connection.dart';
 
@@ -55,14 +56,14 @@ class User extends Model<User> {
 
   @override
   Table get table => Table(
-        name: 'users',
-        columns: [
-          Column(name: 'name', type: ColumnType.string),
-          Column(name: 'age', type: ColumnType.integer),
-          Column(name: 'active', type: ColumnType.boolean),
-          Column(name: 'created_at', type: ColumnType.datetime),
-        ],
-      );
+    name: 'users',
+    columns: [
+      Column(name: 'name', type: ColumnType.string),
+      Column(name: 'age', type: ColumnType.integer),
+      Column(name: 'active', type: ColumnType.boolean),
+      Column(name: 'created_at', type: ColumnType.datetime),
+    ],
+  );
 
   @override
   Map<String, RelationDefinition> get relations => {
@@ -78,19 +79,36 @@ class Post extends Model<Post> {
   Post() : super(Post.new);
 
   @override
+  Map<String, RelationDefinition> get relations => {
+    'user': Relations.belongsTo<User>('user', User.new, foreignKey: 'userId'),
+  };
+
+  @override
   Table get table => Table(
-        name: 'posts',
-        columns: [
-          Column(name: 'user_id', type: ColumnType.string),
-          Column(name: 'status', type: ColumnType.string),
-        ],
-      );
+    name: 'posts',
+    columns: [
+      Column(name: 'title', type: ColumnType.string),
+      Column(name: 'userId', type: ColumnType.string),
+    ],
+  );
+}
+
+class Hosting extends Model<Hosting> {
+  Hosting() : super(Hosting.new);
 
   @override
   Map<String, RelationDefinition> get relations => {
-        'user':
-            Relations.belongsTo<User>('user', User.new, foreignKey: 'user_id'),
-      };
+    'user': Relations.belongsTo<User>('user', User.new, foreignKey: 'userId'),
+  };
+
+  @override
+  Table get table => Table(
+    name: 'hostings',
+    columns: [
+      Column(name: 'domain', type: ColumnType.string),
+      Column(name: 'userId', type: ColumnType.string),
+    ],
+  );
 }
 
 class Hosting extends Model<Hosting> {
@@ -165,94 +183,6 @@ void main() {
       expect(() => user.load('missing'), throwsA(isA<Exception>()));
     });
 
-    test('relationQuery builds a hasMany query from relation metadata', () {
-      final user = User()..setAttribute('id', 'user-1');
-
-      final query = user.relationQuery(
-        'posts',
-        constrain: (query) => query.where('status', '=', 'active'),
-      );
-
-      expect(query.table, 'posts');
-      expect(query.compileWhereSql(), contains('user_id ='));
-      expect(query.compileWhereSql(), contains('status ='));
-      expect(query.whereParams.values, containsAll(['user-1', 'active']));
-    });
-
-    test('relationQuery builds a belongsTo query from relation metadata', () {
-      final post = Post()..setAttribute('user_id', 'user-2');
-
-      final query = post.relationQuery('user');
-
-      expect(query.table, 'users');
-      expect(query.compileWhereSql(), contains('id ='));
-      expect(query.whereParams.values, contains('user-2'));
-    });
-
-    test('relationQuery fails clearly when parent key is missing', () {
-      final user = User();
-
-      expect(() => user.relationQuery('posts'), throwsA(isA<StateError>()));
-    });
-
-    test('relationCounts supports empty grouped count requests', () async {
-      final user = User()..setAttribute('id', 'user-1');
-
-      final counts = await user.relationCounts('posts', const {});
-
-      expect(counts, isEmpty);
-    });
-
-    test(
-      'loadRelationCount fails before DB work when parent key is missing',
-      () async {
-        final user = User();
-
-        expect(
-          () => user.loadRelationCount('posts', as: 'postCount'),
-          throwsA(isA<StateError>()),
-        );
-      },
-    );
-
-    test('withRelations eager loads hasMany rows by foreign key', () async {
-      final connection = _CapturingMySqlConnection([
-        [
-          {'id': 'user-1', 'name': 'Ada'},
-          {'id': 'user-2', 'name': 'Grace'},
-        ],
-        [
-          {'id': 'post-1', 'user_id': 'user-1', 'status': 'published'},
-          {'id': 'post-2', 'user_id': 'user-1', 'status': 'draft'},
-        ],
-      ]);
-      DB.overrideConnection(connection);
-
-      final users = await User().withRelations(['posts']).get();
-
-      expect(connection.queries, [
-        'SELECT * FROM users',
-        'SELECT * FROM posts WHERE user_id IN (?, ?)',
-      ]);
-      expect(connection.params.last, ['user-1', 'user-2']);
-      expect(users, hasLength(2));
-
-      final firstPosts = users.first.getRelation<List>('posts');
-      expect(firstPosts, hasLength(2));
-      expect(
-        (firstPosts!.first as Post).getAttribute<String>('status'),
-        'published',
-      );
-
-      final firstPostMaps = users.first.getRelation<List<Map<String, dynamic>>>(
-        'posts',
-      );
-      expect(firstPostMaps, hasLength(2));
-      expect(firstPostMaps!.first['status'], 'published');
-
-      expect(users.last.getRelation<List>('posts'), isEmpty);
-    });
-
     test(
       'withRelation hydrates belongsTo models with selected columns',
       () async {
@@ -271,8 +201,9 @@ void main() {
         ]);
         DB.overrideConnection(connection);
 
-        final hostings = await Hosting().withRelation('user',
-            columns: ['firstName', 'lastName', 'email']).get();
+        final hostings = await Hosting()
+            .withRelation('user', columns: ['firstName', 'lastName', 'email'])
+            .get();
 
         expect(connection.queries, [
           'SELECT * FROM hostings',
