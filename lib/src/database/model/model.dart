@@ -477,9 +477,9 @@ abstract class Model<T extends Model<T>> {
     if (fkValues.isEmpty) return;
 
     // Fetch related models
-    final relatedResults = await relatedFactory()
-        .resetQuery()
-        .qb
+    final relatedQuery = relatedFactory().resetQuery().qb;
+    _applyRelationColumns(relatedQuery, config, [definition.ownerKey]);
+    final relatedResults = await relatedQuery
         .whereIn(definition.ownerKey, fkValues.toList())
         .get();
     // Map related models by their owner key
@@ -524,9 +524,9 @@ abstract class Model<T extends Model<T>> {
     if (parentIds.isEmpty) return;
 
     // Fetch related models
-    final relatedResults = await relatedFactory()
-        .resetQuery()
-        .qb
+    final relatedQuery = relatedFactory().resetQuery().qb;
+    _applyRelationColumns(relatedQuery, config, [definition.foreignKey]);
+    final relatedResults = await relatedQuery
         .whereIn(definition.foreignKey, parentIds.toList())
         .get();
 
@@ -577,9 +577,9 @@ abstract class Model<T extends Model<T>> {
     }
 
     // Fetch related models
-    final relatedResults = await relatedFactory()
-        .resetQuery()
-        .qb
+    final relatedQuery = relatedFactory().resetQuery().qb;
+    _applyRelationColumns(relatedQuery, config, [definition.foreignKey]);
+    final relatedResults = await relatedQuery
         .whereIn(definition.foreignKey, parentIds.toList())
         .get();
 
@@ -601,6 +601,23 @@ abstract class Model<T extends Model<T>> {
         parent.setAttribute(definition.name, relatedList);
       }
     }
+  }
+
+  void _applyRelationColumns(
+    QueryBuilder query,
+    RelationConfig? config,
+    List<String> requiredColumns,
+  ) {
+    final columns = config?.columns;
+    if (columns == null || columns.isEmpty) return;
+
+    final selected = <String>[];
+    for (final column in [...columns, ...requiredColumns]) {
+      final clean = column.trim();
+      if (clean.isEmpty || selected.contains(clean)) continue;
+      selected.add(clean);
+    }
+    query.select(selected);
   }
 
   /// Load belongsToMany relationship
