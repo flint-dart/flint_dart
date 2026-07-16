@@ -37,6 +37,9 @@ abstract class Model<T extends Model<T>> {
     if (value is R) return value;
     if (R == dynamic) return value;
 
+    final modelValue = _coerceModelValueForRequestedType<R>(value);
+    if (modelValue is R) return modelValue;
+
     // List of typed items
 
     // DateTime parsing
@@ -185,6 +188,32 @@ abstract class Model<T extends Model<T>> {
   /// Get loaded relation
   R? getRelation<R>(String name) => getAttribute<R>(name);
 
+  dynamic _coerceModelValueForRequestedType<R>(dynamic value) {
+    final requestedType = R.toString();
+
+    if (value is Model && requestedType == 'Map<String, dynamic>') {
+      return value.toMap();
+    }
+
+    if (value is List && requestedType == 'List<Map<String, dynamic>>') {
+      final maps = <Map<String, dynamic>>[];
+
+      for (final item in value) {
+        if (item is Model) {
+          maps.add(item.toMap());
+        } else if (item is Map) {
+          maps.add(Map<String, dynamic>.from(item));
+        } else {
+          return null;
+        }
+      }
+
+      return maps;
+    }
+
+    return null;
+  }
+
   /// Load a relation for this single model
   Future<T> load(String relation, {List<String>? columns}) async {
     final loaderKey = '${runtimeType.toString()}.$relation';
@@ -222,6 +251,105 @@ abstract class Model<T extends Model<T>> {
       throw Exception('Failed to load relation $name');
     }
     return relation;
+  }
+
+  /// Build a query for a relation using this model's relation definition.
+  ///
+  /// This is useful when you need filtered relation counts or existence checks
+  /// without loading every related model.
+  QueryBuilder relationQuery(
+    String name, {
+    void Function(QueryBuilder query)? constrain,
+  }) {
+    final definition = relations[name];
+    if (definition == null) {
+      throw Exception(
+          "Relation '$name' not found for ${runtimeType.toString()}. "
+          "Available relations: ${relations.keys.join(', ')}");
+    }
+
+    final query = definition.relatedFactory().resetQuery().qb;
+
+    switch (definition.type) {
+      case RelationType.belongsTo:
+        final fkValue = getAttribute(definition.foreignKey);
+        if (fkValue == null) {
+          throw StateError(
+            "Cannot query relation '$name' because "
+            "'${definition.foreignKey}' is null.",
+          );
+        }
+        query.where(definition.ownerKey, '=', fkValue);
+        break;
+      case RelationType.hasOne:
+      case RelationType.hasMany:
+        final parentId = id;
+        if (parentId == null) {
+          throw StateError(
+            "Cannot query relation '$name' because '$primaryKey' is null.",
+          );
+        }
+        query.where(definition.foreignKey, '=', parentId);
+        break;
+      case RelationType.belongsToMany:
+      case RelationType.hasManyThrough:
+        throw UnsupportedError(
+          "Relation query for '${definition.type.name}' is not supported yet.",
+        );
+    }
+
+    constrain?.call(query);
+    return query;
+  }
+
+  /// Count related records without loading the relation.
+  Future<int> countRelation(
+    String name, {
+    void Function(QueryBuilder query)? constrain,
+    String column = '*',
+  }) {
+    return relationQuery(name, constrain: constrain).count(column);
+  }
+
+  /// Count the same relation multiple ways without repeating relation metadata.
+  Future<Map<String, int>> relationCounts(
+    String name,
+    Map<String, void Function(QueryBuilder query)?> groups, {
+    String column = '*',
+  }) async {
+    final counts = <String, int>{};
+    for (final entry in groups.entries) {
+      counts[entry.key] = await countRelation(
+        name,
+        constrain: entry.value,
+        column: column,
+      );
+    }
+    return counts;
+  }
+
+  /// Count related records and store the count as an attribute on this model.
+  Future<T> loadRelationCount(
+    String name, {
+    String? as,
+    void Function(QueryBuilder query)? constrain,
+    String column = '*',
+  }) async {
+    final count = await countRelation(
+      name,
+      constrain: constrain,
+      column: column,
+    );
+    setAttribute(as ?? '${name}Count', count);
+    return this as T;
+  }
+
+  /// Check whether at least one related record exists.
+  Future<bool> hasRelated(
+    String name, {
+    void Function(QueryBuilder query)? constrain,
+  }) async {
+    return await countRelation(name, constrain: constrain) > 0;
   }
 
   // ========== PRIVATE METHODS ==========

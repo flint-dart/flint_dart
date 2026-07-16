@@ -12,6 +12,7 @@ class CorsMiddleware extends Middleware {
       'POST',
       'PUT',
       'DELETE',
+      'QUERY',
       'OPTIONS',
       'PATCH'
     ],

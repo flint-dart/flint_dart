@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:path/path.dart' as p;
@@ -24,6 +26,13 @@ typedef FlintPageServerRenderer = String? Function(
   String component,
   Map<String, dynamic> props,
 );
+
+class _FlintPageScriptResolution {
+  const _FlintPageScriptResolution(this.script, {this.isBuilding = false});
+
+  final String script;
+  final bool isBuilding;
+}
 
 class FlintPageMeta {
   final String? title;
@@ -98,6 +107,9 @@ class Response {
   /// Enables app-level server rendering for Flint pages when a renderer exists.
   static bool flintPageServerRenderingEnabled = false;
 
+  static final Set<String> _flintPageBundlesBuilding = {};
+  static final Set<String> _flintPageBundlesUnavailable = {};
+
   /// Creates a new [Response] instance with the given [HttpResponse].
   Response(
     this.raw, {
@@ -107,6 +119,92 @@ class Response {
   })  : _flintPageServerRenderer = flintPageServerRenderer,
         _flintPageServerRenderingEnabled = serverRenderFlintPages ?? false;
   bool get isClosed => _closed;
+
+  Response header(String name, Object value) {
+    raw.headers.set(name, value);
+    return this;
+  }
+
+  Response cachePublic(
+    Duration maxAge, {
+    Duration? sharedMaxAge,
+    bool immutable = false,
+    bool mustRevalidate = false,
+  }) {
+    return _setCacheControl(
+      public: true,
+      maxAge: maxAge,
+      sharedMaxAge: sharedMaxAge,
+      immutable: immutable,
+      mustRevalidate: mustRevalidate,
+    );
+  }
+
+  Response cachePrivate(
+    Duration maxAge, {
+    bool mustRevalidate = false,
+  }) {
+    return _setCacheControl(
+      public: false,
+      maxAge: maxAge,
+      mustRevalidate: mustRevalidate,
+    );
+  }
+
+  Response revalidate() {
+    raw.headers.set(
+      HttpHeaders.cacheControlHeader,
+      'no-cache, must-revalidate',
+    );
+    return this;
+  }
+
+  Response noStore() {
+    raw.headers.set(
+      HttpHeaders.cacheControlHeader,
+      'no-store, no-cache, must-revalidate',
+    );
+    raw.headers.set(HttpHeaders.pragmaHeader, 'no-cache');
+    raw.headers.set(HttpHeaders.expiresHeader, '0');
+    return this;
+  }
+
+  Response etag(String value, {bool weak = false}) {
+    if (value.startsWith('W/')) {
+      raw.headers.set(HttpHeaders.etagHeader, value);
+      return this;
+    }
+
+    final tag = value.startsWith('"') ? value : '"$value"';
+    raw.headers.set(HttpHeaders.etagHeader, weak ? 'W/$tag' : tag);
+    return this;
+  }
+
+  Response lastModified(DateTime value) {
+    raw.headers.set(
+      HttpHeaders.lastModifiedHeader,
+      HttpDate.format(value.toUtc()),
+    );
+    return this;
+  }
+
+  Response _setCacheControl({
+    required bool public,
+    required Duration maxAge,
+    Duration? sharedMaxAge,
+    bool immutable = false,
+    bool mustRevalidate = false,
+  }) {
+    final directives = <String>[
+      public ? 'public' : 'private',
+      'max-age=${maxAge.inSeconds}',
+      if (sharedMaxAge != null) 's-maxage=${sharedMaxAge.inSeconds}',
+      if (immutable) 'immutable',
+      if (mustRevalidate) 'must-revalidate',
+    ];
+    raw.headers.set(HttpHeaders.cacheControlHeader, directives.join(', '));
+    return this;
+  }
 
   Future<void> close() async {
     if (!_closed) {
@@ -289,7 +387,11 @@ class Response {
         'props': _jsonSafeValue(props),
         if (request != null) 'url': request!.uri.toString(),
       };
-      final resolvedScript = script ?? _flintPageScriptForComponent(component);
+      final scriptResolution = script == null
+          ? _flintPageScriptForComponent(component)
+          : _FlintPageScriptResolution(script);
+      final isBuildingPageBundle = scriptResolution.isBuilding;
+      final resolvedScript = scriptResolution.script;
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
@@ -306,15 +408,26 @@ class Response {
       final headTags = _renderFlintPageHead(
         title: title ?? resolvedMeta?.title ?? component,
         stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
-        scriptPreloads: preloadScript ? [versionedScript] : const [],
+        scriptPreloads: preloadScript && !isBuildingPageBundle
+            ? [versionedScript]
+            : const [],
         meta: resolvedMeta,
         requestUrl: request?.uri.toString(),
       );
 
-      raw.statusCode = status ?? raw.statusCode;
+      raw.statusCode = status ??
+          (isBuildingPageBundle ? HttpStatus.accepted : raw.statusCode);
       raw.headers.contentType = ContentType.html;
+      if (isBuildingPageBundle) {
+        raw.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
+      }
       final hotReloadScript = _hotReloadScript();
       final serviceWorkerScript = _flintServiceWorkerScript();
+      final buildOverlayScript =
+          isBuildingPageBundle ? _lazyPageBuildOverlayScript(component) : '';
+      final pageScriptTag = isBuildingPageBundle
+          ? ''
+          : '    <script defer src="$safeScript"></script>';
       raw.write('''
 <!DOCTYPE html>
 <html lang="en">
@@ -323,7 +436,8 @@ $headTags
   </head>
   <body>
     <main id="$safeRootId" data-flint-page="$encodedPage">$renderedHtml</main>
-    <script defer src="$safeScript"></script>
+$pageScriptTag
+$buildOverlayScript
 $serviceWorkerScript
 $hotReloadScript
   </body>
@@ -530,11 +644,141 @@ $hotReloadScript
     return '$trimmed${separator}v=$version';
   }
 
-  String _flintPageScriptForComponent(String component) {
-    return _scriptFromFlintUiManifest(component) ?? _defaultFlintPageScript();
+  String _lazyPageBuildOverlayScript(String component) {
+    final safeJsonComponent = jsonEncode(component).replaceAll('</', '<\\/');
+    return '''
+    <script>
+      (function () {
+        window.__FLINT_BUILDING_PAGE__ = $safeJsonComponent;
+
+        function ensureFlintLazyBuildIndicator() {
+          var overlay = document.getElementById('flint-hot-reload-indicator');
+          if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'flint-hot-reload-indicator';
+            overlay.setAttribute('role', 'status');
+            overlay.setAttribute('aria-live', 'polite');
+            overlay.innerHTML = '<span class="flint-hot-reload-spinner"></span><span class="flint-hot-reload-text">Building Flint UI...</span>';
+
+            var style = document.createElement('style');
+            style.textContent = `
+              #flint-hot-reload-indicator {
+                align-items: center;
+                backdrop-filter: blur(14px);
+                background: rgba(15, 23, 42, 0.86);
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 12px;
+                box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
+                color: #ffffff;
+                display: none;
+                font: 700 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                gap: 10px;
+                left: 50%;
+                max-width: calc(100vw - 32px);
+                padding: 12px 14px;
+                position: fixed;
+                top: 18px;
+                transform: translateX(-50%);
+                z-index: 2147483647;
+              }
+
+              #flint-hot-reload-indicator[data-visible="true"] {
+                display: inline-flex;
+              }
+
+              .flint-hot-reload-spinner {
+                animation: flint-hot-reload-spin 0.75s linear infinite;
+                border: 2px solid rgba(255, 255, 255, 0.28);
+                border-top-color: #38bdf8;
+                border-radius: 999px;
+                height: 16px;
+                width: 16px;
+              }
+
+              @keyframes flint-hot-reload-spin {
+                to { transform: rotate(360deg); }
+              }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(overlay);
+          }
+
+          var text = overlay.querySelector('.flint-hot-reload-text');
+          if (text) text.textContent = 'Building Flint UI...';
+          overlay.dataset.visible = 'true';
+          return overlay;
+        }
+
+        ensureFlintLazyBuildIndicator();
+        window.setTimeout(function () {
+          window.location.reload();
+        }, 1500);
+      })();
+    </script>''';
   }
 
-  String? _scriptFromFlintUiManifest(String component) {
+  _FlintPageScriptResolution _flintPageScriptForComponent(String component) {
+    final pageScript = _scriptFromFlintUiManifest(
+      component,
+      includeFallback: false,
+      requireExistingFile: true,
+    );
+    if (pageScript != null) return _FlintPageScriptResolution(pageScript);
+
+    if (Platform.environment['FLINT_HOT'] == '1' &&
+        !_flintPageBundlesUnavailable.contains(component)) {
+      if (_buildFlintPageBundleOnDemand(component)) {
+        return _FlintPageScriptResolution(
+          _defaultFlintPageScript(),
+          isBuilding: true,
+        );
+      }
+    }
+
+    return _FlintPageScriptResolution(
+      _scriptFromFlintUiManifest(
+            component,
+            requireExistingFile: true,
+          ) ??
+          _defaultFlintPageScript(),
+    );
+  }
+
+  bool _buildFlintPageBundleOnDemand(String component) {
+    if (Platform.environment['FLINT_HOT'] != '1') return false;
+    if (_flintPageBundlesBuilding.contains(component)) return true;
+    if (_flintPageBundlesUnavailable.contains(component)) return false;
+
+    final build = FlintWebUiBuilder.resolve();
+    if (build == null) return false;
+
+    _flintPageBundlesBuilding.add(component);
+    unawaited(
+      Future<void>(() async {
+        try {
+          Log.info('Building Flint UI page: $component...');
+          await FlintWebUiBuilder.compilePageBundles(build,
+              onlyPage: component);
+          Log.info('Done building Flint UI page: $component.');
+        } on StateError catch (e) {
+          _flintPageBundlesUnavailable.add(component);
+          Log.debug(
+              'Flint UI page bundle skipped for "$component": ${e.message}');
+        } catch (e, stack) {
+          Log.debug('Flint UI page bundle failed for "$component": $e\n$stack');
+        } finally {
+          _flintPageBundlesBuilding.remove(component);
+        }
+      }),
+    );
+    return true;
+  }
+
+  String? _scriptFromFlintUiManifest(
+    String component, {
+    bool includeFallback = true,
+    bool requireExistingFile = false,
+  }) {
     final manifestFile =
         File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json'));
     if (!manifestFile.existsSync()) return null;
@@ -545,28 +789,69 @@ $hotReloadScript
 
       if (decoded['mode'] == 'shared-runtime') {
         final runtime = decoded['runtime'];
-        if (runtime is String && runtime.trim().isNotEmpty) {
-          return runtime.trim();
+        if (_isUsableManifestScript(
+          runtime,
+          requireExistingFile: requireExistingFile,
+        )) {
+          return runtime.toString().trim();
         }
       }
 
       final pages = decoded['pages'];
       if (pages is Map) {
         final script = pages[component];
-        if (script is String && script.trim().isNotEmpty) {
-          return script.trim();
+        if (_isUsableManifestScript(
+          script,
+          requireExistingFile: requireExistingFile,
+        )) {
+          return script.toString().trim();
         }
       }
 
-      final fallback = decoded['fallback'];
-      if (fallback is String && fallback.trim().isNotEmpty) {
-        return fallback.trim();
+      if (includeFallback) {
+        final fallback = decoded['fallback'];
+        if (_isUsableManifestScript(
+          fallback,
+          requireExistingFile: requireExistingFile,
+        )) {
+          return fallback.toString().trim();
+        }
       }
     } catch (e) {
       Log.debug('[Flint] Failed to read Flint UI manifest: $e');
     }
 
     return null;
+  }
+
+  bool _isUsableManifestScript(
+    Object? value, {
+    required bool requireExistingFile,
+  }) {
+    if (value is! String || value.trim().isEmpty) return false;
+    if (!requireExistingFile) return true;
+    return _publicAssetExists(value.trim());
+  }
+
+  bool _publicAssetExists(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('data:')) {
+      return true;
+    }
+
+    final parsed = Uri.tryParse(trimmed);
+    final pathOnly = parsed?.path ?? trimmed.split('?').first.split('#').first;
+    if (!pathOnly.startsWith('/')) return true;
+
+    final publicPath = p.joinAll([
+      'public',
+      ...pathOnly.split('/').where((part) => part.isNotEmpty),
+    ]);
+    return File(publicPath).existsSync();
   }
 
   String? _resolveIconUrl(String? explicitUrl, {bool preferPng = false}) {

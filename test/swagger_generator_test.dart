@@ -3,6 +3,103 @@ import 'package:flint_dart/src/swagger_gen/swagger_generator.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('Swagger HTTP QUERY docs', () {
+    test('route parser preserves QUERY routes as Flint vendor extensions', () {
+      final parser = RouteParser();
+      final generator = SwaggerGenerator();
+
+      parser.parseFile([
+        "import 'package:flint_dart/flint_dart.dart';",
+        '',
+        'class ProductRoutes extends RouteGroup {',
+        '  @override',
+        "  String get prefix => '/products';",
+        '',
+        '  @override',
+        "  String get tag => 'Products';",
+        '',
+        '  @override',
+        '  void register(Flint app) {',
+        '    /// @summary Search products',
+        '    /// @body {"category": "string"}',
+        "    app.query('/search', (ctx) {});",
+        '  }',
+        '}',
+      ], generator);
+
+      final swagger = generator.generateSwagger();
+      final pathItem = Map<String, dynamic>.from(
+        (swagger['paths'] as Map<String, dynamic>)['/products/search'] as Map,
+      );
+      final operation =
+          Map<String, dynamic>.from(pathItem['x-flint-query'] as Map);
+      final queryRoutes =
+          Map<String, dynamic>.from(swagger['x-flint-query-routes'] as Map);
+      final queryRoute =
+          Map<String, dynamic>.from(queryRoutes['/products/search'] as Map);
+
+      expect(pathItem.containsKey('get'), isFalse);
+      expect(pathItem.containsKey('post'), isFalse);
+      expect(operation['x-http-method'], 'QUERY');
+      expect(operation['summary'], 'Search products');
+      expect(operation['tags'], ['Products']);
+      expect(queryRoute['x-http-method'], 'QUERY');
+      expect(
+        swagger['x-flint-query-openapi-note'],
+        contains('OpenAPI 3.0 has no standard QUERY operation key'),
+      );
+    });
+
+    test('generator merges duplicate QUERY docs without standard method keys',
+        () {
+      final generator = SwaggerGenerator();
+
+      generator.addRoute(
+        '/search',
+        'query',
+        generator.createOperation(
+          summary: 'Search',
+          tags: ['Search'],
+          responses: {
+            '200': {'description': 'OK'}
+          },
+          fullPath: '/search',
+        ),
+        const [],
+      );
+      generator.addRoute(
+        '/search',
+        'query',
+        generator.createOperation(
+          summary: 'Search',
+          tags: ['Search'],
+          responses: {
+            '422': {'description': 'Invalid query'}
+          },
+          fullPath: '/search',
+        ),
+        const [],
+      );
+
+      final swagger = generator.generateSwagger();
+      final pathItem = Map<String, dynamic>.from(
+        (swagger['paths'] as Map<String, dynamic>)['/search'] as Map,
+      );
+      final operation =
+          Map<String, dynamic>.from(pathItem['x-flint-query'] as Map);
+
+      expect(pathItem.keys, isNot(contains('get')));
+      expect(pathItem.keys, isNot(contains('post')));
+      expect(operation['x-http-method'], 'QUERY');
+      expect(
+          operation['responses'], containsPair('200', {'description': 'OK'}));
+      expect(
+        operation['responses'],
+        containsPair('422', {'description': 'Invalid query'}),
+      );
+    });
+  });
+
   group('Swagger websocket docs', () {
     test('route parser documents websocket routes as websocket-aware GETs', () {
       final parser = RouteParser();

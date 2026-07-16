@@ -66,6 +66,15 @@ class User extends Model<User> {
   );
 
   @override
+  Map<String, RelationDefinition> get relations => {
+        'posts': Relations.hasMany<Post>(
+          'posts',
+          Post.new,
+          foreignKey: 'user_id',
+        ),
+      };
+
+  @override
   List<String> get conceal => ['password'];
 }
 

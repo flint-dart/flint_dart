@@ -66,7 +66,117 @@ void main() {
         expect(response.headers.contentType?.mimeType, 'text/javascript');
         expect(
           response.headers.value(HttpHeaders.cacheControlHeader),
-          'public, max-age=2592000, immutable',
+          'public, max-age=2592000',
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('static middleware uses immutable cache for fingerprinted assets',
+        () async {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_hash_assets_');
+
+      try {
+        Directory.current = tempDir;
+        File('public/assets/js/flint-ui/pages/home.abcdef123456.dart.js')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('console.log("home");');
+
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          enableSwaggerDocs: false,
+        );
+
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse(
+            '/assets/js/flint-ui/pages/home.abcdef123456.dart.js',
+          ),
+        );
+        await app.handleRequest(raw);
+
+        final response = raw.response as FakeHttpResponse;
+        expect(
+          response.headers.value(HttpHeaders.cacheControlHeader),
+          'public, max-age=31536000, immutable',
+        );
+        expect(
+          response.headers.value(HttpHeaders.varyHeader),
+          'Accept-Encoding',
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('static middleware revalidates manifest assets', () async {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_manifest_');
+
+      try {
+        Directory.current = tempDir;
+        File('public/assets/js/flint-ui/manifest.json')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('{"mode":"page-bundles"}');
+
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          enableSwaggerDocs: false,
+        );
+
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/assets/js/flint-ui/manifest.json'),
+        );
+        await app.handleRequest(raw);
+
+        final response = raw.response as FakeHttpResponse;
+        expect(
+          response.headers.value(HttpHeaders.cacheControlHeader),
+          'no-cache, no-store, must-revalidate',
+        );
+      } finally {
+        Directory.current = originalCurrent;
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('static middleware treats query-versioned assets as immutable',
+        () async {
+      final originalCurrent = Directory.current;
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_query_assets_');
+
+      try {
+        Directory.current = tempDir;
+        File('public/assets/css/flint-ui/style.css')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('body{}');
+
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          enableSwaggerDocs: false,
+        );
+
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/assets/css/flint-ui/style.css?v=123'),
+        );
+        await app.handleRequest(raw);
+
+        final response = raw.response as FakeHttpResponse;
+        expect(
+          response.headers.value(HttpHeaders.cacheControlHeader),
+          'public, max-age=31536000, immutable',
         );
       } finally {
         Directory.current = originalCurrent;
@@ -185,6 +295,158 @@ void main() {
       );
       expect(showResponse.headers.contentType?.mimeType, 'application/json');
     });
+
+    test('registers and matches QUERY routes with JSON body and URL query',
+        () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+
+      app.query('/products/search', (Context ctx) async {
+        final filters = await ctx.req.json();
+        return ctx.res?.json({
+          'method': ctx.req.method,
+          'filters': filters,
+          'page': ctx.req.queryParam('page'),
+        });
+      });
+
+      final headers = FakeHttpHeaders()..contentType = ContentType.json;
+      final raw = FakeHttpRequest(
+        method: 'QUERY',
+        uri: Uri.parse('/products/search?page=2'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"category":"electronics","inStock":true}'),
+      );
+      await app.handleRequest(raw);
+
+      final response = raw.response as FakeHttpResponse;
+      expect(response.statusCode, 200);
+      expect(
+        response.buffer.toString(),
+        '{"method":"QUERY","filters":{"category":"electronics","inStock":true},"page":"2"}',
+      );
+    });
+
+    test('keeps QUERY and GET routes on the same path separate', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+
+      app.get('/products/search', (Context ctx) async {
+        return ctx.res?.json({'method': 'GET'});
+      });
+      app.query('/products/search', (Context ctx) async {
+        return ctx.res?.json({'method': 'QUERY'});
+      });
+
+      final getRaw = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('/products/search'),
+      );
+      await app.handleRequest(getRaw);
+
+      final queryRaw = FakeHttpRequest(
+        method: 'QUERY',
+        uri: Uri.parse('/products/search'),
+      );
+      await app.handleRequest(queryRaw);
+
+      expect(
+        (getRaw.response as FakeHttpResponse).buffer.toString(),
+        '{"method":"GET"}',
+      );
+      expect(
+        (queryRaw.response as FakeHttpResponse).buffer.toString(),
+        '{"method":"QUERY"}',
+      );
+    });
+
+    test('executes route-level middleware for QUERY routes', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+      final log = <String>[];
+
+      app.query('/trace', (Context ctx) async {
+        log.add('handler');
+        return ctx.res?.send('ok');
+      }).useMiddleware(_AppRecordingMiddleware('route', log));
+
+      final raw = FakeHttpRequest(method: 'QUERY', uri: Uri.parse('/trace'));
+      await app.handleRequest(raw);
+
+      expect(log, ['before-route', 'handler', 'after-route']);
+      expect((raw.response as FakeHttpResponse).buffer.toString(), 'ok');
+    });
+
+    test('executes route-group middleware for QUERY routes', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+      final log = <String>[];
+      app.routes(_QueryRouteGroup(log));
+
+      final raw = FakeHttpRequest(
+        method: 'QUERY',
+        uri: Uri.parse('/catalog/search'),
+      );
+      await app.handleRequest(raw);
+
+      expect(log, ['before-group', 'handler', 'after-group']);
+      expect((raw.response as FakeHttpResponse).buffer.toString(), 'ok');
+    });
+
+    test('includes QUERY in automatic OPTIONS and method-not-allowed responses',
+        () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+      app.get('/products/search', (Context ctx) async => ctx.res?.send('get'));
+      app.query(
+          '/products/search', (Context ctx) async => ctx.res?.send('query'));
+
+      final optionsRaw = FakeHttpRequest(
+        method: 'OPTIONS',
+        uri: Uri.parse('/products/search'),
+      );
+      await app.handleRequest(optionsRaw);
+      final optionsResponse = optionsRaw.response as FakeHttpResponse;
+
+      expect(optionsResponse.statusCode, 204);
+      expect(
+        optionsResponse.headers.value(HttpHeaders.allowHeader),
+        'GET, QUERY, HEAD, OPTIONS',
+      );
+
+      final postRaw = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('/products/search'),
+      );
+      await app.handleRequest(postRaw);
+      final postResponse = postRaw.response as FakeHttpResponse;
+
+      expect(postResponse.statusCode, 405);
+      expect(
+        postResponse.headers.value(HttpHeaders.allowHeader),
+        'GET, QUERY, HEAD, OPTIONS',
+      );
+    });
   });
 }
 
@@ -236,6 +498,43 @@ class _UserController extends Controller {
     return res.json({
       'id': req.params['id'],
       'message': 'Profile loaded',
+    });
+  }
+}
+
+class _AppRecordingMiddleware extends Middleware {
+  _AppRecordingMiddleware(this.name, this.log);
+
+  final String name;
+  final List<String> log;
+
+  @override
+  Handler handle(Handler next) {
+    return (ctx) async {
+      log.add('before-$name');
+      final result = await next(ctx);
+      log.add('after-$name');
+      return result;
+    };
+  }
+}
+
+class _QueryRouteGroup extends RouteGroup {
+  _QueryRouteGroup(this.log);
+
+  final List<String> log;
+
+  @override
+  String get prefix => '/catalog';
+
+  @override
+  List<Middleware> get middlewares => [_AppRecordingMiddleware('group', log)];
+
+  @override
+  void register(Flint app) {
+    app.query('/search', (Context ctx) async {
+      log.add('handler');
+      return ctx.res?.send('ok');
     });
   }
 }

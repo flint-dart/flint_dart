@@ -230,6 +230,7 @@ class Router {
       'POST',
       'PUT',
       'PATCH',
+      'QUERY',
       'DELETE',
       'HEAD',
       'OPTIONS'

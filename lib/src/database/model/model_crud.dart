@@ -138,11 +138,10 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
         final paramList = <dynamic>[];
         final processedSql = sql.replaceAllMapped(RegExp(r':(\w+)'), (match) {
           final paramName = match.group(1)!;
-          final paramValue = namedParams[paramName];
-          if (paramValue == null) {
-            throw ArgumentError(
-                "Named parameter :$paramName not provided or is null");
+          if (!namedParams.containsKey(paramName)) {
+            throw ArgumentError("Named parameter :$paramName not provided");
           }
+          final paramValue = namedParams[paramName];
           paramList.add(paramValue);
           return '?';
         });
@@ -177,8 +176,11 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     final updateMap = isUpdate ? asMap() : data;
     final updateData = Map<String, dynamic>.from(updateMap)
       ..remove(primaryKey)
-      ..removeWhere((k, v) => k.trim().isEmpty)
-      ..removeWhere((k, v) => v == null);
+      ..removeWhere((k, v) => k.trim().isEmpty);
+
+    if (isUpdate) {
+      updateData.removeWhere((k, v) => v == null);
+    }
 
     if (updateData.isEmpty) {
       throw Exception("No data provided for update");

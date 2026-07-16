@@ -4,5 +4,6 @@ export 'src/middleware/cookie_session_middleware.dart';
 export 'src/middleware/cors_middleware.dart';
 export 'src/middleware/exception_middleware.dart';
 export 'src/middleware/logger_middleware.dart';
+export 'src/middleware/cache_middleware.dart';
 export 'src/middleware/anti_sql_injection_middleware.dart';
 export 'src/middleware/rich_text_upload_middleware.dart';

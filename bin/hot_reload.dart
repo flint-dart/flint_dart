@@ -18,6 +18,8 @@ int _serverPort = FlintEnv.getInt('PORT', 3001);
 FlintWebUiBuild? _webBuild;
 Future<void>? _restartFuture;
 bool _restartAgain = false;
+Future<void>? _uiBuildFuture;
+bool _uiBuildAgain = false;
 
 bool get _verboseHotReload {
   final value =
@@ -27,6 +29,12 @@ bool get _verboseHotReload {
 
 void _logVerbose(String message) {
   if (_verboseHotReload) Log.debug(message);
+}
+
+bool get _initialUiBuildDisabled {
+  final value =
+      Platform.environment['FLINT_INITIAL_UI_BUILD']?.toLowerCase().trim();
+  return value == '0' || value == 'false' || value == 'no';
 }
 
 int? extractServerWorkerPortFromLog(String line) {
@@ -147,7 +155,7 @@ Future<bool> _forceStopListenersOnPort(int port) async {
   if (pids.isEmpty) return false;
 
   for (final pid in pids) {
-    Log.debug('[HOT-RELOAD] Force stopping PID $pid on port $port...');
+    _logVerbose('[HOT-RELOAD] Force stopping PID $pid on port $port...');
     if (Platform.isWindows) {
       await Process.run(
         'taskkill',
@@ -158,7 +166,7 @@ Future<bool> _forceStopListenersOnPort(int port) async {
       try {
         Process.killPid(pid, ProcessSignal.sigterm);
       } catch (e) {
-        Log.debug('[HOT-RELOAD] Could not stop PID $pid: $e');
+        _logVerbose('[HOT-RELOAD] Could not stop PID $pid: $e');
       }
     }
   }
@@ -228,12 +236,12 @@ Future<bool> _notifyServerHotReload(
 
 Future<bool> startServer() async {
   if (await _isServerListening(_serverPort)) {
-    Log.debug(
+    _logVerbose(
       '[HOT-RELOAD] Port $_serverPort is already in use. Force stopping listener...',
     );
     final stopped = await _forceStopListenersOnPort(_serverPort);
     if (!stopped && !await _waitForServerStopped(_serverPort)) {
-      Log.debug(
+      _logVerbose(
         '[HOT-RELOAD] Port $_serverPort is still busy; server start skipped.',
       );
       return false;
@@ -271,7 +279,7 @@ Future<bool> startServer() async {
   );
 
   if (exitCode != -1) {
-    Log.debug('[HOT-RELOAD] Server failed to start: $exitCode');
+    Log.warning('[HOT-RELOAD] Server failed to start: $exitCode');
     return false;
   }
 
@@ -288,13 +296,13 @@ Future<bool> startServer() async {
   }
 
   if (listeningPort != _serverPort) {
-    Log.debug(
+    _logVerbose(
       '[HOT-RELOAD] Worker is listening on port $listeningPort; updating watcher port from $_serverPort.',
     );
     _serverPort = listeningPort;
   }
 
-  Log.debug('[HOT-RELOAD] Server started on http://localhost:$_serverPort');
+  _logVerbose('[HOT-RELOAD] Server started on http://localhost:$_serverPort');
   return true;
 }
 
@@ -434,38 +442,7 @@ void watchFiles(int serverPort) {
     if (isUiSource) {
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 350), () async {
-        try {
-          Log.debug('[HOT-RELOAD] Flint UI changed: ${event.path}');
-          if (_webBuild != null) {
-            await _triggerBrowserBuildStart(
-              serverPort,
-              sourceName: 'flint_ui:${p.basename(event.path)}',
-            );
-            final rebuiltPage = await _compileChangedUiSource(event.path);
-            if (rebuiltPage == null) {
-              await FlintWebUiBuilder.compileDefault(_webBuild!);
-            }
-            await _triggerBrowserReload(
-              serverPort,
-              sourceName: rebuiltPage == null
-                  ? 'flint_ui:${p.basename(event.path)}'
-                  : 'flint_ui:page:$rebuiltPage',
-            );
-          }
-        } catch (e, stack) {
-          await _notifyServerHotReload(
-            'flint_ui:${p.basename(event.path)}',
-            '',
-            serverPort,
-            event: 'flint:error',
-            message: 'Flint UI build failed. Check the terminal.',
-          );
-          Log.error(
-            '[HOT-RELOAD] Error rebuilding Flint UI',
-            error: e,
-            stackTrace: stack,
-          );
-        }
+        await _queueFlintUiRebuild(event.path, serverPort);
       });
       return;
     }
@@ -529,6 +506,61 @@ void watchFiles(int serverPort) {
   webWatcher?.events.listen(onEvent);
 }
 
+Future<void> _queueFlintUiRebuild(String filePath, int serverPort) async {
+  if (_uiBuildFuture != null) {
+    _uiBuildAgain = true;
+    _logVerbose(
+        '[HOT-RELOAD] Flint UI rebuild already running; queued another rebuild.');
+    return _uiBuildFuture;
+  }
+
+  do {
+    _uiBuildAgain = false;
+    _uiBuildFuture = _rebuildFlintUi(filePath, serverPort);
+    try {
+      await _uiBuildFuture;
+    } finally {
+      _uiBuildFuture = null;
+    }
+  } while (_uiBuildAgain);
+}
+
+Future<void> _rebuildFlintUi(String filePath, int serverPort) async {
+  try {
+    Log.info('Rebuilding Flint UI...');
+    if (_webBuild != null) {
+      await _triggerBrowserBuildStart(
+        serverPort,
+        sourceName: 'flint_ui:${p.basename(filePath)}',
+      );
+      final rebuiltPage = await _compileChangedUiSource(filePath);
+      if (rebuiltPage == null) {
+        await FlintWebUiBuilder.compileDefault(_webBuild!);
+      }
+      await _triggerBrowserReload(
+        serverPort,
+        sourceName: rebuiltPage == null
+            ? 'flint_ui:${p.basename(filePath)}'
+            : 'flint_ui:page:$rebuiltPage',
+      );
+      Log.info('Done rebuilding Flint UI.');
+    }
+  } catch (e, stack) {
+    await _notifyServerHotReload(
+      'flint_ui:${p.basename(filePath)}',
+      '',
+      serverPort,
+      event: 'flint:error',
+      message: 'Flint UI build failed. Check the terminal.',
+    );
+    Log.error(
+      '[HOT-RELOAD] Error rebuilding Flint UI',
+      error: e,
+      stackTrace: stack,
+    );
+  }
+}
+
 Future<String?> _compileChangedUiSource(String filePath) async {
   final build = _webBuild;
   if (build == null) return null;
@@ -547,7 +579,7 @@ Future<String?> _compileChangedUiSource(String filePath) async {
   for (final entry in config.pageTargets.entries) {
     if (entry.value.importUri != changedImport) continue;
 
-    Log.debug(
+    _logVerbose(
       '[HOT-RELOAD] Rebuilding Flint UI page bundle only: ${entry.key}',
     );
     await FlintWebUiBuilder.compilePageBundles(build, onlyPage: entry.key);
@@ -628,13 +660,11 @@ Future<void> main(List<String> args) async {
 
   await restartServer();
 
-  if (_webBuild != null && await _isServerListening(_serverPort)) {
-    await _triggerBrowserBuildStart(
-      _serverPort,
-      sourceName: 'flint_ui:initial',
-    );
+  if (_webBuild != null &&
+      !_initialUiBuildDisabled &&
+      await _isServerListening(_serverPort)) {
     try {
-      await FlintWebUiBuilder.compileDefault(_webBuild!);
+      await FlintWebUiBuilder.compile(_webBuild!);
       await _triggerBrowserReload(
         _serverPort,
         sourceName: 'flint_ui:initial',
@@ -653,6 +683,10 @@ Future<void> main(List<String> args) async {
         stackTrace: stack,
       );
     }
+  } else if (_webBuild != null) {
+    _logVerbose(
+      '[HOT-RELOAD] Initial Flint UI build skipped. Save a UI file to rebuild, or run `flint web --build-only` for a full build.',
+    );
   }
 
   watchFiles(_serverPort);

@@ -372,6 +372,43 @@ void main() {
       expect(raw.closed, true);
     });
 
+    test('cache helpers write cache headers', () {
+      final raw = FakeHttpResponse();
+      final res = Response(raw);
+
+      res.cachePublic(
+        const Duration(minutes: 5),
+        sharedMaxAge: const Duration(minutes: 10),
+        immutable: true,
+      );
+      expect(
+        raw.headers.value(HttpHeaders.cacheControlHeader),
+        'public, max-age=300, s-maxage=600, immutable',
+      );
+
+      res.noStore();
+      expect(
+        raw.headers.value(HttpHeaders.cacheControlHeader),
+        'no-store, no-cache, must-revalidate',
+      );
+      expect(raw.headers.value(HttpHeaders.pragmaHeader), 'no-cache');
+      expect(raw.headers.value(HttpHeaders.expiresHeader), '0');
+    });
+
+    test('etag and lastModified helpers write validators', () {
+      final raw = FakeHttpResponse();
+      final res = Response(raw);
+      final modified = DateTime.utc(2026, 7, 8, 12, 0);
+
+      res.etag('abc123').lastModified(modified);
+
+      expect(raw.headers.value(HttpHeaders.etagHeader), '"abc123"');
+      expect(
+        raw.headers.value(HttpHeaders.lastModifiedHeader),
+        HttpDate.format(modified),
+      );
+    });
+
     test('back redirects to referer header', () {
       final headers = FakeHttpHeaders()
         ..set(HttpHeaders.refererHeader, 'http://localhost/previous');

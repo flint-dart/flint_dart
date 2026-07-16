@@ -167,13 +167,6 @@ class BuildCommand extends FlintCommand {
     }
 
     Log.debug('Building Flint Web UI assets...');
-    try {
-      await FlintWebUiBuilder.compileSharedRuntimeBundle(build);
-      return;
-    } on StateError catch (e) {
-      Log.debug('Shared Flint UI runtime skipped: ${e.message}');
-    }
-
     await FlintWebUiBuilder.compile(build);
     try {
       await FlintWebUiBuilder.compilePageBundles(build);
