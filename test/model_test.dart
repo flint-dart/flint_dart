@@ -19,6 +19,25 @@ class User extends Model<User> {
   List<String> get conceal => ['password'];
 }
 
+class Post extends Model<Post> {
+  Post() : super(Post.new);
+
+  @override
+  Map<String, RelationDefinition> get relations => {
+        'user':
+            Relations.belongsTo<User>('user', User.new, foreignKey: 'userId'),
+      };
+
+  @override
+  Table get table => Table(
+        name: 'posts',
+        columns: [
+          Column(name: 'title', type: ColumnType.string),
+          Column(name: 'userId', type: ColumnType.string),
+        ],
+      );
+}
+
 void main() {
   group('Model', () {
     test('getAttribute coerces basic types', () {
@@ -49,6 +68,21 @@ void main() {
 
     test('fromMap populates attributes', () {
       final user = User().fromMap({'name': 'Tari', 'age': 30});
+      expect(user.getAttribute<String>('name'), 'Tari');
+      expect(user.getAttribute<int>('age'), 30);
+    });
+
+    test('fromMap hydrates belongsTo relation maps', () {
+      final post = Post().fromMap({
+        'title': 'Hello',
+        'userId': 'user-1',
+        'user': {'id': 'user-1', 'name': 'Tari', 'age': '30'},
+      });
+
+      final user = post.getRelation<User>('user');
+
+      expect(user, isNotNull);
+      expect(user!.id, 'user-1');
       expect(user.getAttribute<String>('name'), 'Tari');
       expect(user.getAttribute<int>('age'), 30);
     });

@@ -724,8 +724,7 @@ class QueryBuilder {
     // Create model instances from results
     final models = <Model>[];
     for (final result in mainResults) {
-      final model = factory() as Model;
-      (model as dynamic).fromMap(result);
+      final model = (factory() as dynamic).fromMap(result) as Model;
       models.add(model);
     }
 
