@@ -3,21 +3,45 @@ class SwaggerGenerator {
   final paths = <String, dynamic>{};
   final servers = <Map<String, dynamic>>[];
   final websocketPaths = <String, dynamic>{};
+  final queryPaths = <String, dynamic>{};
 
   void addRoute(String fullPath, String method, Map<String, dynamic> operation,
       List<String> routeServers,
       {bool isWebSocket = false}) {
+    final normalizedMethod = method.toLowerCase();
+
     if (isWebSocket) {
       websocketPaths[fullPath] = operation;
     }
 
     // Initialize path if not exists
     paths.putIfAbsent(fullPath, () => {});
-    final existingOperation = paths[fullPath][method] as Map<String, dynamic>?;
-    if (existingOperation == null) {
-      paths[fullPath][method] = operation;
+
+    if (normalizedMethod == 'query') {
+      final queryOperation = {
+        ...operation,
+        'x-http-method': 'QUERY',
+        'x-openapi-operation-key-unavailable': true,
+      };
+      final existingOperation =
+          paths[fullPath]['x-flint-query'] as Map<String, dynamic>?;
+      if (existingOperation == null) {
+        paths[fullPath]['x-flint-query'] = queryOperation;
+        queryPaths[fullPath] = queryOperation;
+      } else {
+        final merged = _mergeOperations(existingOperation, queryOperation);
+        paths[fullPath]['x-flint-query'] = merged;
+        queryPaths[fullPath] = merged;
+      }
     } else {
-      paths[fullPath][method] = _mergeOperations(existingOperation, operation);
+      final existingOperation =
+          paths[fullPath][normalizedMethod] as Map<String, dynamic>?;
+      if (existingOperation == null) {
+        paths[fullPath][normalizedMethod] = operation;
+      } else {
+        paths[fullPath][normalizedMethod] =
+            _mergeOperations(existingOperation, operation);
+      }
     }
 
     // Collect unique servers
@@ -156,6 +180,10 @@ class SwaggerGenerator {
       if (servers.isNotEmpty) "servers": servers,
       "paths": paths,
       if (websocketPaths.isNotEmpty) "x-websockets": websocketPaths,
+      if (queryPaths.isNotEmpty) "x-flint-query-routes": queryPaths,
+      if (queryPaths.isNotEmpty)
+        "x-flint-query-openapi-note":
+            "OpenAPI 3.0 has no standard QUERY operation key. Flint preserves HTTP QUERY operations with x-http-method: QUERY.",
       "components": {
         "securitySchemes": {
           "bearer": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},

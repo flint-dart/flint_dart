@@ -2,16 +2,72 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## [1.2.0] - 2026-07-13
+
+### Added
+- Added first-class HTTP `QUERY` route registration with `app.query(...)` and controller route builder support.
+- Added QUERY support to route matching, middleware, automatic OPTIONS/Allow responses, CORS defaults, cache middleware, route discovery, and generated Swagger vendor extensions.
+- Preserved explicit `null` values in ORM update data maps so apps can intentionally clear nullable columns.
+
+### Changed
+- Updated Flint UI dependency to `flint_ui: ^0.1.14`.
+- Updated Flint Client dependency to `flint_client: ^0.0.5`.
+- Made ORM `where(...).orWhere(...)` chains compile in chain order, so `orWhere` now combines with the previous condition using `OR` instead of being grouped behind an `AND`.
+
+
+### Added
+- Added response cache helpers: `cachePublic`, `cachePrivate`, `revalidate`, `noStore`, `etag`, `lastModified`, and `header`.
+- Added `CacheMiddleware` for route-level browser/CDN cache headers and `ETagMiddleware` for simple conditional GET handling.
+
+## [1.1.19] - 2026-07-08
+
+### Changed
+- Made page-bundle production builds write `manifest.json` progressively after each successful page compile, so interrupted large builds keep a valid manifest and can fall back to the global bundle for unfinished pages.
+
+## [1.1.18] - 2026-07-08
+
+### Changed
+- Restored page-level Flint UI bundles as the default for `flint web` and production `flint build` web asset generation.
+- Kept the shared runtime available through `flint web --shared-runtime` for projects that prefer one deferred runtime bundle.
+- Made static asset caching production-aware: fingerprinted or query-versioned assets now use one-year immutable caching, while HTML, `manifest.json`, and service workers revalidate on every request.
+
+## [1.1.17] - 2026-07-08
+
+### Changed
+- Changed `flint web --build-only` and default `flint web` production-style builds to use the shared runtime bundle by default instead of compiling every registered page one by one.
+- Kept page-level bundle compilation available through `--page-bundles` and single-page compilation through `--page <name>`.
+- Updated `flint web --help` to make shared runtime the documented default and page bundles opt-in.
+
+## [1.1.16] - 2026-07-08
+
+### Added
+- Added `relationQuery()` so model relation metadata can be reused as the starting point for constrained relation queries.
+- Added `countRelation()` and `hasRelated()` for common relation count and existence checks.
+- Added `relationCounts()` for grouped counts from the same relation, useful for dashboards, sidebars, and product ownership checks.
+- Added `loadRelationCount()` to store a related record count directly on a model attribute.
+- Added ORM pagination metadata helpers for page/per-page list responses.
+
+### Changed
+- Updated the Flint UI dependency to `flint_ui: ^0.1.13` for media/device APIs, server-safe media stubs, and canvas editor primitives.
+
+## [1.1.15] - 2026-07-06
 
 ### Added
 - Added framework-level startup migrations through `Flint(autoMigrate: true)` and the `FLINT_AUTO_MIGRATE` environment flag.
 - Added public `FlintMigrations.ensure()` helpers for apps that want explicit deployment-time migration control.
+- Added dev-only on-demand Flint UI page bundle builds when a requested page bundle is missing during hot reload.
+- Added automatic page registry discovery for `lib/ui/registry.dart` and `lib/ui/page_registry.dart` in addition to `lib/ui/component_registry.dart`.
 
 ### Changed
 - Updated the Flint UI dependency to `flint_ui: ^0.1.12` for built-in light/dark theme provider support, global theme state, and theme-scoped styles.
 - Quieted default hot-reload startup logging so watcher paths, debounce details, endpoint URLs, and duplicate restart messages are only shown when verbose hot reload logging is enabled.
 - Made the Dart VM service for hot reload opt-in through `FLINT_DEBUG_VM_SERVICE=true` instead of enabling it by default.
+- Quieted Flint UI build output so normal builds show a single `Building Flint UI...` message and save-triggered hot reload shows `Rebuilding Flint UI...`; detailed asset/compiler logs are now opt-in with `FLINT_WEB_UI_VERBOSE=true`.
+- Added completion messages after successful Flint UI builds and rebuilds.
+- Serialized save-triggered Flint UI rebuilds so repeated file events queue one follow-up rebuild instead of launching overlapping compilers.
+- Changed the default console log level to `info` while keeping Flint UI build/rebuild start and completion messages visible.
+- Changed hot reload startup to silently compile only the main Flint UI bundle after the server starts; page bundles are rebuilt on page/source saves or by `flint web --build-only`.
+- Changed save-triggered Flint UI rebuilds to rebuild only the directly changed page bundle when the changed source maps to a page registry entry.
 
 ## [1.1.14] - 2026-06-24
 

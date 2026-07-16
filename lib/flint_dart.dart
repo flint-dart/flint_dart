@@ -24,8 +24,9 @@ export 'mail.dart';
 export 'logs.dart';
 export 'session.dart';
 export 'db.dart';
+export 'cache.dart';
 export 'isolate.dart';
 
-export 'package:flint_client/flint_client.dart';
+export 'package:flint_client/flint_client.dart' hide CacheStore, MemoryCacheStore;
 export 'src/routing/route_group.dart';
 export 'middlewares.dart';

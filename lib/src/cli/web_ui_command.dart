@@ -34,6 +34,7 @@ class WebUiCommand extends FlintCommand {
       } else if (arg == '--page' && i + 1 < args.length) {
         pageArg = args[++i];
         pageBundles = true;
+        sharedRuntime = false;
       } else if (arg == '--port' && i + 1 < args.length) {
         final parsed = int.tryParse(args[++i]);
         if (parsed == null || parsed <= 0) {
@@ -48,6 +49,7 @@ class WebUiCommand extends FlintCommand {
         sharedRuntime = false;
       } else if (arg == '--no-page-bundles') {
         pageBundles = false;
+        sharedRuntime = false;
       } else if (arg == '--shared-runtime') {
         sharedRuntime = true;
         pageBundles = false;
@@ -91,17 +93,22 @@ class WebUiCommand extends FlintCommand {
     }
 
     if (sharedRuntime) {
+      Log.info('Building Flint UI...');
       await FlintWebUiBuilder.compileSharedRuntimeBundle(
         build,
         configPath: pagesConfigArg,
       );
+      Log.info('Done building Flint UI.');
     } else if (pageArg != null) {
+      Log.info('Building Flint UI...');
       await FlintWebUiBuilder.compilePageBundles(
         build,
         configPath: pagesConfigArg,
         onlyPage: pageArg,
       );
+      Log.info('Done building Flint UI.');
     } else {
+      Log.info('Building Flint UI...');
       await FlintWebUiBuilder.compile(build);
 
       if (pageBundles) {
@@ -115,13 +122,10 @@ class WebUiCommand extends FlintCommand {
           Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
         }
       }
+      Log.info('Done building Flint UI.');
     }
 
     if (buildOnly) {
-      Log.debug('Web bundle generated: ${build.jsOut}');
-      if (build.cssOut != null && File(build.cssOut!).existsSync()) {
-        Log.debug('Stylesheet available: ${build.cssOut}');
-      }
       return;
     }
 
@@ -179,9 +183,9 @@ Options:
   --entry <path>       Dart web entry file (default: lib/ui/main.dart or flint_ui/main.dart)
   --web-dir <path>     Static web directory (default: sibling web/ directory)
   --out <path>         JavaScript output path (default: public/assets/js/flint-ui/main.dart.js for lib/ui)
+  --shared-runtime     Compile one shared runtime with deferred page chunks
   --page-bundles       Compile page-level bundles from component_registry.dart or flint_ui.yaml (default)
   --no-page-bundles    Compile only the single global JavaScript bundle
-  --shared-runtime     Compile one shared runtime with deferred page chunks
   --no-shared-runtime  Disable shared runtime mode
   --pages-config <path> Page bundle config path (default: auto-detect, then flint_ui.yaml)
   --page <name>        Compile one page-level bundle by component name

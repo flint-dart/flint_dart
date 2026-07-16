@@ -117,6 +117,93 @@ void main() {
   });
 
   group('Middleware', () {
+    test('CacheMiddleware applies public cache headers to GET requests',
+        () async {
+      final handler = CacheMiddleware.public(
+        const Duration(minutes: 5),
+        sharedMaxAge: const Duration(minutes: 10),
+      ).handle((ctx) async => ctx.res?.send('ok'));
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/cached'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(
+        rawResponse.headers.value(HttpHeaders.cacheControlHeader),
+        'public, max-age=300, s-maxage=600',
+      );
+      expect(rawResponse.buffer.toString(), 'ok');
+    });
+
+    test('CacheMiddleware applies public cache headers to QUERY requests',
+        () async {
+      final handler = CacheMiddleware.public(
+        const Duration(minutes: 5),
+        sharedMaxAge: const Duration(minutes: 10),
+      ).handle((ctx) async => ctx.res?.send('ok'));
+
+      final raw = FakeHttpRequest(method: 'QUERY', uri: Uri.parse('/cached'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(
+        rawResponse.headers.value(HttpHeaders.cacheControlHeader),
+        'public, max-age=300, s-maxage=600',
+      );
+      expect(rawResponse.buffer.toString(), 'ok');
+    });
+
+    test('CacheMiddleware skips non-cacheable methods', () async {
+      final handler = CacheMiddleware.public(const Duration(minutes: 5)).handle(
+        (ctx) async => ctx.res?.send('created'),
+      );
+
+      final raw = FakeHttpRequest(method: 'POST', uri: Uri.parse('/cached'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(
+        rawResponse.headers.value(HttpHeaders.cacheControlHeader),
+        isNull,
+      );
+    });
+
+    test('ETagMiddleware returns 304 when If-None-Match matches', () async {
+      var called = false;
+      final headers = FakeHttpHeaders()
+        ..set(HttpHeaders.ifNoneMatchHeader, '"landing-products"');
+      final raw = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('/cached'),
+        headers: headers,
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+      final handler = ETagMiddleware((_) => 'landing-products').handle(
+        (ctx) async {
+          called = true;
+          return ctx.res?.send('fresh');
+        },
+      );
+
+      final result = await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(result, isA<Response>());
+      expect(called, isFalse);
+      expect(rawResponse.statusCode, HttpStatus.notModified);
+      expect(rawResponse.buffer.toString(), isEmpty);
+    });
+
     test('applies in declared order (outer wraps inner)', () async {
       final log = <String>[];
       final router = Router();
@@ -332,6 +419,32 @@ void main() {
       expect(rawResponse.statusCode, 400);
     });
 
+    test('blocks SQL injection in QUERY JSON request body', () async {
+      var handlerCalled = false;
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        handlerCalled = true;
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType('application', 'json');
+      final raw = FakeHttpRequest(
+        method: 'QUERY',
+        uri: Uri.parse('/search'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"filter":"x\' OR 1=1 --"}'),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 400);
+    });
+
     test('allows ordinary text and preserves the body for handlers', () async {
       final middleware = AntiSqlInjectionMiddleware();
       final handler = middleware.handle((ctx) async {
@@ -362,7 +475,8 @@ void main() {
   });
 
   group('RichTextUpload', () {
-    test('allows uploading a valid file and sanitizes double extensions', () async {
+    test('allows uploading a valid file and sanitizes double extensions',
+        () async {
       final tempDir = Directory.systemTemp.createTempSync('flint_upload_test_');
       try {
         final middleware = RichTextUpload(
@@ -389,7 +503,8 @@ void main() {
 
         final rawResponse = raw.response as FakeHttpResponse;
         expect(rawResponse.statusCode, 200);
-        expect(rawResponse.buffer.toString(), contains('/uploads/content/test.png'));
+        expect(rawResponse.buffer.toString(),
+            contains('/uploads/content/test.png'));
 
         final createdFile = File('${tempDir.path}/test.png');
         expect(createdFile.existsSync(), isTrue);
@@ -417,7 +532,8 @@ void main() {
           method: 'POST',
           uri: Uri.parse('/api/content-media/upload'),
           headers: headers,
-          bodyBytes: utf8Bytes('{"filename":"malicious.php","base64":"YmFzZTY0"}'),
+          bodyBytes:
+              utf8Bytes('{"filename":"malicious.php","base64":"YmFzZTY0"}'),
         );
         final request = Request(raw);
         final response = Response(raw.response);
@@ -450,7 +566,8 @@ void main() {
           method: 'POST',
           uri: Uri.parse('/api/content-media/upload'),
           headers: headers,
-          bodyBytes: utf8Bytes('{"filename":"test.php.png","base64":"YmFzZTY0"}'),
+          bodyBytes:
+              utf8Bytes('{"filename":"test.php.png","base64":"YmFzZTY0"}'),
         );
         final request = Request(raw);
         final response = Response(raw.response);
@@ -459,13 +576,40 @@ void main() {
 
         final rawResponse = raw.response as FakeHttpResponse;
         expect(rawResponse.statusCode, 200);
-        expect(rawResponse.buffer.toString(), contains('/uploads/content/test_php.png'));
+        expect(rawResponse.buffer.toString(),
+            contains('/uploads/content/test_php.png'));
 
         final createdFile = File('${tempDir.path}/test_php.png');
         expect(createdFile.existsSync(), isTrue);
       } finally {
         tempDir.deleteSync(recursive: true);
       }
+    });
+  });
+
+  group('CorsMiddleware', () {
+    test('includes QUERY in default allowed methods', () async {
+      final handler = CorsMiddleware().handle((ctx) async {
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()..set('origin', 'https://example.com');
+      final raw = FakeHttpRequest(
+        method: 'OPTIONS',
+        uri: Uri.parse('/search'),
+        headers: headers,
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 204);
+      expect(
+        rawResponse.headers.value('Access-Control-Allow-Methods'),
+        contains('QUERY'),
+      );
     });
   });
 }

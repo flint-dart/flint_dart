@@ -5,6 +5,16 @@ import 'package:flint_dart/logs.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 
+bool get _verboseWebUiBuild {
+  final value =
+      Platform.environment['FLINT_WEB_UI_VERBOSE']?.toLowerCase().trim();
+  return value == '1' || value == 'true' || value == 'yes';
+}
+
+void _logVerbose(String message) {
+  if (_verboseWebUiBuild) Log.debug(message);
+}
+
 class FlintWebUiBuild {
   final File entry;
   final Directory uiDir;
@@ -243,27 +253,6 @@ class FlintWebUiBuilder {
     final generatedDir =
         Directory(path.join('.dart_tool', 'flint_ui', 'page_bundles'))
           ..createSync(recursive: true);
-    final manifestPages = <String, String>{};
-
-    for (final entry in requestedPages.entries) {
-      final component = entry.key;
-      final slug = entry.value;
-      final generatedEntry = File(path.join(generatedDir.path, '$slug.dart'));
-      final jsOut = path.join(pagesOutDir.path, '$slug.dart.js');
-
-      generatedEntry.writeAsStringSync(
-        _pageEntrypointSource(component, config),
-      );
-
-      Log.debug('Compiling Flint UI page bundle: $component');
-      await _compileDartFile(generatedEntry.path, jsOut);
-      final hashedJsOut = _hashDartJsAssetFamily(jsOut);
-      if (onlyPage == null) {
-        await _compressAssetFamily(hashedJsOut);
-      }
-      manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
-    }
-
     final manifestFile =
         File(path.join(path.dirname(build.jsOut), 'manifest.json'));
     final existingPages = <String, String>{};
@@ -284,6 +273,59 @@ class FlintWebUiBuilder {
       } catch (_) {}
     }
 
+    final manifestPages = <String, String>{};
+
+    for (final entry in requestedPages.entries) {
+      final component = entry.key;
+      final slug = entry.value;
+      final generatedEntry = File(path.join(generatedDir.path, '$slug.dart'));
+      final jsOut = path.join(pagesOutDir.path, '$slug.dart.js');
+
+      generatedEntry.writeAsStringSync(
+        _pageEntrypointSource(component, config),
+      );
+
+      _logVerbose('Compiling Flint UI page bundle: $component');
+      await _compileDartFile(generatedEntry.path, jsOut);
+      final hashedJsOut = _hashDartJsAssetFamily(jsOut);
+      if (onlyPage == null) {
+        await _compressAssetFamily(hashedJsOut);
+      }
+      manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
+      if (onlyPage == null) {
+        _writePageBundlesManifest(
+          build,
+          manifestFile,
+          existingPages: existingPages,
+          manifestPages: manifestPages,
+        );
+      }
+    }
+
+    _writePageBundlesManifest(
+      build,
+      manifestFile,
+      existingPages: existingPages,
+      manifestPages: manifestPages,
+    );
+    _logVerbose('Flint UI manifest generated: ${manifestFile.path}');
+    if (onlyPage == null) {
+      await _compressAssetIfUseful(manifestFile);
+    }
+    _writeServiceWorker(build);
+    if (onlyPage == null) {
+      await _compressAssetIfUseful(
+        File(path.join(build.webDir.path, 'flint-sw.js')),
+      );
+    }
+  }
+
+  static void _writePageBundlesManifest(
+    FlintWebUiBuild build,
+    File manifestFile, {
+    required Map<String, String> existingPages,
+    required Map<String, String> manifestPages,
+  }) {
     final manifest = {
       'mode': 'page-bundles',
       'fallback': _assetUrlFor(
@@ -299,16 +341,6 @@ class FlintWebUiBuilder {
     manifestFile.writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
-    Log.debug('Flint UI manifest generated: ${manifestFile.path}');
-    if (onlyPage == null) {
-      await _compressAssetIfUseful(manifestFile);
-    }
-    _writeServiceWorker(build);
-    if (onlyPage == null) {
-      await _compressAssetIfUseful(
-        File(path.join(build.webDir.path, 'flint-sw.js')),
-      );
-    }
   }
 
   static Future<void> compileSharedRuntimeBundle(
@@ -318,12 +350,12 @@ class FlintWebUiBuilder {
     final config = discoverPageBundleConfig(build, configPath: configPath);
     if (config == null) {
       throw StateError(
-        'No Flint UI page config found. Create component_registry.dart or pass --pages-config <path>.',
+        'No Flint UI page config found. Create component_registry.dart, registry.dart, page_registry.dart, or pass --pages-config <path>.',
       );
     }
     if (config.pageTargets.isEmpty) {
       throw StateError(
-        'Shared runtime needs direct page imports in component_registry.dart.',
+        'Shared runtime needs direct page imports in component_registry.dart, registry.dart, or page_registry.dart.',
       );
     }
 
@@ -350,7 +382,7 @@ class FlintWebUiBuilder {
     _cleanCompiledAssetFamily(runtimeOut);
     _deleteDeferredPartSiblings(runtimeOut);
 
-    Log.debug('Compiling Flint UI shared runtime bundle...');
+    _logVerbose('Compiling Flint UI shared runtime bundle...');
     await _compileDartFile(generatedEntry.path, runtimeOut);
 
     final deferredChunks = _hashDeferredPartFiles(
@@ -387,8 +419,9 @@ class FlintWebUiBuilder {
     manifestFile.writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
-    Log.debug(
-        'Flint UI shared runtime manifest generated: ${manifestFile.path}');
+    _logVerbose(
+      'Flint UI shared runtime manifest generated: ${manifestFile.path}',
+    );
     await _compressAssetIfUseful(manifestFile);
     _writeServiceWorker(build);
     await _compressAssetIfUseful(
@@ -422,8 +455,8 @@ class FlintWebUiBuilder {
   }
 
   static Future<void> _compileDart(FlintWebUiBuild build) async {
-    Log.debug('Compiling Flint Web UI...');
-    Log.debug('Entry: ${build.entry.path}');
+    _logVerbose('Compiling Flint Web UI...');
+    _logVerbose('Entry: ${build.entry.path}');
 
     final output = File(build.jsOut);
     output.parent.createSync(recursive: true);
@@ -495,7 +528,7 @@ void main() {
     ].where((chunk) => chunk.trim().isNotEmpty).join('\n');
 
     output.writeAsStringSync('$generated\n');
-    Log.debug('Root design stylesheet generated: ${output.path}');
+    _logVerbose('Root design stylesheet generated: ${output.path}');
   }
 
   static String _stripGeneratedRootDesignCss(String cssText) {
@@ -534,7 +567,7 @@ void main() {
       );
     }
 
-    if (stdoutText.isNotEmpty) Log.debug(stdoutText);
+    if (stdoutText.isNotEmpty) _logVerbose(stdoutText);
   }
 
   static FlintWebUiPageBundleConfig? discoverPageBundleConfig(
@@ -586,8 +619,8 @@ void main() {
 
     if (pages.isEmpty) return null;
 
-    final registryImport = values['registry_import'] ??
-        _packageImportFor(packageName, 'lib/ui/component_registry.dart');
+    final registryImport =
+        values['registry_import'] ?? _defaultRegistryImport(packageName);
     final rootDesignImport = values['root_design_import'];
     final rootDesignName = values['root_design'];
 
@@ -603,9 +636,8 @@ void main() {
   static FlintWebUiPageBundleConfig? _detectPageBundleConfig(
     FlintWebUiBuild build,
   ) {
-    final registryFile =
-        File(path.join('lib', 'ui', 'component_registry.dart'));
-    if (!registryFile.existsSync()) return null;
+    final registryFile = _findRegistryFile();
+    if (registryFile == null) return null;
 
     final packageName = _readPackageName();
     final registrySource = registryFile.readAsStringSync();
@@ -624,7 +656,7 @@ void main() {
     return FlintWebUiPageBundleConfig(
       registryImport: _packageImportFor(
         packageName,
-        path.join('lib', 'ui', 'component_registry.dart'),
+        registryFile.path,
       ),
       registryName: _detectRegistryName(registrySource) ?? 'componentRegistry',
       rootDesignImport: rootDesign?.importUri,
@@ -633,6 +665,29 @@ void main() {
         for (final page in pageTargets.keys) page: _safeSlug(page),
       },
       pageTargets: pageTargets,
+    );
+  }
+
+  static File? _findRegistryFile() {
+    final candidates = [
+      path.join('lib', 'ui', 'component_registry.dart'),
+      path.join('lib', 'ui', 'registry.dart'),
+      path.join('lib', 'ui', 'page_registry.dart'),
+    ];
+
+    for (final candidate in candidates) {
+      final file = File(candidate);
+      if (file.existsSync()) return file;
+    }
+
+    return null;
+  }
+
+  static String _defaultRegistryImport(String packageName) {
+    final registryFile = _findRegistryFile();
+    return _packageImportFor(
+      packageName,
+      registryFile?.path ?? path.join('lib', 'ui', 'component_registry.dart'),
     );
   }
 
@@ -866,7 +921,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     }
 
     jsFile.deleteSync();
-    Log.debug('Hashed Flint UI asset: ${hashedJsFile.path}');
+    _logVerbose('Hashed Flint UI asset: ${hashedJsFile.path}');
     return hashedJsFile.path;
   }
 
@@ -961,8 +1016,9 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       file.deleteSync();
       return true;
     } on FileSystemException catch (e) {
-      Log.debug(
-          'Skipped locked Flint asset: ${file.path} (${e.osError?.message ?? e.message})');
+      _logVerbose(
+        'Skipped locked Flint asset: ${file.path} (${e.osError?.message ?? e.message})',
+      );
       return false;
     }
   }
@@ -1016,7 +1072,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       chunk.deleteSync();
       replacements[oldName] = hashedName;
       hashedChunks.add(hashedFile);
-      Log.debug('Hashed Flint UI deferred asset: ${hashedFile.path}');
+      _logVerbose('Hashed Flint UI deferred asset: ${hashedFile.path}');
     }
 
     if (runtimeFile.existsSync() && replacements.isNotEmpty) {
@@ -1114,7 +1170,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     final bytes = file.readAsBytesSync();
     final gzipFile = File('${file.path}.gz');
     gzipFile.writeAsBytesSync(gzip.encode(bytes));
-    Log.debug('Compressed Flint asset: ${gzipFile.path}');
+    _logVerbose('Compressed Flint asset: ${gzipFile.path}');
 
     final brotli = await _resolveBrotliBinary();
     if (brotli == null) return;
@@ -1126,11 +1182,11 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       runInShell: true,
     );
     if (result.exitCode == 0 && brFile.existsSync()) {
-      Log.debug('Compressed Flint asset: ${brFile.path}');
+      _logVerbose('Compressed Flint asset: ${brFile.path}');
     } else {
       final stderrText = result.stderr.toString().trim();
       if (stderrText.isNotEmpty) {
-        Log.debug('Brotli compression skipped for ${file.path}: $stderrText');
+        _logVerbose('Brotli compression skipped for ${file.path}: $stderrText');
       }
     }
   }
@@ -1164,7 +1220,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     final cacheName =
         'flint-ui-${DateTime.now().millisecondsSinceEpoch.toString()}';
     file.writeAsStringSync(_serviceWorkerSource(cacheName));
-    Log.debug('Flint service worker generated: ${file.path}');
+    _logVerbose('Flint service worker generated: ${file.path}');
   }
 
   static String _serviceWorkerSource(String cacheName) {
@@ -1316,8 +1372,8 @@ self.addEventListener('fetch', event => {
       return;
     }
 
-    Log.debug('Compiling Tailwind CSS...');
-    Log.debug('Input: ${input.path}');
+    _logVerbose('Compiling Tailwind CSS...');
+    _logVerbose('Input: ${input.path}');
 
     final result = await Process.run(
       binary,
@@ -1333,7 +1389,7 @@ self.addEventListener('fetch', event => {
     }
 
     final stdoutText = result.stdout.toString().trim();
-    if (stdoutText.isNotEmpty) Log.debug(stdoutText);
+    if (stdoutText.isNotEmpty) _logVerbose(stdoutText);
   }
 
   static Future<String?> _resolveTailwindBinary() async {
