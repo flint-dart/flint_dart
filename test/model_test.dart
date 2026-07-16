@@ -1,5 +1,4 @@
 import 'package:test/test.dart';
-import 'package:flint_dart/db.dart';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/src/database/mysql_connection.dart';
 
@@ -56,14 +55,14 @@ class User extends Model<User> {
 
   @override
   Table get table => Table(
-    name: 'users',
-    columns: [
-      Column(name: 'name', type: ColumnType.string),
-      Column(name: 'age', type: ColumnType.integer),
-      Column(name: 'active', type: ColumnType.boolean),
-      Column(name: 'created_at', type: ColumnType.datetime),
-    ],
-  );
+        name: 'users',
+        columns: [
+          Column(name: 'name', type: ColumnType.string),
+          Column(name: 'age', type: ColumnType.integer),
+          Column(name: 'active', type: ColumnType.boolean),
+          Column(name: 'created_at', type: ColumnType.datetime),
+        ],
+      );
 
   @override
   Map<String, RelationDefinition> get relations => {
@@ -80,35 +79,18 @@ class Post extends Model<Post> {
 
   @override
   Map<String, RelationDefinition> get relations => {
-    'user': Relations.belongsTo<User>('user', User.new, foreignKey: 'userId'),
-  };
+        'user':
+            Relations.belongsTo<User>('user', User.new, foreignKey: 'userId'),
+      };
 
   @override
   Table get table => Table(
-    name: 'posts',
-    columns: [
-      Column(name: 'title', type: ColumnType.string),
-      Column(name: 'userId', type: ColumnType.string),
-    ],
-  );
-}
-
-class Hosting extends Model<Hosting> {
-  Hosting() : super(Hosting.new);
-
-  @override
-  Map<String, RelationDefinition> get relations => {
-    'user': Relations.belongsTo<User>('user', User.new, foreignKey: 'userId'),
-  };
-
-  @override
-  Table get table => Table(
-    name: 'hostings',
-    columns: [
-      Column(name: 'domain', type: ColumnType.string),
-      Column(name: 'userId', type: ColumnType.string),
-    ],
-  );
+        name: 'posts',
+        columns: [
+          Column(name: 'title', type: ColumnType.string),
+          Column(name: 'userId', type: ColumnType.string),
+        ],
+      );
 }
 
 class Hosting extends Model<Hosting> {
@@ -201,9 +183,8 @@ void main() {
         ]);
         DB.overrideConnection(connection);
 
-        final hostings = await Hosting()
-            .withRelation('user', columns: ['firstName', 'lastName', 'email'])
-            .get();
+        final hostings = await Hosting().withRelation('user',
+            columns: ['firstName', 'lastName', 'email']).get();
 
         expect(connection.queries, [
           'SELECT * FROM hostings',
