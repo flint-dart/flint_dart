@@ -102,7 +102,7 @@ class RunServerCommand extends FlintCommand {
 
 /// Runs the app's dedicated Flint jobs worker entrypoint.
 class RunJobsWorkerCommand extends FlintCommand {
-  RunJobsWorkerCommand() : super('jobs:work', 'Runs the Flint jobs worker');
+  RunJobsWorkerCommand() : super('jobs-work', 'Runs the Flint jobs worker');
 
   static String resolveEntrypoint(List<String> args) {
     for (var i = 0; i < args.length; i++) {
