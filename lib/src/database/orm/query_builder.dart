@@ -101,9 +101,8 @@ class QueryBuilder {
           : '$field ILIKE :$paramName';
       _addWhere('AND', sql);
     } else {
-      final sql = caseSensitive
-          ? '$field LIKE ?'
-          : 'LOWER($field) LIKE LOWER(?)';
+      final sql =
+          caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
       _addWhere('AND', sql);
     }
 
@@ -160,9 +159,8 @@ class QueryBuilder {
           : '$field ILIKE :$paramName';
       _addWhere('OR', sql);
     } else {
-      final sql = caseSensitive
-          ? '$field LIKE ?'
-          : 'LOWER($field) LIKE LOWER(?)';
+      final sql =
+          caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
       _addWhere('OR', sql);
     }
 
@@ -181,12 +179,13 @@ class QueryBuilder {
     String value, {
     bool caseSensitive = false,
     bool escape = true,
-  }) => whereLike(
-    field,
-    '%$value%',
-    caseSensitive: caseSensitive,
-    escape: escape,
-  );
+  }) =>
+      whereLike(
+        field,
+        '%$value%',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
 
   /// Adds a WHERE condition that checks if [field] starts with [value].
   QueryBuilder whereStartsWith(
@@ -212,12 +211,13 @@ class QueryBuilder {
     String value, {
     bool caseSensitive = false,
     bool escape = true,
-  }) => orWhereLike(
-    field,
-    '%$value%',
-    caseSensitive: caseSensitive,
-    escape: escape,
-  );
+  }) =>
+      orWhereLike(
+        field,
+        '%$value%',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
 
   /// Adds an OR condition that checks if [field] starts with [value].
   QueryBuilder orWhereStartsWith(
@@ -225,12 +225,13 @@ class QueryBuilder {
     String value, {
     bool caseSensitive = false,
     bool escape = true,
-  }) => orWhereLike(
-    field,
-    '$value%',
-    caseSensitive: caseSensitive,
-    escape: escape,
-  );
+  }) =>
+      orWhereLike(
+        field,
+        '$value%',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
 
   /// Adds an OR condition that checks if [field] ends with [value].
   QueryBuilder orWhereEndsWith(
@@ -238,12 +239,13 @@ class QueryBuilder {
     String value, {
     bool caseSensitive = false,
     bool escape = true,
-  }) => orWhereLike(
-    field,
-    '%$value',
-    caseSensitive: caseSensitive,
-    escape: escape,
-  );
+  }) =>
+      orWhereLike(
+        field,
+        '%$value',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
   // ------------------------
   // Range / Date Methods
   // ------------------------
@@ -480,7 +482,7 @@ class QueryBuilder {
     _selects.clear();
     _selects.addAll(originalSelects);
 
-    return result?['avg_value']?.toDouble();
+    return _aggregateDouble(result?['avg_value']);
   }
 
   /// SUM aggregate
@@ -494,7 +496,13 @@ class QueryBuilder {
     _selects.clear();
     _selects.addAll(originalSelects);
 
-    return result?['sum_value']?.toDouble();
+    return _aggregateDouble(result?['sum_value']);
+  }
+
+  double? _aggregateDouble(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString().trim());
   }
 
   String _buildSelectQuery() {
@@ -502,12 +510,10 @@ class QueryBuilder {
     final whereSql = compileWhereSql();
     final whereClause = whereSql.isEmpty ? '' : ' $whereSql';
 
-    final groupClause = _groups.isNotEmpty
-        ? ' GROUP BY ${_groups.join(', ')}'
-        : '';
-    final orderClause = _orderBys.isNotEmpty
-        ? ' ORDER BY ${_orderBys.join(', ')}'
-        : '';
+    final groupClause =
+        _groups.isNotEmpty ? ' GROUP BY ${_groups.join(', ')}' : '';
+    final orderClause =
+        _orderBys.isNotEmpty ? ' ORDER BY ${_orderBys.join(', ')}' : '';
     final limitClause = _limit != null ? ' LIMIT $_limit' : '';
     final offsetClause = _offset != null ? ' OFFSET $_offset' : '';
 
@@ -519,9 +525,8 @@ class QueryBuilder {
     final result = await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
-      positionalParams: DB.driver == DBDriver.mysql
-          ? _bindings.values.toList()
-          : null,
+      positionalParams:
+          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
 
     // Normalize maps and convert DateTime to ISO string
@@ -633,9 +638,8 @@ class QueryBuilder {
     await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? data : null,
-      positionalParams: DB.driver == DBDriver.mysql
-          ? data.values.toList()
-          : null,
+      positionalParams:
+          DB.driver == DBDriver.mysql ? data.values.toList() : null,
     );
 
     return;
@@ -684,9 +688,8 @@ class QueryBuilder {
     await DB.query(
       sql,
       namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
-      positionalParams: DB.driver == DBDriver.mysql
-          ? _bindings.values.toList()
-          : null,
+      positionalParams:
+          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
   }
 
