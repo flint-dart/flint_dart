@@ -8,8 +8,8 @@ import 'package:flint_dart/schema.dart';
 /// The migrate command expects canonical table definitions, not precomputed
 /// ALTER statements. It compares the live database schema against these CREATE
 /// TABLE definitions and then applies the necessary add/modify/drop work.
-void runTableRegistry(
-  List<Table> tables, [
+void registerTableRegistry(
+  Iterable<Table> tables, [
   dynamic _,
   SendPort? sendPort,
 ]) async {
@@ -53,4 +53,37 @@ void runTableRegistry(
 
   sendPort.send(registeredTables.isEmpty ? sqlDefinitions : registeredTables);
   Isolate.exit();
+}
+
+/// Registry contract for application tables.
+///
+/// Use this in `lib/config/table_registry.dart` so tables follow the same
+/// shape as seeders and jobs.
+abstract class TableRegistry {
+  const TableRegistry();
+
+  Iterable<Table> get tables;
+
+  void registerTables([
+    dynamic data,
+    SendPort? sendPort,
+  ]) {
+    registerTableRegistry(tables, data, sendPort);
+  }
+
+  void registerAll([
+    dynamic data,
+    SendPort? sendPort,
+  ]) {
+    registerTables(data, sendPort);
+  }
+}
+
+/// Backwards-compatible alias for older table registry files.
+void runTableRegistry(
+  List<Table> tables, [
+  dynamic _,
+  SendPort? sendPort,
+]) {
+  registerTableRegistry(tables, _, sendPort);
 }
