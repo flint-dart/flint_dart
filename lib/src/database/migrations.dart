@@ -9,8 +9,12 @@ class FlintMigrations {
 
   static bool get hasRun => _hasRun;
 
-  static bool enabledFromEnv([String key = 'FLINT_AUTO_MIGRATE']) {
+  static bool enabledFromEnv([
+    String key = 'FLINT_AUTO_MIGRATE',
+    bool defaultValue = false,
+  ]) {
     final value = FlintEnv.get(key, '').trim().toLowerCase();
+    if (value.isEmpty) return defaultValue;
     return value == '1' || value == 'true' || value == 'yes';
   }
 

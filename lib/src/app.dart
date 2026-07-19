@@ -7,9 +7,13 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/src/controller.dart' as controller_api;
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/database/migrations.dart';
+import 'package:flint_dart/src/database/orm/global_table_registry.dart';
 import 'package:flint_dart/src/env_parser.dart';
+import 'package:flint_dart/src/jobs/flint_job_models.dart';
+import 'package:flint_dart/src/jobs/jobs_registry.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
+import 'package:flint_dart/schema.dart' as schema;
 
 import 'context.dart';
 import 'package:flint_dart/src/websocket/ws_manager_instance.dart';
@@ -196,9 +200,14 @@ class Flint {
   final bool enableSwaggerDocs;
   final bool autoConnectMail;
   final bool? autoMigrate;
+  final bool autoMigrateDefault;
   final bool autoMigrateCreateDatabase;
   final bool autoMigrateDuringHotReload;
   final bool autoMigrateVerbose;
+  final TableRegistry? tableRegistry;
+  final JobsRegistry? jobsRegistry;
+  final bool autoRegisterJobs;
+  final bool includeJobTablesInMigrations;
   final FlintPageServerRenderer? _flintPageServerRenderer;
   final bool _serverRenderFlintPages;
 
@@ -214,14 +223,22 @@ class Flint {
       this.autoConnectDb = true,
       this.autoConnectMail = true,
       this.autoMigrate,
+      this.autoMigrateDefault = false,
       this.autoMigrateCreateDatabase = false,
       this.autoMigrateDuringHotReload = false,
       this.autoMigrateVerbose = false,
+      this.tableRegistry,
+      this.jobsRegistry,
+      this.autoRegisterJobs = true,
+      this.includeJobTablesInMigrations = true,
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false})
       : _flintPageServerRenderer = flintPageServerRenderer,
         _serverRenderFlintPages = serverRenderFlintPages {
     DB.setLazyAutoConnect(autoConnectDb);
+    if (autoRegisterJobs) {
+      jobsRegistry?.registerJobs();
+    }
     Response.flintPageServerRenderer = flintPageServerRenderer;
     Response.flintPageServerRenderingEnabled = serverRenderFlintPages;
 
@@ -986,7 +1003,9 @@ class Flint {
   }
 
   Future<void> _ensureMigrationsIfEnabled() async {
-    final enabled = autoMigrate ?? FlintMigrations.enabledFromEnv();
+    final enabled = autoMigrate ??
+        FlintMigrations.enabledFromEnv(
+            'FLINT_AUTO_MIGRATE', autoMigrateDefault);
     if (!enabled) return;
 
     final hotFlag = env('FLINT_HOT', '').toString().toLowerCase().trim();
@@ -1001,7 +1020,36 @@ class Flint {
       createDatabase:
           autoMigrateCreateDatabase || FlintMigrations.createDatabaseFromEnv(),
       verbose: autoMigrateVerbose || FlintMigrations.verboseFromEnv(),
+      tables: _migrationTables(),
     );
+  }
+
+  /// Runs this app's configured migrations before `listen()`.
+  ///
+  /// This uses [tableRegistry] and automatically adds Flint job tables when
+  /// [jobsRegistry] is configured. Calling this is useful when the app needs
+  /// database tables before registering routes or running bootstraps.
+  Future<void> ensureMigrations() {
+    return _ensureMigrationsIfEnabled();
+  }
+
+  List<schema.Table>? _migrationTables() {
+    final tables = <schema.Table>[];
+    final tableRegistryTables = tableRegistry?.tables;
+    if (tableRegistryTables != null) {
+      tables.addAll(tableRegistryTables);
+    }
+
+    if (includeJobTablesInMigrations && jobsRegistry != null) {
+      final names = tables.map((table) => table.name).toSet();
+      for (final table in flintJobTables()) {
+        if (names.add(table.name)) {
+          tables.add(table);
+        }
+      }
+    }
+
+    return tables.isEmpty ? null : tables;
   }
 
   /// Dispatches requests to WebSockets or HTTP Routes
