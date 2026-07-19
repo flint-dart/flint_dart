@@ -33,6 +33,26 @@ void main() {
     );
   });
 
+  test('RunJobsWorkerCommand resolves default and custom entrypoints', () {
+    expect(RunJobsWorkerCommand.resolveEntrypoint([]), 'bin/worker.dart');
+    expect(
+      RunJobsWorkerCommand.resolveEntrypoint(['bin/custom_worker.dart']),
+      'bin/custom_worker.dart',
+    );
+    expect(
+      RunJobsWorkerCommand.resolveEntrypoint(
+        ['--entrypoint=tool/jobs_worker.dart'],
+      ),
+      'tool/jobs_worker.dart',
+    );
+    expect(
+      RunJobsWorkerCommand.resolveEntrypoint(
+        ['--entrypoint', 'tool/worker.dart'],
+      ),
+      'tool/worker.dart',
+    );
+  });
+
   test('RunServerCommand defaults to PORT from .env', () async {
     final dir = await Directory.systemTemp.createTemp('flint_cli_env_port_');
     final envFile = File(path.join(dir.path, '.env'));

@@ -99,3 +99,59 @@ class RunServerCommand extends FlintCommand {
     exit(await child.exitCode);
   }
 }
+
+/// Runs the app's dedicated Flint jobs worker entrypoint.
+class RunJobsWorkerCommand extends FlintCommand {
+  RunJobsWorkerCommand() : super('jobs:work', 'Runs the Flint jobs worker');
+
+  static String resolveEntrypoint(List<String> args) {
+    for (var i = 0; i < args.length; i++) {
+      final arg = args[i];
+      if (arg.startsWith('--entrypoint=')) {
+        return arg.substring('--entrypoint='.length);
+      }
+      if (arg == '--entrypoint' && i + 1 < args.length) {
+        return args[++i];
+      }
+      if (!arg.startsWith('--')) {
+        return arg;
+      }
+    }
+    return 'bin/worker.dart';
+  }
+
+  @override
+  Future<void> execute(List<String> args) async {
+    final entrypoint = resolveEntrypoint(args);
+    if (!File(entrypoint).existsSync()) {
+      Log.error('Jobs worker entrypoint not found: $entrypoint');
+      Log.info('Create $entrypoint and call app.runJobsWorker().');
+      exit(1);
+    }
+
+    final child = await Process.start(
+      'dart',
+      ['run', entrypoint],
+      mode: ProcessStartMode.inheritStdio,
+      runInShell: true,
+    );
+
+    ProcessSignal.sigint.watch().listen((_) async {
+      Log.debug('\n[FLINT] Shutting down jobs worker...');
+      child.kill(ProcessSignal.sigint);
+      await child.exitCode;
+      exit(0);
+    });
+
+    if (!Platform.isWindows) {
+      ProcessSignal.sigterm.watch().listen((_) async {
+        Log.debug('\n[FLINT] Shutting down jobs worker...');
+        child.kill(ProcessSignal.sigterm);
+        await child.exitCode;
+        exit(0);
+      });
+    }
+
+    exit(await child.exitCode);
+  }
+}
