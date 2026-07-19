@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flint_dart/ai.dart';
 import 'package:flint_dart/logs.dart';
@@ -1090,6 +1091,72 @@ class Flint {
       staleRunningAfter: staleRunningAfter,
       runImmediately: runImmediately,
     );
+  }
+
+  /// Runs a dedicated jobs worker process for this app.
+  ///
+  /// This boots migrations and registered schedules, starts the Flint jobs
+  /// runtime, and keeps the process alive until SIGINT or SIGTERM is received.
+  Future<void> runJobsWorker({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration pollInterval = const Duration(minutes: 1),
+    Duration staleRunningAfter = const Duration(minutes: 15),
+    bool runImmediately = true,
+    bool ensureMigrations = true,
+  }) async {
+    final resolvedWorkerId = workerId ?? FlintJobs.randomWorkerId();
+    if (ensureMigrations) {
+      await _ensureMigrationsIfEnabled();
+    }
+    await startJobs(
+      queue: queue,
+      limit: limit,
+      scheduleLimit: scheduleLimit,
+      workerId: resolvedWorkerId,
+      pollInterval: pollInterval,
+      staleRunningAfter: staleRunningAfter,
+      runImmediately: runImmediately,
+    );
+    if (autoConnectMail) {
+      MailConfig.load();
+    }
+
+    Log.info(
+      '[FLINT] Jobs worker running queue=$queue workerId=$resolvedWorkerId',
+      tag: 'jobs',
+    );
+
+    final shutdown = Completer<void>();
+    void requestShutdown(ProcessSignal signal) {
+      if (!shutdown.isCompleted) {
+        Log.info(
+          '[FLINT] Jobs worker shutting down after ${signal.name}',
+          tag: 'jobs',
+        );
+        shutdown.complete();
+      }
+    }
+
+    final subscriptions = <StreamSubscription<ProcessSignal>>[
+      ProcessSignal.sigint.watch().listen(requestShutdown),
+      if (!Platform.isWindows)
+        ProcessSignal.sigterm.watch().listen(requestShutdown),
+    ];
+
+    try {
+      await shutdown.future;
+    } finally {
+      stopJobs();
+      for (final subscription in subscriptions) {
+        await subscription.cancel();
+      }
+      if (autoConnectDb && DB.isConnected) {
+        await DB.close();
+      }
+    }
   }
 
   void stopJobs() {
