@@ -50,6 +50,28 @@ class _ReleaseJob extends FlintJob {
   }
 }
 
+class _RegistryJob extends FlintJob {
+  @override
+  String get type => 'REGISTRY_TEST';
+
+  @override
+  Future<void> handle(FlintJobContext ctx) async {}
+}
+
+class _TestJobsRegistry extends JobsRegistry {
+  @override
+  Iterable<FlintJob> get jobs => [_RegistryJob()];
+
+  @override
+  Iterable<FlintSchedule> get schedules => const [
+        EverySchedule(
+          name: 'registry-test-every',
+          jobType: 'REGISTRY_TEST',
+          every: Duration(minutes: 5),
+        ),
+      ];
+}
+
 void main() {
   late FlintMemoryJobStore store;
 
@@ -250,6 +272,16 @@ void main() {
         {'scheduled': true},
       ]);
       expect(store.jobs.single.status, FlintJobStatus.completed);
+    });
+
+    test('JobsRegistry registers jobs and schedules', () async {
+      final registry = _TestJobsRegistry();
+
+      await registry.registerAll();
+
+      expect(FlintJobs.registered.containsKey('REGISTRY_TEST'), isTrue);
+      expect(FlintJobs.schedules.containsKey('registry-test-every'), isTrue);
+      expect(store.schedules.single.jobType, 'REGISTRY_TEST');
     });
   });
 }

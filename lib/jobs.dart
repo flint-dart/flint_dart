@@ -6,3 +6,4 @@ export 'src/jobs/flint_job_schedule.dart';
 export 'src/jobs/flint_job_schedule_record.dart';
 export 'src/jobs/flint_jobs.dart';
 export 'src/jobs/flint_job_models.dart';
+export 'src/jobs/jobs_registry.dart';
