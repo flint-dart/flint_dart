@@ -10,6 +10,7 @@ import 'package:flint_dart/src/database/migrations.dart';
 import 'package:flint_dart/src/database/orm/global_table_registry.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/jobs/flint_job_models.dart';
+import 'package:flint_dart/src/jobs/flint_jobs.dart';
 import 'package:flint_dart/src/jobs/jobs_registry.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
@@ -210,6 +211,7 @@ class Flint {
   final bool includeJobTablesInMigrations;
   final FlintPageServerRenderer? _flintPageServerRenderer;
   final bool _serverRenderFlintPages;
+  bool _jobSchedulesRegistered = false;
 
   /// Creates a new Flint application instance.
   ///
@@ -979,6 +981,7 @@ class Flint {
     HttpServer? server;
     try {
       await _ensureMigrationsIfEnabled();
+      await _registerJobSchedulesIfConfigured();
       server = await HttpServer.bind(InternetAddress.anyIPv4, port);
       Log.debug(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
@@ -1024,13 +1027,47 @@ class Flint {
     );
   }
 
+  Future<void> _registerJobSchedulesIfConfigured() async {
+    if (_jobSchedulesRegistered) return;
+    final registry = jobsRegistry;
+    if (registry == null) return;
+    await registry.registerSchedules();
+    _jobSchedulesRegistered = true;
+  }
+
   /// Runs this app's configured migrations before `listen()`.
   ///
   /// This uses [tableRegistry] and automatically adds Flint job tables when
   /// [jobsRegistry] is configured. Calling this is useful when the app needs
   /// database tables before registering routes or running bootstraps.
-  Future<void> ensureMigrations() {
-    return _ensureMigrationsIfEnabled();
+  Future<void> ensureMigrations() async {
+    await _ensureMigrationsIfEnabled();
+    await _registerJobSchedulesIfConfigured();
+  }
+
+  Future<void> startJobs({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration pollInterval = const Duration(minutes: 1),
+    Duration staleRunningAfter = const Duration(minutes: 15),
+    bool runImmediately = true,
+  }) async {
+    await _registerJobSchedulesIfConfigured();
+    FlintJobs.startRuntime(
+      queue: queue,
+      limit: limit,
+      scheduleLimit: scheduleLimit,
+      workerId: workerId,
+      pollInterval: pollInterval,
+      staleRunningAfter: staleRunningAfter,
+      runImmediately: runImmediately,
+    );
+  }
+
+  void stopJobs() {
+    FlintJobs.stopRuntime();
   }
 
   List<schema.Table>? _migrationTables() {

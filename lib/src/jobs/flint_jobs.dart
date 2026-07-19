@@ -16,8 +16,10 @@ class FlintJobs {
   static FlintJobStore _store = const FlintDatabaseJobStore();
   static Timer? _workerTimer;
   static Timer? _schedulerTimer;
+  static Timer? _runtimeTimer;
   static bool _workerRunning = false;
   static bool _schedulerRunning = false;
+  static bool _runtimeRunning = false;
 
   static Map<String, FlintJob> get registered => Map.unmodifiable(_registry);
   static Map<String, FlintSchedule> get schedules =>
@@ -232,6 +234,57 @@ class FlintJobs {
     _schedulerTimer?.cancel();
     _schedulerTimer = null;
     _schedulerRunning = false;
+  }
+
+  static Future<int> runRuntimeOnce({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration staleRunningAfter = const Duration(minutes: 15),
+  }) async {
+    await tickSchedules(limit: scheduleLimit);
+    return runOnce(
+      queue: queue,
+      limit: limit,
+      workerId: workerId,
+      staleRunningAfter: staleRunningAfter,
+    );
+  }
+
+  static void startRuntime({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration pollInterval = const Duration(minutes: 1),
+    Duration staleRunningAfter = const Duration(minutes: 15),
+    bool runImmediately = true,
+  }) {
+    _runtimeTimer?.cancel();
+
+    void trigger() {
+      if (_runtimeRunning) return;
+      _runtimeRunning = true;
+      unawaited(
+        runRuntimeOnce(
+          queue: queue,
+          limit: limit,
+          scheduleLimit: scheduleLimit,
+          workerId: workerId,
+          staleRunningAfter: staleRunningAfter,
+        ).whenComplete(() => _runtimeRunning = false),
+      );
+    }
+
+    _runtimeTimer = Timer.periodic(pollInterval, (_) => trigger());
+    if (runImmediately) trigger();
+  }
+
+  static void stopRuntime() {
+    _runtimeTimer?.cancel();
+    _runtimeTimer = null;
+    _runtimeRunning = false;
   }
 
   static Future<void> _runClaimed(
