@@ -7,6 +7,7 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/src/controller.dart' as controller_api;
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/database/migrations.dart';
+import 'package:flint_dart/src/database/seeder.dart';
 import 'package:flint_dart/src/database/orm/global_table_registry.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/jobs/flint_job_models.dart';
@@ -206,6 +207,9 @@ class Flint {
   final bool autoMigrateDuringHotReload;
   final bool autoMigrateVerbose;
   final TableRegistry? tableRegistry;
+  final SeederRegistry? seederRegistry;
+  final bool autoSeed;
+  final bool closeSeederConnection;
   final JobsRegistry? jobsRegistry;
   final bool autoRegisterJobs;
   final bool includeJobTablesInMigrations;
@@ -230,6 +234,9 @@ class Flint {
       this.autoMigrateDuringHotReload = false,
       this.autoMigrateVerbose = false,
       this.tableRegistry,
+      this.seederRegistry,
+      this.autoSeed = false,
+      this.closeSeederConnection = false,
       this.jobsRegistry,
       this.autoRegisterJobs = true,
       this.includeJobTablesInMigrations = true,
@@ -981,6 +988,7 @@ class Flint {
     HttpServer? server;
     try {
       await _ensureMigrationsIfEnabled();
+      await _runSeedersIfEnabled();
       await _registerJobSchedulesIfConfigured();
       server = await HttpServer.bind(InternetAddress.anyIPv4, port);
       Log.debug(
@@ -1035,6 +1043,11 @@ class Flint {
     _jobSchedulesRegistered = true;
   }
 
+  Future<void> _runSeedersIfEnabled() async {
+    if (!autoSeed) return;
+    await seed(closeConnection: closeSeederConnection);
+  }
+
   /// Runs this app's configured migrations before `listen()`.
   ///
   /// This uses [tableRegistry] and automatically adds Flint job tables when
@@ -1043,6 +1056,19 @@ class Flint {
   Future<void> ensureMigrations() async {
     await _ensureMigrationsIfEnabled();
     await _registerJobSchedulesIfConfigured();
+  }
+
+  /// Runs this app's configured [SeederRegistry].
+  ///
+  /// Seeders are not run automatically unless [autoSeed] is enabled because
+  /// they may create or mutate application data.
+  Future<void> seed({bool closeConnection = true}) async {
+    final registry = seederRegistry;
+    if (registry == null) {
+      throw StateError('No SeederRegistry configured for this Flint app.');
+    }
+
+    await registry.registerSeeders(closeConnection: closeConnection);
   }
 
   Future<void> startJobs({
