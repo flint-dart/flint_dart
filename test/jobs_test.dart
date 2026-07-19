@@ -61,7 +61,9 @@ void main() {
 
   tearDown(() {
     FlintJobs.stopWorker();
+    FlintJobs.stopScheduler();
     FlintJobs.clearRegistry();
+    FlintJobs.clearSchedules();
     FlintJobs.useDatabaseStore();
   });
 
@@ -166,6 +168,88 @@ void main() {
       expect(recovered, 1);
       expect(store.jobs.single.status, FlintJobStatus.pending);
       expect(store.jobs.single.lastError, contains('Recovered stale'));
+    });
+
+    test('schedule registers durable schedule state', () async {
+      await FlintJobs.schedule(
+        EverySchedule(
+          name: 'count-every-minute',
+          jobType: 'COUNTING',
+          every: const Duration(minutes: 1),
+          payload: {'source': 'schedule'},
+        ),
+      );
+
+      expect(FlintJobs.schedules.keys, contains('count-every-minute'));
+      expect(store.schedules, hasLength(1));
+      expect(store.schedules.single.jobType, 'COUNTING');
+      expect(store.schedules.single.nextRunAt, isNotNull);
+    });
+
+    test('tickSchedules dispatches due schedules once per bucket', () async {
+      await FlintJobs.schedule(
+        EverySchedule(
+          name: 'count-hourly',
+          jobType: 'COUNTING',
+          every: const Duration(hours: 1),
+          keyTemplate: 'count_{yyyy}-{MM}-{dd}_{HH}',
+        ),
+      );
+      final now = store.schedules.single.nextRunAt!;
+      final expectedKey = 'count_${now.year.toString().padLeft(4, '0')}-'
+          '${now.month.toString().padLeft(2, '0')}-'
+          '${now.day.toString().padLeft(2, '0')}_'
+          '${now.hour.toString().padLeft(2, '0')}';
+
+      final first = await FlintJobs.tickSchedules(now: now);
+      final second = await FlintJobs.tickSchedules(now: now);
+
+      expect(first, 1);
+      expect(second, 0);
+      expect(store.jobs, hasLength(1));
+      expect(store.jobs.single.jobKey, expectedKey);
+      expect(store.schedules.single.lastRunAt, now);
+    });
+
+    test('disabled schedule does not enqueue', () async {
+      await FlintJobs.schedule(
+        EverySchedule(
+          name: 'disabled',
+          jobType: 'COUNTING',
+          every: const Duration(minutes: 1),
+          enabled: false,
+        ),
+      );
+
+      final enqueued = await FlintJobs.tickSchedules(
+        now: DateTime(2026, 7, 19, 12),
+      );
+
+      expect(enqueued, 0);
+      expect(store.jobs, isEmpty);
+    });
+
+    test('scheduled job can be executed by runOnce', () async {
+      final calls = <Map<String, dynamic>>[];
+      FlintJobs.register([_CountingJob(calls)]);
+      await FlintJobs.schedule(
+        EverySchedule(
+          name: 'count-now',
+          jobType: 'COUNTING',
+          every: const Duration(minutes: 5),
+          payload: {'scheduled': true},
+        ),
+      );
+      final now = store.schedules.single.nextRunAt!;
+
+      await FlintJobs.tickSchedules(now: now);
+      final handled = await FlintJobs.runOnce();
+
+      expect(handled, 1);
+      expect(calls, [
+        {'scheduled': true},
+      ]);
+      expect(store.jobs.single.status, FlintJobStatus.completed);
     });
   });
 }

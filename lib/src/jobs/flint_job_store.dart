@@ -3,6 +3,8 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/src/jobs/flint_job_models.dart';
 import 'package:flint_dart/src/jobs/flint_job_record.dart';
 import 'package:flint_dart/src/jobs/flint_job_run_record.dart';
+import 'package:flint_dart/src/jobs/flint_job_schedule.dart';
+import 'package:flint_dart/src/jobs/flint_job_schedule_record.dart';
 
 abstract class FlintJobStore {
   Future<FlintJobRecord> dispatch({
@@ -63,6 +65,23 @@ abstract class FlintJobStore {
     FlintJobRecord record,
     String message, {
     Map<String, dynamic>? metadata,
+  });
+
+  Future<FlintJobScheduleRecord> upsertSchedule(
+    FlintSchedule schedule, {
+    required DateTime now,
+  });
+
+  Future<List<FlintJobScheduleRecord>> dueSchedules({
+    required DateTime now,
+    int limit = 100,
+  });
+
+  Future<FlintJobScheduleRecord> markScheduleTicked(
+    FlintJobScheduleRecord record, {
+    required DateTime lastRunAt,
+    required DateTime? nextRunAt,
+    String? error,
   });
 }
 
@@ -280,6 +299,77 @@ class FlintDatabaseJobStore implements FlintJobStore {
     });
   }
 
+  @override
+  Future<FlintJobScheduleRecord> upsertSchedule(
+    FlintSchedule schedule, {
+    required DateTime now,
+  }) async {
+    final existing =
+        await FlintJobScheduleModel().where('name', schedule.name).first();
+    final nextRunAt = schedule.nextRunAfter(existing?.lastRunAt, now);
+    final data = {
+      'name': schedule.name,
+      'jobType': schedule.jobType,
+      'queue': schedule.queue,
+      'payload': schedule.payload,
+      'keyTemplate': schedule.keyTemplate,
+      'enabled': schedule.enabled,
+      'nextRunAt': nextRunAt,
+      'metadata': {
+        ...?existing?.metadata,
+        'registeredAt': now.toIso8601String(),
+      },
+    };
+    final model = existing == null
+        ? await FlintJobScheduleModel().create(data)
+        : await existing.update(data: data);
+    if (model == null) {
+      throw StateError('Failed to upsert Flint job schedule ${schedule.name}');
+    }
+    return _scheduleFromModel(model);
+  }
+
+  @override
+  Future<List<FlintJobScheduleRecord>> dueSchedules({
+    required DateTime now,
+    int limit = 100,
+  }) async {
+    final schedules = await FlintJobScheduleModel()
+        .where('enabled', true)
+        .orderBy('nextRunAt')
+        .limit(limit * 3)
+        .get();
+    return schedules
+        .map(_scheduleFromModel)
+        .where((schedule) {
+          final next = schedule.nextRunAt;
+          return next != null && !next.isAfter(now);
+        })
+        .take(limit)
+        .toList();
+  }
+
+  @override
+  Future<FlintJobScheduleRecord> markScheduleTicked(
+    FlintJobScheduleRecord record, {
+    required DateTime lastRunAt,
+    required DateTime? nextRunAt,
+    String? error,
+  }) async {
+    final updated = await FlintJobScheduleModel().update(
+      id: record.id,
+      data: {
+        'lastRunAt': lastRunAt,
+        'nextRunAt': nextRunAt,
+        'lastError': error,
+      },
+    );
+    if (updated == null) {
+      throw StateError('Failed to update Flint schedule ${record.name}');
+    }
+    return _scheduleFromModel(updated);
+  }
+
   Future<FlintJobRecord> _updateRecord(
     FlintJobRecord record,
     Map<String, dynamic> data,
@@ -295,9 +385,11 @@ class FlintDatabaseJobStore implements FlintJobStore {
 class FlintMemoryJobStore implements FlintJobStore {
   final Map<String, FlintJobRecord> _jobs = {};
   final Map<String, FlintJobRunRecord> _runs = {};
+  final Map<String, FlintJobScheduleRecord> _schedules = {};
 
   List<FlintJobRecord> get jobs => _jobs.values.toList();
   List<FlintJobRunRecord> get runs => _runs.values.toList();
+  List<FlintJobScheduleRecord> get schedules => _schedules.values.toList();
 
   @override
   Future<FlintJobRecord> dispatch({
@@ -503,6 +595,74 @@ class FlintMemoryJobStore implements FlintJobStore {
       metadata: {...record.metadata, 'logs': logs},
     );
   }
+
+  @override
+  Future<FlintJobScheduleRecord> upsertSchedule(
+    FlintSchedule schedule, {
+    required DateTime now,
+  }) async {
+    final existing = _schedules.values.where(
+      (item) => item.name == schedule.name,
+    );
+    final current = existing.isEmpty ? null : existing.first;
+    final nextRunAt = schedule.nextRunAfter(current?.lastRunAt, now);
+    final record = FlintJobScheduleRecord(
+      id: current?.id ?? Str.uuid(),
+      name: schedule.name,
+      jobType: schedule.jobType,
+      queue: schedule.queue,
+      payload: Map<String, dynamic>.from(schedule.payload),
+      keyTemplate: schedule.keyTemplate,
+      enabled: schedule.enabled,
+      lastRunAt: current?.lastRunAt,
+      nextRunAt: nextRunAt,
+      lastError: current?.lastError,
+      metadata: {
+        ...?current?.metadata,
+        'registeredAt': now.toIso8601String(),
+      },
+      createdAt: current?.createdAt ?? now,
+    );
+    _schedules[record.id] = record;
+    return record;
+  }
+
+  @override
+  Future<List<FlintJobScheduleRecord>> dueSchedules({
+    required DateTime now,
+    int limit = 100,
+  }) async {
+    final records = _schedules.values
+        .where((schedule) => schedule.enabled)
+        .where((schedule) {
+      final next = schedule.nextRunAt;
+      return next != null && !next.isAfter(now);
+    }).toList()
+      ..sort((a, b) {
+        final left = a.nextRunAt ?? a.createdAt;
+        final right = b.nextRunAt ?? b.createdAt;
+        return left.compareTo(right);
+      });
+    return records.take(limit).toList();
+  }
+
+  @override
+  Future<FlintJobScheduleRecord> markScheduleTicked(
+    FlintJobScheduleRecord record, {
+    required DateTime lastRunAt,
+    required DateTime? nextRunAt,
+    String? error,
+  }) async {
+    final updated = record.copyWith(
+      lastRunAt: lastRunAt,
+      nextRunAt: nextRunAt,
+      clearNextRunAt: nextRunAt == null,
+      lastError: error,
+      clearLastError: error == null,
+    );
+    _schedules[record.id] = updated;
+    return updated;
+  }
 }
 
 bool _isRunnable(FlintJobRecord job, DateTime now) {
@@ -548,5 +708,22 @@ FlintJobRunRecord _runFromModel(FlintJobRunModel model) {
     workerId: model.getAttribute<String>('workerId'),
     metadata: model.getAttribute<Map<String, dynamic>>('metadata') ??
         <String, dynamic>{},
+  );
+}
+
+FlintJobScheduleRecord _scheduleFromModel(FlintJobScheduleModel model) {
+  return FlintJobScheduleRecord(
+    id: model.id.toString(),
+    name: model.name,
+    jobType: model.jobType,
+    queue: model.queue,
+    payload: model.payload,
+    keyTemplate: model.keyTemplate,
+    enabled: model.enabled,
+    lastRunAt: model.lastRunAt,
+    nextRunAt: model.nextRunAt,
+    lastError: model.lastError,
+    metadata: model.metadata,
+    createdAt: model.createdAt ?? DateTime.now(),
   );
 }

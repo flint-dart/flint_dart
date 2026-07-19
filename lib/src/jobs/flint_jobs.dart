@@ -5,17 +5,23 @@ import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/jobs/flint_job.dart';
 import 'package:flint_dart/src/jobs/flint_job_context.dart';
 import 'package:flint_dart/src/jobs/flint_job_record.dart';
+import 'package:flint_dart/src/jobs/flint_job_schedule.dart';
 import 'package:flint_dart/src/jobs/flint_job_store.dart';
 
 class FlintJobs {
   FlintJobs._();
 
   static final Map<String, FlintJob> _registry = {};
+  static final Map<String, FlintSchedule> _schedules = {};
   static FlintJobStore _store = const FlintDatabaseJobStore();
   static Timer? _workerTimer;
+  static Timer? _schedulerTimer;
   static bool _workerRunning = false;
+  static bool _schedulerRunning = false;
 
   static Map<String, FlintJob> get registered => Map.unmodifiable(_registry);
+  static Map<String, FlintSchedule> get schedules =>
+      Map.unmodifiable(_schedules);
 
   static void register(Iterable<FlintJob> jobs) {
     for (final job in jobs) {
@@ -33,6 +39,32 @@ class FlintJobs {
 
   static void clearRegistry() {
     _registry.clear();
+  }
+
+  static Future<void> schedule(FlintSchedule schedule) async {
+    final name = schedule.name.trim();
+    if (name.isEmpty) {
+      throw ArgumentError('FlintSchedule.name cannot be empty');
+    }
+    if (schedule.jobType.trim().isEmpty) {
+      throw ArgumentError('FlintSchedule.jobType cannot be empty');
+    }
+    _schedules[name] = schedule;
+    await _store.upsertSchedule(schedule, now: DateTime.now());
+  }
+
+  static Future<void> scheduleAll(Iterable<FlintSchedule> schedules) async {
+    for (final schedule in schedules) {
+      await FlintJobs.schedule(schedule);
+    }
+  }
+
+  static void unschedule(String name) {
+    _schedules.remove(name);
+  }
+
+  static void clearSchedules() {
+    _schedules.clear();
   }
 
   static void useStore(FlintJobStore store) {
@@ -121,6 +153,85 @@ class FlintJobs {
     _workerTimer?.cancel();
     _workerTimer = null;
     _workerRunning = false;
+  }
+
+  static Future<int> tickSchedules({
+    int limit = 100,
+    DateTime? now,
+  }) async {
+    final tickAt = now ?? DateTime.now();
+    final due = await _store.dueSchedules(now: tickAt, limit: limit);
+    var enqueued = 0;
+
+    for (final record in due) {
+      final definition = _schedules[record.name];
+      if (definition == null || !definition.enabled) {
+        await _store.markScheduleTicked(
+          record,
+          lastRunAt: tickAt,
+          nextRunAt: null,
+          error: 'No registered schedule definition for ${record.name}',
+        );
+        continue;
+      }
+
+      try {
+        await dispatch(
+          definition.jobType,
+          payload: definition.payload,
+          key: definition.jobKey(tickAt),
+          runAt: tickAt,
+          queue: definition.queue,
+          metadata: {
+            'schedule': definition.name,
+            'scheduledAt': tickAt.toIso8601String(),
+          },
+        );
+        final nextRunAt = definition.nextRunAfter(tickAt, tickAt);
+        await _store.markScheduleTicked(
+          record,
+          lastRunAt: tickAt,
+          nextRunAt: nextRunAt,
+        );
+        enqueued++;
+      } catch (error) {
+        final nextRunAt = definition.nextRunAfter(record.lastRunAt, tickAt);
+        await _store.markScheduleTicked(
+          record,
+          lastRunAt: record.lastRunAt ?? tickAt,
+          nextRunAt: nextRunAt,
+          error: error.toString(),
+        );
+        Log.error(
+          'Flint schedule failed name=${record.name}: $error',
+          tag: 'jobs',
+        );
+      }
+    }
+
+    return enqueued;
+  }
+
+  static void startScheduler({
+    Duration tickInterval = const Duration(minutes: 1),
+    int limit = 100,
+  }) {
+    _schedulerTimer?.cancel();
+    _schedulerTimer = Timer.periodic(tickInterval, (_) {
+      if (_schedulerRunning) return;
+      _schedulerRunning = true;
+      unawaited(
+        tickSchedules(limit: limit).whenComplete(
+          () => _schedulerRunning = false,
+        ),
+      );
+    });
+  }
+
+  static void stopScheduler() {
+    _schedulerTimer?.cancel();
+    _schedulerTimer = null;
+    _schedulerRunning = false;
   }
 
   static Future<void> _runClaimed(

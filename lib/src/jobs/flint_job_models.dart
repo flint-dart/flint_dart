@@ -2,7 +2,11 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
 
 List<Table> flintJobTables() {
-  return [FlintJobModel().table, FlintJobRunModel().table];
+  return [
+    FlintJobModel().table,
+    FlintJobRunModel().table,
+    FlintJobScheduleModel().table,
+  ];
 }
 
 class FlintJobModel extends Model<FlintJobModel> {
@@ -102,6 +106,54 @@ class FlintJobRunModel extends Model<FlintJobRunModel> {
         indexes: [
           Index(columns: ['jobId'], name: 'idx_flint_job_runs_job'),
           Index(columns: ['type'], name: 'idx_flint_job_runs_type'),
+        ],
+      );
+}
+
+class FlintJobScheduleModel extends Model<FlintJobScheduleModel> {
+  FlintJobScheduleModel() : super(FlintJobScheduleModel.new);
+
+  String get name => getAttribute<String>('name') ?? '';
+  String get jobType => getAttribute<String>('jobType') ?? '';
+  String get queue => getAttribute<String>('queue') ?? 'default';
+  Map<String, dynamic> get payload =>
+      getAttribute<Map<String, dynamic>>('payload') ?? <String, dynamic>{};
+  String? get keyTemplate => getAttribute<String>('keyTemplate');
+  bool get enabled => getAttribute<bool>('enabled') ?? true;
+  DateTime? get lastRunAt => getAttribute<DateTime>('lastRunAt');
+  DateTime? get nextRunAt => getAttribute<DateTime>('nextRunAt');
+  String? get lastError => getAttribute<String>('lastError');
+  Map<String, dynamic> get metadata =>
+      getAttribute<Map<String, dynamic>>('metadata') ?? <String, dynamic>{};
+
+  @override
+  Table get table => Table(
+        name: 'flint_job_schedules',
+        columns: [
+          Column(name: 'name', type: ColumnType.string, isUnique: true),
+          Column(name: 'jobType', type: ColumnType.string),
+          Column(
+            name: 'queue',
+            type: ColumnType.string,
+            defaultValue: 'default',
+          ),
+          Column(name: 'payload', type: ColumnType.json),
+          Column(
+              name: 'keyTemplate', type: ColumnType.string, isNullable: true),
+          Column(name: 'enabled', type: ColumnType.boolean, defaultValue: true),
+          Column(
+              name: 'lastRunAt', type: ColumnType.datetime, isNullable: true),
+          Column(
+              name: 'nextRunAt', type: ColumnType.datetime, isNullable: true),
+          Column(name: 'lastError', type: ColumnType.text, isNullable: true),
+          Column(name: 'metadata', type: ColumnType.json, isNullable: true),
+        ],
+        indexes: [
+          Index(
+            columns: ['enabled', 'nextRunAt'],
+            name: 'idx_flint_job_schedules_next',
+          ),
+          Index(columns: ['jobType'], name: 'idx_flint_job_schedules_type'),
         ],
       );
 }
