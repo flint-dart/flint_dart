@@ -485,6 +485,7 @@ void main() {
   flint.resetCollectedStyleCss();
   app.main();
   stdout.write(flint.consumeCollectedStyleCss());
+  exit(0);
 }
 ''');
 
