@@ -992,7 +992,7 @@ class Flint {
       await _runSeedersIfEnabled();
       await _registerJobSchedulesIfConfigured();
       server = await HttpServer.bind(InternetAddress.anyIPv4, port);
-      Log.debug(
+      Log.info(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
 
       if (autoConnectDb) _connectDatabaseInBackground();

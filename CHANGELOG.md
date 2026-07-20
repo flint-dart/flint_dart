@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.2.2] - 2026-07-20
+
+### Changed
+- Logged the server-ready message at info level so `flint run` clearly shows when the HTTP server is listening.
+
 ## [1.2.1] - 2026-07-20
 
 ### Added
