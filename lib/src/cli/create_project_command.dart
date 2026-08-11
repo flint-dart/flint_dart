@@ -55,6 +55,7 @@ class CreateProjectCommand extends FlintCommand {
 
     // 🟦 5. Update internal imports
     await _updatePackageImports(dir.path, 'sample', projectName);
+    await _writeAgentGuide(dir.path, projectName);
 
     // 🟦 6. Run pub get
     Log.debug('⚙️ Running `dart pub get`...');
@@ -97,5 +98,95 @@ class CreateProjectCommand extends FlintCommand {
         }
       }
     }
+  }
+
+  Future<void> _writeAgentGuide(String root, String projectName) async {
+    final file = File('$root/AGENTS.md');
+    if (await file.exists()) {
+      Log.debug('AGENTS.md already exists, keeping template version.');
+      return;
+    }
+
+    await file.writeAsString(_agentGuideTemplate(projectName));
+    Log.debug('AI agent guide created: AGENTS.md');
+  }
+
+  String _agentGuideTemplate(String projectName) {
+    return '''
+# AGENTS.md
+
+This is a Flint Dart application named `$projectName`.
+
+Use this file to help AI coding agents work correctly in this app. The app depends on the `flint_dart` package, so agents should follow Flint conventions instead of replacing the framework with another server stack.
+
+## Files To Inspect First
+
+- `pubspec.yaml` for the app package name and `flint_dart` dependency.
+- `lib/main.dart` for `Flint(...)`, middleware, routes, static assets, database settings, and `listen(...)`.
+- `lib/routes/` for `RouteGroup` classes.
+- `lib/controllers/` for request handlers.
+- `lib/models/` for `Model<T>` classes and `Table` schemas.
+- `lib/middlewares/` for app-specific middleware.
+- `lib/config/table_registry.dart` before changing database tables or migrations.
+- `lib/config/seeder_registry.dart` before changing seed data.
+- `docs/swagger.json` only as generated output; route comments in `lib/routes/` are the source.
+
+## Flint Patterns To Use
+
+- Create the app with `Flint` from `package:flint_dart/flint_dart.dart`.
+- Organize routes with `RouteGroup`, `prefix`, optional `tag`, and `register(Flint app)`.
+- Add route middleware with `.useMiddleware(...)`.
+- Use handlers with `(Request req, Response res)` or request-scoped controllers extending `Controller`.
+- Validate input with `await req.validate({...})` before writing to models.
+- Return `res.json(...)`, `res.respond(...)`, `res.status(...).json(...)`, `res.view(...)`, or `res.page(...)`.
+- Define database models with `Model<T>` and `Table(name: ..., columns: [...])`.
+- Register tables in `lib/config/table_registry.dart` so `flint migrate` can see them.
+- Use `DB.query(...)` parameters or `QueryBuilder` instead of interpolating request input into SQL.
+- Use `app.websocket(...)` and `FlintWebSocket` for WebSocket features.
+
+## Common Commands
+
+```bash
+dart run flint_dart:flint run --port=3000
+dart run flint_dart:flint migrate --no-interaction
+dart run flint_dart:flint seed
+dart run flint_dart:flint docs:generate
+dart test
+```
+
+Generator commands:
+
+```bash
+dart run flint_dart:flint make:model Course
+dart run flint_dart:flint make:controller CourseController
+dart run flint_dart:flint make:route Course
+dart run flint_dart:flint make:middleware AuthMiddleware
+dart run flint_dart:flint make:seeder CourseSeeder
+```
+
+## Do Not Replace
+
+- Do not replace `Flint`, `RouteGroup`, `Request`, `Response`, middleware, or the Flint model/database layer with unrelated frameworks.
+- Do not edit generated static assets in `public/assets/js/flint-ui/` by hand when there is source UI code.
+- Do not treat `docs/swagger.json` as the source of routes; update route files and regenerate docs.
+- Do not remove columns from model `Table` definitions casually; migrations may drop undeclared columns.
+- Do not assume many-to-many relation loading is available unless the installed `flint_dart` implementation supports it.
+
+## Package Docs
+
+If deeper framework behavior is needed, inspect the installed `flint_dart` package source through `.dart_tool/package_config.json`, especially:
+
+- `lib/src/app.dart`
+- `lib/src/routing/`
+- `lib/src/request.dart`
+- `lib/src/response.dart`
+- `lib/src/middleware/`
+- `lib/src/database/`
+- `lib/src/auth/`
+- `lib/src/validation/validator.dart`
+- `lib/src/websocket/`
+- `lib/src/swagger_gen/`
+- `lib/src/cli/`
+''';
   }
 }

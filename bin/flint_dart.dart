@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/cli/agent_docs_command.dart';
 import 'package:flint_dart/src/cli/build_command.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/create_project_command.dart';
@@ -19,6 +20,7 @@ import 'package:flint_dart/src/cli/make_resource_command.dart';
 import 'package:flint_dart/src/cli/make_route_command.dart';
 import 'package:flint_dart/src/cli/make_seeder_command.dart';
 import 'package:flint_dart/src/cli/make_ui_command.dart';
+import 'package:flint_dart/src/cli/stop_port_command.dart';
 import 'package:flint_dart/src/cli/update_command.dart';
 import 'package:flint_dart/src/cli/upgrade_command.dart';
 import 'package:flint_dart/src/cli/version_commands.dart';
@@ -26,8 +28,10 @@ import 'package:flint_dart/src/cli/web_ui_command.dart';
 
 final Map<String, FlintCommand> commands = {
   'create': CreateProjectCommand(),
+  'agent': AgentDocsCommand(),
   'start': RunServerCommand(),
   'run': RunServerCommand(),
+  'stop': StopPortCommand(),
   'jobs-work': RunJobsWorkerCommand(),
   'build': BuildCommand(),
   'web': WebUiCommand(),
@@ -61,8 +65,14 @@ final Map<String, FlintCommand> commands = {
 
 final Map<String, String> aliasCommands = {
   '--deploy-globe': 'deploy-globe',
+  'agents': 'agent',
+  'docs:agent': 'agent',
+  'docs:agents': 'agent',
   'serve': 'run',
   'server': 'run',
+  'port:stop': 'stop',
+  'kill-port': 'stop',
+  'port-stop': 'stop',
   '--jobs-work': 'jobs-work',
   '--job-work': 'jobs-work',
   'worker': 'jobs-work',
