@@ -110,6 +110,9 @@ class Response {
   static final Set<String> _flintPageBundlesBuilding = {};
   static final Set<String> _flintPageBundlesUnavailable = {};
 
+  /// Current HTTP status code for this response.
+  int get statusCode => raw.statusCode;
+
   /// Creates a new [Response] instance with the given [HttpResponse].
   Response(
     this.raw, {
