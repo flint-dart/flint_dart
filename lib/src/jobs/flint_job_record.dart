@@ -23,6 +23,7 @@ class FlintJobRecord {
     this.startedAt,
     this.finishedAt,
     this.lastError,
+    this.message,
     this.metadata = const {},
   });
 
@@ -40,6 +41,7 @@ class FlintJobRecord {
   final DateTime? startedAt;
   final DateTime? finishedAt;
   final String? lastError;
+  final String? message;
   final Map<String, dynamic> metadata;
   final DateTime createdAt;
 
@@ -65,6 +67,8 @@ class FlintJobRecord {
     bool clearFinishedAt = false,
     String? lastError,
     bool clearLastError = false,
+    String? message,
+    bool clearMessage = false,
     Map<String, dynamic>? metadata,
     DateTime? createdAt,
   }) {
@@ -83,6 +87,7 @@ class FlintJobRecord {
       startedAt: clearStartedAt ? null : (startedAt ?? this.startedAt),
       finishedAt: clearFinishedAt ? null : (finishedAt ?? this.finishedAt),
       lastError: clearLastError ? null : (lastError ?? this.lastError),
+      message: clearMessage ? null : (message ?? this.message),
       metadata: metadata ?? this.metadata,
       createdAt: createdAt ?? this.createdAt,
     );

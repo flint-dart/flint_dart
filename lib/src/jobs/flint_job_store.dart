@@ -28,6 +28,7 @@ abstract class FlintJobStore {
   Future<FlintJobRecord> complete(
     FlintJobRecord record, {
     Map<String, dynamic>? payload,
+    String? message,
   });
 
   Future<FlintJobRecord> fail(
@@ -35,6 +36,7 @@ abstract class FlintJobStore {
     required String error,
     required bool retry,
     DateTime? nextRunAt,
+    String? message,
   });
 
   Future<FlintJobRecord> release(
@@ -42,6 +44,7 @@ abstract class FlintJobStore {
     required DateTime nextRunAt,
     String? reason,
     Map<String, dynamic>? payload,
+    String? message,
   });
 
   Future<int> recoverStaleRunning({
@@ -167,6 +170,7 @@ class FlintDatabaseJobStore implements FlintJobStore {
   Future<FlintJobRecord> complete(
     FlintJobRecord record, {
     Map<String, dynamic>? payload,
+    String? message,
   }) async {
     return _updateRecord(record, {
       'status': FlintJobStatus.completed,
@@ -175,6 +179,7 @@ class FlintDatabaseJobStore implements FlintJobStore {
       'lockedAt': null,
       'lockedBy': null,
       'lastError': null,
+      'message': message,
     });
   }
 
@@ -184,6 +189,7 @@ class FlintDatabaseJobStore implements FlintJobStore {
     required String error,
     required bool retry,
     DateTime? nextRunAt,
+    String? message,
   }) async {
     final shouldRetry = retry && record.attempts < record.maxAttempts;
     return _updateRecord(record, {
@@ -193,6 +199,7 @@ class FlintDatabaseJobStore implements FlintJobStore {
       'lockedAt': null,
       'lockedBy': null,
       'lastError': error,
+      'message': message,
     });
   }
 
@@ -202,6 +209,7 @@ class FlintDatabaseJobStore implements FlintJobStore {
     required DateTime nextRunAt,
     String? reason,
     Map<String, dynamic>? payload,
+    String? message,
   }) async {
     return _updateRecord(record, {
       'status': FlintJobStatus.pending,
@@ -211,6 +219,7 @@ class FlintDatabaseJobStore implements FlintJobStore {
       'lockedAt': null,
       'lockedBy': null,
       'lastError': reason,
+      'message': message,
     });
   }
 
@@ -462,6 +471,7 @@ class FlintMemoryJobStore implements FlintJobStore {
   Future<FlintJobRecord> complete(
     FlintJobRecord record, {
     Map<String, dynamic>? payload,
+    String? message,
   }) async {
     final updated = record.copyWith(
       status: FlintJobStatus.completed,
@@ -470,6 +480,8 @@ class FlintMemoryJobStore implements FlintJobStore {
       clearLockedAt: true,
       clearLockedBy: true,
       clearLastError: true,
+      message: message,
+      clearMessage: message == null,
     );
     _jobs[record.id] = updated;
     return updated;
@@ -481,6 +493,7 @@ class FlintMemoryJobStore implements FlintJobStore {
     required String error,
     required bool retry,
     DateTime? nextRunAt,
+    String? message,
   }) async {
     final shouldRetry = retry && record.attempts < record.maxAttempts;
     final updated = record.copyWith(
@@ -492,6 +505,8 @@ class FlintMemoryJobStore implements FlintJobStore {
       clearLockedAt: true,
       clearLockedBy: true,
       lastError: error,
+      message: message,
+      clearMessage: message == null,
     );
     _jobs[record.id] = updated;
     return updated;
@@ -503,6 +518,7 @@ class FlintMemoryJobStore implements FlintJobStore {
     required DateTime nextRunAt,
     String? reason,
     Map<String, dynamic>? payload,
+    String? message,
   }) async {
     final updated = record.copyWith(
       status: FlintJobStatus.pending,
@@ -513,6 +529,8 @@ class FlintMemoryJobStore implements FlintJobStore {
       clearLockedBy: true,
       lastError: reason,
       clearLastError: reason == null,
+      message: message,
+      clearMessage: message == null,
     );
     _jobs[record.id] = updated;
     return updated;
@@ -688,6 +706,7 @@ FlintJobRecord _recordFromModel(FlintJobModel model) {
     startedAt: model.startedAt,
     finishedAt: model.finishedAt,
     lastError: model.lastError,
+    message: model.message,
     metadata: model.metadata,
     createdAt: model.createdAt ?? DateTime.now(),
   );

@@ -180,6 +180,31 @@ class SecurityMiddleware extends Middleware {
   bool _isExcludedPath(String path) {
     final normalized = path.toLowerCase();
 
+    const staticExtensions = [
+      '.ico',
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.gif',
+      '.svg',
+      '.webp',
+      '.avif',
+      '.css',
+      '.js',
+      '.mjs',
+      '.map',
+      '.woff',
+      '.woff2',
+      '.ttf',
+      '.otf',
+    ];
+
+    for (final ext in staticExtensions) {
+      if (normalized.endsWith(ext)) {
+        return true;
+      }
+    }
+
     for (final prefix in config.excludedPrefixes) {
       if (normalized.startsWith(
         prefix.toLowerCase(),

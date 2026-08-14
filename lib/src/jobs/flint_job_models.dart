@@ -26,6 +26,7 @@ class FlintJobModel extends Model<FlintJobModel> {
   DateTime? get startedAt => getAttribute<DateTime>('startedAt');
   DateTime? get finishedAt => getAttribute<DateTime>('finishedAt');
   String? get lastError => getAttribute<String>('lastError');
+  String? get message => getAttribute<String>('message');
   Map<String, dynamic> get metadata =>
       getAttribute<Map<String, dynamic>>('metadata') ?? <String, dynamic>{};
 
@@ -68,6 +69,7 @@ class FlintJobModel extends Model<FlintJobModel> {
             isNullable: true,
           ),
           Column(name: 'lastError', type: ColumnType.text, isNullable: true),
+          Column(name: 'message', type: ColumnType.text, isNullable: true),
           Column(name: 'metadata', type: ColumnType.json, isNullable: true),
         ],
         indexes: [
