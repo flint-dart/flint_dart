@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flint_dart/ai.dart';
 import 'package:flint_dart/logs.dart';
@@ -7,9 +8,15 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/src/controller.dart' as controller_api;
 import 'package:flint_dart/src/database/db.dart';
 import 'package:flint_dart/src/database/migrations.dart';
+import 'package:flint_dart/src/database/seeder.dart';
+import 'package:flint_dart/src/database/orm/global_table_registry.dart';
 import 'package:flint_dart/src/env_parser.dart';
+import 'package:flint_dart/src/jobs/flint_job_models.dart';
+import 'package:flint_dart/src/jobs/flint_jobs.dart';
+import 'package:flint_dart/src/jobs/jobs_registry.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
+import 'package:flint_dart/schema.dart' as schema;
 
 import 'context.dart';
 import 'package:flint_dart/src/websocket/ws_manager_instance.dart';
@@ -196,11 +203,20 @@ class Flint {
   final bool enableSwaggerDocs;
   final bool autoConnectMail;
   final bool? autoMigrate;
+  final bool autoMigrateDefault;
   final bool autoMigrateCreateDatabase;
   final bool autoMigrateDuringHotReload;
   final bool autoMigrateVerbose;
+  final TableRegistry? tableRegistry;
+  final SeederRegistry? seederRegistry;
+  final bool autoSeed;
+  final bool closeSeederConnection;
+  final JobsRegistry? jobsRegistry;
+  final bool autoRegisterJobs;
+  final bool includeJobTablesInMigrations;
   final FlintPageServerRenderer? _flintPageServerRenderer;
   final bool _serverRenderFlintPages;
+  bool _jobSchedulesRegistered = false;
 
   /// Creates a new Flint application instance.
   ///
@@ -214,14 +230,25 @@ class Flint {
       this.autoConnectDb = true,
       this.autoConnectMail = true,
       this.autoMigrate,
+      this.autoMigrateDefault = false,
       this.autoMigrateCreateDatabase = false,
       this.autoMigrateDuringHotReload = false,
       this.autoMigrateVerbose = false,
+      this.tableRegistry,
+      this.seederRegistry,
+      this.autoSeed = false,
+      this.closeSeederConnection = false,
+      this.jobsRegistry,
+      this.autoRegisterJobs = true,
+      this.includeJobTablesInMigrations = true,
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false})
       : _flintPageServerRenderer = flintPageServerRenderer,
         _serverRenderFlintPages = serverRenderFlintPages {
     DB.setLazyAutoConnect(autoConnectDb);
+    if (autoRegisterJobs) {
+      jobsRegistry?.registerJobs();
+    }
     Response.flintPageServerRenderer = flintPageServerRenderer;
     Response.flintPageServerRenderingEnabled = serverRenderFlintPages;
 
@@ -962,8 +989,10 @@ class Flint {
     HttpServer? server;
     try {
       await _ensureMigrationsIfEnabled();
+      await _runSeedersIfEnabled();
+      await _registerJobSchedulesIfConfigured();
       server = await HttpServer.bind(InternetAddress.anyIPv4, port);
-      Log.debug(
+      Log.info(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
 
       if (autoConnectDb) _connectDatabaseInBackground();
@@ -986,7 +1015,9 @@ class Flint {
   }
 
   Future<void> _ensureMigrationsIfEnabled() async {
-    final enabled = autoMigrate ?? FlintMigrations.enabledFromEnv();
+    final enabled = autoMigrate ??
+        FlintMigrations.enabledFromEnv(
+            'FLINT_AUTO_MIGRATE', autoMigrateDefault);
     if (!enabled) return;
 
     final hotFlag = env('FLINT_HOT', '').toString().toLowerCase().trim();
@@ -1001,7 +1032,154 @@ class Flint {
       createDatabase:
           autoMigrateCreateDatabase || FlintMigrations.createDatabaseFromEnv(),
       verbose: autoMigrateVerbose || FlintMigrations.verboseFromEnv(),
+      tables: _migrationTables(),
     );
+  }
+
+  Future<void> _registerJobSchedulesIfConfigured() async {
+    if (_jobSchedulesRegistered) return;
+    final registry = jobsRegistry;
+    if (registry == null) return;
+    await registry.registerSchedules();
+    _jobSchedulesRegistered = true;
+  }
+
+  Future<void> _runSeedersIfEnabled() async {
+    if (!autoSeed) return;
+    await seed(closeConnection: closeSeederConnection);
+  }
+
+  /// Runs this app's configured migrations before `listen()`.
+  ///
+  /// This uses [tableRegistry] and automatically adds Flint job tables when
+  /// [jobsRegistry] is configured. Calling this is useful when the app needs
+  /// database tables before registering routes or running bootstraps.
+  Future<void> ensureMigrations() async {
+    await _ensureMigrationsIfEnabled();
+    await _registerJobSchedulesIfConfigured();
+  }
+
+  /// Runs this app's configured [SeederRegistry].
+  ///
+  /// Seeders are not run automatically unless [autoSeed] is enabled because
+  /// they may create or mutate application data.
+  Future<void> seed({bool closeConnection = true}) async {
+    final registry = seederRegistry;
+    if (registry == null) {
+      throw StateError('No SeederRegistry configured for this Flint app.');
+    }
+
+    await registry.registerSeeders(closeConnection: closeConnection);
+  }
+
+  Future<void> startJobs({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration pollInterval = const Duration(minutes: 1),
+    Duration staleRunningAfter = const Duration(minutes: 15),
+    bool runImmediately = true,
+  }) async {
+    await _registerJobSchedulesIfConfigured();
+    FlintJobs.startRuntime(
+      queue: queue,
+      limit: limit,
+      scheduleLimit: scheduleLimit,
+      workerId: workerId,
+      pollInterval: pollInterval,
+      staleRunningAfter: staleRunningAfter,
+      runImmediately: runImmediately,
+    );
+  }
+
+  /// Runs a dedicated jobs worker process for this app.
+  ///
+  /// This boots migrations and registered schedules, starts the Flint jobs
+  /// runtime, and keeps the process alive until SIGINT or SIGTERM is received.
+  Future<void> runJobsWorker({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration pollInterval = const Duration(minutes: 1),
+    Duration staleRunningAfter = const Duration(minutes: 15),
+    bool runImmediately = true,
+    bool ensureMigrations = true,
+  }) async {
+    final resolvedWorkerId = workerId ?? FlintJobs.randomWorkerId();
+    if (ensureMigrations) {
+      await _ensureMigrationsIfEnabled();
+    }
+    await startJobs(
+      queue: queue,
+      limit: limit,
+      scheduleLimit: scheduleLimit,
+      workerId: resolvedWorkerId,
+      pollInterval: pollInterval,
+      staleRunningAfter: staleRunningAfter,
+      runImmediately: runImmediately,
+    );
+    if (autoConnectMail) {
+      MailConfig.load();
+    }
+
+    Log.info(
+      '[FLINT] Jobs worker running queue=$queue workerId=$resolvedWorkerId',
+      tag: 'jobs',
+    );
+
+    final shutdown = Completer<void>();
+    void requestShutdown(ProcessSignal signal) {
+      if (!shutdown.isCompleted) {
+        Log.info(
+          '[FLINT] Jobs worker shutting down after ${signal.name}',
+          tag: 'jobs',
+        );
+        shutdown.complete();
+      }
+    }
+
+    final subscriptions = <StreamSubscription<ProcessSignal>>[
+      ProcessSignal.sigint.watch().listen(requestShutdown),
+      if (!Platform.isWindows)
+        ProcessSignal.sigterm.watch().listen(requestShutdown),
+    ];
+
+    try {
+      await shutdown.future;
+    } finally {
+      stopJobs();
+      for (final subscription in subscriptions) {
+        await subscription.cancel();
+      }
+      if (autoConnectDb && DB.isConnected) {
+        await DB.close();
+      }
+    }
+  }
+
+  void stopJobs() {
+    FlintJobs.stopRuntime();
+  }
+
+  List<schema.Table>? _migrationTables() {
+    final tables = <schema.Table>[];
+    final tableRegistryTables = tableRegistry?.tables;
+    if (tableRegistryTables != null) {
+      tables.addAll(tableRegistryTables);
+    }
+
+    if (includeJobTablesInMigrations && jobsRegistry != null) {
+      final names = tables.map((table) => table.name).toSet();
+      for (final table in flintJobTables()) {
+        if (names.add(table.name)) {
+          tables.add(table);
+        }
+      }
+    }
+
+    return tables.isEmpty ? null : tables;
   }
 
   /// Dispatches requests to WebSockets or HTTP Routes

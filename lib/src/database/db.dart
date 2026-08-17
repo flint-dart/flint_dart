@@ -269,9 +269,8 @@ class DB {
         RegExp(r'\?'),
         (_) => '\$${paramIndex++}',
       );
-      final params = (positionalParams ?? [])
-          .map(_normalizeValueForDb)
-          .toList(); // ✅ norm
+      final params =
+          (positionalParams ?? []).map(_normalizeValueForDb).toList(); // ✅ norm
       return (normalizedSql, params);
     }
   }
@@ -331,6 +330,24 @@ class DB {
   ) async {
     await _ensureConnected();
     final connection = instance;
+
+    if (connection is MySqlConnectionWrapper) {
+      return connection.runExclusive(() async {
+        await connection.beginTransaction();
+
+        try {
+          final trx = DBTransaction(connection);
+          final result = await callback(trx);
+
+          await connection.commit();
+          return result;
+        } catch (e, stack) {
+          await connection.rollback();
+          Log.error('Transaction failed', error: e, stackTrace: stack);
+          rethrow;
+        }
+      });
+    }
 
     await connection.beginTransaction();
 

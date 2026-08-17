@@ -36,6 +36,35 @@ void main() {
       expect(app.normalizePath('/test'), '/test');
     });
 
+    test('runs configured seeder registry through app.seed', () async {
+      final calls = <String>[];
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+        seederRegistry: _AppTestSeederRegistry(calls),
+      );
+
+      await app.seed(closeConnection: false);
+
+      expect(calls, ['first', 'second']);
+    });
+
+    test('app.seed requires a configured seeder registry', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+
+      await expectLater(
+        () => app.seed(closeConnection: false),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('default middleware serves public static assets', () async {
       final originalCurrent = Directory.current;
       final tempDir =
@@ -448,6 +477,30 @@ void main() {
       );
     });
   });
+}
+
+class _AppTestSeederRegistry extends SeederRegistry {
+  _AppTestSeederRegistry(this.calls);
+
+  final List<String> calls;
+
+  @override
+  Iterable<Seeder> get seeders => [
+        _AppTestSeeder('first', calls),
+        _AppTestSeeder('second', calls),
+      ];
+}
+
+class _AppTestSeeder extends Seeder {
+  _AppTestSeeder(this.value, this.calls);
+
+  final String value;
+  final List<String> calls;
+
+  @override
+  Future<void> run() async {
+    calls.add(value);
+  }
 }
 
 class _LegacyRouteGroup extends RouteGroup {

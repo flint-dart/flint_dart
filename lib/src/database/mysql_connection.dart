@@ -6,10 +6,13 @@ import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 
 class MySqlConnectionWrapper implements DBWrapper {
+  static final Object _queueBypassKey = Object();
+
   MySQLConnection? _conn;
   bool _connected = false;
   String? _lastError;
   Future<void>? _reconnectFuture;
+  Future<void> _queueTail = Future.value();
   Timer? _keepAliveTimer;
 
   // Persist config so dropped connections can be re-established automatically.
@@ -67,14 +70,16 @@ class MySqlConnectionWrapper implements DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   }) async {
-    final (finalSql, finalParams) =
-        _processParameters(sql, positionalParams, namedParams);
+    return _runQueued(() async {
+      final (finalSql, finalParams) =
+          _processParameters(sql, positionalParams, namedParams);
 
-    return _runWithReconnect(() async {
-      final result = finalParams.isEmpty
-          ? await _conn!.execute(finalSql)
-          : await _conn!.execute(finalSql, finalParams);
-      return result.rows.map((r) => r.assoc()).toList();
+      return _runWithReconnect(() async {
+        final result = finalParams.isEmpty
+            ? await _conn!.execute(finalSql)
+            : await _conn!.execute(finalSql, finalParams);
+        return result.rows.map((r) => r.assoc()).toList();
+      });
     });
   }
 
@@ -84,14 +89,16 @@ class MySqlConnectionWrapper implements DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   }) async {
-    await _runWithReconnect(() async {
+    await _runQueued(() async {
       final (finalSql, finalParams) =
           _processParameters(sql, positionalParams, namedParams);
-      if (finalParams.isEmpty) {
-        await _conn!.execute(finalSql);
-      } else {
-        await _conn!.execute(finalSql, finalParams);
-      }
+      await _runWithReconnect(() async {
+        if (finalParams.isEmpty) {
+          await _conn!.execute(finalSql);
+        } else {
+          await _conn!.execute(finalSql, finalParams);
+        }
+      });
     });
   }
 
@@ -121,9 +128,9 @@ class MySqlConnectionWrapper implements DBWrapper {
 
   /// Execute a batch of SQL commands
   Future<void> executeBatch(List<String> sqlCommands) async {
-    await _runWithReconnect(() async {
+    await _runQueued(() async {
       for (final sql in sqlCommands) {
-        await _conn!.execute(sql);
+        await _runWithReconnect(() => _conn!.execute(sql));
       }
     });
   }
@@ -218,27 +225,31 @@ class MySqlConnectionWrapper implements DBWrapper {
 
   /// Execute within a transaction
   Future<void> transaction(Future<void> Function() action) async {
-    if (!isConnected) {
-      throw Exception('MySQL not connected. Last error: $_lastError');
-    }
+    await runExclusive(() async {
+      if (!isConnected) {
+        throw Exception('MySQL not connected. Last error: $_lastError');
+      }
 
-    try {
-      await beginTransaction();
-      await action();
-      await commit();
-    } catch (e) {
-      await rollback();
-      rethrow;
-    }
+      try {
+        await beginTransaction();
+        await action();
+        await commit();
+      } catch (e) {
+        await rollback();
+        rethrow;
+      }
+    });
   }
 
   @override
   Future<void> close() async {
     try {
       _keepAliveTimer?.cancel();
-      await _conn?.close();
-      _conn = null;
-      _connected = false;
+      await _runQueued(() async {
+        await _conn?.close();
+        _conn = null;
+        _connected = false;
+      });
       Log.debug('[DB] MySQL connection closed');
     } catch (e) {
       _lastError = e.toString();
@@ -248,16 +259,41 @@ class MySqlConnectionWrapper implements DBWrapper {
 
   /// Ping the database to check connection health
   Future<bool> ping() async {
-    try {
-      if (!_connected) return false;
-      if (_conn == null || !_conn!.connected) return false;
-      await _conn!.execute('SELECT 1');
-      return true;
-    } catch (e) {
-      _connected = false;
-      _lastError = e.toString();
-      return false;
+    return _runQueued(() async {
+      try {
+        if (!_connected) return false;
+        if (_conn == null || !_conn!.connected) return false;
+        await _conn!.execute('SELECT 1');
+        return true;
+      } catch (e) {
+        _connected = false;
+        _lastError = e.toString();
+        return false;
+      }
+    });
+  }
+
+  Future<T> runExclusive<T>(Future<T> Function() operation) {
+    return _runQueued(operation);
+  }
+
+  Future<T> _runQueued<T>(Future<T> Function() operation) {
+    if (Zone.current[_queueBypassKey] == true) {
+      return Future<T>.sync(operation);
     }
+
+    final previous = _queueTail;
+    final completer = Completer<void>();
+    _queueTail = completer.future;
+
+    return previous.catchError((_) {}).then((_) {
+      return runZoned(
+        () => Future<T>.sync(operation),
+        zoneValues: {_queueBypassKey: true},
+      );
+    }).whenComplete(() {
+      if (!completer.isCompleted) completer.complete();
+    });
   }
 
   /// Reconnect if connection is lost
@@ -279,7 +315,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     _isSecure = isSecure;
     _timeoutSeconds = timeoutSeconds;
     _keepAliveSeconds = keepAliveSeconds;
-    await _reconnect();
+    await _runQueued(_reconnect);
   }
 
   void _startKeepAliveTimer() {
@@ -293,7 +329,7 @@ class MySqlConnectionWrapper implements DBWrapper {
 
         if (!isConnected) {
           try {
-            await _reconnect();
+            await _runQueued(_reconnect);
           } catch (_) {}
           return;
         }

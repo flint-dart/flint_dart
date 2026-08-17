@@ -4,8 +4,9 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
+import 'package:flint_dart/src/cli/port_utils.dart';
+import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:path/path.dart' as p;
@@ -37,6 +38,13 @@ bool get _initialUiBuildDisabled {
   return value == '0' || value == 'false' || value == 'no';
 }
 
+Duration get _serverStartupTimeout {
+  final configured =
+      Platform.environment['FLINT_HOT_RELOAD_STARTUP_SECONDS']?.trim();
+  final seconds = configured == null ? null : int.tryParse(configured);
+  return Duration(seconds: seconds != null && seconds > 0 ? seconds : 120);
+}
+
 int? extractServerWorkerPortFromLog(String line) {
   final match = RegExp(
     r'Server Worker running on http://localhost:(\d+)',
@@ -45,146 +53,22 @@ int? extractServerWorkerPortFromLog(String line) {
 }
 
 Future<bool> _isServerListening(int port) async {
-  try {
-    final socket = await Socket.connect(
-      InternetAddress.loopbackIPv4,
-      port,
-      timeout: const Duration(milliseconds: 700),
-    );
-    await socket.close();
-    return true;
-  } catch (_) {
-    return false;
-  }
+  return isPortListening(port);
 }
 
 Future<bool> _waitForServerStopped(
   int port, {
   Duration timeout = const Duration(seconds: 10),
 }) async {
-  final deadline = DateTime.now().add(timeout);
-  while (DateTime.now().isBefore(deadline)) {
-    if (!await _isServerListening(port)) return true;
-    await Future.delayed(const Duration(milliseconds: 200));
-  }
-  return !await _isServerListening(port);
-}
-
-Future<Set<int>> _findListeningProcessIds(int port) async {
-  if (Platform.isWindows) {
-    return _findListeningProcessIdsOnWindows(port);
-  }
-  return _findListeningProcessIdsOnUnix(port);
-}
-
-Future<Set<int>> _findListeningProcessIdsOnWindows(int port) async {
-  final result = await Process.run('netstat', ['-ano'], runInShell: true);
-  if (result.exitCode != 0) return {};
-
-  final pids = <int>{};
-  final currentPid = pid;
-  for (final line in LineSplitter.split(result.stdout.toString())) {
-    final parts = line.trim().split(RegExp(r'\s+'));
-    if (parts.length < 5 || parts.first.toUpperCase() != 'TCP') continue;
-    if (parts[3].toUpperCase() != 'LISTENING') continue;
-
-    final localAddress = parts[1];
-    if (!localAddress.endsWith(':$port')) continue;
-
-    final ownerPid = int.tryParse(parts[4]);
-    if (ownerPid != null && ownerPid != 0 && ownerPid != currentPid) {
-      pids.add(ownerPid);
-    }
-  }
-  return pids;
-}
-
-Future<Set<int>> _findListeningProcessIdsOnUnix(int port) async {
-  final currentPid = pid;
-  final lsof = await _tryRun('lsof', ['-nP', '-tiTCP:$port', '-sTCP:LISTEN']);
-  if (lsof.exitCode == 0) {
-    return LineSplitter.split(lsof.stdout.toString())
-        .map((line) => int.tryParse(line.trim()))
-        .whereType<int>()
-        .where((ownerPid) => ownerPid != 0 && ownerPid != currentPid)
-        .toSet();
-  }
-
-  final ss = await _tryRun('ss', ['-ltnp']);
-  if (ss.exitCode == 0) {
-    final pidPattern = RegExp(r'pid=(\d+)');
-    final pids = <int>{};
-    for (final line in LineSplitter.split(ss.stdout.toString())) {
-      if (!line.contains(':$port ')) continue;
-      for (final match in pidPattern.allMatches(line)) {
-        final ownerPid = int.tryParse(match.group(1)!);
-        if (ownerPid != null && ownerPid != 0 && ownerPid != currentPid) {
-          pids.add(ownerPid);
-        }
-      }
-    }
-    return pids;
-  }
-
-  final netstat = await _tryRun('netstat', ['-ltnp']);
-  if (netstat.exitCode != 0) return {};
-
-  final pids = <int>{};
-  for (final line in LineSplitter.split(netstat.stdout.toString())) {
-    if (!line.contains(':$port ')) continue;
-    final parts = line.trim().split(RegExp(r'\s+'));
-    if (parts.length < 7) continue;
-    final ownerPid = int.tryParse(parts.last.split('/').first);
-    if (ownerPid != null && ownerPid != 0 && ownerPid != currentPid) {
-      pids.add(ownerPid);
-    }
-  }
-  return pids;
-}
-
-Future<ProcessResult> _tryRun(String executable, List<String> arguments) async {
-  try {
-    return Process.run(executable, arguments);
-  } catch (_) {
-    return ProcessResult(0, 1, '', '');
-  }
+  return waitForPortStopped(port, timeout: timeout);
 }
 
 Future<bool> _forceStopListenersOnPort(int port) async {
-  final pids = await _findListeningProcessIds(port);
-  if (pids.isEmpty) return false;
-
-  for (final pid in pids) {
-    _logVerbose('[HOT-RELOAD] Force stopping PID $pid on port $port...');
-    if (Platform.isWindows) {
-      await Process.run(
-        'taskkill',
-        ['/PID', pid.toString(), '/T', '/F'],
-        runInShell: true,
-      );
-    } else {
-      try {
-        Process.killPid(pid, ProcessSignal.sigterm);
-      } catch (e) {
-        _logVerbose('[HOT-RELOAD] Could not stop PID $pid: $e');
-      }
-    }
-  }
-
-  if (await _waitForServerStopped(port, timeout: const Duration(seconds: 4))) {
-    return true;
-  }
-
-  if (!Platform.isWindows) {
-    for (final pid in pids) {
-      try {
-        Process.killPid(pid, ProcessSignal.sigkill);
-      } catch (e) {
-        Log.debug('[HOT-RELOAD] Could not force stop PID $pid: $e');
-      }
-    }
-  }
-  return _waitForServerStopped(port);
+  return forceStopListenersOnPort(
+    port,
+    onVerbose: (message) => _logVerbose('[HOT-RELOAD] $message'),
+    onWarning: (message) => Log.debug('[HOT-RELOAD] $message'),
+  );
 }
 
 Future<void> _killProcessTree(Process process) async {
@@ -286,6 +170,7 @@ Future<bool> startServer() async {
   final listeningPort = await _waitForStartedServerPort(
     expectedPort: _serverPort,
     announcedPort: () => announcedPort,
+    timeout: _serverStartupTimeout,
   );
   if (listeningPort == null) {
     Log.warning(

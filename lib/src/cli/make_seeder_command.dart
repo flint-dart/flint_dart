@@ -72,10 +72,15 @@ class $seederName extends Seeder {
       await seederRegistryFile.writeAsString('''
 import 'package:flint_dart/flint_dart.dart';
 
-Future<void> main() async {
-  await runSeeders([
-  ]);
+class AppSeederRegistry extends SeederRegistry {
+  const AppSeederRegistry();
+
+  @override
+  Iterable<Seeder> get seeders => [
+  ];
 }
+
+Future<void> main() => const AppSeederRegistry().registerAll();
 ''');
       Log.debug('Seeder registry created at lib/config/seeder_registry.dart');
     }
@@ -141,18 +146,39 @@ Future<void> main() async {
   }
 
   String _insertSeederIntoRegistry(String content, String seederName) {
-    final match = RegExp(
+    final registryMatch = RegExp(
+      r'Iterable<Seeder>\s+get\s+seeders\s*=>\s*\[(.*?)\]\s*;',
+      dotAll: true,
+    ).firstMatch(content);
+
+    if (registryMatch != null) {
+      final currentEntries = registryMatch.group(1)?.trim() ?? '';
+      final normalizedEntries = _normalizeSeederEntries(currentEntries);
+      final newEntry = '    $seederName(),';
+
+      final replacement = normalizedEntries.isEmpty
+          ? 'Iterable<Seeder> get seeders => [\n$newEntry\n  ];'
+          : 'Iterable<Seeder> get seeders => [\n$normalizedEntries\n$newEntry\n  ];';
+
+      return content.replaceRange(
+        registryMatch.start,
+        registryMatch.end,
+        replacement,
+      );
+    }
+
+    final legacyMatch = RegExp(
       r'runSeeders\s*\(\s*\[(.*?)\]\s*\)',
       dotAll: true,
     ).firstMatch(content);
 
-    if (match == null) {
+    if (legacyMatch == null) {
       throw StateError(
-        'Could not update lib/config/seeder_registry.dart: runSeeders list not found.',
+        'Could not update lib/config/seeder_registry.dart: seeders list not found.',
       );
     }
 
-    final currentEntries = match.group(1)?.trim() ?? '';
+    final currentEntries = legacyMatch.group(1)?.trim() ?? '';
     final normalizedEntries = _normalizeSeederEntries(currentEntries);
     final newEntry = '    $seederName(),';
 
@@ -160,7 +186,8 @@ Future<void> main() async {
         ? 'runSeeders([\n$newEntry\n  ])'
         : 'runSeeders([\n$normalizedEntries\n$newEntry\n  ])';
 
-    return content.replaceRange(match.start, match.end, replacement);
+    return content.replaceRange(
+        legacyMatch.start, legacyMatch.end, replacement);
   }
 
   String _normalizeSeederEntries(String entries) {

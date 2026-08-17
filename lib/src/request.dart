@@ -93,6 +93,51 @@ class Request {
     return result;
   }
 
+  /// Best-effort original client IP address.
+  ///
+  /// Checks common reverse-proxy headers before falling back
+  /// to the direct socket IP.
+  String get clientIpAddress {
+    // Cloudflare.
+    final cloudflareIp =
+        headers['cf-connecting-ip'] ?? headers['CF-Connecting-IP'];
+
+    if (cloudflareIp != null && cloudflareIp.trim().isNotEmpty) {
+      return cloudflareIp.trim();
+    }
+
+    // Standard reverse-proxy header.
+    //
+    // Example:
+    // X-Forwarded-For: 105.112.10.25, 10.0.1.4
+    //
+    // The first address is normally the original client.
+    final forwardedFor =
+        headers['x-forwarded-for'] ?? headers['X-Forwarded-For'];
+
+    if (forwardedFor != null && forwardedFor.trim().isNotEmpty) {
+      final ips = forwardedFor
+          .split(',')
+          .map((ip) => ip.trim())
+          .where((ip) => ip.isNotEmpty)
+          .toList();
+
+      if (ips.isNotEmpty) {
+        return ips.first;
+      }
+    }
+
+    // Common Nginx / reverse proxy header.
+    final realIp = headers['x-real-ip'] ?? headers['X-Real-IP'];
+
+    if (realIp != null && realIp.trim().isNotEmpty) {
+      return realIp.trim();
+    }
+
+    // Fall back to the actual TCP peer.
+    return ipAddress;
+  }
+
   /// Query parameters from the URL
   Map<String, String> get query => raw.uri.queryParameters;
 

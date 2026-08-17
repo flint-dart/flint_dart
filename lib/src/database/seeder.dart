@@ -10,6 +10,27 @@ abstract class Seeder {
   Future<void> run();
 }
 
+/// Registry contract for application seeders.
+///
+/// Use this in `lib/config/seeder_registry.dart` so seeding follows the same
+/// shape as table and job registration.
+abstract class SeederRegistry {
+  const SeederRegistry();
+
+  Iterable<Seeder> get seeders;
+
+  Future<void> registerSeeders({bool closeConnection = true}) {
+    return SeederRunner.run(
+      seeders.toList(),
+      closeConnection: closeConnection,
+    );
+  }
+
+  Future<void> registerAll({bool closeConnection = true}) {
+    return registerSeeders(closeConnection: closeConnection);
+  }
+}
+
 /// Runs a list of seeders sequentially and closes the database connection.
 class SeederRunner {
   /// Executes [seeders] in order.
@@ -39,6 +60,17 @@ Future<void> runSeeders(
 }) {
   return SeederRunner.run(
     seeders,
+    closeConnection: closeConnection,
+  );
+}
+
+/// Consistent alias for running a seeder list.
+Future<void> registerSeeders(
+  Iterable<Seeder> seeders, {
+  bool closeConnection = true,
+}) {
+  return SeederRunner.run(
+    seeders.toList(),
     closeConnection: closeConnection,
   );
 }

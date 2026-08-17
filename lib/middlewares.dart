@@ -7,3 +7,4 @@ export 'src/middleware/logger_middleware.dart';
 export 'src/middleware/cache_middleware.dart';
 export 'src/middleware/anti_sql_injection_middleware.dart';
 export 'src/middleware/rich_text_upload_middleware.dart';
+export 'src/middleware/security_middleware.dart';

@@ -288,6 +288,10 @@ class FlintWebSocket {
     return value;
   }
 
+  /// Close the WebSocket connection
+  Future<void> close([int? closeCode, String? closeReason]) =>
+      _socket.close(closeCode, closeReason);
+
   void _handleDisconnect() {
     // Clean up all listeners
     _messageSubscription?.cancel();

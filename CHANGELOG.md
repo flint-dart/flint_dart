@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.2.2] - 2026-07-20
+
+### Changed
+- Logged the server-ready message at info level so `flint run` clearly shows when the HTTP server is listening.
+
+## [1.2.1] - 2026-07-20
+
+### Added
+- Added Flint native jobs core, scheduler support, jobs registry contracts, and worker runtime commands.
+- Added app table and seeder registry contracts for framework-level bootstrapping.
+- Added Dart-style fullstack CLI aliases for jobs and seeders.
+
+### Fixed
+- Parsed aggregate query results returned as strings so database drivers can safely return values like `"4.0"`.
+- Fixed Flint UI build CSS extraction exit behavior.
+
+### Changed
+- Updated Flint UI dependency to `flint_ui: ^0.1.15`.
+- Updated Flint Client dependency to `flint_client: ^0.0.6`.
+
 ## [1.2.0] - 2026-07-13
 
 ### Added
