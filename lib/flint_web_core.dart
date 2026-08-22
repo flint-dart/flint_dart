@@ -1,4 +1,4 @@
-@Deprecated('Use package:flint_ui/flint_ui_core.dart instead.')
+@Deprecated('Use package:flint_dart/flint_ui_core.dart instead.')
 library;
 
-export 'package:flint_ui/flint_ui_core.dart';
+export 'flint_ui_core.dart';
