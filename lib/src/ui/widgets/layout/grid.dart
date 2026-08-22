@@ -32,37 +32,37 @@ class Grid extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: {
-             'display': 'grid',
-             if (columns != null)
-               'grid-template-columns': _coerceGridColumns(columns),
-             if (rows != null) 'grid-template-rows': cssValue(rows),
-             if (gap != null) 'gap': cssValue(gap),
-             if (alignItems != null) 'align-items': alignItems,
-             if (justifyItems != null) 'justify-items': justifyItems,
-           },
-           dartStyle: DartStyle(
-             sm: sm == null
-                 ? null
-                 : DartStyle(gridTemplateColumns: _coerceGridColumns(sm)),
-             md: md == null
-                 ? null
-                 : DartStyle(gridTemplateColumns: _coerceGridColumns(md)),
-             lg: lg == null
-                 ? null
-                 : DartStyle(gridTemplateColumns: _coerceGridColumns(lg)),
-             xl: xl == null
-                 ? null
-                 : DartStyle(gridTemplateColumns: _coerceGridColumns(xl)),
-           ).merge(dartStyle),
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: {
+              'display': 'grid',
+              if (columns != null)
+                'grid-template-columns': _coerceGridColumns(columns),
+              if (rows != null) 'grid-template-rows': cssValue(rows),
+              if (gap != null) 'gap': cssValue(gap),
+              if (alignItems != null) 'align-items': alignItems,
+              if (justifyItems != null) 'justify-items': justifyItems,
+            },
+            dartStyle: DartStyle(
+              sm: sm == null
+                  ? null
+                  : DartStyle(gridTemplateColumns: _coerceGridColumns(sm)),
+              md: md == null
+                  ? null
+                  : DartStyle(gridTemplateColumns: _coerceGridColumns(md)),
+              lg: lg == null
+                  ? null
+                  : DartStyle(gridTemplateColumns: _coerceGridColumns(lg)),
+              xl: xl == null
+                  ? null
+                  : DartStyle(gridTemplateColumns: _coerceGridColumns(xl)),
+            ).merge(dartStyle),
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 
   /// Creates an equal-column grid (e.g. `Grid.count(3, sm: 1, md: 2, gap: 20, children: [...])`).
   factory Grid.count(

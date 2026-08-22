@@ -42,32 +42,32 @@ class RadioGroup extends FlintElement {
     DartStyle? dartStyle,
     void Function(Object event)? onChanged,
   }) : super(
-         'fieldset',
-         props: mergeComponentProps(
-           {
-             ...props,
-             if (disabled) 'disabled': true,
-             if (resolveFieldError(name: name, error: error, errors: errors) !=
-                 null)
-               'aria-invalid': 'true',
-           },
-           className: className,
-           defaultStyle: fieldWrapperStyle,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: _children(
-           label: label,
-           name: name,
-           value: value,
-           options: options,
-           required: required,
-           disabled: disabled,
-           error: resolveFieldError(name: name, error: error, errors: errors),
-           helpText: helpText,
-           onChanged: onChanged,
-         ),
-       );
+          'fieldset',
+          props: mergeComponentProps(
+            {
+              ...props,
+              if (disabled) 'disabled': true,
+              if (resolveFieldError(name: name, error: error, errors: errors) !=
+                  null)
+                'aria-invalid': 'true',
+            },
+            className: className,
+            defaultStyle: fieldWrapperStyle,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: _children(
+            label: label,
+            name: name,
+            value: value,
+            options: options,
+            required: required,
+            disabled: disabled,
+            error: resolveFieldError(name: name, error: error, errors: errors),
+            helpText: helpText,
+            onChanged: onChanged,
+          ),
+        );
 
   static List<FlintNode> _children({
     required String? label,

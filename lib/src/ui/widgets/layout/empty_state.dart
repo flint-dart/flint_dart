@@ -15,41 +15,41 @@ class EmptyState extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {
-             'display': 'grid',
-             'justify-items': 'center',
-             'gap': '10px',
-             'padding': '32px 20px',
-             'text-align': 'center',
-             'border': '1px dashed #d0d5dd',
-             'border-radius': '8px',
-             'background': '#ffffff',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           if (icon != null) toFlintNode(icon),
-           FlintElement(
-             'h2',
-             props: const {
-               'style': {'margin': 0, 'font-size': '18px'},
-             },
-             children: normalizeChildren(title, const []),
-           ),
-           if (message != null)
-             FlintElement(
-               'p',
-               props: const {
-                 'style': {'margin': 0, 'color': '#667085'},
-               },
-               children: normalizeChildren(message, const []),
-             ),
-           if (action != null) toFlintNode(action),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {
+              'display': 'grid',
+              'justify-items': 'center',
+              'gap': '10px',
+              'padding': '32px 20px',
+              'text-align': 'center',
+              'border': '1px dashed #d0d5dd',
+              'border-radius': '8px',
+              'background': '#ffffff',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            if (icon != null) toFlintNode(icon),
+            FlintElement(
+              'h2',
+              props: const {
+                'style': {'margin': 0, 'font-size': '18px'},
+              },
+              children: normalizeChildren(title, const []),
+            ),
+            if (message != null)
+              FlintElement(
+                'p',
+                props: const {
+                  'style': {'margin': 0, 'color': '#667085'},
+                },
+                children: normalizeChildren(message, const []),
+              ),
+            if (action != null) toFlintNode(action),
+          ],
+        );
 }

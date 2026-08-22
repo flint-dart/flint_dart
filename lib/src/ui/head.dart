@@ -83,7 +83,7 @@ class Head extends StatefulComponent {
 
   /// Creates a head component from raw [tags].
   Head.withTags(List<HeadTag> tags, {String? title})
-    : this(title: title, tags: tags);
+      : this(title: title, tags: tags);
 
   /// Creates a head component with common SEO and Open Graph metadata.
   Head.seo({
@@ -96,15 +96,15 @@ class Head extends StatefulComponent {
     String? locale,
     List<HeadTag> tags = const [],
   }) : this(
-         title: title,
-         description: description,
-         canonical: canonical,
-         image: image,
-         type: type,
-         siteName: siteName,
-         locale: locale,
-         tags: tags,
-       );
+          title: title,
+          description: description,
+          canonical: canonical,
+          image: image,
+          type: type,
+          siteName: siteName,
+          locale: locale,
+          tags: tags,
+        );
 
   /// Creates a `meta` head tag descriptor.
   static HeadTag meta({

@@ -123,32 +123,32 @@ class Video extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'video',
-         props: _mediaProps(
-           props: props,
-           controller: controller,
-           src: src,
-           width: width,
-           height: height,
-           poster: poster,
-           controls: controls,
-           autoplay: autoplay,
-           muted: muted,
-           loop: loop,
-           playsInline: playsInline,
-           preload: preload,
-           crossOrigin: crossOrigin,
-           className: className,
-           defaultStyle: const {
-             'display': 'block',
-             'max-width': '100%',
-             'background': '#000',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(fallback, const []),
-       );
+          'video',
+          props: _mediaProps(
+            props: props,
+            controller: controller,
+            src: src,
+            width: width,
+            height: height,
+            poster: poster,
+            controls: controls,
+            autoplay: autoplay,
+            muted: muted,
+            loop: loop,
+            playsInline: playsInline,
+            preload: preload,
+            crossOrigin: crossOrigin,
+            className: className,
+            defaultStyle: const {
+              'display': 'block',
+              'max-width': '100%',
+              'background': '#000',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(fallback, const []),
+        );
 }
 
 /// Native HTML `audio` element with Flint styling and media controls.
@@ -172,24 +172,24 @@ class Audio extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'audio',
-         props: _mediaProps(
-           props: props,
-           controller: controller,
-           src: src,
-           controls: controls,
-           autoplay: autoplay,
-           muted: muted,
-           loop: loop,
-           preload: preload,
-           crossOrigin: crossOrigin,
-           className: className,
-           defaultStyle: const {'display': 'block', 'width': '100%'},
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(fallback, const []),
-       );
+          'audio',
+          props: _mediaProps(
+            props: props,
+            controller: controller,
+            src: src,
+            controls: controls,
+            autoplay: autoplay,
+            muted: muted,
+            loop: loop,
+            preload: preload,
+            crossOrigin: crossOrigin,
+            className: className,
+            defaultStyle: const {'display': 'block', 'width': '100%'},
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(fallback, const []),
+        );
 }
 
 /// Media element type rendered by [MediaPreview].

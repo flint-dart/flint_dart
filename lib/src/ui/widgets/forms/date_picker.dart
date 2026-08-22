@@ -117,34 +117,35 @@ class DatePicker extends FlintElement {
     void Function(Object event)? onChanged,
     void Function(String date)? onDateSelected,
   }) : super(
-         'div',
-         props: fieldWrapperProps(
-           props: props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: _children(
-           label: label,
-           name: name,
-           value: controller?.text ?? value,
-           min: min,
-           max: max,
-           placeholder: placeholder,
-           presets: presets,
-           required: required,
-           disabled: disabled,
-           readonly: readonly,
-           variant: variant,
-           size: size,
-           error: resolveFieldError(name: name, error: error, errors: errors),
-           helpText: helpText,
-           inputProps: inputProps,
-           inputStyle: inputStyle,
-           inputDartStyle: inputDartStyle,
-           onChanged: _controlledOnChanged(controller, onChanged, onDateSelected),
-         ),
-       );
+          'div',
+          props: fieldWrapperProps(
+            props: props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: _children(
+            label: label,
+            name: name,
+            value: controller?.text ?? value,
+            min: min,
+            max: max,
+            placeholder: placeholder,
+            presets: presets,
+            required: required,
+            disabled: disabled,
+            readonly: readonly,
+            variant: variant,
+            size: size,
+            error: resolveFieldError(name: name, error: error, errors: errors),
+            helpText: helpText,
+            inputProps: inputProps,
+            inputStyle: inputStyle,
+            inputDartStyle: inputDartStyle,
+            onChanged:
+                _controlledOnChanged(controller, onChanged, onDateSelected),
+          ),
+        );
 
   static void Function(Object event)? _controlledOnChanged(
     TextEditingController? controller,
@@ -208,11 +209,12 @@ class DatePicker extends FlintElement {
     );
 
     return [
-      if (label != null)
-        fieldLabel(id: id, label: label, required: required),
+      if (label != null) fieldLabel(id: id, label: label, required: required),
       FlintElement(
         'div',
-        props: {'style': {'display': 'flex', 'flex-direction': 'column', 'gap': '8px'}},
+        props: {
+          'style': {'display': 'flex', 'flex-direction': 'column', 'gap': '8px'}
+        },
         children: [
           FlintElement(
             'input',
@@ -240,7 +242,9 @@ class DatePicker extends FlintElement {
           if (presets != null && presets.isNotEmpty)
             FlintElement(
               'div',
-              props: {'style': {'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px'}},
+              props: {
+                'style': {'display': 'flex', 'flex-wrap': 'wrap', 'gap': '6px'}
+              },
               children: presets.map((p) {
                 return Button(
                   child: FlintText(p.label),
@@ -282,13 +286,29 @@ class DatePicker extends FlintElement {
   static Map<String, Object?> _sizeStyle(ComponentSize size) {
     switch (size) {
       case ComponentSize.xs:
-        return {'min-height': '30px', 'font-size': '12px', 'padding': '4px 8px'};
+        return {
+          'min-height': '30px',
+          'font-size': '12px',
+          'padding': '4px 8px'
+        };
       case ComponentSize.sm:
-        return {'min-height': '34px', 'font-size': '13px', 'padding': '6px 10px'};
+        return {
+          'min-height': '34px',
+          'font-size': '13px',
+          'padding': '6px 10px'
+        };
       case ComponentSize.md:
-        return {'min-height': '40px', 'font-size': '14px', 'padding': '8px 12px'};
+        return {
+          'min-height': '40px',
+          'font-size': '14px',
+          'padding': '8px 12px'
+        };
       case ComponentSize.lg:
-        return {'min-height': '46px', 'font-size': '15px', 'padding': '10px 14px'};
+        return {
+          'min-height': '46px',
+          'font-size': '15px',
+          'padding': '10px 14px'
+        };
     }
   }
 }
@@ -319,38 +339,40 @@ class DateRangePicker extends FlintElement {
     void Function(String startDate, String endDate)? onRangeChanged,
     void Function(Object event)? onChanged,
   }) : super(
-         'div',
-         props: fieldWrapperProps(
-           props: props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: _children(
-           label: label,
-           startName: startName ?? 'start_date',
-           endName: endName ?? 'end_date',
-           startDate: startDate,
-           endDate: endDate,
-           min: min,
-           max: max,
-           presets: presets ?? [
-             DateRangePreset.today(),
-             DateRangePreset.yesterday(),
-             DateRangePreset.last7Days(),
-             DateRangePreset.last30Days(),
-             DateRangePreset.thisMonth(),
-           ],
-           required: required,
-           disabled: disabled,
-           variant: variant,
-           size: size,
-           error: resolveFieldError(name: startName, error: error, errors: errors),
-           helpText: helpText,
-           onRangeChanged: onRangeChanged,
-           onChanged: onChanged,
-         ),
-       );
+          'div',
+          props: fieldWrapperProps(
+            props: props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: _children(
+            label: label,
+            startName: startName ?? 'start_date',
+            endName: endName ?? 'end_date',
+            startDate: startDate,
+            endDate: endDate,
+            min: min,
+            max: max,
+            presets: presets ??
+                [
+                  DateRangePreset.today(),
+                  DateRangePreset.yesterday(),
+                  DateRangePreset.last7Days(),
+                  DateRangePreset.last30Days(),
+                  DateRangePreset.thisMonth(),
+                ],
+            required: required,
+            disabled: disabled,
+            variant: variant,
+            size: size,
+            error: resolveFieldError(
+                name: startName, error: error, errors: errors),
+            helpText: helpText,
+            onRangeChanged: onRangeChanged,
+            onChanged: onChanged,
+          ),
+        );
 
   static List<FlintNode> _children({
     required String? label,
@@ -373,8 +395,7 @@ class DateRangePicker extends FlintElement {
     final id = fieldId('date-range-picker', startName, {});
 
     return [
-      if (label != null)
-        fieldLabel(id: id, label: label, required: required),
+      if (label != null) fieldLabel(id: id, label: label, required: required),
       FlintElement(
         'div',
         props: {

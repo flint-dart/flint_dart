@@ -61,9 +61,12 @@ class RichTextUpload extends Middleware {
             dir.createSync(recursive: true);
           }
 
-          final rawSafeName = filename.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+          final rawSafeName =
+              filename.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
           final lastDot = rawSafeName.lastIndexOf('.');
-          if (lastDot == -1 || lastDot == 0 || lastDot == rawSafeName.length - 1) {
+          if (lastDot == -1 ||
+              lastDot == 0 ||
+              lastDot == rawSafeName.length - 1) {
             return await res.json(
               {'status': false, 'message': 'Invalid file name or extension'},
               status: 400,
@@ -88,7 +91,8 @@ class RichTextUpload extends Middleware {
             );
           }
 
-          final baseName = rawSafeName.substring(0, lastDot).replaceAll('.', '_');
+          final baseName =
+              rawSafeName.substring(0, lastDot).replaceAll('.', '_');
           final safeName = '$baseName$ext';
 
           final bytes = base64Decode(base64Data);
@@ -97,7 +101,8 @@ class RichTextUpload extends Middleware {
 
           if (onUploadSuccess != null) {
             final user = await req.user;
-            await onUploadSuccess!(safeName, targetFile.path, bytes.length, body, user);
+            await onUploadSuccess!(
+                safeName, targetFile.path, bytes.length, body, user);
           }
 
           return await res.json({

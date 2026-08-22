@@ -22,26 +22,26 @@ class ResponsiveGrid extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           dartStyle: DartStyle(
-             display: Display.grid,
-             gap: gap,
-             gridTemplateColumns:
-                 columns ?? GridTemplateColumns.autoFit(minItemWidth),
-             sm: sm == null ? null : DartStyle(gridTemplateColumns: sm),
-             md: md == null ? null : DartStyle(gridTemplateColumns: md),
-             lg: lg == null ? null : DartStyle(gridTemplateColumns: lg),
-             xl: xl == null ? null : DartStyle(gridTemplateColumns: xl),
-           ).merge(dartStyle),
-           style: {
-             if (rowGap != null) 'row-gap': cssValue(rowGap),
-             if (columnGap != null) 'column-gap': cssValue(columnGap),
-             ...style,
-           },
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: DartStyle(
+              display: Display.grid,
+              gap: gap,
+              gridTemplateColumns:
+                  columns ?? GridTemplateColumns.autoFit(minItemWidth),
+              sm: sm == null ? null : DartStyle(gridTemplateColumns: sm),
+              md: md == null ? null : DartStyle(gridTemplateColumns: md),
+              lg: lg == null ? null : DartStyle(gridTemplateColumns: lg),
+              xl: xl == null ? null : DartStyle(gridTemplateColumns: xl),
+            ).merge(dartStyle),
+            style: {
+              if (rowGap != null) 'row-gap': cssValue(rowGap),
+              if (columnGap != null) 'column-gap': cssValue(columnGap),
+              ...style,
+            },
+          ),
+          children: normalizeChildren(child, children),
+        );
 }

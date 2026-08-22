@@ -15,7 +15,7 @@ const defaultFlintThemeStorageKey = 'flint.theme.mode';
 class FlintThemeController {
   /// Creates a theme controller with [initialMode].
   FlintThemeController({FlintThemeMode initialMode = FlintThemeMode.light})
-    : mode = StateSignal<FlintThemeMode>(initialMode);
+      : mode = StateSignal<FlintThemeMode>(initialMode);
 
   /// Reactive active theme mode.
   final StateSignal<FlintThemeMode> mode;

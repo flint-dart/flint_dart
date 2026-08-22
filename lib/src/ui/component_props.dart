@@ -26,9 +26,8 @@ Map<String, Object?> mergeComponentProps(
   );
 
   final next = {...props}..remove('style');
-  final scopedClass = dartStyle?.hasScopedStyles == true
-      ? _scopedClassName(dartStyle!)
-      : null;
+  final scopedClass =
+      dartStyle?.hasScopedStyles == true ? _scopedClassName(dartStyle!) : null;
   final classes = joinClassNames([existingClass, className, scopedClass]);
 
   return {

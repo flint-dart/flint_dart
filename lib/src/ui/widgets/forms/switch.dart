@@ -22,24 +22,24 @@ class Switch extends FlintElement {
     DartStyle? dartStyle,
     void Function(Object event)? onChanged,
   }) : super(
-         'div',
-         props: fieldWrapperProps(
-           props: props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: _children(
-           label: label,
-           name: name,
-           checked: checked,
-           disabled: disabled,
-           error: resolveFieldError(name: name, error: error, errors: errors),
-           helpText: helpText,
-           inputProps: inputProps,
-           onChanged: onChanged,
-         ),
-       );
+          'div',
+          props: fieldWrapperProps(
+            props: props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: _children(
+            label: label,
+            name: name,
+            checked: checked,
+            disabled: disabled,
+            error: resolveFieldError(name: name, error: error, errors: errors),
+            helpText: helpText,
+            inputProps: inputProps,
+            onChanged: onChanged,
+          ),
+        );
 
   static List<FlintNode> _children({
     required String? label,

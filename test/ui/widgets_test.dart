@@ -1129,10 +1129,15 @@ void main() {
       expect(svg.props['viewBox'], '0 0 600.0 200.0');
 
       // Check grid lines and paths
-      final gridLines = svg.children.where((c) => c is FlintElement && c.tag == 'line').toList();
+      final gridLines = svg.children
+          .where((c) => c is FlintElement && c.tag == 'line')
+          .toList();
       expect(gridLines.length, 4); // 4 grid lines
 
-      final paths = svg.children.where((c) => c is FlintElement && (c.tag == 'polygon' || c.tag == 'polyline')).toList();
+      final paths = svg.children
+          .where((c) =>
+              c is FlintElement && (c.tag == 'polygon' || c.tag == 'polyline'))
+          .toList();
       expect(paths.length, 2); // 1 fill polygon + 1 stroke polyline
     });
 
@@ -1158,16 +1163,22 @@ void main() {
       expect(svg.tag, 'svg');
 
       // 4 grid lines (common)
-      final gridLines = svg.children.where((c) => c is FlintElement && c.tag == 'line').toList();
+      final gridLines = svg.children
+          .where((c) => c is FlintElement && c.tag == 'line')
+          .toList();
       expect(gridLines.length, 4);
 
       // We expect 2 polygon fills + 2 polyline strokes
-      final polygons = svg.children.where((c) => c is FlintElement && c.tag == 'polygon').toList();
+      final polygons = svg.children
+          .where((c) => c is FlintElement && c.tag == 'polygon')
+          .toList();
       expect(polygons.length, 2);
       expect((polygons[0] as FlintElement).props['fill'], '#00ff00');
       expect((polygons[1] as FlintElement).props['fill'], '#00ffff');
 
-      final polylines = svg.children.where((c) => c is FlintElement && c.tag == 'polyline').toList();
+      final polylines = svg.children
+          .where((c) => c is FlintElement && c.tag == 'polyline')
+          .toList();
       expect(polylines.length, 2);
       expect((polylines[0] as FlintElement).props['stroke'], '#ff0000');
       expect((polylines[1] as FlintElement).props['stroke'], '#0000ff');
@@ -1184,7 +1195,9 @@ void main() {
       final svg = chart.children.first as FlintElement;
       expect(svg.tag, 'svg');
 
-      final bars = svg.children.where((c) => c is FlintElement && c.tag == 'rect').toList();
+      final bars = svg.children
+          .where((c) => c is FlintElement && c.tag == 'rect')
+          .toList();
       expect(bars.length, 3);
       expect((bars[0] as FlintElement).props['fill'], '#ff0000');
     });
@@ -1208,7 +1221,9 @@ void main() {
       final svg = chart.children.first as FlintElement;
       expect(svg.tag, 'svg');
 
-      final bars = svg.children.where((c) => c is FlintElement && c.tag == 'rect').toList();
+      final bars = svg.children
+          .where((c) => c is FlintElement && c.tag == 'rect')
+          .toList();
       expect(bars.length, 6);
       expect((bars[0] as FlintElement).props['fill'], '#ff0000');
       expect((bars[1] as FlintElement).props['fill'], '#0000ff');

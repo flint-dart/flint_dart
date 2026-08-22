@@ -13,14 +13,14 @@ class Stack extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {'position': 'relative'},
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {'position': 'relative'},
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }

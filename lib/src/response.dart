@@ -273,10 +273,10 @@ class Response {
         // For custom classes
         try {
           final toMapMethod = (value as dynamic).toMap;
-          if (toMapMethod is Function) return sanitize(toMapMethod());
+          if (toMapMethod is Function) return await sanitize(toMapMethod());
 
           final toJsonMethod = (value as dynamic).toJson;
-          if (toJsonMethod is Function) return sanitize(toJsonMethod());
+          if (toJsonMethod is Function) return await sanitize(toJsonMethod());
         } catch (_) {}
 
         return value; // primitives or unsupported objects
@@ -1164,7 +1164,7 @@ $hotReloadScript
 
   /// Renders an HTML view from a file.
   ///
-  /// [filePath] can be absolute or relative to your project's `views` directory.
+  /// [templateName] can be absolute or relative to your project's `views` directory.
   /// Optionally, you can pass [data] for simple variable replacement in the template.
 
   Future<Response> view(String templateName,

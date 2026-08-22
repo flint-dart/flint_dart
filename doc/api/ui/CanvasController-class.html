@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the CanvasController class from the ui library, for the Dart programming language.">
+  <title>CanvasController class - ui library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../static-assets/styles.css?v1">
+  <link rel="icon" href="../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../index.html">flint_dart</a></li>
+    <li><a href="../ui/">ui.dart</a></li>
+    <li class="self-crumb">CanvasController class</li>
+  </ol>
+  <div class="self-name">CanvasController</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <button class="toggle" id="theme-button" title="Toggle between light and dark mode" aria-label="Light and dark mode toggle">
+    <span id="dark-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      dark_mode
+    </span>
+    <span id="light-theme-button" class="material-symbols-outlined" aria-hidden="true">
+      light_mode
+    </span>
+  </button>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="ui&#47;ui-library-sidebar.html"
+    data-below-sidebar="ui&#47;CanvasController-class-sidebar.html">
+    <div>
+<h1><span class="kind-class">CanvasController</span> class 
+ 
+</h1></div>
+
+    
+<section class="desc markdown">
+  <p>Controller for Flint <a href="../ui/Canvas-class.html">Canvas</a> drawing.</p>
+<p>This server-safe implementation stores retained objects but does not draw.
+Browser builds bind the controller to the rendered canvas element.</p>
+</section>
+
+
+
+    
+  <section class="summary offset-anchor" id="constructors">
+    <h2>Constructors</h2>
+    <dl class="constructor-summary-list">
+        <dt id="CanvasController.new" class="callable">
+          <span class="name"><a href="../ui/CanvasController/CanvasController.html">CanvasController</a></span><span class="signature">({<span class="parameter" id="-param-onSelect"><span class="type-annotation"><a href="../ui/CanvasSelectCallback.html">CanvasSelectCallback</a>?</span> <span class="parameter-name">onSelect</span>, </span><span class="parameter" id="-param-onChange"><span class="type-annotation"><a href="../ui/CanvasChangeCallback.html">CanvasChangeCallback</a>?</span> <span class="parameter-name">onChange</span>, </span><span class="parameter" id="-param-onMove"><span class="type-annotation"><a href="../ui/CanvasObjectsCallback.html">CanvasObjectsCallback</a>?</span> <span class="parameter-name">onMove</span>, </span><span class="parameter" id="-param-onResize"><span class="type-annotation"><a href="../ui/CanvasObjectsCallback.html">CanvasObjectsCallback</a>?</span> <span class="parameter-name">onResize</span>, </span><span class="parameter" id="-param-onRotate"><span class="type-annotation"><a href="../ui/CanvasObjectsCallback.html">CanvasObjectsCallback</a>?</span> <span class="parameter-name">onRotate</span>, </span><span class="parameter" id="-param-onTextEdit"><span class="type-annotation"><a href="../ui/CanvasTextEditCallback.html">CanvasTextEditCallback</a>?</span> <span class="parameter-name">onTextEdit</span>, </span><span class="parameter" id="-param-onPointerDown"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onPointerDown</span>, </span><span class="parameter" id="-param-onPointerUp"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onPointerUp</span>, </span><span class="parameter" id="-param-onHover"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onHover</span>, </span><span class="parameter" id="-param-onDragStart"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onDragStart</span>, </span><span class="parameter" id="-param-onDragEnd"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onDragEnd</span>, </span><span class="parameter" id="-param-onResizeStart"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onResizeStart</span>, </span><span class="parameter" id="-param-onResizeEnd"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onResizeEnd</span>, </span><span class="parameter" id="-param-onRotateStart"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onRotateStart</span>, </span><span class="parameter" id="-param-onRotateEnd"><span class="type-annotation"><a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span> <span class="parameter-name">onRotateEnd</span>, </span><span class="parameter" id="-param-onUndo"><span class="type-annotation"><a href="../ui/CanvasHistoryCallback.html">CanvasHistoryCallback</a>?</span> <span class="parameter-name">onUndo</span>, </span><span class="parameter" id="-param-onRedo"><span class="type-annotation"><a href="../ui/CanvasHistoryCallback.html">CanvasHistoryCallback</a>?</span> <span class="parameter-name">onRedo</span>, </span><span class="parameter" id="-param-snapToGrid"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">snapToGrid</span> = <span class="default-value">false</span>, </span><span class="parameter" id="-param-gridSize"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">gridSize</span> = <span class="default-value">8</span>, </span><span class="parameter" id="-param-snapToObjects"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">snapToObjects</span> = <span class="default-value">false</span>, </span><span class="parameter" id="-param-snapThreshold"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">snapThreshold</span> = <span class="default-value">6</span>, </span><span class="parameter" id="-param-maxHistoryEntries"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span> <span class="parameter-name">maxHistoryEntries</span> = <span class="default-value">100</span>, </span><span class="parameter" id="-param-constraints"><span class="type-annotation"><a href="../ui/CanvasObjectConstraints-class.html">CanvasObjectConstraints</a></span> <span class="parameter-name">constraints</span> = <span class="default-value">const CanvasObjectConstraints()</span>, </span><span class="parameter" id="-param-showGrid"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">showGrid</span> = <span class="default-value">false</span>, </span><span class="parameter" id="-param-showRulers"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">showRulers</span> = <span class="default-value">false</span>, </span><span class="parameter" id="-param-showSnapGuides"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">showSnapGuides</span> = <span class="default-value">true</span></span>})</span>
+        </dt>
+        <dd>
+          Creates a canvas controller.
+        </dd>
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-properties">
+    <h2>Properties</h2>
+    <dl class="properties">
+        <dt id="canRedo" class="property">
+  <span class="name"><a href="../ui/CanvasController/canRedo.html">canRedo</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether redo history is available.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="canUndo" class="property">
+  <span class="name"><a href="../ui/CanvasController/canUndo.html">canUndo</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether undo history is available.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="constraints" class="property">
+  <span class="name"><a href="../ui/CanvasController/constraints.html">constraints</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasObjectConstraints-class.html">CanvasObjectConstraints</a></span>
+  
+
+</dt>
+<dd>
+  Object editing constraints.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="gridSize" class="property">
+  <span class="name"><a href="../ui/CanvasController/gridSize.html">gridSize</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  
+
+</dt>
+<dd>
+  Grid size used by <a href="../ui/CanvasController/snapSelectedToGrid.html">snapSelectedToGrid</a> and drag snapping.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="hashCode" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/hashCode.html">hashCode</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  The hash code for this object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="isAttached" class="property">
+  <span class="name"><a href="../ui/CanvasController/isAttached.html">isAttached</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether the controller is attached to a browser canvas.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="layerItems" class="property">
+  <span class="name"><a href="../ui/CanvasController/layerItems.html">layerItems</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../ui/CanvasLayerItem-class.html">CanvasLayerItem</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  Layer-panel view of retained objects, ordered from front to back.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="maxHistoryEntries" class="property">
+  <span class="name"><a href="../ui/CanvasController/maxHistoryEntries.html">maxHistoryEntries</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/int-class.html">int</a></span>
+  
+
+</dt>
+<dd>
+  Maximum undo or redo entries to keep.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="objects" class="property">
+  <span class="name"><a href="../ui/CanvasController/objects.html">objects</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../ui/CanvasObject-class.html">CanvasObject</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  Retained canvas objects.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="onChange" class="property">
+  <span class="name"><a href="../ui/CanvasController/onChange.html">onChange</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasChangeCallback.html">CanvasChangeCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires after retained canvas scene data changes.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onDragEnd" class="property">
+  <span class="name"><a href="../ui/CanvasController/onDragEnd.html">onDragEnd</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when object dragging ends.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onDragStart" class="property">
+  <span class="name"><a href="../ui/CanvasController/onDragStart.html">onDragStart</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when object dragging starts.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onHover" class="property">
+  <span class="name"><a href="../ui/CanvasController/onHover.html">onHover</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when the hovered object changes.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onMove" class="property">
+  <span class="name"><a href="../ui/CanvasController/onMove.html">onMove</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasObjectsCallback.html">CanvasObjectsCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires after selected objects move.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onPointerDown" class="property">
+  <span class="name"><a href="../ui/CanvasController/onPointerDown.html">onPointerDown</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires on browser pointer down.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onPointerUp" class="property">
+  <span class="name"><a href="../ui/CanvasController/onPointerUp.html">onPointerUp</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires on browser pointer up.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onRedo" class="property">
+  <span class="name"><a href="../ui/CanvasController/onRedo.html">onRedo</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasHistoryCallback.html">CanvasHistoryCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires after <a href="../ui/CanvasController/redo.html">redo</a> succeeds.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onResize" class="property">
+  <span class="name"><a href="../ui/CanvasController/onResize.html">onResize</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasObjectsCallback.html">CanvasObjectsCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires after selected objects resize.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onResizeEnd" class="property">
+  <span class="name"><a href="../ui/CanvasController/onResizeEnd.html">onResizeEnd</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when selection-handle resizing ends.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onResizeStart" class="property">
+  <span class="name"><a href="../ui/CanvasController/onResizeStart.html">onResizeStart</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when selection-handle resizing starts.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onRotate" class="property">
+  <span class="name"><a href="../ui/CanvasController/onRotate.html">onRotate</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasObjectsCallback.html">CanvasObjectsCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires after selected objects rotate.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onRotateEnd" class="property">
+  <span class="name"><a href="../ui/CanvasController/onRotateEnd.html">onRotateEnd</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when selection-handle rotation ends.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onRotateStart" class="property">
+  <span class="name"><a href="../ui/CanvasController/onRotateStart.html">onRotateStart</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasPointerCallback.html">CanvasPointerCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when selection-handle rotation starts.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onSelect" class="property">
+  <span class="name"><a href="../ui/CanvasController/onSelect.html">onSelect</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasSelectCallback.html">CanvasSelectCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires when selected objects change.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onTextEdit" class="property">
+  <span class="name"><a href="../ui/CanvasController/onTextEdit.html">onTextEdit</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasTextEditCallback.html">CanvasTextEditCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Optional text edit provider used by browser double-click editing.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="onUndo" class="property">
+  <span class="name"><a href="../ui/CanvasController/onUndo.html">onUndo</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasHistoryCallback.html">CanvasHistoryCallback</a>?</span>
+  
+
+</dt>
+<dd>
+  Fires after <a href="../ui/CanvasController/undo.html">undo</a> succeeds.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="runtimeType" class="property inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/runtimeType.html">runtimeType</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Type-class.html">Type</a></span>
+  
+
+</dt>
+<dd class="inherited">
+  A representation of the runtime type of the object.
+  <div class="features"><span class="feature">no setter</span><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="selectedBounds" class="property">
+  <span class="name"><a href="../ui/CanvasController/selectedBounds.html">selectedBounds</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasBounds-class.html">CanvasBounds</a>?</span>
+  
+
+</dt>
+<dd>
+  Bounds for the currently selected object.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="selectedObject" class="property">
+  <span class="name"><a href="../ui/CanvasController/selectedObject.html">selectedObject</a></span>
+  <span class="signature">&#8594; <a href="../ui/CanvasObject-class.html">CanvasObject</a>?</span>
+  
+
+</dt>
+<dd>
+  Currently selected object.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="selectedObjectId" class="property">
+  <span class="name"><a href="../ui/CanvasController/selectedObjectId.html">selectedObjectId</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span>
+  
+
+</dt>
+<dd>
+  Currently selected object id.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="selectedObjectIds" class="property">
+  <span class="name"><a href="../ui/CanvasController/selectedObjectIds.html">selectedObjectIds</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  Currently selected object ids.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="selectedObjects" class="property">
+  <span class="name"><a href="../ui/CanvasController/selectedObjects.html">selectedObjects</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../ui/CanvasObject-class.html">CanvasObject</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  Currently selected objects.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="showGrid" class="property">
+  <span class="name"><a href="../ui/CanvasController/showGrid.html">showGrid</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether browser canvas builds should draw a grid.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="showRulers" class="property">
+  <span class="name"><a href="../ui/CanvasController/showRulers.html">showRulers</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether browser canvas builds should draw rulers.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="showSnapGuides" class="property">
+  <span class="name"><a href="../ui/CanvasController/showSnapGuides.html">showSnapGuides</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether browser canvas builds should draw snap guides.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="snapGuides" class="property">
+  <span class="name"><a href="../ui/CanvasController/snapGuides.html">snapGuides</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../ui/CanvasGuide-class.html">CanvasGuide</a></span>&gt;</span></span>
+  
+
+</dt>
+<dd>
+  Active snap guides from the latest snap operation.
+  <div class="features"><span class="feature">no setter</span></div>
+
+</dd>
+
+        <dt id="snapThreshold" class="property">
+  <span class="name"><a href="../ui/CanvasController/snapThreshold.html">snapThreshold</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span>
+  
+
+</dt>
+<dd>
+  Distance threshold for object edge/center snapping.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="snapToGrid" class="property">
+  <span class="name"><a href="../ui/CanvasController/snapToGrid.html">snapToGrid</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether movement should snap selected objects to <a href="../ui/CanvasController/gridSize.html">gridSize</a>.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+        <dt id="snapToObjects" class="property">
+  <span class="name"><a href="../ui/CanvasController/snapToObjects.html">snapToObjects</a></span>
+  <span class="signature">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  
+
+</dt>
+<dd>
+  Whether movement should snap selected objects to other object edges/centers.
+  <div class="features"><span class="feature">final</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+
+    
+  <section
+      class="summary offset-anchor"
+      id="instance-methods">
+    <h2>Methods</h2>
+    <dl class="callables">
+        <dt id="add" class="callable">
+  <span class="name"><a href="../ui/CanvasController/add.html">add</a></span><span class="signature">(<wbr><span class="parameter" id="add-param-object"><span class="type-annotation"><a href="../ui/CanvasObject-class.html">CanvasObject</a></span> <span class="parameter-name">object</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds an object to the retained canvas scene.
+  
+
+</dd>
+
+        <dt id="addCircle" class="callable">
+  <span class="name"><a href="../ui/CanvasController/addCircle.html">addCircle</a></span><span class="signature">(<wbr><span class="parameter" id="addCircle-param-circle"><span class="type-annotation"><a href="../ui/CanvasCircle-class.html">CanvasCircle</a></span> <span class="parameter-name">circle</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a circle object.
+  
+
+</dd>
+
+        <dt id="addImage" class="callable">
+  <span class="name"><a href="../ui/CanvasController/addImage.html">addImage</a></span><span class="signature">(<wbr><span class="parameter" id="addImage-param-image"><span class="type-annotation"><a href="../ui/CanvasImageObject-class.html">CanvasImageObject</a></span> <span class="parameter-name">image</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds an image object.
+  
+
+</dd>
+
+        <dt id="addLine" class="callable">
+  <span class="name"><a href="../ui/CanvasController/addLine.html">addLine</a></span><span class="signature">(<wbr><span class="parameter" id="addLine-param-line"><span class="type-annotation"><a href="../ui/CanvasLine-class.html">CanvasLine</a></span> <span class="parameter-name">line</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a line object.
+  
+
+</dd>
+
+        <dt id="addRect" class="callable">
+  <span class="name"><a href="../ui/CanvasController/addRect.html">addRect</a></span><span class="signature">(<wbr><span class="parameter" id="addRect-param-rect"><span class="type-annotation"><a href="../ui/CanvasRect-class.html">CanvasRect</a></span> <span class="parameter-name">rect</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a rectangle object.
+  
+
+</dd>
+
+        <dt id="addText" class="callable">
+  <span class="name"><a href="../ui/CanvasController/addText.html">addText</a></span><span class="signature">(<wbr><span class="parameter" id="addText-param-text"><span class="type-annotation"><a href="../ui/CanvasTextObject-class.html">CanvasTextObject</a></span> <span class="parameter-name">text</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds a text object.
+  
+
+</dd>
+
+        <dt id="alignSelected" class="callable">
+  <span class="name"><a href="../ui/CanvasController/alignSelected.html">alignSelected</a></span><span class="signature">(<wbr><span class="parameter" id="alignSelected-param-alignment"><span class="type-annotation"><a href="../ui/CanvasAlignment.html">CanvasAlignment</a></span> <span class="parameter-name">alignment</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Aligns selected objects inside the selection bounds.
+  
+
+</dd>
+
+        <dt id="beginHistoryBatch" class="callable">
+  <span class="name"><a href="../ui/CanvasController/beginHistoryBatch.html">beginHistoryBatch</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Starts batching subsequent changes into one undo entry.
+  
+
+</dd>
+
+        <dt id="bringForward" class="callable">
+  <span class="name"><a href="../ui/CanvasController/bringForward.html">bringForward</a></span><span class="signature">(<wbr><span class="parameter" id="bringForward-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Moves an object one step forward in z order.
+  
+
+</dd>
+
+        <dt id="bringToFront" class="callable">
+  <span class="name"><a href="../ui/CanvasController/bringToFront.html">bringToFront</a></span><span class="signature">(<wbr><span class="parameter" id="bringToFront-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Moves an object to the front of z order.
+  
+
+</dd>
+
+        <dt id="cancelHistoryBatch" class="callable">
+  <span class="name"><a href="../ui/CanvasController/cancelHistoryBatch.html">cancelHistoryBatch</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Cancels an active history batch without adding an undo entry.
+  
+
+</dd>
+
+        <dt id="clear" class="callable">
+  <span class="name"><a href="../ui/CanvasController/clear.html">clear</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Removes all retained objects and clears the canvas.
+  
+
+</dd>
+
+        <dt id="clearHistory" class="callable">
+  <span class="name"><a href="../ui/CanvasController/clearHistory.html">clearHistory</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Clears undo and redo history.
+  
+
+</dd>
+
+        <dt id="copySelected" class="callable">
+  <span class="name"><a href="../ui/CanvasController/copySelected.html">copySelected</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Copies the selected object into the controller clipboard.
+  
+
+</dd>
+
+        <dt id="deleteSelected" class="callable">
+  <span class="name"><a href="../ui/CanvasController/deleteSelected.html">deleteSelected</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Deletes the selected object.
+  
+
+</dd>
+
+        <dt id="detach" class="callable">
+  <span class="name"><a href="../ui/CanvasController/detach.html">detach</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Detaches from the browser canvas.
+  
+
+</dd>
+
+        <dt id="drawCircle" class="callable">
+  <span class="name"><a href="../ui/CanvasController/drawCircle.html">drawCircle</a></span><span class="signature">(<wbr><span class="parameter" id="drawCircle-param-circle"><span class="type-annotation"><a href="../ui/CanvasCircle-class.html">CanvasCircle</a></span> <span class="parameter-name">circle</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Draws a circle immediately.
+  
+
+</dd>
+
+        <dt id="drawImage" class="callable">
+  <span class="name"><a href="../ui/CanvasController/drawImage.html">drawImage</a></span><span class="signature">(<wbr><span class="parameter" id="drawImage-param-image"><span class="type-annotation"><a href="../ui/CanvasImageObject-class.html">CanvasImageObject</a></span> <span class="parameter-name">image</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Draws an image immediately.
+  
+
+</dd>
+
+        <dt id="drawLine" class="callable">
+  <span class="name"><a href="../ui/CanvasController/drawLine.html">drawLine</a></span><span class="signature">(<wbr><span class="parameter" id="drawLine-param-line"><span class="type-annotation"><a href="../ui/CanvasLine-class.html">CanvasLine</a></span> <span class="parameter-name">line</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Draws a line immediately.
+  
+
+</dd>
+
+        <dt id="drawRect" class="callable">
+  <span class="name"><a href="../ui/CanvasController/drawRect.html">drawRect</a></span><span class="signature">(<wbr><span class="parameter" id="drawRect-param-rect"><span class="type-annotation"><a href="../ui/CanvasRect-class.html">CanvasRect</a></span> <span class="parameter-name">rect</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Draws a rectangle immediately.
+  
+
+</dd>
+
+        <dt id="drawText" class="callable">
+  <span class="name"><a href="../ui/CanvasController/drawText.html">drawText</a></span><span class="signature">(<wbr><span class="parameter" id="drawText-param-text"><span class="type-annotation"><a href="../ui/CanvasTextObject-class.html">CanvasTextObject</a></span> <span class="parameter-name">text</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Draws text immediately.
+  
+
+</dd>
+
+        <dt id="duplicateSceneJson" class="callable">
+  <span class="name"><a href="../ui/CanvasController/duplicateSceneJson.html">duplicateSceneJson</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Creates a duplicate JSON snapshot of the current scene.
+  
+
+</dd>
+
+        <dt id="endHistoryBatch" class="callable">
+  <span class="name"><a href="../ui/CanvasController/endHistoryBatch.html">endHistoryBatch</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Finishes a history batch.
+  
+
+</dd>
+
+        <dt id="handleKeyboardCommand" class="callable">
+  <span class="name"><a href="../ui/CanvasController/handleKeyboardCommand.html">handleKeyboardCommand</a></span><span class="signature">(<wbr><span class="parameter" id="handleKeyboardCommand-param-key"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">key</span>, {</span><span class="parameter" id="handleKeyboardCommand-param-control"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">control</span> = <span class="default-value">false</span>, </span><span class="parameter" id="handleKeyboardCommand-param-meta"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">meta</span> = <span class="default-value">false</span>, </span><span class="parameter" id="handleKeyboardCommand-param-shift"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">shift</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Handles a keyboard command for the selected canvas object.
+  
+
+</dd>
+
+        <dt id="hitTest" class="callable">
+  <span class="name"><a href="../ui/CanvasController/hitTest.html">hitTest</a></span><span class="signature">(<wbr><span class="parameter" id="hitTest-param-x"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">x</span>, </span><span class="parameter" id="hitTest-param-y"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">y</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../ui/CanvasObject-class.html">CanvasObject</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Returns the topmost object at <code>x</code>, <code>y</code>.
+  
+
+</dd>
+
+        <dt id="importBackendJson" class="callable">
+  <span class="name"><a href="../ui/CanvasController/importBackendJson.html">importBackendJson</a></span><span class="signature">(<wbr><span class="parameter" id="importBackendJson-param-json"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span> <span class="parameter-name">json</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Loads scene JSON from a saved backend payload.
+  
+
+</dd>
+
+        <dt id="loadJson" class="callable">
+  <span class="name"><a href="../ui/CanvasController/loadJson.html">loadJson</a></span><span class="signature">(<wbr><span class="parameter" id="loadJson-param-json"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span> <span class="parameter-name">json</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Loads retained objects from JSON-friendly scene data.
+  
+
+</dd>
+
+        <dt id="moveBy" class="callable">
+  <span class="name"><a href="../ui/CanvasController/moveBy.html">moveBy</a></span><span class="signature">(<wbr><span class="parameter" id="moveBy-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="moveBy-param-dx"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dx</span>, </span><span class="parameter" id="moveBy-param-dy"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dy</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Moves an object by <code>dx</code>, <code>dy</code>.
+  
+
+</dd>
+
+        <dt id="moveSelectedBy" class="callable">
+  <span class="name"><a href="../ui/CanvasController/moveSelectedBy.html">moveSelectedBy</a></span><span class="signature">(<wbr><span class="parameter" id="moveSelectedBy-param-dx"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dx</span>, </span><span class="parameter" id="moveSelectedBy-param-dy"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dy</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Moves the selected object by <code>dx</code>, <code>dy</code>.
+  
+
+</dd>
+
+        <dt id="noSuchMethod" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/noSuchMethod.html">noSuchMethod</a></span><span class="signature">(<wbr><span class="parameter" id="noSuchMethod-param-invocation"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Invocation-class.html">Invocation</a></span> <span class="parameter-name">invocation</span></span>)
+    <span class="returntype parameter">&#8594; dynamic</span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  Invoked when a nonexistent method or property is accessed.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="nudgeSelected" class="callable">
+  <span class="name"><a href="../ui/CanvasController/nudgeSelected.html">nudgeSelected</a></span><span class="signature">(<wbr>{<span class="parameter" id="nudgeSelected-param-dx"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dx</span> = <span class="default-value">0</span>, </span><span class="parameter" id="nudgeSelected-param-dy"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dy</span> = <span class="default-value">0</span>, </span><span class="parameter" id="nudgeSelected-param-largeStep"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">largeStep</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Moves the selected object with keyboard-style step sizes.
+  
+
+</dd>
+
+        <dt id="objectById" class="callable">
+  <span class="name"><a href="../ui/CanvasController/objectById.html">objectById</a></span><span class="signature">(<wbr><span class="parameter" id="objectById-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../ui/CanvasObject-class.html">CanvasObject</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Finds a retained object by id.
+  
+
+</dd>
+
+        <dt id="pasteCopied" class="callable">
+  <span class="name"><a href="../ui/CanvasController/pasteCopied.html">pasteCopied</a></span><span class="signature">(<wbr>{<span class="parameter" id="pasteCopied-param-dx"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dx</span> = <span class="default-value">12</span>, </span><span class="parameter" id="pasteCopied-param-dy"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dy</span> = <span class="default-value">12</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../ui/CanvasObject-class.html">CanvasObject</a></span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Pastes copied objects and selects the pasted objects.
+  
+
+</dd>
+
+        <dt id="redo" class="callable">
+  <span class="name"><a href="../ui/CanvasController/redo.html">redo</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Restores the next scene state after <a href="../ui/CanvasController/undo.html">undo</a>.
+  
+
+</dd>
+
+        <dt id="remove" class="callable">
+  <span class="name"><a href="../ui/CanvasController/remove.html">remove</a></span><span class="signature">(<wbr><span class="parameter" id="remove-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Removes a retained object by id.
+  
+
+</dd>
+
+        <dt id="renameObjectId" class="callable">
+  <span class="name"><a href="../ui/CanvasController/renameObjectId.html">renameObjectId</a></span><span class="signature">(<wbr><span class="parameter" id="renameObjectId-param-currentId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">currentId</span>, </span><span class="parameter" id="renameObjectId-param-nextId"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">nextId</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Renames an object's id for layer panels and app-level references.
+  
+
+</dd>
+
+        <dt id="render" class="callable">
+  <span class="name"><a href="../ui/CanvasController/render.html">render</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Redraws the retained scene.
+  
+
+</dd>
+
+        <dt id="resizeBy" class="callable">
+  <span class="name"><a href="../ui/CanvasController/resizeBy.html">resizeBy</a></span><span class="signature">(<wbr><span class="parameter" id="resizeBy-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="resizeBy-param-dw"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dw</span>, </span><span class="parameter" id="resizeBy-param-dh"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dh</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resizes an object by <code>dw</code>, <code>dh</code>.
+  
+
+</dd>
+
+        <dt id="resizeSelectedBy" class="callable">
+  <span class="name"><a href="../ui/CanvasController/resizeSelectedBy.html">resizeSelectedBy</a></span><span class="signature">(<wbr><span class="parameter" id="resizeSelectedBy-param-dw"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dw</span>, </span><span class="parameter" id="resizeSelectedBy-param-dh"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dh</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resizes the selected object by <code>dw</code>, <code>dh</code>.
+  
+
+</dd>
+
+        <dt id="resizeSelectedFromHandle" class="callable">
+  <span class="name"><a href="../ui/CanvasController/resizeSelectedFromHandle.html">resizeSelectedFromHandle</a></span><span class="signature">(<wbr><span class="parameter" id="resizeSelectedFromHandle-param-handle"><span class="type-annotation"><a href="../ui/CanvasSelectionHandle.html">CanvasSelectionHandle</a></span> <span class="parameter-name">handle</span>, </span><span class="parameter" id="resizeSelectedFromHandle-param-dx"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dx</span>, </span><span class="parameter" id="resizeSelectedFromHandle-param-dy"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">dy</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Resizes the selected object from a visible selection <code>handle</code>.
+  
+
+</dd>
+
+        <dt id="rotateBy" class="callable">
+  <span class="name"><a href="../ui/CanvasController/rotateBy.html">rotateBy</a></span><span class="signature">(<wbr><span class="parameter" id="rotateBy-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="rotateBy-param-degrees"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">degrees</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Rotates an object by <code>degrees</code>.
+  
+
+</dd>
+
+        <dt id="rotateSelectedBy" class="callable">
+  <span class="name"><a href="../ui/CanvasController/rotateSelectedBy.html">rotateSelectedBy</a></span><span class="signature">(<wbr><span class="parameter" id="rotateSelectedBy-param-degrees"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">degrees</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Rotates the selected object by <code>degrees</code>.
+  
+
+</dd>
+
+        <dt id="select" class="callable">
+  <span class="name"><a href="../ui/CanvasController/select.html">select</a></span><span class="signature">(<wbr><span class="parameter" id="select-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Selects an object by id.
+  
+
+</dd>
+
+        <dt id="selectAt" class="callable">
+  <span class="name"><a href="../ui/CanvasController/selectAt.html">selectAt</a></span><span class="signature">(<wbr><span class="parameter" id="selectAt-param-x"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">x</span>, </span><span class="parameter" id="selectAt-param-y"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">y</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../ui/CanvasObject-class.html">CanvasObject</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Selects the topmost object at <code>x</code>, <code>y</code>.
+  
+
+</dd>
+
+        <dt id="selectedToJson" class="callable">
+  <span class="name"><a href="../ui/CanvasController/selectedToJson.html">selectedToJson</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Exports selected retained objects as JSON-friendly scene data.
+  
+
+</dd>
+
+        <dt id="selectInBounds" class="callable">
+  <span class="name"><a href="../ui/CanvasController/selectInBounds.html">selectInBounds</a></span><span class="signature">(<wbr><span class="parameter" id="selectInBounds-param-bounds"><span class="type-annotation"><a href="../ui/CanvasBounds-class.html">CanvasBounds</a></span> <span class="parameter-name">bounds</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Selects all visible objects fully contained in <code>bounds</code>.
+  
+
+</dd>
+
+        <dt id="selectMany" class="callable">
+  <span class="name"><a href="../ui/CanvasController/selectMany.html">selectMany</a></span><span class="signature">(<wbr><span class="parameter" id="selectMany-param-ids"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Iterable-class.html">Iterable</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>&gt;</span></span> <span class="parameter-name">ids</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Selects multiple objects by id.
+  
+
+</dd>
+
+        <dt id="sendBackward" class="callable">
+  <span class="name"><a href="../ui/CanvasController/sendBackward.html">sendBackward</a></span><span class="signature">(<wbr><span class="parameter" id="sendBackward-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Moves an object one step backward in z order.
+  
+
+</dd>
+
+        <dt id="sendToBack" class="callable">
+  <span class="name"><a href="../ui/CanvasController/sendToBack.html">sendToBack</a></span><span class="signature">(<wbr><span class="parameter" id="sendToBack-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Moves an object to the back of z order.
+  
+
+</dd>
+
+        <dt id="setCanvasSize" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setCanvasSize.html">setCanvasSize</a></span><span class="signature">(<wbr><span class="parameter" id="setCanvasSize-param-width"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">width</span>, </span><span class="parameter" id="setCanvasSize-param-height"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">height</span></span>)
+    <span class="returntype parameter">&#8594; void</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates viewport dimensions for canvas-bound constraints.
+  
+
+</dd>
+
+        <dt id="setObjectHidden" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setObjectHidden.html">setObjectHidden</a></span><span class="signature">(<wbr><span class="parameter" id="setObjectHidden-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="setObjectHidden-param-hidden"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">hidden</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Hides or shows an object.
+  
+
+</dd>
+
+        <dt id="setObjectLocked" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setObjectLocked.html">setObjectLocked</a></span><span class="signature">(<wbr><span class="parameter" id="setObjectLocked-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="setObjectLocked-param-locked"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">locked</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Locks or unlocks an object.
+  
+
+</dd>
+
+        <dt id="setObjectName" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setObjectName.html">setObjectName</a></span><span class="signature">(<wbr><span class="parameter" id="setObjectName-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="setObjectName-param-name"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">name</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets a display name for an object.
+  
+
+</dd>
+
+        <dt id="setRotation" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setRotation.html">setRotation</a></span><span class="signature">(<wbr><span class="parameter" id="setRotation-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="setRotation-param-degrees"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">degrees</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets an object's rotation in degrees.
+  
+
+</dd>
+
+        <dt id="setSelectedFont" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setSelectedFont.html">setSelectedFont</a></span><span class="signature">(<wbr>{<span class="parameter" id="setSelectedFont-param-family"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">family</span>, </span><span class="parameter" id="setSelectedFont-param-size"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">size</span>, </span><span class="parameter" id="setSelectedFont-param-cssFont"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">cssFont</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates font family/size for selected text objects.
+  
+
+</dd>
+
+        <dt id="setSelectedHidden" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setSelectedHidden.html">setSelectedHidden</a></span><span class="signature">(<wbr><span class="parameter" id="setSelectedHidden-param-hidden"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">hidden</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Hides or shows selected objects.
+  
+
+</dd>
+
+        <dt id="setSelectedLocked" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setSelectedLocked.html">setSelectedLocked</a></span><span class="signature">(<wbr><span class="parameter" id="setSelectedLocked-param-locked"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">locked</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Locks or unlocks selected objects.
+  
+
+</dd>
+
+        <dt id="setSelectedRotation" class="callable">
+  <span class="name"><a href="../ui/CanvasController/setSelectedRotation.html">setSelectedRotation</a></span><span class="signature">(<wbr><span class="parameter" id="setSelectedRotation-param-degrees"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">degrees</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Sets all selected objects to <code>degrees</code> rotation.
+  
+
+</dd>
+
+        <dt id="snapSelectedToGrid" class="callable">
+  <span class="name"><a href="../ui/CanvasController/snapSelectedToGrid.html">snapSelectedToGrid</a></span><span class="signature">(<wbr>[<span class="parameter" id="snapSelectedToGrid-param-size"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">size</span></span>])
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Snaps selected objects to the nearest grid coordinates.
+  
+
+</dd>
+
+        <dt id="snapSelectedToObjects" class="callable">
+  <span class="name"><a href="../ui/CanvasController/snapSelectedToObjects.html">snapSelectedToObjects</a></span><span class="signature">(<wbr>{<span class="parameter" id="snapSelectedToObjects-param-threshold"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">threshold</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Snaps selected objects to nearby visible object edges or centers.
+  
+
+</dd>
+
+        <dt id="styleSelected" class="callable">
+  <span class="name"><a href="../ui/CanvasController/styleSelected.html">styleSelected</a></span><span class="signature">(<wbr>{<span class="parameter" id="styleSelected-param-fill"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">fill</span>, </span><span class="parameter" id="styleSelected-param-pattern"><span class="type-annotation"><a href="../ui/CanvasImagePattern-class.html">CanvasImagePattern</a>?</span> <span class="parameter-name">pattern</span>, </span><span class="parameter" id="styleSelected-param-stroke"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">stroke</span>, </span><span class="parameter" id="styleSelected-param-lineWidth"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">lineWidth</span>, </span><span class="parameter" id="styleSelected-param-font"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a>?</span> <span class="parameter-name">font</span>, </span><span class="parameter" id="styleSelected-param-clearFill"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">clearFill</span> = <span class="default-value">false</span>, </span><span class="parameter" id="styleSelected-param-clearPattern"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">clearPattern</span> = <span class="default-value">false</span>, </span><span class="parameter" id="styleSelected-param-clearStroke"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span> <span class="parameter-name">clearStroke</span> = <span class="default-value">false</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates selected object style fields while preserving unspecified paint.
+  
+
+</dd>
+
+        <dt id="toDataUrl" class="callable">
+  <span class="name"><a href="../ui/CanvasController/toDataUrl.html">toDataUrl</a></span><span class="signature">(<wbr>{<span class="parameter" id="toDataUrl-param-type"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">type</span> = <span class="default-value">&#39;image&#47;png&#39;</span>, </span><span class="parameter" id="toDataUrl-param-quality"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a>?</span> <span class="parameter-name">quality</span></span>})
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Exports the canvas to a data URL.
+  
+
+</dd>
+
+        <dt id="toggleSelection" class="callable">
+  <span class="name"><a href="../ui/CanvasController/toggleSelection.html">toggleSelection</a></span><span class="signature">(<wbr><span class="parameter" id="toggleSelection-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Adds or removes <code>id</code> from the current selection.
+  
+
+</dd>
+
+        <dt id="toggleSelectionAt" class="callable">
+  <span class="name"><a href="../ui/CanvasController/toggleSelectionAt.html">toggleSelectionAt</a></span><span class="signature">(<wbr><span class="parameter" id="toggleSelectionAt-param-x"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">x</span>, </span><span class="parameter" id="toggleSelectionAt-param-y"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/double-class.html">double</a></span> <span class="parameter-name">y</span></span>)
+    <span class="returntype parameter">&#8594; <a href="../ui/CanvasObject-class.html">CanvasObject</a>?</span>
+  </span>
+  
+
+</dt>
+<dd>
+  Toggles the topmost object at <code>x</code>, <code>y</code> in the current selection.
+  
+
+</dd>
+
+        <dt id="toJson" class="callable">
+  <span class="name"><a href="../ui/CanvasController/toJson.html">toJson</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/Map-class.html">Map</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>, <span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a>?</span>&gt;</span></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Exports retained objects as JSON-friendly scene data.
+  
+
+</dd>
+
+        <dt id="toString" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/toString.html">toString</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  A string representation of this object.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+        <dt id="undo" class="callable">
+  <span class="name"><a href="../ui/CanvasController/undo.html">undo</a></span><span class="signature">(<wbr>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Restores the previous scene state.
+  
+
+</dd>
+
+        <dt id="update" class="callable">
+  <span class="name"><a href="../ui/CanvasController/update.html">update</a></span><span class="signature">(<wbr><span class="parameter" id="update-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="update-param-object"><span class="type-annotation"><a href="../ui/CanvasObject-class.html">CanvasObject</a></span> <span class="parameter-name">object</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Replaces the object with <code>id</code>.
+  
+
+</dd>
+
+        <dt id="updateObjectPaint" class="callable">
+  <span class="name"><a href="../ui/CanvasController/updateObjectPaint.html">updateObjectPaint</a></span><span class="signature">(<wbr><span class="parameter" id="updateObjectPaint-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="updateObjectPaint-param-paint"><span class="type-annotation"><a href="../ui/CanvasPaint-class.html">CanvasPaint</a></span> <span class="parameter-name">paint</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates paint on one object.
+  
+
+</dd>
+
+        <dt id="updateSelectedPaint" class="callable">
+  <span class="name"><a href="../ui/CanvasController/updateSelectedPaint.html">updateSelectedPaint</a></span><span class="signature">(<wbr><span class="parameter" id="updateSelectedPaint-param-paint"><span class="type-annotation"><a href="../ui/CanvasPaint-class.html">CanvasPaint</a></span> <span class="parameter-name">paint</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates paint on selected, unlocked objects.
+  
+
+</dd>
+
+        <dt id="updateSelectedText" class="callable">
+  <span class="name"><a href="../ui/CanvasController/updateSelectedText.html">updateSelectedText</a></span><span class="signature">(<wbr><span class="parameter" id="updateSelectedText-param-text"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">text</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates the selected text object when exactly one text object is selected.
+  
+
+</dd>
+
+        <dt id="updateText" class="callable">
+  <span class="name"><a href="../ui/CanvasController/updateText.html">updateText</a></span><span class="signature">(<wbr><span class="parameter" id="updateText-param-id"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">id</span>, </span><span class="parameter" id="updateText-param-text"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">text</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd>
+  Updates one text object's text.
+  
+
+</dd>
+
+    </dl>
+  </section>
+    
+  <section
+      class="summary offset-anchor inherited"
+      id="operators">
+    <h2>Operators</h2>
+    <dl class="callables">
+        <dt id="operator ==" class="callable inherited">
+  <span class="name"><a href="https://api.flutter.dev/flutter/dart-core/Object/operator_equals.html">operator ==</a></span><span class="signature">(<wbr><span class="parameter" id="==-param-other"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/Object-class.html">Object</a></span> <span class="parameter-name">other</span></span>)
+    <span class="returntype parameter">&#8594; <a href="https://api.flutter.dev/flutter/dart-core/bool-class.html">bool</a></span>
+  </span>
+  
+
+</dt>
+<dd class="inherited">
+  The equality operator.
+  <div class="features"><span class="feature">inherited</span></div>
+
+</dd>
+
+    </dl>
+  </section>
+    
+    
+    
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../index.html">flint_dart</a></li>
+    <li><a href="../ui/">ui</a></li>
+    <li class="self-crumb">CanvasController class</li>
+</ol>
+
+    <h5>ui library</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div>
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+  </div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    flint_dart
+      1.3.1
+  </span>
+  
+</footer>
+
+
+<script src="../static-assets/highlight.pack.js?v1"></script>
+<script src="../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

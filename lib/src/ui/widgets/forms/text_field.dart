@@ -35,33 +35,33 @@ class TextField extends FlintElement {
     void Function(Object event)? onChanged,
     void Function(String value)? onSubmitted,
   }) : super(
-         'div',
-         props: fieldWrapperProps(
-           props: props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: _children(
-           label: label,
-           name: name,
-           value: controller?.text ?? value,
-           placeholder: placeholder,
-           type: type,
-           required: required,
-           disabled: disabled,
-           readonly: readonly,
-           variant: variant,
-           size: size,
-           error: resolveFieldError(name: name, error: error, errors: errors),
-           helpText: helpText,
-           inputProps: inputProps,
-           inputStyle: inputStyle,
-           inputDartStyle: inputDartStyle,
-           onChanged: _controlledOnChanged(controller, onChanged),
-           onSubmitted: onSubmitted,
-         ),
-       );
+          'div',
+          props: fieldWrapperProps(
+            props: props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: _children(
+            label: label,
+            name: name,
+            value: controller?.text ?? value,
+            placeholder: placeholder,
+            type: type,
+            required: required,
+            disabled: disabled,
+            readonly: readonly,
+            variant: variant,
+            size: size,
+            error: resolveFieldError(name: name, error: error, errors: errors),
+            helpText: helpText,
+            inputProps: inputProps,
+            inputStyle: inputStyle,
+            inputDartStyle: inputDartStyle,
+            onChanged: _controlledOnChanged(controller, onChanged),
+            onSubmitted: onSubmitted,
+          ),
+        );
 
   static void Function(Object event)? _controlledOnChanged(
     TextEditingController? controller,
@@ -133,25 +133,24 @@ class TextField extends FlintElement {
                 }
               },
           },
-          dartStyle:
-              inputComponentStyle(
-                    variant: variant,
-                    size: size,
-                    disabled: disabled,
-                    invalid: error != null && error.isNotEmpty,
-                  )
-                  .merge(
-                    readonly
-                        ? DartStyle(
-                            background: ThemeToken.color(
-                              'disabledSurface',
-                              fallback: '#f3f4f6',
-                            ).toCss(),
-                            cursor: Cursor.defaultCursor,
-                          )
-                        : null,
-                  )
-                  .merge(inputDartStyle),
+          dartStyle: inputComponentStyle(
+            variant: variant,
+            size: size,
+            disabled: disabled,
+            invalid: error != null && error.isNotEmpty,
+          )
+              .merge(
+                readonly
+                    ? DartStyle(
+                        background: ThemeToken.color(
+                          'disabledSurface',
+                          fallback: '#f3f4f6',
+                        ).toCss(),
+                        cursor: Cursor.defaultCursor,
+                      )
+                    : null,
+              )
+              .merge(inputDartStyle),
           style: inputStyle,
         ),
       ),

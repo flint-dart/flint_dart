@@ -19,17 +19,17 @@ class EdgeInsets {
 
   /// Creates equal edge values for every side.
   const EdgeInsets.all(Object value)
-    : top = value,
-      right = value,
-      bottom = value,
-      left = value;
+      : top = value,
+        right = value,
+        bottom = value,
+        left = value;
 
   /// Creates vertical and horizontal edge values.
   const EdgeInsets.symmetric({Object? vertical, Object? horizontal})
-    : top = vertical,
-      right = horizontal,
-      bottom = vertical,
-      left = horizontal;
+      : top = vertical,
+        right = horizontal,
+        bottom = vertical,
+        left = horizontal;
 
   /// CSS zero spacing.
   static const zero = EdgeInsets.all(0);

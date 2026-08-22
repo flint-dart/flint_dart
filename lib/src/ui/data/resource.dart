@@ -92,14 +92,14 @@ class ResourceController<T> {
     T? initialData,
     bool loadImmediately = false,
   }) : state = StateSignal<ResourceSnapshot<T>>(
-         ResourceSnapshot<T>(
-           status: initialData == null
-               ? ResourceStatus.idle
-               : ResourceStatus.success,
-           data: initialData,
-           updatedAt: initialData == null ? null : DateTime.now(),
-         ),
-       ) {
+          ResourceSnapshot<T>(
+            status: initialData == null
+                ? ResourceStatus.idle
+                : ResourceStatus.success,
+            data: initialData,
+            updatedAt: initialData == null ? null : DateTime.now(),
+          ),
+        ) {
     if (loadImmediately) {
       load(silent: initialData != null);
     }
@@ -253,11 +253,10 @@ class FlintModelApi<T> {
   /// Creates an API that returns [FlintModelRecord] objects.
   factory FlintModelApi.records(String path, {ClientRouter? router}) {
     return FlintModelApi<FlintModelRecord>(
-          path: path,
-          router: router,
-          fromJson: (json) => FlintModelRecord(json),
-        )
-        as FlintModelApi<T>;
+      path: path,
+      router: router,
+      fromJson: (json) => FlintModelRecord(json),
+    ) as FlintModelApi<T>;
   }
 
   /// Base API path, for example `/plans`.

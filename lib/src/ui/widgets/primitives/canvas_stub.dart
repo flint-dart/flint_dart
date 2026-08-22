@@ -50,12 +50,12 @@ class CanvasPaint {
 
   /// Converts paint settings to a JSON-friendly map.
   Map<String, Object?> toJson() => {
-    if (fill != null) 'fill': fill,
-    if (pattern != null) 'pattern': pattern!.toJson(),
-    if (stroke != null) 'stroke': stroke,
-    'lineWidth': lineWidth,
-    'font': font,
-  };
+        if (fill != null) 'fill': fill,
+        if (pattern != null) 'pattern': pattern!.toJson(),
+        if (stroke != null) 'stroke': stroke,
+        'lineWidth': lineWidth,
+        'font': font,
+      };
 
   /// Creates paint settings from [json].
   factory CanvasPaint.fromJson(Map<String, Object?> json) {
@@ -66,9 +66,8 @@ class CanvasPaint {
               Map<String, Object?>.from(json['pattern'] as Map),
             )
           : null,
-      stroke: json.containsKey('stroke')
-          ? json['stroke']?.toString()
-          : '#111827',
+      stroke:
+          json.containsKey('stroke') ? json['stroke']?.toString() : '#111827',
       lineWidth: _toDouble(json['lineWidth'], fallback: 1),
       font: json['font']?.toString() ?? '16px sans-serif',
     );
@@ -99,10 +98,10 @@ class CanvasImagePattern {
 
   /// Converts this pattern to a JSON-friendly map.
   Map<String, Object?> toJson() => {
-    'src': src,
-    'repetition': repetition.value,
-    if (crossOrigin != null) 'crossOrigin': crossOrigin,
-  };
+        'src': src,
+        'repetition': repetition.value,
+        if (crossOrigin != null) 'crossOrigin': crossOrigin,
+      };
 
   /// Creates an image pattern from [json].
   factory CanvasImagePattern.fromJson(Map<String, Object?> json) {
@@ -464,19 +463,19 @@ class CanvasRect extends CanvasObject {
 
   @override
   Map<String, Object?> toJson() => {
-    'type': type,
-    if (id != null) 'id': id,
-    if (name != null) 'name': name,
-    'paint': paint.toJson(),
-    'rotation': rotation,
-    'locked': locked,
-    'hidden': hidden,
-    'x': x,
-    'y': y,
-    'width': width,
-    'height': height,
-    'borderRadius': borderRadius,
-  };
+        'type': type,
+        if (id != null) 'id': id,
+        if (name != null) 'name': name,
+        'paint': paint.toJson(),
+        'rotation': rotation,
+        'locked': locked,
+        'hidden': hidden,
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+        'borderRadius': borderRadius,
+      };
 }
 
 /// Retained line object.
@@ -532,18 +531,18 @@ class CanvasLine extends CanvasObject {
 
   @override
   Map<String, Object?> toJson() => {
-    'type': type,
-    if (id != null) 'id': id,
-    if (name != null) 'name': name,
-    'paint': paint.toJson(),
-    'rotation': rotation,
-    'locked': locked,
-    'hidden': hidden,
-    'x1': x1,
-    'y1': y1,
-    'x2': x2,
-    'y2': y2,
-  };
+        'type': type,
+        if (id != null) 'id': id,
+        if (name != null) 'name': name,
+        'paint': paint.toJson(),
+        'rotation': rotation,
+        'locked': locked,
+        'hidden': hidden,
+        'x1': x1,
+        'y1': y1,
+        'x2': x2,
+        'y2': y2,
+      };
 }
 
 /// Retained circle object.
@@ -595,17 +594,17 @@ class CanvasCircle extends CanvasObject {
 
   @override
   Map<String, Object?> toJson() => {
-    'type': type,
-    if (id != null) 'id': id,
-    if (name != null) 'name': name,
-    'paint': paint.toJson(),
-    'rotation': rotation,
-    'locked': locked,
-    'hidden': hidden,
-    'x': x,
-    'y': y,
-    'radius': radius,
-  };
+        'type': type,
+        if (id != null) 'id': id,
+        if (name != null) 'name': name,
+        'paint': paint.toJson(),
+        'rotation': rotation,
+        'locked': locked,
+        'hidden': hidden,
+        'x': x,
+        'y': y,
+        'radius': radius,
+      };
 }
 
 /// Retained text object.
@@ -657,17 +656,17 @@ class CanvasTextObject extends CanvasObject {
 
   @override
   Map<String, Object?> toJson() => {
-    'type': type,
-    if (id != null) 'id': id,
-    if (name != null) 'name': name,
-    'paint': paint.toJson(),
-    'rotation': rotation,
-    'locked': locked,
-    'hidden': hidden,
-    'text': text,
-    'x': x,
-    'y': y,
-  };
+        'type': type,
+        if (id != null) 'id': id,
+        if (name != null) 'name': name,
+        'paint': paint.toJson(),
+        'rotation': rotation,
+        'locked': locked,
+        'hidden': hidden,
+        'text': text,
+        'x': x,
+        'y': y,
+      };
 }
 
 /// Retained image object.
@@ -735,20 +734,20 @@ class CanvasImageObject extends CanvasObject {
 
   @override
   Map<String, Object?> toJson() => {
-    'type': type,
-    if (id != null) 'id': id,
-    if (name != null) 'name': name,
-    'paint': paint.toJson(),
-    'rotation': rotation,
-    'locked': locked,
-    'hidden': hidden,
-    'src': src,
-    'x': x,
-    'y': y,
-    'width': width,
-    'height': height,
-    if (crossOrigin != null) 'crossOrigin': crossOrigin,
-  };
+        'type': type,
+        if (id != null) 'id': id,
+        if (name != null) 'name': name,
+        'paint': paint.toJson(),
+        'rotation': rotation,
+        'locked': locked,
+        'hidden': hidden,
+        'src': src,
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+        if (crossOrigin != null) 'crossOrigin': crossOrigin,
+      };
 }
 
 /// Creates a retained canvas object from JSON.
@@ -762,66 +761,66 @@ CanvasObject canvasObjectFromJson(Map<String, Object?> json) {
   final hidden = json['hidden'] == true;
   return switch (json['type']?.toString()) {
     'rect' => CanvasRect(
-      id: id,
-      name: name,
-      paint: paint,
-      rotation: _toDouble(json['rotation']),
-      locked: locked,
-      hidden: hidden,
-      x: _toDouble(json['x']),
-      y: _toDouble(json['y']),
-      width: _toDouble(json['width']),
-      height: _toDouble(json['height']),
-      borderRadius: _toDouble(json['borderRadius']),
-    ),
+        id: id,
+        name: name,
+        paint: paint,
+        rotation: _toDouble(json['rotation']),
+        locked: locked,
+        hidden: hidden,
+        x: _toDouble(json['x']),
+        y: _toDouble(json['y']),
+        width: _toDouble(json['width']),
+        height: _toDouble(json['height']),
+        borderRadius: _toDouble(json['borderRadius']),
+      ),
     'line' => CanvasLine(
-      id: id,
-      name: name,
-      paint: paint,
-      rotation: _toDouble(json['rotation']),
-      locked: locked,
-      hidden: hidden,
-      x1: _toDouble(json['x1']),
-      y1: _toDouble(json['y1']),
-      x2: _toDouble(json['x2']),
-      y2: _toDouble(json['y2']),
-    ),
+        id: id,
+        name: name,
+        paint: paint,
+        rotation: _toDouble(json['rotation']),
+        locked: locked,
+        hidden: hidden,
+        x1: _toDouble(json['x1']),
+        y1: _toDouble(json['y1']),
+        x2: _toDouble(json['x2']),
+        y2: _toDouble(json['y2']),
+      ),
     'circle' => CanvasCircle(
-      id: id,
-      name: name,
-      paint: paint,
-      rotation: _toDouble(json['rotation']),
-      locked: locked,
-      hidden: hidden,
-      x: _toDouble(json['x']),
-      y: _toDouble(json['y']),
-      radius: _toDouble(json['radius']),
-    ),
+        id: id,
+        name: name,
+        paint: paint,
+        rotation: _toDouble(json['rotation']),
+        locked: locked,
+        hidden: hidden,
+        x: _toDouble(json['x']),
+        y: _toDouble(json['y']),
+        radius: _toDouble(json['radius']),
+      ),
     'text' => CanvasTextObject(
-      id: id,
-      name: name,
-      paint: paint,
-      rotation: _toDouble(json['rotation']),
-      locked: locked,
-      hidden: hidden,
-      text: json['text']?.toString() ?? '',
-      x: _toDouble(json['x']),
-      y: _toDouble(json['y']),
-    ),
+        id: id,
+        name: name,
+        paint: paint,
+        rotation: _toDouble(json['rotation']),
+        locked: locked,
+        hidden: hidden,
+        text: json['text']?.toString() ?? '',
+        x: _toDouble(json['x']),
+        y: _toDouble(json['y']),
+      ),
     'image' => CanvasImageObject(
-      id: id,
-      name: name,
-      paint: paint,
-      rotation: _toDouble(json['rotation']),
-      locked: locked,
-      hidden: hidden,
-      src: json['src']?.toString() ?? '',
-      x: _toDouble(json['x']),
-      y: _toDouble(json['y']),
-      width: _toDouble(json['width']),
-      height: _toDouble(json['height']),
-      crossOrigin: json['crossOrigin']?.toString(),
-    ),
+        id: id,
+        name: name,
+        paint: paint,
+        rotation: _toDouble(json['rotation']),
+        locked: locked,
+        hidden: hidden,
+        src: json['src']?.toString() ?? '',
+        x: _toDouble(json['x']),
+        y: _toDouble(json['y']),
+        width: _toDouble(json['width']),
+        height: _toDouble(json['height']),
+        crossOrigin: json['crossOrigin']?.toString(),
+      ),
     _ => throw ArgumentError('Unknown canvas object type: ${json['type']}'),
   };
 }
@@ -981,26 +980,26 @@ class CanvasController {
 
   /// Currently selected objects.
   List<CanvasObject> get selectedObjects => [
-    for (final id in _selectedObjectIds)
-      if (objectById(id) case final object?) object,
-  ];
+        for (final id in _selectedObjectIds)
+          if (objectById(id) case final object?) object,
+      ];
 
   /// Layer-panel view of retained objects, ordered from front to back.
   List<CanvasLayerItem> get layerItems => [
-    for (var index = _objects.length - 1; index >= 0; index -= 1)
-      CanvasLayerItem(
-        id: _objects[index].id,
-        name:
-            _objects[index].name ?? _objects[index].id ?? _objects[index].type,
-        type: _objects[index].type,
-        zIndex: index,
-        selected:
-            _objects[index].id != null &&
-            _selectedObjectIds.contains(_objects[index].id),
-        locked: _objects[index].locked,
-        hidden: _objects[index].hidden,
-      ),
-  ];
+        for (var index = _objects.length - 1; index >= 0; index -= 1)
+          CanvasLayerItem(
+            id: _objects[index].id,
+            name: _objects[index].name ??
+                _objects[index].id ??
+                _objects[index].type,
+            type: _objects[index].type,
+            zIndex: index,
+            selected: _objects[index].id != null &&
+                _selectedObjectIds.contains(_objects[index].id),
+            locked: _objects[index].locked,
+            hidden: _objects[index].hidden,
+          ),
+      ];
 
   /// Bounds for the currently selected object.
   CanvasBounds? get selectedBounds {
@@ -1096,13 +1095,13 @@ class CanvasController {
 
   /// Locks or unlocks selected objects.
   bool setSelectedLocked(bool locked) => _updateSelectedObjects(
-    (object) => _copyObjectWithMeta(object, locked: locked),
-  );
+        (object) => _copyObjectWithMeta(object, locked: locked),
+      );
 
   /// Hides or shows selected objects.
   bool setSelectedHidden(bool hidden) => _updateSelectedObjects(
-    (object) => _copyObjectWithMeta(object, hidden: hidden),
-  );
+        (object) => _copyObjectWithMeta(object, hidden: hidden),
+      );
 
   /// Updates paint on one object.
   bool updateObjectPaint(String id, CanvasPaint paint) {
@@ -1724,18 +1723,18 @@ class CanvasController {
 
   /// Exports retained objects as JSON-friendly scene data.
   Map<String, Object?> toJson() => {
-    'objects': _objects.map((object) => object.toJson()).toList(),
-    if (selectedObjectId != null) 'selectedObjectId': selectedObjectId,
-    if (_selectedObjectIds.isNotEmpty)
-      'selectedObjectIds': List<String>.from(_selectedObjectIds),
-  };
+        'objects': _objects.map((object) => object.toJson()).toList(),
+        if (selectedObjectId != null) 'selectedObjectId': selectedObjectId,
+        if (_selectedObjectIds.isNotEmpty)
+          'selectedObjectIds': List<String>.from(_selectedObjectIds),
+      };
 
   /// Exports selected retained objects as JSON-friendly scene data.
   Map<String, Object?> selectedToJson() => {
-    'objects': selectedObjects.map((object) => object.toJson()).toList(),
-    if (_selectedObjectIds.isNotEmpty)
-      'selectedObjectIds': List<String>.from(_selectedObjectIds),
-  };
+        'objects': selectedObjects.map((object) => object.toJson()).toList(),
+        if (_selectedObjectIds.isNotEmpty)
+          'selectedObjectIds': List<String>.from(_selectedObjectIds),
+      };
 
   /// Creates a duplicate JSON snapshot of the current scene.
   Map<String, Object?> duplicateSceneJson() => _cloneJson(toJson());
@@ -1813,8 +1812,8 @@ class CanvasController {
       ..clear()
       ..addAll(
         (json['objects'] as Iterable? ?? const []).whereType<Map>().map(
-          (item) => canvasObjectFromJson(Map<String, Object?>.from(item)),
-        ),
+              (item) => canvasObjectFromJson(Map<String, Object?>.from(item)),
+            ),
       );
     final selectedIds = (json['selectedObjectIds'] as Iterable? ?? const [])
         .map((id) => id.toString())
@@ -2096,35 +2095,35 @@ class CanvasController {
 CanvasBounds _boundsFor(CanvasObject object) {
   return switch (object) {
     CanvasRect rect => CanvasBounds(
-      x: rect.x,
-      y: rect.y,
-      width: rect.width,
-      height: rect.height,
-    ),
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+      ),
     CanvasCircle circle => CanvasBounds(
-      x: circle.x - circle.radius,
-      y: circle.y - circle.radius,
-      width: circle.radius * 2,
-      height: circle.radius * 2,
-    ),
+        x: circle.x - circle.radius,
+        y: circle.y - circle.radius,
+        width: circle.radius * 2,
+        height: circle.radius * 2,
+      ),
     CanvasLine line => CanvasBounds(
-      x: _min(line.x1, line.x2),
-      y: _min(line.y1, line.y2),
-      width: (line.x2 - line.x1).abs(),
-      height: (line.y2 - line.y1).abs(),
-    ),
+        x: _min(line.x1, line.x2),
+        y: _min(line.y1, line.y2),
+        width: (line.x2 - line.x1).abs(),
+        height: (line.y2 - line.y1).abs(),
+      ),
     CanvasTextObject text => CanvasBounds(
-      x: text.x,
-      y: text.y - 20,
-      width: _max(1, text.text.length * 10),
-      height: 26,
-    ),
+        x: text.x,
+        y: text.y - 20,
+        width: _max(1, text.text.length * 10),
+        height: 26,
+      ),
     CanvasImageObject image => CanvasBounds(
-      x: image.x,
-      y: image.y,
-      width: image.width,
-      height: image.height,
-    ),
+        x: image.x,
+        y: image.y,
+        width: image.width,
+        height: image.height,
+      ),
     _ => const CanvasBounds(x: 0, y: 0, width: 0, height: 0),
   };
 }
@@ -2161,29 +2160,29 @@ CanvasBounds _boundsFromHandle(
   if (handle == CanvasSelectionHandle.rotate) return bounds;
   return switch (handle) {
     CanvasSelectionHandle.resizeNorthWest => CanvasBounds(
-      x: bounds.x + dx,
-      y: bounds.y + dy,
-      width: _max(1, bounds.width - dx),
-      height: _max(1, bounds.height - dy),
-    ),
+        x: bounds.x + dx,
+        y: bounds.y + dy,
+        width: _max(1, bounds.width - dx),
+        height: _max(1, bounds.height - dy),
+      ),
     CanvasSelectionHandle.resizeNorthEast => CanvasBounds(
-      x: bounds.x,
-      y: bounds.y + dy,
-      width: _max(1, bounds.width + dx),
-      height: _max(1, bounds.height - dy),
-    ),
+        x: bounds.x,
+        y: bounds.y + dy,
+        width: _max(1, bounds.width + dx),
+        height: _max(1, bounds.height - dy),
+      ),
     CanvasSelectionHandle.resizeSouthWest => CanvasBounds(
-      x: bounds.x + dx,
-      y: bounds.y,
-      width: _max(1, bounds.width - dx),
-      height: _max(1, bounds.height + dy),
-    ),
+        x: bounds.x + dx,
+        y: bounds.y,
+        width: _max(1, bounds.width - dx),
+        height: _max(1, bounds.height + dy),
+      ),
     _ => CanvasBounds(
-      x: bounds.x,
-      y: bounds.y,
-      width: _max(1, bounds.width + dx),
-      height: _max(1, bounds.height + dy),
-    ),
+        x: bounds.x,
+        y: bounds.y,
+        width: _max(1, bounds.width + dx),
+        height: _max(1, bounds.height + dy),
+      ),
   };
 }
 
@@ -2202,48 +2201,48 @@ CanvasObject _scaleObjectInBounds(
 
   return switch (object) {
     CanvasRect rect => rect.copyWith(
-      x: scaleXValue(rect.x),
-      y: scaleYValue(rect.y),
-      width: _clampSize(
-        rect.width * scaleX,
-        constraints.minWidth,
-        constraints.maxWidth,
+        x: scaleXValue(rect.x),
+        y: scaleYValue(rect.y),
+        width: _clampSize(
+          rect.width * scaleX,
+          constraints.minWidth,
+          constraints.maxWidth,
+        ),
+        height: _clampSize(
+          rect.height * scaleY,
+          constraints.minHeight,
+          constraints.maxHeight,
+        ),
       ),
-      height: _clampSize(
-        rect.height * scaleY,
-        constraints.minHeight,
-        constraints.maxHeight,
-      ),
-    ),
     CanvasImageObject image => image.copyWith(
-      x: scaleXValue(image.x),
-      y: scaleYValue(image.y),
-      width: _clampSize(
-        image.width * scaleX,
-        constraints.minWidth,
-        constraints.maxWidth,
+        x: scaleXValue(image.x),
+        y: scaleYValue(image.y),
+        width: _clampSize(
+          image.width * scaleX,
+          constraints.minWidth,
+          constraints.maxWidth,
+        ),
+        height: _clampSize(
+          image.height * scaleY,
+          constraints.minHeight,
+          constraints.maxHeight,
+        ),
       ),
-      height: _clampSize(
-        image.height * scaleY,
-        constraints.minHeight,
-        constraints.maxHeight,
-      ),
-    ),
     CanvasCircle circle => circle.copyWith(
-      x: scaleXValue(circle.x),
-      y: scaleYValue(circle.y),
-      radius: _max(1, circle.radius * ((scaleX + scaleY) / 2)),
-    ),
+        x: scaleXValue(circle.x),
+        y: scaleYValue(circle.y),
+        radius: _max(1, circle.radius * ((scaleX + scaleY) / 2)),
+      ),
     CanvasLine line => line.copyWith(
-      x1: scaleXValue(line.x1),
-      y1: scaleYValue(line.y1),
-      x2: scaleXValue(line.x2),
-      y2: scaleYValue(line.y2),
-    ),
+        x1: scaleXValue(line.x1),
+        y1: scaleYValue(line.y1),
+        x2: scaleXValue(line.x2),
+        y2: scaleYValue(line.y2),
+      ),
     CanvasTextObject text => text.copyWith(
-      x: scaleXValue(text.x),
-      y: scaleYValue(text.y),
-    ),
+        x: scaleXValue(text.x),
+        y: scaleYValue(text.y),
+      ),
     _ => object,
   };
 }
@@ -2258,27 +2257,24 @@ bool _sameIds(List<String> current, List<String> next) {
 
 bool _containsPoint(CanvasObject object, double x, double y) {
   return switch (object) {
-    CanvasRect rect =>
-      x >= rect.x &&
-          x <= rect.x + rect.width &&
-          y >= rect.y &&
-          y <= rect.y + rect.height,
+    CanvasRect rect => x >= rect.x &&
+        x <= rect.x + rect.width &&
+        y >= rect.y &&
+        y <= rect.y + rect.height,
     CanvasCircle circle =>
       ((x - circle.x) * (x - circle.x)) + ((y - circle.y) * (y - circle.y)) <=
           circle.radius * circle.radius,
     CanvasLine line =>
       _distanceToLine(x, y, line.x1, line.y1, line.x2, line.y2) <=
           (line.paint.lineWidth <= 0 ? 4 : line.paint.lineWidth + 4),
-    CanvasTextObject text =>
-      x >= text.x &&
-          x <= text.x + (text.text.length * 10) &&
-          y >= text.y - 20 &&
-          y <= text.y + 6,
-    CanvasImageObject image =>
-      x >= image.x &&
-          x <= image.x + image.width &&
-          y >= image.y &&
-          y <= image.y + image.height,
+    CanvasTextObject text => x >= text.x &&
+        x <= text.x + (text.text.length * 10) &&
+        y >= text.y - 20 &&
+        y <= text.y + 6,
+    CanvasImageObject image => x >= image.x &&
+        x <= image.x + image.width &&
+        y >= image.y &&
+        y <= image.y + image.height,
     _ => false,
   };
 }
@@ -2288,11 +2284,11 @@ CanvasObject _moveObject(CanvasObject object, double dx, double dy) {
     CanvasRect rect => rect.copyWith(x: rect.x + dx, y: rect.y + dy),
     CanvasCircle circle => circle.copyWith(x: circle.x + dx, y: circle.y + dy),
     CanvasLine line => line.copyWith(
-      x1: line.x1 + dx,
-      y1: line.y1 + dy,
-      x2: line.x2 + dx,
-      y2: line.y2 + dy,
-    ),
+        x1: line.x1 + dx,
+        y1: line.y1 + dy,
+        x2: line.x2 + dx,
+        y2: line.y2 + dy,
+      ),
     CanvasTextObject text => text.copyWith(x: text.x + dx, y: text.y + dy),
     CanvasImageObject image => image.copyWith(x: image.x + dx, y: image.y + dy),
     _ => object,
@@ -2319,35 +2315,35 @@ CanvasObject _copyObjectWithMeta(
 }) {
   return switch (object) {
     CanvasRect rect => rect.copyWith(
-      id: id,
-      name: name,
-      locked: locked,
-      hidden: hidden,
-    ),
+        id: id,
+        name: name,
+        locked: locked,
+        hidden: hidden,
+      ),
     CanvasCircle circle => circle.copyWith(
-      id: id,
-      name: name,
-      locked: locked,
-      hidden: hidden,
-    ),
+        id: id,
+        name: name,
+        locked: locked,
+        hidden: hidden,
+      ),
     CanvasLine line => line.copyWith(
-      id: id,
-      name: name,
-      locked: locked,
-      hidden: hidden,
-    ),
+        id: id,
+        name: name,
+        locked: locked,
+        hidden: hidden,
+      ),
     CanvasTextObject text => text.copyWith(
-      id: id,
-      name: name,
-      locked: locked,
-      hidden: hidden,
-    ),
+        id: id,
+        name: name,
+        locked: locked,
+        hidden: hidden,
+      ),
     CanvasImageObject image => image.copyWith(
-      id: id,
-      name: name,
-      locked: locked,
-      hidden: hidden,
-    ),
+        id: id,
+        name: name,
+        locked: locked,
+        hidden: hidden,
+      ),
     _ => object,
   };
 }
@@ -2360,26 +2356,26 @@ CanvasObject _resizeObject(
 }) {
   return switch (object) {
     CanvasRect rect => _resizeRect(
-      rect,
-      rect.width + dw,
-      rect.height + dh,
-      constraints: constraints,
-    ),
-    CanvasCircle circle => circle.copyWith(
-      radius: _clampSize(
-        circle.radius + _max(dw, dh),
-        constraints.minWidth / 2,
-        constraints.maxWidth == null ? null : constraints.maxWidth! / 2,
+        rect,
+        rect.width + dw,
+        rect.height + dh,
+        constraints: constraints,
       ),
-    ),
+    CanvasCircle circle => circle.copyWith(
+        radius: _clampSize(
+          circle.radius + _max(dw, dh),
+          constraints.minWidth / 2,
+          constraints.maxWidth == null ? null : constraints.maxWidth! / 2,
+        ),
+      ),
     CanvasLine line => line.copyWith(x2: line.x2 + dw, y2: line.y2 + dh),
     CanvasTextObject text => text,
     CanvasImageObject image => _resizeImage(
-      image,
-      image.width + dw,
-      image.height + dh,
-      constraints: constraints,
-    ),
+        image,
+        image.width + dw,
+        image.height + dh,
+        constraints: constraints,
+      ),
     _ => object,
   };
 }
@@ -2394,96 +2390,97 @@ CanvasObject _resizeObjectFromHandle(
   if (handle == CanvasSelectionHandle.rotate) return object;
   return switch (object) {
     CanvasRect rect => switch (handle) {
-      CanvasSelectionHandle.resizeNorthWest => _applySizeConstraints(
-        rect,
-        rect.copyWith(
-          x: rect.x + dx,
-          y: rect.y + dy,
-          width: _max(1, rect.width - dx),
-          height: _max(1, rect.height - dy),
-        ),
-        constraints,
-      ),
-      CanvasSelectionHandle.resizeNorthEast => _applySizeConstraints(
-        rect,
-        rect.copyWith(
-          y: rect.y + dy,
-          width: _max(1, rect.width + dx),
-          height: _max(1, rect.height - dy),
-        ),
-        constraints,
-      ),
-      CanvasSelectionHandle.resizeSouthWest => _applySizeConstraints(
-        rect,
-        rect.copyWith(
-          x: rect.x + dx,
-          width: _max(1, rect.width - dx),
-          height: _max(1, rect.height + dy),
-        ),
-        constraints,
-      ),
-      _ => _applySizeConstraints(
-        rect,
-        rect.copyWith(
-          width: _max(1, rect.width + dx),
-          height: _max(1, rect.height + dy),
-        ),
-        constraints,
-      ),
-    },
+        CanvasSelectionHandle.resizeNorthWest => _applySizeConstraints(
+            rect,
+            rect.copyWith(
+              x: rect.x + dx,
+              y: rect.y + dy,
+              width: _max(1, rect.width - dx),
+              height: _max(1, rect.height - dy),
+            ),
+            constraints,
+          ),
+        CanvasSelectionHandle.resizeNorthEast => _applySizeConstraints(
+            rect,
+            rect.copyWith(
+              y: rect.y + dy,
+              width: _max(1, rect.width + dx),
+              height: _max(1, rect.height - dy),
+            ),
+            constraints,
+          ),
+        CanvasSelectionHandle.resizeSouthWest => _applySizeConstraints(
+            rect,
+            rect.copyWith(
+              x: rect.x + dx,
+              width: _max(1, rect.width - dx),
+              height: _max(1, rect.height + dy),
+            ),
+            constraints,
+          ),
+        _ => _applySizeConstraints(
+            rect,
+            rect.copyWith(
+              width: _max(1, rect.width + dx),
+              height: _max(1, rect.height + dy),
+            ),
+            constraints,
+          ),
+      },
     CanvasImageObject image => switch (handle) {
-      CanvasSelectionHandle.resizeNorthWest => _applySizeConstraints(
-        image,
-        image.copyWith(
-          x: image.x + dx,
-          y: image.y + dy,
-          width: _max(1, image.width - dx),
-          height: _max(1, image.height - dy),
-        ),
-        constraints,
-      ),
-      CanvasSelectionHandle.resizeNorthEast => _applySizeConstraints(
-        image,
-        image.copyWith(
-          y: image.y + dy,
-          width: _max(1, image.width + dx),
-          height: _max(1, image.height - dy),
-        ),
-        constraints,
-      ),
-      CanvasSelectionHandle.resizeSouthWest => _applySizeConstraints(
-        image,
-        image.copyWith(
-          x: image.x + dx,
-          width: _max(1, image.width - dx),
-          height: _max(1, image.height + dy),
-        ),
-        constraints,
-      ),
-      _ => _applySizeConstraints(
-        image,
-        image.copyWith(
-          width: _max(1, image.width + dx),
-          height: _max(1, image.height + dy),
-        ),
-        constraints,
-      ),
-    },
+        CanvasSelectionHandle.resizeNorthWest => _applySizeConstraints(
+            image,
+            image.copyWith(
+              x: image.x + dx,
+              y: image.y + dy,
+              width: _max(1, image.width - dx),
+              height: _max(1, image.height - dy),
+            ),
+            constraints,
+          ),
+        CanvasSelectionHandle.resizeNorthEast => _applySizeConstraints(
+            image,
+            image.copyWith(
+              y: image.y + dy,
+              width: _max(1, image.width + dx),
+              height: _max(1, image.height - dy),
+            ),
+            constraints,
+          ),
+        CanvasSelectionHandle.resizeSouthWest => _applySizeConstraints(
+            image,
+            image.copyWith(
+              x: image.x + dx,
+              width: _max(1, image.width - dx),
+              height: _max(1, image.height + dy),
+            ),
+            constraints,
+          ),
+        _ => _applySizeConstraints(
+            image,
+            image.copyWith(
+              width: _max(1, image.width + dx),
+              height: _max(1, image.height + dy),
+            ),
+            constraints,
+          ),
+      },
     CanvasCircle circle => circle.copyWith(
-      radius: _clampSize(
-        circle.radius + _max(dx.abs(), dy.abs()),
-        constraints.minWidth / 2,
-        constraints.maxWidth == null ? null : constraints.maxWidth! / 2,
+        radius: _clampSize(
+          circle.radius + _max(dx.abs(), dy.abs()),
+          constraints.minWidth / 2,
+          constraints.maxWidth == null ? null : constraints.maxWidth! / 2,
+        ),
       ),
-    ),
     CanvasLine line => switch (handle) {
-      CanvasSelectionHandle.resizeNorthWest ||
-      CanvasSelectionHandle.resizeSouthWest => line.copyWith(
-        x1: line.x1 + dx,
-        y1: line.y1 + dy,
-      ),
-      _ => line.copyWith(x2: line.x2 + dx, y2: line.y2 + dy),
-    },
+        CanvasSelectionHandle.resizeNorthWest ||
+        CanvasSelectionHandle.resizeSouthWest =>
+          line.copyWith(
+            x1: line.x1 + dx,
+            y1: line.y1 + dy,
+          ),
+        _ => line.copyWith(x2: line.x2 + dx, y2: line.y2 + dy),
+      },
     _ => object,
   };
 }
@@ -2496,12 +2493,10 @@ CanvasObject _applyMovementLocks(
   if (!constraints.lockMovementX && !constraints.lockMovementY) return next;
   final originalBounds = _boundsFor(original);
   final nextBounds = _boundsFor(next);
-  final dx = constraints.lockMovementX
-      ? originalBounds.left - nextBounds.left
-      : 0.0;
-  final dy = constraints.lockMovementY
-      ? originalBounds.top - nextBounds.top
-      : 0.0;
+  final dx =
+      constraints.lockMovementX ? originalBounds.left - nextBounds.left : 0.0;
+  final dy =
+      constraints.lockMovementY ? originalBounds.top - nextBounds.top : 0.0;
   return dx == 0 && dy == 0 ? next : _moveObject(next, dx, dy);
 }
 
@@ -2512,32 +2507,30 @@ CanvasObject _applySizeConstraints(
 ) {
   return switch (next) {
     CanvasRect rect => _resizeRect(
-      rect,
-      rect.width,
-      rect.height,
-      originalWidth: original is CanvasRect ? original.width : rect.width,
-      originalHeight: original is CanvasRect ? original.height : rect.height,
-      constraints: constraints,
-    ),
-    CanvasImageObject image => _resizeImage(
-      image,
-      image.width,
-      image.height,
-      originalWidth: original is CanvasImageObject
-          ? original.width
-          : image.width,
-      originalHeight: original is CanvasImageObject
-          ? original.height
-          : image.height,
-      constraints: constraints,
-    ),
-    CanvasCircle circle => circle.copyWith(
-      radius: _clampSize(
-        circle.radius,
-        constraints.minWidth / 2,
-        constraints.maxWidth == null ? null : constraints.maxWidth! / 2,
+        rect,
+        rect.width,
+        rect.height,
+        originalWidth: original is CanvasRect ? original.width : rect.width,
+        originalHeight: original is CanvasRect ? original.height : rect.height,
+        constraints: constraints,
       ),
-    ),
+    CanvasImageObject image => _resizeImage(
+        image,
+        image.width,
+        image.height,
+        originalWidth:
+            original is CanvasImageObject ? original.width : image.width,
+        originalHeight:
+            original is CanvasImageObject ? original.height : image.height,
+        constraints: constraints,
+      ),
+    CanvasCircle circle => circle.copyWith(
+        radius: _clampSize(
+          circle.radius,
+          constraints.minWidth / 2,
+          constraints.maxWidth == null ? null : constraints.maxWidth! / 2,
+        ),
+      ),
     _ => next,
   };
 }
@@ -2685,27 +2678,27 @@ CanvasObject _copyObject(
   return switch (object) {
     CanvasRect rect => rect.copyWith(id: id, x: rect.x + dx, y: rect.y + dy),
     CanvasCircle circle => circle.copyWith(
-      id: id,
-      x: circle.x + dx,
-      y: circle.y + dy,
-    ),
+        id: id,
+        x: circle.x + dx,
+        y: circle.y + dy,
+      ),
     CanvasLine line => line.copyWith(
-      id: id,
-      x1: line.x1 + dx,
-      y1: line.y1 + dy,
-      x2: line.x2 + dx,
-      y2: line.y2 + dy,
-    ),
+        id: id,
+        x1: line.x1 + dx,
+        y1: line.y1 + dy,
+        x2: line.x2 + dx,
+        y2: line.y2 + dy,
+      ),
     CanvasTextObject text => text.copyWith(
-      id: id,
-      x: text.x + dx,
-      y: text.y + dy,
-    ),
+        id: id,
+        x: text.x + dx,
+        y: text.y + dy,
+      ),
     CanvasImageObject image => image.copyWith(
-      id: id,
-      x: image.x + dx,
-      y: image.y + dy,
-    ),
+        id: id,
+        x: image.x + dx,
+        y: image.y + dy,
+      ),
     _ => object,
   };
 }
@@ -2760,25 +2753,25 @@ class Canvas extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'canvas',
-         props: mergeComponentProps(
-           {
-             ...props,
-             if (controller != null) '_flintCanvasController': controller,
-             'width': width,
-             'height': height,
-             'tabIndex': props['tabIndex'] ?? 0,
-           },
-           className: className,
-           defaultStyle: const {
-             'display': 'block',
-             'max-width': '100%',
-             'touch-action': 'none',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-       );
+          'canvas',
+          props: mergeComponentProps(
+            {
+              ...props,
+              if (controller != null) '_flintCanvasController': controller,
+              'width': width,
+              'height': height,
+              'tabIndex': props['tabIndex'] ?? 0,
+            },
+            className: className,
+            defaultStyle: const {
+              'display': 'block',
+              'max-width': '100%',
+              'touch-action': 'none',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+        );
 
   /// Optional drawing controller.
   final CanvasController? controller;

@@ -13,15 +13,15 @@ class TableRow extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'tr',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'tr',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }
 
 /// Table cell (td/th) element wrapper.
@@ -36,15 +36,15 @@ class TableCell extends FlintElement {
     DartStyle? dartStyle,
     bool header = false,
   }) : super(
-         header ? 'th' : 'td',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          header ? 'th' : 'td',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }
 
 /// Table (table) element wrapper.
@@ -58,13 +58,13 @@ class TableElement extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'table',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'table',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }

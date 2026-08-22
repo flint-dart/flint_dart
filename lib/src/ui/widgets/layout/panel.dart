@@ -17,25 +17,25 @@ class Panel extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'section',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {
-             'display': 'grid',
-             'gap': '14px',
-             'border': '1px solid #e4e7ec',
-             'border-radius': '8px',
-             'padding': '16px',
-             'background': '#ffffff',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           if (title != null || description != null || actions != null)
-             Section(title: title, description: description, actions: actions),
-           ...normalizeChildren(child, children),
-         ],
-       );
+          'section',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {
+              'display': 'grid',
+              'gap': '14px',
+              'border': '1px solid #e4e7ec',
+              'border-radius': '8px',
+              'padding': '16px',
+              'background': '#ffffff',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            if (title != null || description != null || actions != null)
+              Section(title: title, description: description, actions: actions),
+            ...normalizeChildren(child, children),
+          ],
+        );
 }

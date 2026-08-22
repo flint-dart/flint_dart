@@ -18,21 +18,21 @@ class Form extends FlintElement {
     DartStyle? dartStyle,
     void Function(Object event)? onSubmit,
   }) : super(
-         'form',
-         props: mergeComponentProps(
-           {
-             ...props,
-             if (method != null) 'method': method,
-             if (action != null) 'action': action,
-             if (disabled) 'aria-disabled': 'true',
-             if (loading) 'aria-busy': 'true',
-             if (onSubmit != null) 'onSubmit': onSubmit,
-           },
-           className: className,
-           defaultStyle: const {'display': 'grid', 'gap': '16px'},
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'form',
+          props: mergeComponentProps(
+            {
+              ...props,
+              if (method != null) 'method': method,
+              if (action != null) 'action': action,
+              if (disabled) 'aria-disabled': 'true',
+              if (loading) 'aria-busy': 'true',
+              if (onSubmit != null) 'onSubmit': onSubmit,
+            },
+            className: className,
+            defaultStyle: const {'display': 'grid', 'gap': '16px'},
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }

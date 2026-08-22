@@ -14,7 +14,8 @@ class Text extends FlintText {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) => _element('h1', value, className, props, style, dartStyle);
+  }) =>
+      _element('h1', value, className, props, style, dartStyle);
 
   /// Creates an `h2` text element.
   static FlintElement h2(
@@ -23,7 +24,8 @@ class Text extends FlintText {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) => _element('h2', value, className, props, style, dartStyle);
+  }) =>
+      _element('h2', value, className, props, style, dartStyle);
 
   /// Creates an `h3` text element.
   static FlintElement h3(
@@ -32,7 +34,8 @@ class Text extends FlintText {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) => _element('h3', value, className, props, style, dartStyle);
+  }) =>
+      _element('h3', value, className, props, style, dartStyle);
 
   /// Creates a paragraph text element.
   static FlintElement p(
@@ -41,7 +44,8 @@ class Text extends FlintText {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) => _element('p', value, className, props, style, dartStyle);
+  }) =>
+      _element('p', value, className, props, style, dartStyle);
 
   /// Creates an inline `span` text element.
   static FlintElement span(
@@ -50,7 +54,8 @@ class Text extends FlintText {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) => _element('span', value, className, props, style, dartStyle);
+  }) =>
+      _element('span', value, className, props, style, dartStyle);
 
   /// Creates a `strong` text element.
   static FlintElement strong(
@@ -59,7 +64,8 @@ class Text extends FlintText {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) => _element('strong', value, className, props, style, dartStyle);
+  }) =>
+      _element('strong', value, className, props, style, dartStyle);
 
   /// Creates a `small` text element.
   static FlintElement small(
@@ -68,7 +74,8 @@ class Text extends FlintText {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) => _element('small', value, className, props, style, dartStyle);
+  }) =>
+      _element('small', value, className, props, style, dartStyle);
 }
 
 FlintElement _element(

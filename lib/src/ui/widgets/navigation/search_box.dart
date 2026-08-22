@@ -19,58 +19,58 @@ class SearchBox extends FlintElement {
     void Function(Object event)? onChanged,
     void Function(Object event)? onSubmit,
   }) : super(
-         'form',
-         props: mergeComponentProps(
-           {
-             ...props,
-             'role': props['role'] ?? 'search',
-             if (onSubmit != null) 'onSubmit': onSubmit,
-           },
-           className: className,
-           defaultStyle: const {
-             'display': 'flex',
-             'align-items': 'center',
-             'gap': '8px',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           if (label != null)
-             FlintElement(
-               'label',
-               props: const {
-                 'style': {
-                   'font-size': '14px',
-                   'font-weight': 600,
-                   'color': '#344054',
-                 },
-               },
-               children: normalizeChildren(label, const []),
-             ),
-           FlintElement(
-             'input',
-             props: mergeComponentProps(
-               {
-                 ...inputProps,
-                 'type': 'search',
-                 if (name != null) 'name': name,
-                 if (value != null) 'value': value,
-                 'placeholder': placeholder,
-                 if (label == null) 'aria-label': placeholder,
-                 if (disabled) 'disabled': true,
-                 if (onChanged != null) 'onInput': onChanged,
-               },
-               defaultStyle: const {
-                 'min-height': '38px',
-                 'min-width': '220px',
-                 'border': '1px solid #d0d5dd',
-                 'border-radius': '8px',
-                 'padding': '0 10px',
-                 'font': 'inherit',
-               },
-             ),
-           ),
-         ],
-       );
+          'form',
+          props: mergeComponentProps(
+            {
+              ...props,
+              'role': props['role'] ?? 'search',
+              if (onSubmit != null) 'onSubmit': onSubmit,
+            },
+            className: className,
+            defaultStyle: const {
+              'display': 'flex',
+              'align-items': 'center',
+              'gap': '8px',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            if (label != null)
+              FlintElement(
+                'label',
+                props: const {
+                  'style': {
+                    'font-size': '14px',
+                    'font-weight': 600,
+                    'color': '#344054',
+                  },
+                },
+                children: normalizeChildren(label, const []),
+              ),
+            FlintElement(
+              'input',
+              props: mergeComponentProps(
+                {
+                  ...inputProps,
+                  'type': 'search',
+                  if (name != null) 'name': name,
+                  if (value != null) 'value': value,
+                  'placeholder': placeholder,
+                  if (label == null) 'aria-label': placeholder,
+                  if (disabled) 'disabled': true,
+                  if (onChanged != null) 'onInput': onChanged,
+                },
+                defaultStyle: const {
+                  'min-height': '38px',
+                  'min-width': '220px',
+                  'border': '1px solid #d0d5dd',
+                  'border-radius': '8px',
+                  'padding': '0 10px',
+                  'font': 'inherit',
+                },
+              ),
+            ),
+          ],
+        );
 }

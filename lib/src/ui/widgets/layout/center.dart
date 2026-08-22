@@ -14,18 +14,18 @@ class Center extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: {
-             'display': inline ? 'inline-flex' : 'flex',
-             'align-items': 'center',
-             'justify-content': 'center',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: {
+              'display': inline ? 'inline-flex' : 'flex',
+              'align-items': 'center',
+              'justify-content': 'center',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }

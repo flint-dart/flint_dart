@@ -28,43 +28,43 @@ class Breadcrumbs extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'nav',
-         props: mergeComponentProps(
-           {...props, 'aria-label': props['aria-label'] ?? 'Breadcrumb'},
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           FlintElement(
-             'ol',
-             props: const {
-               'style': {
-                 'display': 'flex',
-                 'align-items': 'center',
-                 'gap': '8px',
-                 'list-style': 'none',
-                 'padding': 0,
-                 'margin': 0,
-               },
-             },
-             children: [
-               for (var i = 0; i < items.length; i++) ...[
-                 if (i > 0)
-                   FlintElement(
-                     'li',
-                     props: const {
-                       'aria-hidden': 'true',
-                       'style': {'color': '#98a2b3'},
-                     },
-                     children: normalizeChildren(separator, const []),
-                   ),
-                 _item(items[i]),
-               ],
-             ],
-           ),
-         ],
-       );
+          'nav',
+          props: mergeComponentProps(
+            {...props, 'aria-label': props['aria-label'] ?? 'Breadcrumb'},
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            FlintElement(
+              'ol',
+              props: const {
+                'style': {
+                  'display': 'flex',
+                  'align-items': 'center',
+                  'gap': '8px',
+                  'list-style': 'none',
+                  'padding': 0,
+                  'margin': 0,
+                },
+              },
+              children: [
+                for (var i = 0; i < items.length; i++) ...[
+                  if (i > 0)
+                    FlintElement(
+                      'li',
+                      props: const {
+                        'aria-hidden': 'true',
+                        'style': {'color': '#98a2b3'},
+                      },
+                      children: normalizeChildren(separator, const []),
+                    ),
+                  _item(items[i]),
+                ],
+              ],
+            ),
+          ],
+        );
 
   static FlintElement _item(BreadcrumbItem item) {
     final current = item.current || item.href == null;

@@ -47,8 +47,8 @@ class FlintPageContext {
 
 typedef FlintPageMiddleware = void Function(FlintPageContext context);
 
-typedef FlintAsyncPageBuilder =
-    FutureOr<FlintPageBuilder?> Function(String component);
+typedef FlintAsyncPageBuilder = FutureOr<FlintPageBuilder?> Function(
+    String component);
 
 class MissingFlintPage extends StatelessComponent {
   MissingFlintPage(this.component);

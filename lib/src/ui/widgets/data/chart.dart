@@ -34,29 +34,30 @@ class LineChart extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {'width': '100%'},
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           _buildSvg(
-             series ?? [
-               LineChartSeries(
-                 data: data ?? const [],
-                 strokeColor: strokeColor,
-                 fillColor: fillColor,
-                 strokeWidth: strokeWidth,
-               ),
-             ],
-             labels,
-             height,
-           ),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {'width': '100%'},
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            _buildSvg(
+              series ??
+                  [
+                    LineChartSeries(
+                      data: data ?? const [],
+                      strokeColor: strokeColor,
+                      fillColor: fillColor,
+                      strokeWidth: strokeWidth,
+                    ),
+                  ],
+              labels,
+              height,
+            ),
+          ],
+        );
 
   static FlintNode _buildSvg(
     List<LineChartSeries> seriesList,
@@ -129,17 +130,13 @@ class LineChart extends FlintElement {
             'line',
             props: {
               'x1': padLeft.toString(),
-              'y1':
-                  (padTop +
-                          (1.0 - (gridVal - yMin) / (yMax - yMin)) *
-                              graphHeight)
-                      .toString(),
+              'y1': (padTop +
+                      (1.0 - (gridVal - yMin) / (yMax - yMin)) * graphHeight)
+                  .toString(),
               'x2': (width - padRight).toString(),
-              'y2':
-                  (padTop +
-                          (1.0 - (gridVal - yMin) / (yMax - yMin)) *
-                              graphHeight)
-                      .toString(),
+              'y2': (padTop +
+                      (1.0 - (gridVal - yMin) / (yMax - yMin)) * graphHeight)
+                  .toString(),
               'stroke': 'rgba(255, 255, 255, 0.05)',
               'stroke-width': '1',
               'stroke-dasharray': '4 4',
@@ -149,12 +146,10 @@ class LineChart extends FlintElement {
             'text',
             props: {
               'x': (padLeft - 8).toString(),
-              'y':
-                  (padTop +
-                          (1.0 - (gridVal - yMin) / (yMax - yMin)) *
-                              graphHeight +
-                          4)
-                      .toString(),
+              'y': (padTop +
+                      (1.0 - (gridVal - yMin) / (yMax - yMin)) * graphHeight +
+                      4)
+                  .toString(),
               'fill': '#94a3b8',
               'font-size': '10px',
               'font-family': 'sans-serif',
@@ -172,7 +167,8 @@ class LineChart extends FlintElement {
 
         // Draw paths for each series
         for (final series in seriesList) ...[
-          ..._buildSeriesPaths(series, labels.length, yMin, yMax, padLeft, padTop, graphWidth, graphHeight, height, padBottom),
+          ..._buildSeriesPaths(series, labels.length, yMin, yMax, padLeft,
+              padTop, graphWidth, graphHeight, height, padBottom),
         ],
 
         // X labels
@@ -180,12 +176,11 @@ class LineChart extends FlintElement {
           FlintElement(
             'text',
             props: {
-              'x':
-                  (padLeft +
-                          (labels.length > 1
-                              ? (i / (labels.length - 1)) * graphWidth
-                              : 0.0))
-                      .toString(),
+              'x': (padLeft +
+                      (labels.length > 1
+                          ? (i / (labels.length - 1)) * graphWidth
+                          : 0.0))
+                  .toString(),
               'y': (height - 8).toString(),
               'fill': '#94a3b8',
               'font-size': '10px',
@@ -220,7 +215,8 @@ class LineChart extends FlintElement {
     fillPoints.add('$padLeft,${height - padBottom}');
 
     for (int i = 0; i < series.data.length; i++) {
-      final double pctX = series.data.length > 1 ? (i / (series.data.length - 1)) : 0.0;
+      final double pctX =
+          series.data.length > 1 ? (i / (series.data.length - 1)) : 0.0;
       final double x = padLeft + (pctX * graphWidth);
 
       final double pctY = (series.data[i] - yMin) / (yMax - yMin);
@@ -231,7 +227,8 @@ class LineChart extends FlintElement {
     }
 
     // Add end fill point
-    fillPoints.add('${padLeft + (series.data.length > 1 ? graphWidth : 0.0)},${height - padBottom}');
+    fillPoints.add(
+        '${padLeft + (series.data.length > 1 ? graphWidth : 0.0)},${height - padBottom}');
 
     return [
       // Filled path under the line
@@ -258,17 +255,15 @@ class LineChart extends FlintElement {
         FlintElement(
           'circle',
           props: {
-            'cx':
-                (padLeft +
-                        (series.data.length > 1
-                            ? (i / (series.data.length - 1)) * graphWidth
-                            : 0.0))
-                    .toString(),
-            'cy':
-                (padTop +
-                        (1.0 - (series.data[i] - yMin) / (yMax - yMin)) *
-                            graphHeight)
-                    .toString(),
+            'cx': (padLeft +
+                    (series.data.length > 1
+                        ? (i / (series.data.length - 1)) * graphWidth
+                        : 0.0))
+                .toString(),
+            'cy': (padTop +
+                    (1.0 - (series.data[i] - yMin) / (yMax - yMin)) *
+                        graphHeight)
+                .toString(),
             'r': '4',
             'fill': series.strokeColor,
             'stroke': '#1e1b4b',
@@ -279,6 +274,7 @@ class LineChart extends FlintElement {
     ];
   }
 }
+
 /// Represents a single data series in a [BarChart].
 class BarChartSeries {
   final List<double> data;
@@ -305,27 +301,28 @@ class BarChart extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {'width': '100%'},
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           _buildSvg(
-             series ?? [
-               BarChartSeries(
-                 data: data ?? const [],
-                 barColor: barColor,
-               ),
-             ],
-             labels,
-             height,
-           )
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {'width': '100%'},
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            _buildSvg(
+              series ??
+                  [
+                    BarChartSeries(
+                      data: data ?? const [],
+                      barColor: barColor,
+                    ),
+                  ],
+              labels,
+              height,
+            )
+          ],
+        );
 
   static FlintNode _buildSvg(
     List<BarChartSeries> seriesList,
@@ -400,7 +397,8 @@ class BarChart extends FlintElement {
         // Grouped Bars
         for (int i = 0; i < labels.length; i++) ...[
           for (int s = 0; s < seriesList.length; s++) ...[
-            ..._buildBar(seriesList[s], i, s, barSpaceWidth, barWidth, barGapRatio, yMax, padLeft, padTop, graphHeight),
+            ..._buildBar(seriesList[s], i, s, barSpaceWidth, barWidth,
+                barGapRatio, yMax, padLeft, padTop, graphHeight),
           ]
         ],
 
