@@ -93,7 +93,7 @@ void main() {
       await uiRoot.create(recursive: true);
       await File(path.join(uiRoot.path, 'component_registry.dart'))
           .writeAsString('''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 final componentRegistry = PageRegistry({
 });

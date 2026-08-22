@@ -93,7 +93,7 @@ void main() {
       Directory('public').createSync();
 
       File(path.join(uiDir.path, 'main.dart')).writeAsStringSync('''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 import 'component_registry.dart';
 import 'styles/demo_design.dart';
@@ -108,13 +108,13 @@ void main() {
 ''');
       File(path.join(uiDir.path, 'styles', 'demo_design.dart'))
           .writeAsStringSync('''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 final demoRootDesign = RootDesign(name: 'demo');
 ''');
       File(path.join(uiDir.path, 'component_registry.dart')).writeAsStringSync(
         '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 import 'pages/home_page.dart';
 import 'pages/staff_dashboard_page.dart';

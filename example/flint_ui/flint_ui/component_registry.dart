@@ -1,4 +1,4 @@
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 import 'pages/counter_app.dart';
 import 'pages/guide_page.dart';
