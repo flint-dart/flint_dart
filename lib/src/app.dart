@@ -995,7 +995,7 @@ class Flint {
       Log.info(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
 
-      if (autoConnectDb) _connectDatabaseInBackground();
+      if (autoConnectDb) unawaited(_connectDatabaseInBackground());
       if (autoConnectMail) MailConfig.load();
     } on SocketException catch (e) {
       Log.debug('[FLINT] ❌ ERROR: Could not bind to port $port: ${e.message}');
@@ -1010,7 +1010,7 @@ class Flint {
     });
 
     await for (var req in server) {
-      _handleIncomingRequest(req);
+      unawaited(_handleIncomingRequest(req));
     }
   }
 

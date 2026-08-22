@@ -9,7 +9,7 @@ class Color {
   const Color(this.value);
 
   /// Creates a color from a hex string.
-  const Color.hex(String value) : value = value;
+  const Color.hex(this.value);
 
   /// Creates an `rgb(...)` color.
   const Color.rgb(int red, int green, int blue)

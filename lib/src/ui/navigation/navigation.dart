@@ -65,7 +65,7 @@ class BrowserNavigation {
   }
 
   JSAny? _toJsState(Object? state) {
-    return state == null ? null : state.jsify();
+    return state?.jsify();
   }
 
   void _dispatchFlintNavigation() {

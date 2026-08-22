@@ -102,7 +102,7 @@ Future<Set<int>> _findListeningProcessIdsOnUnix(int port) async {
 
 Future<ProcessResult> _tryRun(String executable, List<String> arguments) async {
   try {
-    return Process.run(executable, arguments);
+    return await Process.run(executable, arguments);
   } catch (_) {
     return ProcessResult(0, 1, '', '');
   }

@@ -9,12 +9,12 @@ class ThemeProvider extends StatelessComponent {
   /// Creates a theme provider for [child] or [children].
   ThemeProvider({
     this.mode = FlintThemeMode.light,
-    Object? child,
+    this.child,
     this.children = const [],
     this.dartStyle,
     this.className,
     this.props = const {},
-  }) : child = child;
+  });
 
   /// Active theme mode for this subtree.
   final FlintThemeMode mode;

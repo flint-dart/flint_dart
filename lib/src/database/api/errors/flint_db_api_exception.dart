@@ -1,4 +1,4 @@
-import '../../protocol/flint_db_protocol.dart';
+import 'package:flint_client/flint_client.dart';
 
 class FlintDbApiException implements Exception {
   const FlintDbApiException(

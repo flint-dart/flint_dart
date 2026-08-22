@@ -1,7 +1,21 @@
 /// Secure Database API & Protocol entrypoint for Flint applications.
 library;
 
-export 'src/database/protocol/flint_db_protocol.dart';
+export 'package:flint_client/flint_client.dart'
+    show
+        FlintDbQuery,
+        FlintDbResult,
+        FlintDbMeta,
+        FlintDbResourceSchema,
+        FlintDbFieldSchema,
+        FlintDbError,
+        FlintDbErrorCode,
+        FlintDbFilter,
+        FlintDbOrder,
+        FlintDbComparison,
+        FlintDbLogicalFilter,
+        FlintDbOperator,
+        FlintDbLogicalOperator;
 export 'src/database/api/config/flint_database_api_config.dart';
 export 'src/database/api/auth/flint_db_auth.dart';
 export 'src/database/api/errors/flint_db_api_exception.dart';

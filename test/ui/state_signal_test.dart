@@ -1,5 +1,4 @@
 import 'package:flint_dart/flint_ui_core.dart';
-import 'package:flint_dart/src/ui/widgets/shared/theme_controller_stub.dart';
 import 'package:test/test.dart';
 
 void main() {

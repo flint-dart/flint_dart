@@ -46,7 +46,7 @@ class PageRegistry {
 @Deprecated('Use PageRegistry instead')
 class FlintComponentRegistry extends PageRegistry {
   /// Creates a registry with optional initial [pages].
-  FlintComponentRegistry([Map<String, FlintPageBuilder>? pages]) : super(pages);
+  FlintComponentRegistry([super.pages]);
 
   @override
   FlintComponentRegistry only(Iterable<String> names) {

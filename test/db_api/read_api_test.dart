@@ -1,5 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/db_api.dart';
 import 'package:test/test.dart';
 
 class _User extends Model<_User> {
