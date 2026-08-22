@@ -13,11 +13,13 @@ class Mail {
   static SmtpServer? _server;
   static String? _fromAddress;
   static String? _fromName;
+  static String? _defaultReplyTo;
   static bool _autoConfigAttempted = false;
 
   final List<String> _to = [];
   final List<String> _cc = [];
   final List<String> _bcc = [];
+  String? _replyTo;
   String? _subject;
   String? _html;
   String? _text;
@@ -33,6 +35,7 @@ class Mail {
     required String password,
     required String fromAddress,
     String fromName = 'Flint Dart',
+    String? replyTo,
     bool useSSL = false,
     bool useTLS = true,
   }) {
@@ -47,6 +50,7 @@ class Mail {
 
     _fromAddress = fromAddress;
     _fromName = fromName;
+    _defaultReplyTo = replyTo;
     _autoConfigAttempted = true;
     Log.debug('Mail server configured for $_fromName <$_fromAddress>@$host');
   }
@@ -70,6 +74,7 @@ class Mail {
     final encryption = FlintEnv.get('MAIL_ENCRYPTION', 'tls').toLowerCase();
     final fromAddress = FlintEnv.get('MAIL_FROM_ADDRESS', 'noreply@localhost');
     final fromName = FlintEnv.get('MAIL_FROM_NAME', 'Flint Dart');
+    final replyTo = FlintEnv.get('MAIL_REPLY_TO', '');
 
     setup(
       provider: provider,
@@ -79,6 +84,7 @@ class Mail {
       password: password,
       fromAddress: fromAddress,
       fromName: fromName,
+      replyTo: replyTo.isNotEmpty ? replyTo : null,
       useSSL: encryption == 'ssl',
       useTLS: encryption == 'tls',
     );
@@ -130,6 +136,11 @@ class Mail {
     return this;
   }
 
+  Mail replyTo(String email) {
+    _replyTo = email;
+    return this;
+  }
+
   // ---- Message builder ----
   Message _buildMessage() {
     if (_to.isEmpty && _cc.isEmpty && _bcc.isEmpty) {
@@ -152,6 +163,11 @@ class Mail {
       ..ccRecipients.addAll(_cc)
       ..bccRecipients.addAll(_bcc)
       ..subject = _subject ?? '';
+
+    final replyAddress = _replyTo ?? _defaultReplyTo;
+    if (replyAddress != null && replyAddress.isNotEmpty) {
+      msg.headers['Reply-To'] = replyAddress;
+    }
 
     if (_html != null && _text == null) {
       final plain = _html!
@@ -228,6 +244,7 @@ class Mail {
     final mailData = {
       'fromAddress': _fromAddress,
       'fromName': _fromName,
+      'replyTo': _replyTo ?? _defaultReplyTo,
       'to': _to,
       'cc': _cc,
       'bcc': _bcc,
@@ -266,6 +283,11 @@ class Mail {
       ..subject = msgData['subject'] ?? ''
       ..text = msgData['text']
       ..html = msgData['html'];
+
+    final replyAddress = msgData['replyTo']?.toString();
+    if (replyAddress != null && replyAddress.isNotEmpty) {
+      msg.headers['Reply-To'] = replyAddress;
+    }
 
     final server = SmtpServer(
       serverData['host'],

@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.2.3] - 2026-08-17
+
+### Changed
+- Confirmed Flint UI compatibility range includes the latest `0.1.16` release so new Flint projects can use the newest UI widgets and browser rendering improvements as pub.dev propagation completes.
+
+### Added
+- Documented compatibility with Flint UI `0.1.16`, including date pickers, responsive grid helpers, animation widgets, typed CSS units, Three.js scene support, multi-series charts, and safer input focus preservation.
+
 ## [1.2.2] - 2026-07-20
 
 ### Changed
