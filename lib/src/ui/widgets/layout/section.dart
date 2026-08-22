@@ -16,24 +16,24 @@ class Section extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'section',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {
-             'display': 'grid',
-             'gap': '14px',
-             'margin-bottom': '24px',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           if (title != null || description != null || actions != null)
-             _sectionHeader(title, description, actions),
-           ...normalizeChildren(child, children),
-         ],
-       );
+          'section',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {
+              'display': 'grid',
+              'gap': '14px',
+              'margin-bottom': '24px',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            if (title != null || description != null || actions != null)
+              _sectionHeader(title, description, actions),
+            ...normalizeChildren(child, children),
+          ],
+        );
 
   static FlintElement _sectionHeader(
     String? title,

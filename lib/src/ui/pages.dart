@@ -17,8 +17,8 @@ import 'widgets/shared/theme_controller.dart';
 typedef FlintPageMiddleware = void Function(FlintPageContext context);
 
 /// Resolves a page builder, optionally loading a deferred page library first.
-typedef FlintAsyncPageBuilder =
-    FutureOr<FlintPageBuilder?> Function(String component);
+typedef FlintAsyncPageBuilder = FutureOr<FlintPageBuilder?> Function(
+    String component);
 
 /// Server-provided page payload used to mount a Flint UI page.
 class FlintPage {
@@ -171,8 +171,7 @@ void createFlintApp(
       if (context.stopped) return;
     }
 
-    final builder =
-        registry?[page.component] ??
+    final builder = registry?[page.component] ??
         pages?[page.component] ??
         await resolvePage?.call(page.component);
 
@@ -311,8 +310,7 @@ Future<_FetchedFlintPage> _fetchPageForCurrentLocation(String selector) {
 _FetchedFlintPage _parseFetchedPage(String html, String selector) {
   final container = web.document.createElement('div');
   container.innerHTML = html.toJS;
-  final host =
-      container.querySelector(selector) ??
+  final host = container.querySelector(selector) ??
       container.querySelector('[data-flint-page]');
   final encoded = host?.getAttribute('data-flint-page');
 

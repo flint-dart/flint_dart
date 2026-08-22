@@ -16,19 +16,19 @@ class AspectRatioBox extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           dartStyle: DartStyle(
-             width: width ?? SizeValue.full,
-             aspectRatio: ratio,
-             overflow: overflow,
-           ).merge(dartStyle),
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: DartStyle(
+              width: width ?? SizeValue.full,
+              aspectRatio: ratio,
+              overflow: overflow,
+            ).merge(dartStyle),
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 
   /// Creates a square aspect-ratio box.
   AspectRatioBox.square({
@@ -41,16 +41,16 @@ class AspectRatioBox extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : this(
-         ratio: '1 / 1',
-         child: child,
-         children: children,
-         width: width,
-         overflow: overflow,
-         className: className,
-         props: props,
-         style: style,
-         dartStyle: dartStyle,
-       );
+          ratio: '1 / 1',
+          child: child,
+          children: children,
+          width: width,
+          overflow: overflow,
+          className: className,
+          props: props,
+          style: style,
+          dartStyle: dartStyle,
+        );
 
   /// Creates a 16:9 aspect-ratio box.
   AspectRatioBox.video({
@@ -63,14 +63,14 @@ class AspectRatioBox extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : this(
-         ratio: '16 / 9',
-         child: child,
-         children: children,
-         width: width,
-         overflow: overflow,
-         className: className,
-         props: props,
-         style: style,
-         dartStyle: dartStyle,
-       );
+          ratio: '16 / 9',
+          child: child,
+          children: children,
+          width: width,
+          overflow: overflow,
+          className: className,
+          props: props,
+          style: style,
+          dartStyle: dartStyle,
+        );
 }

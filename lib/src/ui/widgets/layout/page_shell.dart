@@ -23,32 +23,32 @@ class PageShell extends FlintElement {
     DartStyle? dartStyle,
     DartStyle? contentDartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           dartStyle: DartStyle(
-             minHeight: '100vh',
-             display: Display.grid,
-             gridTemplateColumns: 'minmax(0, 1fr)',
-             gap: gap,
-             padding: EdgeInsets.all(padding),
-           ).merge(dartStyle),
-           style: style,
-         ),
-         children: [
-           if (nav != null) toFlintNode(nav),
-           _content(
-             header: header,
-             child: child,
-             children: children,
-             footer: footer,
-             maxWidth: maxWidth,
-             safeArea: safeArea,
-             contentDartStyle: contentDartStyle,
-           ),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: DartStyle(
+              minHeight: '100vh',
+              display: Display.grid,
+              gridTemplateColumns: 'minmax(0, 1fr)',
+              gap: gap,
+              padding: EdgeInsets.all(padding),
+            ).merge(dartStyle),
+            style: style,
+          ),
+          children: [
+            if (nav != null) toFlintNode(nav),
+            _content(
+              header: header,
+              child: child,
+              children: children,
+              footer: footer,
+              maxWidth: maxWidth,
+              safeArea: safeArea,
+              contentDartStyle: contentDartStyle,
+            ),
+          ],
+        );
 
   static FlintNode _content({
     required Object? header,

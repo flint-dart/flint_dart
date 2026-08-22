@@ -115,62 +115,62 @@ class Table extends FlintElement {
     DartStyle? cellDartStyle,
     void Function(Object event, TableRowData row)? onRowClick,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {
-             'overflow-x': 'auto',
-             'border': '1px solid #e4e7ec',
-             'border-radius': '8px',
-             'background': '#ffffff',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           if (loading)
-             toFlintNode(loadingState ?? 'Loading...')
-           else if (rows.isEmpty)
-             toFlintNode(emptyState ?? 'No records found.')
-           else
-             FlintElement(
-               'table',
-               props: mergeComponentProps(
-                 tableProps,
-                 className: tableClassName,
-                 defaultStyle: const {
-                   'width': '100%',
-                   'border-collapse': 'collapse',
-                 },
-                 dartStyle: tableDartStyle,
-                 style: tableStyle,
-               ),
-               children: [
-                 _thead(
-                   columns,
-                   headerClassName: headerClassName,
-                   headerStyle: headerStyle,
-                   headerDartStyle: headerDartStyle,
-                 ),
-                 _tbody(
-                   columns,
-                   rows,
-                   onRowClick,
-                   rowClassName: rowClassName,
-                   selectedRowClassName: selectedRowClassName,
-                   rowStyle: rowStyle,
-                   selectedRowStyle: selectedRowStyle,
-                   rowDartStyle: rowDartStyle,
-                   selectedRowDartStyle: selectedRowDartStyle,
-                   cellClassName: cellClassName,
-                   cellStyle: cellStyle,
-                   cellDartStyle: cellDartStyle,
-                 ),
-               ],
-             ),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {
+              'overflow-x': 'auto',
+              'border': '1px solid #e4e7ec',
+              'border-radius': '8px',
+              'background': '#ffffff',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            if (loading)
+              toFlintNode(loadingState ?? 'Loading...')
+            else if (rows.isEmpty)
+              toFlintNode(emptyState ?? 'No records found.')
+            else
+              FlintElement(
+                'table',
+                props: mergeComponentProps(
+                  tableProps,
+                  className: tableClassName,
+                  defaultStyle: const {
+                    'width': '100%',
+                    'border-collapse': 'collapse',
+                  },
+                  dartStyle: tableDartStyle,
+                  style: tableStyle,
+                ),
+                children: [
+                  _thead(
+                    columns,
+                    headerClassName: headerClassName,
+                    headerStyle: headerStyle,
+                    headerDartStyle: headerDartStyle,
+                  ),
+                  _tbody(
+                    columns,
+                    rows,
+                    onRowClick,
+                    rowClassName: rowClassName,
+                    selectedRowClassName: selectedRowClassName,
+                    rowStyle: rowStyle,
+                    selectedRowStyle: selectedRowStyle,
+                    rowDartStyle: rowDartStyle,
+                    selectedRowDartStyle: selectedRowDartStyle,
+                    cellClassName: cellClassName,
+                    cellStyle: cellStyle,
+                    cellDartStyle: cellDartStyle,
+                  ),
+                ],
+              ),
+          ],
+        );
 
   static FlintElement _thead(
     List<TableColumn> columns, {

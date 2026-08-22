@@ -151,25 +151,25 @@ DartStyle buttonComponentStyle({
 DartStyle buttonSizeStyle(ComponentSize size) {
   return switch (size) {
     ComponentSize.xs => const DartStyle(
-      minHeight: 28,
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      fontSize: 12,
-    ),
+        minHeight: 28,
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        fontSize: 12,
+      ),
     ComponentSize.sm => const DartStyle(
-      minHeight: 34,
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      fontSize: 13,
-    ),
+        minHeight: 34,
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        fontSize: 13,
+      ),
     ComponentSize.md => const DartStyle(
-      minHeight: 40,
-      padding: EdgeInsets.symmetric(horizontal: 14),
-      fontSize: 14,
-    ),
+        minHeight: 40,
+        padding: EdgeInsets.symmetric(horizontal: 14),
+        fontSize: 14,
+      ),
     ComponentSize.lg => const DartStyle(
-      minHeight: 46,
-      padding: EdgeInsets.symmetric(horizontal: 18),
-      fontSize: 15,
-    ),
+        minHeight: 46,
+        padding: EdgeInsets.symmetric(horizontal: 18),
+        fontSize: 15,
+      ),
   };
 }
 
@@ -177,25 +177,25 @@ DartStyle buttonSizeStyle(ComponentSize size) {
 DartStyle badgeSizeStyle(ComponentSize size) {
   return switch (size) {
     ComponentSize.xs => const DartStyle(
-      minHeight: 20,
-      padding: EdgeInsets.symmetric(horizontal: 7),
-      fontSize: 11,
-    ),
+        minHeight: 20,
+        padding: EdgeInsets.symmetric(horizontal: 7),
+        fontSize: 11,
+      ),
     ComponentSize.sm => const DartStyle(
-      minHeight: 24,
-      padding: EdgeInsets.symmetric(horizontal: 9),
-      fontSize: 12,
-    ),
+        minHeight: 24,
+        padding: EdgeInsets.symmetric(horizontal: 9),
+        fontSize: 12,
+      ),
     ComponentSize.md => const DartStyle(
-      minHeight: 28,
-      padding: EdgeInsets.symmetric(horizontal: 10),
-      fontSize: 13,
-    ),
+        minHeight: 28,
+        padding: EdgeInsets.symmetric(horizontal: 10),
+        fontSize: 13,
+      ),
     ComponentSize.lg => const DartStyle(
-      minHeight: 32,
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      fontSize: 14,
-    ),
+        minHeight: 32,
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        fontSize: 14,
+      ),
   };
 }
 
@@ -203,25 +203,25 @@ DartStyle badgeSizeStyle(ComponentSize size) {
 DartStyle buttonVariantStyle(ButtonVariant variant, Tone tone) {
   return switch (variant) {
     ButtonVariant.solid => DartStyle(
-      background: toneSolid(tone),
-      border: Border.all(color: toneSolid(tone)),
-      color: toneOnSolid(tone),
-    ),
+        background: toneSolid(tone),
+        border: Border.all(color: toneSolid(tone)),
+        color: toneOnSolid(tone),
+      ),
     ButtonVariant.soft => DartStyle(
-      background: toneSoft(tone),
-      border: Border.all(color: toneSoft(tone)),
-      color: toneText(tone),
-    ),
+        background: toneSoft(tone),
+        border: Border.all(color: toneSoft(tone)),
+        color: toneText(tone),
+      ),
     ButtonVariant.outline => DartStyle(
-      background: Colors.transparent,
-      border: Border.all(color: toneBorder(tone)),
-      color: toneText(tone),
-    ),
+        background: Colors.transparent,
+        border: Border.all(color: toneBorder(tone)),
+        color: toneText(tone),
+      ),
     ButtonVariant.ghost => DartStyle(
-      background: Colors.transparent,
-      border: const Border.all(color: Colors.transparent),
-      color: toneText(tone),
-    ),
+        background: Colors.transparent,
+        border: const Border.all(color: Colors.transparent),
+        color: toneText(tone),
+      ),
   };
 }
 
@@ -229,13 +229,13 @@ DartStyle buttonVariantStyle(ButtonVariant variant, Tone tone) {
 DartStyle buttonHoverStyle(ButtonVariant variant, Tone tone) {
   return switch (variant) {
     ButtonVariant.solid => DartStyle(
-      background: toneSolidHover(tone),
-      border: Border.all(color: toneSolidHover(tone)),
-    ),
+        background: toneSolidHover(tone),
+        border: Border.all(color: toneSolidHover(tone)),
+      ),
     ButtonVariant.soft => DartStyle(
-      background: toneSoftHover(tone),
-      border: Border.all(color: toneSoftHover(tone)),
-    ),
+        background: toneSoftHover(tone),
+        border: Border.all(color: toneSoftHover(tone)),
+      ),
     ButtonVariant.outline => DartStyle(background: toneSoft(tone)),
     ButtonVariant.ghost => DartStyle(background: toneSoft(tone)),
   };
@@ -254,22 +254,22 @@ DartStyle badgeComponentStyle({
     radius: SizeValue('999px'),
     fontWeight: 600,
   ).merge(badgeSizeStyle(size)).merge(switch (variant) {
-    BadgeVariant.soft => DartStyle(
-      border: Border.all(color: toneBorder(tone)),
-      background: toneSoft(tone),
-      color: toneText(tone),
-    ),
-    BadgeVariant.outline => DartStyle(
-      border: Border.all(color: toneBorder(tone)),
-      background: Colors.transparent,
-      color: toneText(tone),
-    ),
-    BadgeVariant.solid => DartStyle(
-      border: Border.all(color: toneSolid(tone)),
-      background: toneSolid(tone),
-      color: toneOnSolid(tone),
-    ),
-  });
+        BadgeVariant.soft => DartStyle(
+            border: Border.all(color: toneBorder(tone)),
+            background: toneSoft(tone),
+            color: toneText(tone),
+          ),
+        BadgeVariant.outline => DartStyle(
+            border: Border.all(color: toneBorder(tone)),
+            background: Colors.transparent,
+            color: toneText(tone),
+          ),
+        BadgeVariant.solid => DartStyle(
+            border: Border.all(color: toneSolid(tone)),
+            background: toneSolid(tone),
+            color: toneOnSolid(tone),
+          ),
+      });
 }
 
 /// Resolves a complete card style from variant and tone.
@@ -289,32 +289,32 @@ DartStyle cardComponentStyle({
 
   return base.merge(switch (variant) {
     CardVariant.outline => DartStyle(
-      border: Border.all(color: toneBorder(tone)),
-      background: ThemeToken.color('surface', fallback: '#ffffff').toCss(),
-    ),
+        border: Border.all(color: toneBorder(tone)),
+        background: ThemeToken.color('surface', fallback: '#ffffff').toCss(),
+      ),
     CardVariant.elevated => DartStyle(
-      border: Border.all(
-        color: ThemeToken.color('surfaceBorder', fallback: '#e4e7ec').toCss(),
+        border: Border.all(
+          color: ThemeToken.color('surfaceBorder', fallback: '#e4e7ec').toCss(),
+        ),
+        background: ThemeToken.color('surface', fallback: '#ffffff').toCss(),
+        shadow: Shadow(
+          y: 8,
+          blur: 24,
+          spread: -8,
+          color: ThemeToken.shadow(
+            'card',
+            fallback: 'rgba(16, 24, 40, 0.18)',
+          ).toCss(),
+        ),
       ),
-      background: ThemeToken.color('surface', fallback: '#ffffff').toCss(),
-      shadow: Shadow(
-        y: 8,
-        blur: 24,
-        spread: -8,
-        color: ThemeToken.shadow(
-          'card',
-          fallback: 'rgba(16, 24, 40, 0.18)',
-        ).toCss(),
-      ),
-    ),
     CardVariant.soft => DartStyle(
-      border: Border.all(color: toneBorder(tone)),
-      background: toneSoft(tone),
-    ),
+        border: Border.all(color: toneBorder(tone)),
+        background: toneSoft(tone),
+      ),
     CardVariant.ghost => DartStyle(
-      border: const Border.all(color: Colors.transparent),
-      background: Colors.transparent,
-    ),
+        border: const Border.all(color: Colors.transparent),
+        background: Colors.transparent,
+      ),
   });
 }
 
@@ -371,16 +371,16 @@ DartStyle inputComponentStyle({
       .merge(switch (variant) {
         InputVariant.outline => const DartStyle(),
         InputVariant.soft => DartStyle(
-          border: Border.all(color: Colors.transparent),
-          background: ThemeToken.color(
-            'inputSoft',
-            fallback: '#f9fafb',
-          ).toCss(),
-        ),
+            border: Border.all(color: Colors.transparent),
+            background: ThemeToken.color(
+              'inputSoft',
+              fallback: '#f9fafb',
+            ).toCss(),
+          ),
         InputVariant.ghost => DartStyle(
-          border: const Border.all(color: Colors.transparent),
-          background: Colors.transparent,
-        ),
+            border: const Border.all(color: Colors.transparent),
+            background: Colors.transparent,
+          ),
       })
       .merge(
         disabled
@@ -416,25 +416,25 @@ DartStyle inputComponentStyle({
 DartStyle inputSizeStyle(ComponentSize size) {
   return switch (size) {
     ComponentSize.xs => const DartStyle(
-      minHeight: 32,
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      fontSize: 12,
-    ),
+        minHeight: 32,
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        fontSize: 12,
+      ),
     ComponentSize.sm => const DartStyle(
-      minHeight: 36,
-      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-      fontSize: 13,
-    ),
+        minHeight: 36,
+        padding: EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        fontSize: 13,
+      ),
     ComponentSize.md => const DartStyle(
-      minHeight: 40,
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      fontSize: 14,
-    ),
+        minHeight: 40,
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        fontSize: 14,
+      ),
     ComponentSize.lg => const DartStyle(
-      minHeight: 46,
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      fontSize: 15,
-    ),
+        minHeight: 46,
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        fontSize: 15,
+      ),
   };
 }
 
@@ -465,32 +465,32 @@ DartStyle navItemComponentStyle({
   return base
       .merge(switch (variant) {
         NavVariant.underline => DartStyle(
-          radius: 0,
-          borderBottom: Border.all(
-            width: 2,
-            color: selected ? toneSolid(tone) : Colors.transparent,
+            radius: 0,
+            borderBottom: Border.all(
+              width: 2,
+              color: selected ? toneSolid(tone) : Colors.transparent,
+            ),
+            hover: disabled
+                ? null
+                : DartStyle(background: toneSoft(tone), color: toneText(tone)),
           ),
-          hover: disabled
-              ? null
-              : DartStyle(background: toneSoft(tone), color: toneText(tone)),
-        ),
         NavVariant.pill => DartStyle(
-          radius: SizeValue('999px'),
-          background: selected ? toneSoft(tone) : Colors.transparent,
-          border: Border.all(
-            color: selected ? toneBorder(tone) : Colors.transparent,
+            radius: SizeValue('999px'),
+            background: selected ? toneSoft(tone) : Colors.transparent,
+            border: Border.all(
+              color: selected ? toneBorder(tone) : Colors.transparent,
+            ),
+            hover: disabled
+                ? null
+                : DartStyle(background: toneSoft(tone), color: toneText(tone)),
           ),
-          hover: disabled
-              ? null
-              : DartStyle(background: toneSoft(tone), color: toneText(tone)),
-        ),
         NavVariant.ghost => DartStyle(
-          radius: ThemeToken.radius('md', fallback: '8px').toCss(),
-          background: selected ? toneSoft(tone) : Colors.transparent,
-          hover: disabled
-              ? null
-              : DartStyle(background: toneSoft(tone), color: toneText(tone)),
-        ),
+            radius: ThemeToken.radius('md', fallback: '8px').toCss(),
+            background: selected ? toneSoft(tone) : Colors.transparent,
+            hover: disabled
+                ? null
+                : DartStyle(background: toneSoft(tone), color: toneText(tone)),
+          ),
       })
       .merge(
         disabled
@@ -512,25 +512,25 @@ DartStyle navItemComponentStyle({
 DartStyle navItemSizeStyle(ComponentSize size) {
   return switch (size) {
     ComponentSize.xs => const DartStyle(
-      minHeight: 30,
-      padding: EdgeInsets.symmetric(horizontal: 8),
-      fontSize: 12,
-    ),
+        minHeight: 30,
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        fontSize: 12,
+      ),
     ComponentSize.sm => const DartStyle(
-      minHeight: 34,
-      padding: EdgeInsets.symmetric(horizontal: 10),
-      fontSize: 13,
-    ),
+        minHeight: 34,
+        padding: EdgeInsets.symmetric(horizontal: 10),
+        fontSize: 13,
+      ),
     ComponentSize.md => const DartStyle(
-      minHeight: 40,
-      padding: EdgeInsets.symmetric(horizontal: 12),
-      fontSize: 14,
-    ),
+        minHeight: 40,
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        fontSize: 14,
+      ),
     ComponentSize.lg => const DartStyle(
-      minHeight: 46,
-      padding: EdgeInsets.symmetric(horizontal: 14),
-      fontSize: 15,
-    ),
+        minHeight: 46,
+        padding: EdgeInsets.symmetric(horizontal: 14),
+        fontSize: 15,
+      ),
   };
 }
 
@@ -558,21 +558,21 @@ String spinnerSize(ComponentSize size) {
 Object toneSolid(Tone tone) {
   return switch (tone) {
     Tone.neutral => ThemeToken.color(
-      'neutralSolid',
-      fallback: '#111827',
-    ).toCss(),
+        'neutralSolid',
+        fallback: '#111827',
+      ).toCss(),
     Tone.primary => ThemeToken.color(
-      'primarySolid',
-      fallback: '#155eef',
-    ).toCss(),
+        'primarySolid',
+        fallback: '#155eef',
+      ).toCss(),
     Tone.success => ThemeToken.color(
-      'successSolid',
-      fallback: '#079455',
-    ).toCss(),
+        'successSolid',
+        fallback: '#079455',
+      ).toCss(),
     Tone.warning => ThemeToken.color(
-      'warningSolid',
-      fallback: '#dc6803',
-    ).toCss(),
+        'warningSolid',
+        fallback: '#dc6803',
+      ).toCss(),
     Tone.danger => ThemeToken.color('dangerSolid', fallback: '#d92d20').toCss(),
     Tone.info => ThemeToken.color('infoSolid', fallback: '#1570ef').toCss(),
   };
@@ -582,29 +582,29 @@ Object toneSolid(Tone tone) {
 Object toneSolidHover(Tone tone) {
   return switch (tone) {
     Tone.neutral => ThemeToken.color(
-      'neutralSolidHover',
-      fallback: '#1f2937',
-    ).toCss(),
+        'neutralSolidHover',
+        fallback: '#1f2937',
+      ).toCss(),
     Tone.primary => ThemeToken.color(
-      'primarySolidHover',
-      fallback: '#004eeb',
-    ).toCss(),
+        'primarySolidHover',
+        fallback: '#004eeb',
+      ).toCss(),
     Tone.success => ThemeToken.color(
-      'successSolidHover',
-      fallback: '#067647',
-    ).toCss(),
+        'successSolidHover',
+        fallback: '#067647',
+      ).toCss(),
     Tone.warning => ThemeToken.color(
-      'warningSolidHover',
-      fallback: '#b54708',
-    ).toCss(),
+        'warningSolidHover',
+        fallback: '#b54708',
+      ).toCss(),
     Tone.danger => ThemeToken.color(
-      'dangerSolidHover',
-      fallback: '#b42318',
-    ).toCss(),
+        'dangerSolidHover',
+        fallback: '#b42318',
+      ).toCss(),
     Tone.info => ThemeToken.color(
-      'infoSolidHover',
-      fallback: '#175cd3',
-    ).toCss(),
+        'infoSolidHover',
+        fallback: '#175cd3',
+      ).toCss(),
   };
 }
 
@@ -612,21 +612,21 @@ Object toneSolidHover(Tone tone) {
 Object toneSoft(Tone tone) {
   return switch (tone) {
     Tone.neutral => ThemeToken.color(
-      'neutralSoft',
-      fallback: '#f3f4f6',
-    ).toCss(),
+        'neutralSoft',
+        fallback: '#f3f4f6',
+      ).toCss(),
     Tone.primary => ThemeToken.color(
-      'primarySoft',
-      fallback: '#eff4ff',
-    ).toCss(),
+        'primarySoft',
+        fallback: '#eff4ff',
+      ).toCss(),
     Tone.success => ThemeToken.color(
-      'successSoft',
-      fallback: '#ecfdf3',
-    ).toCss(),
+        'successSoft',
+        fallback: '#ecfdf3',
+      ).toCss(),
     Tone.warning => ThemeToken.color(
-      'warningSoft',
-      fallback: '#fffaeb',
-    ).toCss(),
+        'warningSoft',
+        fallback: '#fffaeb',
+      ).toCss(),
     Tone.danger => ThemeToken.color('dangerSoft', fallback: '#fef3f2').toCss(),
     Tone.info => ThemeToken.color('infoSoft', fallback: '#eff8ff').toCss(),
   };
@@ -636,25 +636,25 @@ Object toneSoft(Tone tone) {
 Object toneSoftHover(Tone tone) {
   return switch (tone) {
     Tone.neutral => ThemeToken.color(
-      'neutralSoftHover',
-      fallback: '#e5e7eb',
-    ).toCss(),
+        'neutralSoftHover',
+        fallback: '#e5e7eb',
+      ).toCss(),
     Tone.primary => ThemeToken.color(
-      'primarySoftHover',
-      fallback: '#dbeafe',
-    ).toCss(),
+        'primarySoftHover',
+        fallback: '#dbeafe',
+      ).toCss(),
     Tone.success => ThemeToken.color(
-      'successSoftHover',
-      fallback: '#d1fadf',
-    ).toCss(),
+        'successSoftHover',
+        fallback: '#d1fadf',
+      ).toCss(),
     Tone.warning => ThemeToken.color(
-      'warningSoftHover',
-      fallback: '#fef0c7',
-    ).toCss(),
+        'warningSoftHover',
+        fallback: '#fef0c7',
+      ).toCss(),
     Tone.danger => ThemeToken.color(
-      'dangerSoftHover',
-      fallback: '#fee4e2',
-    ).toCss(),
+        'dangerSoftHover',
+        fallback: '#fee4e2',
+      ).toCss(),
     Tone.info => ThemeToken.color('infoSoftHover', fallback: '#d1e9ff').toCss(),
   };
 }
@@ -663,25 +663,25 @@ Object toneSoftHover(Tone tone) {
 Object toneBorder(Tone tone) {
   return switch (tone) {
     Tone.neutral => ThemeToken.color(
-      'neutralBorder',
-      fallback: '#d1d5db',
-    ).toCss(),
+        'neutralBorder',
+        fallback: '#d1d5db',
+      ).toCss(),
     Tone.primary => ThemeToken.color(
-      'primaryBorder',
-      fallback: '#b2ccff',
-    ).toCss(),
+        'primaryBorder',
+        fallback: '#b2ccff',
+      ).toCss(),
     Tone.success => ThemeToken.color(
-      'successBorder',
-      fallback: '#abefc6',
-    ).toCss(),
+        'successBorder',
+        fallback: '#abefc6',
+      ).toCss(),
     Tone.warning => ThemeToken.color(
-      'warningBorder',
-      fallback: '#fedf89',
-    ).toCss(),
+        'warningBorder',
+        fallback: '#fedf89',
+      ).toCss(),
     Tone.danger => ThemeToken.color(
-      'dangerBorder',
-      fallback: '#fecdca',
-    ).toCss(),
+        'dangerBorder',
+        fallback: '#fecdca',
+      ).toCss(),
     Tone.info => ThemeToken.color('infoBorder', fallback: '#b2ddff').toCss(),
   };
 }
@@ -690,21 +690,21 @@ Object toneBorder(Tone tone) {
 Object toneText(Tone tone) {
   return switch (tone) {
     Tone.neutral => ThemeToken.color(
-      'neutralText',
-      fallback: '#374151',
-    ).toCss(),
+        'neutralText',
+        fallback: '#374151',
+      ).toCss(),
     Tone.primary => ThemeToken.color(
-      'primaryText',
-      fallback: '#1849a9',
-    ).toCss(),
+        'primaryText',
+        fallback: '#1849a9',
+      ).toCss(),
     Tone.success => ThemeToken.color(
-      'successText',
-      fallback: '#067647',
-    ).toCss(),
+        'successText',
+        fallback: '#067647',
+      ).toCss(),
     Tone.warning => ThemeToken.color(
-      'warningText',
-      fallback: '#b54708',
-    ).toCss(),
+        'warningText',
+        fallback: '#b54708',
+      ).toCss(),
     Tone.danger => ThemeToken.color('dangerText', fallback: '#b42318').toCss(),
     Tone.info => ThemeToken.color('infoText', fallback: '#175cd3').toCss(),
   };
@@ -714,9 +714,9 @@ Object toneText(Tone tone) {
 Object toneOnSolid(Tone tone) {
   return switch (tone) {
     Tone.warning => ThemeToken.color(
-      'warningOnSolid',
-      fallback: '#111827',
-    ).toCss(),
+        'warningOnSolid',
+        fallback: '#111827',
+      ).toCss(),
     _ => ThemeToken.color('onSolid', fallback: '#ffffff').toCss(),
   };
 }
@@ -725,21 +725,21 @@ Object toneOnSolid(Tone tone) {
 Object toneFocus(Tone tone) {
   return switch (tone) {
     Tone.neutral => ThemeToken.color(
-      'neutralFocus',
-      fallback: '#9ca3af',
-    ).toCss(),
+        'neutralFocus',
+        fallback: '#9ca3af',
+      ).toCss(),
     Tone.primary => ThemeToken.color(
-      'primaryFocus',
-      fallback: '#155eef',
-    ).toCss(),
+        'primaryFocus',
+        fallback: '#155eef',
+      ).toCss(),
     Tone.success => ThemeToken.color(
-      'successFocus',
-      fallback: '#079455',
-    ).toCss(),
+        'successFocus',
+        fallback: '#079455',
+      ).toCss(),
     Tone.warning => ThemeToken.color(
-      'warningFocus',
-      fallback: '#dc6803',
-    ).toCss(),
+        'warningFocus',
+        fallback: '#dc6803',
+      ).toCss(),
     Tone.danger => ThemeToken.color('dangerFocus', fallback: '#d92d20').toCss(),
     Tone.info => ThemeToken.color('infoFocus', fallback: '#1570ef').toCss(),
   };

@@ -15,34 +15,34 @@ class Avatar extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         imageUrl == null ? 'span' : 'img',
-         props: mergeComponentProps(
-           {
-             ...props,
-             if (imageUrl != null) ...{
-               'src': imageUrl,
-               'alt': name,
-             } else
-               'aria-label': name,
-           },
-           className: className,
-           defaultStyle: {
-             'display': 'inline-flex',
-             'align-items': 'center',
-             'justify-content': 'center',
-             'width': _avatarSize(size),
-             'height': _avatarSize(size),
-             'border-radius': '999px',
-             'background': '#eff4ff',
-             'color': '#1849a9',
-             'font-weight': 700,
-             'object-fit': 'cover',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: imageUrl == null ? [FlintText(_initials(name))] : const [],
-       );
+          imageUrl == null ? 'span' : 'img',
+          props: mergeComponentProps(
+            {
+              ...props,
+              if (imageUrl != null) ...{
+                'src': imageUrl,
+                'alt': name,
+              } else
+                'aria-label': name,
+            },
+            className: className,
+            defaultStyle: {
+              'display': 'inline-flex',
+              'align-items': 'center',
+              'justify-content': 'center',
+              'width': _avatarSize(size),
+              'height': _avatarSize(size),
+              'border-radius': '999px',
+              'background': '#eff4ff',
+              'color': '#1849a9',
+              'font-weight': 700,
+              'object-fit': 'cover',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: imageUrl == null ? [FlintText(_initials(name))] : const [],
+        );
 }
 
 String _avatarSize(ComponentSize size) {

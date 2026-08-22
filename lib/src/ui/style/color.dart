@@ -13,11 +13,11 @@ class Color {
 
   /// Creates an `rgb(...)` color.
   const Color.rgb(int red, int green, int blue)
-    : value = 'rgb($red, $green, $blue)';
+      : value = 'rgb($red, $green, $blue)';
 
   /// Creates an `rgba(...)` color.
   const Color.rgba(int red, int green, int blue, double alpha)
-    : value = 'rgba($red, $green, $blue, $alpha)';
+      : value = 'rgba($red, $green, $blue, $alpha)';
 
   /// Returns the CSS color string.
   @override

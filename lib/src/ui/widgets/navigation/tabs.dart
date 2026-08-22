@@ -41,31 +41,31 @@ class Tabs extends FlintElement {
     DartStyle? dartStyle,
     void Function(Object event, TabItem tab)? onChanged,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           {...props, 'role': props['role'] ?? 'tablist'},
-           className: className,
-           defaultStyle: const {
-             'display': 'flex',
-             'align-items': 'center',
-             'gap': '4px',
-             'border-bottom': '1px solid #e4e7ec',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           for (final tab in tabs)
-             _tabButton(
-               tab,
-               selected: tab.key == activeKey,
-               variant: variant,
-               tone: tone,
-               size: size,
-               onChanged: onChanged,
-             ),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            {...props, 'role': props['role'] ?? 'tablist'},
+            className: className,
+            defaultStyle: const {
+              'display': 'flex',
+              'align-items': 'center',
+              'gap': '4px',
+              'border-bottom': '1px solid #e4e7ec',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            for (final tab in tabs)
+              _tabButton(
+                tab,
+                selected: tab.key == activeKey,
+                variant: variant,
+                tone: tone,
+                size: size,
+                onChanged: onChanged,
+              ),
+          ],
+        );
 
   static FlintElement _tabButton(
     TabItem tab, {

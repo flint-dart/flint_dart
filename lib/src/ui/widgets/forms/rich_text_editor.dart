@@ -402,29 +402,25 @@ class RichTextEditor extends StatefulComponent {
       return data['url']?.toString() ?? '';
     }
 
-    performUpload()
-        .then((remoteUrl) {
-          final img =
-              web.document.getElementById(imgId) as web.HTMLImageElement?;
-          if (img != null) {
-            img.src = remoteUrl;
-            img.removeAttribute('data-loading');
-            img.setAttribute(
-              'style',
-              'max-width: 100%; height: auto; border-radius: 6px; transition: all 0.3s;',
-            );
-            _syncToController();
-          }
-          web.URL.revokeObjectURL(tempUrl);
-        })
-        .catchError((error) {
-          final img =
-              web.document.getElementById(imgId) as web.HTMLImageElement?;
-          img?.remove();
-          _syncToController();
-          web.URL.revokeObjectURL(tempUrl);
-          web.window.alert('Failed to upload image to server: $error');
-        });
+    performUpload().then((remoteUrl) {
+      final img = web.document.getElementById(imgId) as web.HTMLImageElement?;
+      if (img != null) {
+        img.src = remoteUrl;
+        img.removeAttribute('data-loading');
+        img.setAttribute(
+          'style',
+          'max-width: 100%; height: auto; border-radius: 6px; transition: all 0.3s;',
+        );
+        _syncToController();
+      }
+      web.URL.revokeObjectURL(tempUrl);
+    }).catchError((error) {
+      final img = web.document.getElementById(imgId) as web.HTMLImageElement?;
+      img?.remove();
+      _syncToController();
+      web.URL.revokeObjectURL(tempUrl);
+      web.window.alert('Failed to upload image to server: $error');
+    });
   }
 
   void _selectAndUploadImage() {
@@ -556,71 +552,70 @@ class RichTextEditor extends StatefulComponent {
     final (label, action, title) = switch (item) {
       RichTextToolbarItem.bold => ('B', () => _execCommand('bold'), 'Bold'),
       RichTextToolbarItem.italic => (
-        'I',
-        () => _execCommand('italic'),
-        'Italic',
-      ),
+          'I',
+          () => _execCommand('italic'),
+          'Italic',
+        ),
       RichTextToolbarItem.underline => (
-        'U',
-        () => _execCommand('underline'),
-        'Underline',
-      ),
+          'U',
+          () => _execCommand('underline'),
+          'Underline',
+        ),
       RichTextToolbarItem.strikeThrough => (
-        'S',
-        () => _execCommand('strikeThrough'),
-        'Strikethrough',
-      ),
+          'S',
+          () => _execCommand('strikeThrough'),
+          'Strikethrough',
+        ),
       RichTextToolbarItem.heading1 => (
-        'H1',
-        () => _execCommand('formatBlock', '<h1>'),
-        'Heading 1',
-      ),
+          'H1',
+          () => _execCommand('formatBlock', '<h1>'),
+          'Heading 1',
+        ),
       RichTextToolbarItem.heading2 => (
-        'H2',
-        () => _execCommand('formatBlock', '<h2>'),
-        'Heading 2',
-      ),
+          'H2',
+          () => _execCommand('formatBlock', '<h2>'),
+          'Heading 2',
+        ),
       RichTextToolbarItem.paragraph => (
-        'P',
-        () => _execCommand('formatBlock', '<p>'),
-        'Paragraph',
-      ),
+          'P',
+          () => _execCommand('formatBlock', '<p>'),
+          'Paragraph',
+        ),
       RichTextToolbarItem.bulletList => (
-        '• List',
-        () => _execCommand('insertUnorderedList'),
-        'Unordered List',
-      ),
+          '• List',
+          () => _execCommand('insertUnorderedList'),
+          'Unordered List',
+        ),
       RichTextToolbarItem.orderedList => (
-        '1. List',
-        () => _execCommand('insertOrderedList'),
-        'Ordered List',
-      ),
+          '1. List',
+          () => _execCommand('insertOrderedList'),
+          'Ordered List',
+        ),
       RichTextToolbarItem.blockquote => (
-        '“ Quote',
-        () => _execCommand('formatBlock', '<blockquote>'),
-        'Blockquote',
-      ),
+          '“ Quote',
+          () => _execCommand('formatBlock', '<blockquote>'),
+          'Blockquote',
+        ),
       RichTextToolbarItem.codeBlock => (
-        '{ } Code',
-        () => _execCommand('formatBlock', '<pre>'),
-        'Code Block',
-      ),
+          '{ } Code',
+          () => _execCommand('formatBlock', '<pre>'),
+          'Code Block',
+        ),
       RichTextToolbarItem.link => ('Link', () => _insertLink(), 'Insert Link'),
       RichTextToolbarItem.image => (
-        'Image',
-        () => _selectAndUploadImage(),
-        'Insert Image',
-      ),
+          'Image',
+          () => _selectAndUploadImage(),
+          'Insert Image',
+        ),
       RichTextToolbarItem.removeFormat => (
-        'Clear',
-        () => _execCommand('removeFormat'),
-        'Clear Formatting',
-      ),
+          'Clear',
+          () => _execCommand('removeFormat'),
+          'Clear Formatting',
+        ),
       _ => ('', () {}, ''),
     };
 
-    final isTextStyled =
-        item == RichTextToolbarItem.bold ||
+    final isTextStyled = item == RichTextToolbarItem.bold ||
         item == RichTextToolbarItem.italic ||
         item == RichTextToolbarItem.underline ||
         item == RichTextToolbarItem.strikeThrough;

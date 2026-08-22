@@ -19,50 +19,50 @@ class StatCard extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'article',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           dartStyle: cardComponentStyle(
-             variant: variant,
-             tone: tone,
-           ).merge(dartStyle),
-           style: style,
-         ),
-         children: [
-           FlintElement(
-             'div',
-             props: const {
-               'style': {
-                 'display': 'flex',
-                 'align-items': 'center',
-                 'justify-content': 'space-between',
-                 'gap': '10px',
-               },
-             },
-             children: [
-               FlintElement(
-                 'span',
-                 props: const {
-                   'style': {
-                     'font-size': '13px',
-                     'color': '#667085',
-                     'font-weight': 600,
-                   },
-                 },
-                 children: normalizeChildren(label, const []),
-               ),
-               if (icon != null) toFlintNode(icon),
-             ],
-           ),
-           FlintElement(
-             'strong',
-             props: const {
-               'style': {'font-size': '28px', 'line-height': 1.1},
-             },
-             children: normalizeChildren(value, const []),
-           ),
-           if (trend != null) StatusBadge(label: trend, tone: tone),
-         ],
-       );
+          'article',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: cardComponentStyle(
+              variant: variant,
+              tone: tone,
+            ).merge(dartStyle),
+            style: style,
+          ),
+          children: [
+            FlintElement(
+              'div',
+              props: const {
+                'style': {
+                  'display': 'flex',
+                  'align-items': 'center',
+                  'justify-content': 'space-between',
+                  'gap': '10px',
+                },
+              },
+              children: [
+                FlintElement(
+                  'span',
+                  props: const {
+                    'style': {
+                      'font-size': '13px',
+                      'color': '#667085',
+                      'font-weight': 600,
+                    },
+                  },
+                  children: normalizeChildren(label, const []),
+                ),
+                if (icon != null) toFlintNode(icon),
+              ],
+            ),
+            FlintElement(
+              'strong',
+              props: const {
+                'style': {'font-size': '28px', 'line-height': 1.1},
+              },
+              children: normalizeChildren(value, const []),
+            ),
+            if (trend != null) StatusBadge(label: trend, tone: tone),
+          ],
+        );
 }

@@ -422,9 +422,8 @@ class DartStyle {
       'border-bottom': borderBottom?.toCss(),
       'border-left': borderLeft?.toCss(),
       'border-collapse': cssValue(borderCollapse, unitlessNumber: true),
-      'box-shadow': shadow is Shadow
-          ? (shadow as Shadow).toCss()
-          : cssValue(shadow),
+      'box-shadow':
+          shadow is Shadow ? (shadow as Shadow).toCss() : cssValue(shadow),
       'opacity': opacity,
       'transition': cssValue(transition, unitlessNumber: true),
       'animation': cssValue(animation, unitlessNumber: true),
@@ -455,31 +454,31 @@ class DartStyle {
 
   /// Responsive styles keyed by their breakpoint.
   Map<Breakpoint, DartStyle> get breakpointStyles => {
-    if (sm != null) Breakpoint.sm: sm!,
-    if (md != null) Breakpoint.md: md!,
-    if (lg != null) Breakpoint.lg: lg!,
-    if (xl != null) Breakpoint.xl: xl!,
-  };
+        if (sm != null) Breakpoint.sm: sm!,
+        if (md != null) Breakpoint.md: md!,
+        if (lg != null) Breakpoint.lg: lg!,
+        if (xl != null) Breakpoint.xl: xl!,
+      };
 
   /// Scoped state styles keyed by CSS selector suffix.
   Map<String, DartStyle> get stateStyles => {
-    if (hover != null) ':hover': hover!,
-    if (focus != null) ':focus': focus!,
-    if (focusVisible != null) ':focus-visible': focusVisible!,
-    if (active != null) ':active': active!,
-    if (disabled != null) ':disabled': disabled!,
-    if (disabled != null) '[aria-disabled="true"]': disabled!,
-    if (checked != null) ':checked': checked!,
-    if (selected != null) '[aria-selected="true"]': selected!,
-    if (expanded != null) '[aria-expanded="true"]': expanded!,
-    if (invalid != null) '[aria-invalid="true"]': invalid!,
-  };
+        if (hover != null) ':hover': hover!,
+        if (focus != null) ':focus': focus!,
+        if (focusVisible != null) ':focus-visible': focusVisible!,
+        if (active != null) ':active': active!,
+        if (disabled != null) ':disabled': disabled!,
+        if (disabled != null) '[aria-disabled="true"]': disabled!,
+        if (checked != null) ':checked': checked!,
+        if (selected != null) '[aria-selected="true"]': selected!,
+        if (expanded != null) '[aria-expanded="true"]': expanded!,
+        if (invalid != null) '[aria-invalid="true"]': invalid!,
+      };
 
   /// Theme-scoped styles keyed by Flint theme name.
   Map<FlintThemeMode, DartStyle> get themeStyles => {
-    if (light != null) FlintThemeMode.light: light!,
-    if (dark != null) FlintThemeMode.dark: dark!,
-  };
+        if (light != null) FlintThemeMode.light: light!,
+        if (dark != null) FlintThemeMode.dark: dark!,
+      };
 
   /// Returns a new style with non-null values from [override] applied.
   DartStyle merge(DartStyle? override) {

@@ -259,9 +259,9 @@ void main() {
         child: Text('Install Flint UI'),
       );
       final docsSafe = docs.children.single as SafeArea;
-      final docsGrid =
-          (docsSafe.children.single as ConstrainedBox).children.single
-              as ResponsiveGrid;
+      final docsGrid = (docsSafe.children.single as ConstrainedBox)
+          .children
+          .single as ResponsiveGrid;
       expect(docsGrid.children.first, isA<FlintElement>());
       expect(docsGrid.children.last, isA<FlintElement>());
 
@@ -276,7 +276,8 @@ void main() {
       expect(marketingShell.children.first, isA<Text>());
     });
 
-    test('GridCols and Grid factory constructors render type-safe grid styles', () {
+    test('GridCols and Grid factory constructors render type-safe grid styles',
+        () {
       final gridCount = Grid.count(3, gap: '16px');
       expect(gridCount.props['style'], containsPair('display', 'grid'));
       expect(
@@ -287,7 +288,8 @@ void main() {
       final gridFit = Grid.fit(250, gap: '20px');
       expect(
         gridFit.props['style'],
-        containsPair('grid-template-columns', 'repeat(auto-fit, minmax(250px, 1fr))'),
+        containsPair(
+            'grid-template-columns', 'repeat(auto-fit, minmax(250px, 1fr))'),
       );
 
       final gridRatios = Grid.ratios([1, 2, 1]);
@@ -303,7 +305,9 @@ void main() {
       );
     });
 
-    test('Grid supports Flutter-style integer column numbers and numeric gap values', () {
+    test(
+        'Grid supports Flutter-style integer column numbers and numeric gap values',
+        () {
       final flutterStyleGrid = Grid.count(
         3,
         sm: 1,

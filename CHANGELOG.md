@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.2] - 2026-08-22
+
+### Fixed
+- **Static Analysis & Pana Score**: Fixed unawaited `Future` returns inside `try` blocks in `getTableSchema` (`dialect.dart`) and JSON sanitization (`response.dart`) for 100% static analysis score (50/50).
+- **Documentation Reference**: Resolved unresolved doc reference in `Response.view` doc comment.
+- **Codebase Formatting**: Formatted all source files with `dart format`.
+
 ## [1.3.1] - 2026-08-22
 
 ### Fixed

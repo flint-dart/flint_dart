@@ -302,18 +302,16 @@ class CanvasController extends stub.CanvasController {
         }
         _activeHandle = handle;
         final emptySelectionDrag = handle == null && hitObject == null;
-        _dragging =
-            _activeHandle != null ||
+        _dragging = _activeHandle != null ||
             selectedObjectIds.isNotEmpty ||
             emptySelectionDrag;
         _activeOperation = switch (handle) {
           stub.CanvasSelectionHandle.rotate => _CanvasOperation.rotate,
-          null =>
-            emptySelectionDrag
-                ? _CanvasOperation.selectBox
-                : selectedObjectIds.isNotEmpty
-                ? _CanvasOperation.drag
-                : _CanvasOperation.none,
+          null => emptySelectionDrag
+              ? _CanvasOperation.selectBox
+              : selectedObjectIds.isNotEmpty
+                  ? _CanvasOperation.drag
+                  : _CanvasOperation.none,
           _ => _CanvasOperation.resize,
         };
         if (_activeOperation == _CanvasOperation.selectBox) {
@@ -417,8 +415,7 @@ class CanvasController extends stub.CanvasController {
           return;
         }
         select(object.id);
-        final edited =
-            onTextEdit?.call(object) ??
+        final edited = onTextEdit?.call(object) ??
             web.window.prompt('Edit text', object.text);
         if (edited != null) updateText(object.id!, edited);
         event.preventDefault();

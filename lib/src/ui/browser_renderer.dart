@@ -64,38 +64,38 @@ class FlintRoot {
     return switch (node) {
       FlintText(:final value) => web.document.createTextNode(value),
       FlintRawHtml(:final value, :final trusted) => _createRawHtml(
-        value,
-        trusted,
-      ),
+          value,
+          trusted,
+        ),
       FlintFragment(:final children) => _createFragment(
-        children,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          children,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       FlintElement(:final tag, :final props, :final children) => _createElement(
-        tag,
-        props,
-        children,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          tag,
+          props,
+          children,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       FlintComponent() => _createComponent(
-        node,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          node,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       FlintComponentNode(:final component) => _createComponent(
-        component,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          component,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       _ => throw UnsupportedError(
-        'Unsupported FlintNode type: ${node.runtimeType}',
-      ),
+          'Unsupported FlintNode type: ${node.runtimeType}',
+        ),
     };
   }
 
@@ -158,8 +158,7 @@ class FlintRoot {
     Map<String, _ComponentMount> nextSlots,
   ) {
     final previous = previousSlots[path];
-    final hasExisting =
-        previous != null &&
+    final hasExisting = previous != null &&
         previous.component.runtimeType == component.runtimeType &&
         previous.component.preserveState &&
         component.preserveState;

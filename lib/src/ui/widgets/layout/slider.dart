@@ -20,10 +20,10 @@ class Slider extends StatefulComponent {
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
-  }) : _className = className,
-       _props = props,
-       _style = style,
-       _dartStyle = dartStyle;
+  })  : _className = className,
+        _props = props,
+        _style = style,
+        _dartStyle = dartStyle;
 
   /// The list of slide views to cycle through.
   final List<View> slides;

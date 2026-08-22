@@ -18,18 +18,18 @@ class AnimatedContainer extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: {
-             'transition': 'all ${duration.inMilliseconds}ms $curve',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: {
+              'transition': 'all ${duration.inMilliseconds}ms $curve',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }
 
 /// FadeIn smoothly transitions opacity from 0 to 1 on mount.
@@ -46,19 +46,19 @@ class FadeIn extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: {
-             'animation':
-                 'flint-fade-in ${duration.inMilliseconds}ms $curve ${delay.inMilliseconds}ms both',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: {
+              'animation':
+                  'flint-fade-in ${duration.inMilliseconds}ms $curve ${delay.inMilliseconds}ms both',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }
 
 /// SlideIn slides and fades content from a given direction on mount.
@@ -76,19 +76,19 @@ class SlideIn extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: {
-             'animation':
-                 '${_animName(direction)} ${duration.inMilliseconds}ms $curve ${delay.inMilliseconds}ms both',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: {
+              'animation':
+                  '${_animName(direction)} ${duration.inMilliseconds}ms $curve ${delay.inMilliseconds}ms both',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 
   static String _animName(SlideDirection dir) {
     switch (dir) {
@@ -118,17 +118,17 @@ class ScaleIn extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: {
-             'animation':
-                 'flint-scale-in ${duration.inMilliseconds}ms $curve ${delay.inMilliseconds}ms both',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: normalizeChildren(child, children),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: {
+              'animation':
+                  'flint-scale-in ${duration.inMilliseconds}ms $curve ${delay.inMilliseconds}ms both',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: normalizeChildren(child, children),
+        );
 }

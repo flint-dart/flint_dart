@@ -13,17 +13,17 @@ class Spacer extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: {
-             'flex': flex,
-             if (size != null) 'width': cssValue(size),
-             if (size != null) 'height': cssValue(size),
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: {
+              'flex': flex,
+              if (size != null) 'width': cssValue(size),
+              if (size != null) 'height': cssValue(size),
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+        );
 }

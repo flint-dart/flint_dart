@@ -21,29 +21,29 @@ class Button extends FlintElement {
     bool disabled = false,
     void Function(Object event)? onPressed,
   }) : super(
-         'button',
-         props: mergeComponentProps(
-           {
-             ...props,
-             'type': props['type'] ?? 'button',
-             if (disabled || loading) 'disabled': true,
-             if (loading) 'aria-busy': 'true',
-             if (onPressed != null && !disabled && !loading)
-               'onClick': onPressed,
-           },
-           className: className,
-           dartStyle: buttonComponentStyle(
-             variant: variant,
-             tone: tone,
-             size: size,
-             disabled: disabled,
-             loading: loading,
-           ).merge(dartStyle),
-           style: style,
-         ),
-         children: [
-           if (loading) Spinner(size: ComponentSize.xs, tone: tone),
-           ...normalizeChildren(child, children),
-         ],
-       );
+          'button',
+          props: mergeComponentProps(
+            {
+              ...props,
+              'type': props['type'] ?? 'button',
+              if (disabled || loading) 'disabled': true,
+              if (loading) 'aria-busy': 'true',
+              if (onPressed != null && !disabled && !loading)
+                'onClick': onPressed,
+            },
+            className: className,
+            dartStyle: buttonComponentStyle(
+              variant: variant,
+              tone: tone,
+              size: size,
+              disabled: disabled,
+              loading: loading,
+            ).merge(dartStyle),
+            style: style,
+          ),
+          children: [
+            if (loading) Spinner(size: ComponentSize.xs, tone: tone),
+            ...normalizeChildren(child, children),
+          ],
+        );
 }

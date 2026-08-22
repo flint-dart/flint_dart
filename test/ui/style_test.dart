@@ -42,9 +42,12 @@ void main() {
     });
 
     test('supports flex value helpers', () {
-      expect(const DartStyle(flex: FlexValue.grow()).toMap(), {'flex': '1 1 0%'});
-      expect(const DartStyle(flex: FlexValue.auto()).toMap(), {'flex': '1 1 auto'});
-      expect(const DartStyle(flex: FlexValue.none()).toMap(), {'flex': '0 0 auto'});
+      expect(
+          const DartStyle(flex: FlexValue.grow()).toMap(), {'flex': '1 1 0%'});
+      expect(const DartStyle(flex: FlexValue.auto()).toMap(),
+          {'flex': '1 1 auto'});
+      expect(const DartStyle(flex: FlexValue.none()).toMap(),
+          {'flex': '0 0 auto'});
       expect(const DartStyle(flex: FlexValue(2, 0, SizeValue.auto)).toMap(), {
         'flex': '2 0 auto',
       });
@@ -612,12 +615,10 @@ void main() {
 
   group('ThemeProvider', () {
     test('sets data-theme on its wrapper', () {
-      final node =
-          ThemeProvider(
-                mode: FlintThemeMode.dark,
-                child: Text('Dark mode'),
-              ).build()
-              as Container;
+      final node = ThemeProvider(
+        mode: FlintThemeMode.dark,
+        child: Text('Dark mode'),
+      ).build() as Container;
 
       expect(node.props['data-theme'], 'dark');
       expect(node.children.single, isA<Text>());
