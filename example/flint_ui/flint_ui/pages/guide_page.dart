@@ -1,4 +1,4 @@
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 class GuidePage extends FlintComponent {
   final Map<String, dynamic> props;

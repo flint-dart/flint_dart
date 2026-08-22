@@ -35,7 +35,7 @@ class FlintSelectedFile {
 
 /// Browser event helpers exposed by Flint UI.
 ///
-/// App code can use this class from `package:flint_ui/flint_ui.dart` instead
+/// App code can use this class from `package:flint_dart/ui.dart` instead
 /// of importing `universal_web/web.dart` to read values or stop events.
 class FlintEvent {
   const FlintEvent._();

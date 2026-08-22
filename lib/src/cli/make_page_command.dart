@@ -63,7 +63,7 @@ class MakePageCommand extends FlintCommand {
     if (file.existsSync()) return;
 
     file.writeAsStringSync('''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 import 'component_registry.dart';
 
@@ -79,7 +79,7 @@ void main() {
     if (file.existsSync()) return;
 
     file.writeAsStringSync('''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 final componentRegistry = PageRegistry({
 });
@@ -100,11 +100,17 @@ final componentRegistry = PageRegistry({
     final entryLine = "  '$pageName': (props) => $className(props),";
 
     if (!content.contains(importLine)) {
-      final packageImport = "import 'package:flint_ui/flint_ui.dart';";
+      final packageImport = "import 'package:flint_dart/ui.dart';";
+      final legacyImport = "import 'package:flint_ui/flint_ui.dart';";
       if (content.contains(packageImport)) {
         content = content.replaceFirst(
           packageImport,
           '$packageImport\n$importLine',
+        );
+      } else if (content.contains(legacyImport)) {
+        content = content.replaceFirst(
+          legacyImport,
+          '$legacyImport\n$importLine',
         );
       } else {
         content = '$importLine\n$content';
@@ -135,7 +141,7 @@ final componentRegistry = PageRegistry({
 
   String _pageTemplate(String className, String pageName) {
     return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 class $className extends FlintComponent {
   final Map<String, dynamic> props;
