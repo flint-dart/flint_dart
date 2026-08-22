@@ -460,7 +460,7 @@ class KeyframeStep {
 
   /// CSS selector for this keyframe step.
   String get selector {
-    if (offset is num) return '${offset}%';
+    if (offset is num) return '$offset%';
     return offset.toString();
   }
 }

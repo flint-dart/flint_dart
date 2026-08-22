@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:flint_dart/flint_dart.dart';
 
-import '../auth/flint_db_auth.dart';
-
 typedef FlintDbRequestAuthorizer = FutureOr<bool> Function(Context context);
 
 class FlintDatabaseApiConfig {

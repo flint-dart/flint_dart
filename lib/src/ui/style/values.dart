@@ -66,7 +66,7 @@ class SizeValue {
   const SizeValue.px(num value) : value = '${value}px';
 
   /// Creates a percentage size.
-  const SizeValue.percent(num value) : value = '${value}%';
+  const SizeValue.percent(num value) : value = '$value%';
 
   /// Creates a rem size.
   const SizeValue.rem(num value) : value = '${value}rem';
@@ -99,37 +99,37 @@ class SizeValue {
 
 /// Convenient pixel size value.
 class Px extends SizeValue {
-  const Px(num value) : super.px(value);
+  const Px(super.value) : super.px();
 }
 
 /// Convenient percentage size value.
 class Percent extends SizeValue {
-  const Percent(num value) : super.percent(value);
+  const Percent(super.value) : super.percent();
 }
 
 /// Convenient rem size value.
 class Rem extends SizeValue {
-  const Rem(num value) : super.rem(value);
+  const Rem(super.value) : super.rem();
 }
 
 /// Convenient em size value.
 class Em extends SizeValue {
-  const Em(num value) : super.em(value);
+  const Em(super.value) : super.em();
 }
 
 /// Convenient viewport height size value.
 class Vh extends SizeValue {
-  const Vh(num value) : super.vh(value);
+  const Vh(super.value) : super.vh();
 }
 
 /// Convenient viewport width size value.
 class Vw extends SizeValue {
-  const Vw(num value) : super.vw(value);
+  const Vw(super.value) : super.vw();
 }
 
 /// Convenient fractional grid size value.
 class Fr extends SizeValue {
-  const Fr(num value) : super.fr(value);
+  const Fr(super.value) : super.fr();
 }
 
 /// CSS grid track value used by grid template helpers.
@@ -316,8 +316,7 @@ class Border {
   final String style;
 
   /// Creates a border shorthand value.
-  const Border({this.width = 1, required Object color, this.style = 'solid'})
-    : color = color;
+  const Border({this.width = 1, required this.color, this.style = 'solid'});
 
   /// Creates a border for all sides.
   const Border.all({

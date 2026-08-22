@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.1] - 2026-08-22
+
+### Fixed
+- **Static Analysis & Pana Score**: Resolved all unawaited Future returns across `port_utils.dart` and `flint_database_api.dart` for 100% clean static analysis.
+- **Unified Database Protocol**: Re-exported unified database protocol classes (`FlintDbQuery`, `FlintDbFilter`, `FlintDbResourceSchema`, etc.) from `flint_client` across `db_api.dart` and `db.dart` to prevent ambiguous type collisions.
+- **Dependency Compatibility**: Upgraded `flint_client` dependency constraint to support latest stable releases (`>=0.1.0 <1.0.0`).
+- **Code Health**: Modernized constructors with super parameters and initializing formals across UI primitives and style modules.
+
 ## [1.3.0] - 2026-08-22
 
 ### Added
