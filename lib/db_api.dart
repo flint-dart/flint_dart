@@ -1,12 +1,6 @@
-export 'src/database/db.dart';
-export 'src/database/db_driver.dart';
-export 'src/database/db_executor.dart';
-export 'src/database/default_db_executor.dart';
-export 'src/database/seeder.dart';
-export 'src/database/orm/query_builder.dart';
-export 'src/database/orm/global_table_registry.dart';
-export "src/database/db_transaction.dart";
-export 'src/database/migrations.dart';
+/// Secure Database API & Protocol entrypoint for Flint applications.
+library;
+
 export 'src/database/protocol/flint_db_protocol.dart';
 export 'src/database/api/config/flint_database_api_config.dart';
 export 'src/database/api/auth/flint_db_auth.dart';
