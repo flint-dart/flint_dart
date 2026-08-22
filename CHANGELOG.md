@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.0] - 2026-08-22
+
+### Added
+- **Fullstack Web UI Engine**: Merged Flint UI natively into `flint_dart` under `package:flint_dart/ui.dart`, giving developers declarative HTML/DOM components, Flutter-like widgets, 2D Canvas, 3D WebGL scenes, and reactive state signals with zero external packages.
+- **First-Class SEO & Server-Side Rendering (SSR)**: Instant HTML generation, meta tags, and OpenGraph crawlers with client-side hydration.
+- **Secure Database API Gateway**: Built-in Row-Level Security (`FlintDbPolicy`), Resource Registries (`FlintDbResource`), and Query Compilers under `package:flint_dart/db_api.dart`.
+- **Database Wire Protocol**: Integrated database query ASTs, mutations, results, and schema models directly into `flint_dart`.
+
+### Changed
+- Promoted `flint_dart` as the **First Official Full-Stack, Declarative, SEO-First Dart Web Framework**.
+- Modernized CLI templates (`make:page`, `make:ui`, `build`) to emit `package:flint_dart/ui.dart`.
+- Removed external `flint_ui` dependency constraint in favor of native built-in UI engine.
+
 ## [1.2.3] - 2026-08-17
 
 ### Changed
