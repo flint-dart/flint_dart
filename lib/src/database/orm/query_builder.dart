@@ -5,6 +5,7 @@ import 'package:flint_dart/helper.dart';
 /// A simple SQL query builder for MySQL/PostgreSQL in Flint Dart.
 class QueryBuilder {
   final String table;
+  final DbExecutor executor;
 
   final List<String> _selects = [];
   final List<_WhereClause> _whereClauses = [];
@@ -34,7 +35,8 @@ class QueryBuilder {
   int? _offset;
   int _paramIndex = 1;
 
-  QueryBuilder({required this.table});
+  QueryBuilder({required this.table, DbExecutor? executor})
+      : executor = executor ?? const DefaultDbExecutor();
 
   QueryBuilder withRelation(String name, {List<String>? columns}) {
     if (!_withRelations.contains(name)) {
@@ -95,7 +97,7 @@ class QueryBuilder {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       final sql = caseSensitive
           ? '$field LIKE :$paramName'
           : '$field ILIKE :$paramName';
@@ -125,7 +127,7 @@ class QueryBuilder {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       final sql = caseSensitive
           ? '$field NOT LIKE :$paramName'
           : '$field NOT ILIKE :$paramName';
@@ -153,7 +155,7 @@ class QueryBuilder {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       final sql = caseSensitive
           ? '$field LIKE :$paramName'
           : '$field ILIKE :$paramName';
@@ -255,7 +257,7 @@ class QueryBuilder {
     final paramStart = 'p${_paramIndex++}';
     final paramEnd = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       _addWhere('AND', '$field BETWEEN :$paramStart AND :$paramEnd');
     } else {
       _addWhere('AND', '$field BETWEEN ? AND ?');
@@ -272,7 +274,7 @@ class QueryBuilder {
     final paramStart = 'p${_paramIndex++}';
     final paramEnd = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       _addWhere('AND', '$field NOT BETWEEN :$paramStart AND :$paramEnd');
     } else {
       _addWhere('AND', '$field NOT BETWEEN ? AND ?');
@@ -288,7 +290,7 @@ class QueryBuilder {
   QueryBuilder whereDate(String field, DateTime date) {
     final paramName = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       _addWhere('AND', "DATE($field) = DATE(:$paramName)");
     } else {
       _addWhere('AND', "DATE($field) = DATE(?)");
@@ -302,7 +304,7 @@ class QueryBuilder {
   QueryBuilder where(String field, String operator, dynamic value) {
     final paramName = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       _addWhere('AND', '$field $operator :$paramName');
     } else {
       _addWhere('AND', '$field $operator ?');
@@ -322,7 +324,7 @@ class QueryBuilder {
     final paramNames = List.generate(values.length, (i) {
       final paramName = 'p${_paramIndex++}';
       _bindings[paramName] = values[i];
-      return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
+      return executor.driver == DBDriver.postgres ? ':$paramName' : '?';
     }).join(', ');
 
     _addWhere('AND', '$field IN ($paramNames)');
@@ -339,7 +341,7 @@ class QueryBuilder {
     final paramNames = List.generate(values.length, (i) {
       final paramName = 'p${_paramIndex++}';
       _bindings[paramName] = values[i];
-      return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
+      return executor.driver == DBDriver.postgres ? ':$paramName' : '?';
     }).join(', ');
 
     _addWhere('AND', '$field NOT IN ($paramNames)');
@@ -350,7 +352,7 @@ class QueryBuilder {
   QueryBuilder orWhere(String field, String operator, dynamic value) {
     final paramName = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       _addWhere('OR', '$field $operator :$paramName');
     } else {
       _addWhere('OR', '$field $operator ?');
@@ -522,11 +524,11 @@ class QueryBuilder {
 
   /// Internal query executor
   Future<List<Map<String, dynamic>>> _executeSelect(String sql) async {
-    final result = await DB.query(
+    final result = await executor.query(
       sql,
-      namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
+      namedParams: executor.driver == DBDriver.postgres ? _bindings : null,
       positionalParams:
-          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+          executor.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
 
     // Normalize maps and convert DateTime to ISO string
@@ -629,17 +631,17 @@ class QueryBuilder {
     }
 
     final fields = data.keys.join(', ');
-    final placeholders = DB.driver == DBDriver.postgres
+    final placeholders = executor.driver == DBDriver.postgres
         ? data.keys.map((k) => ':$k').join(', ')
         : List.generate(data.length, (_) => '?').join(', ');
 
     final sql = 'INSERT INTO $table ($fields) VALUES ($placeholders)';
 
-    await DB.query(
+    await executor.query(
       sql,
-      namedParams: DB.driver == DBDriver.postgres ? data : null,
+      namedParams: executor.driver == DBDriver.postgres ? data : null,
       positionalParams:
-          DB.driver == DBDriver.mysql ? data.values.toList() : null,
+          executor.driver == DBDriver.mysql ? data.values.toList() : null,
     );
 
     return;
@@ -654,7 +656,7 @@ class QueryBuilder {
 
     final setClauses = <String>[];
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       final bindings = {..._bindings};
       data.forEach((k, v) {
         setClauses.add('$k = :$k');
@@ -662,7 +664,7 @@ class QueryBuilder {
       });
 
       final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
-      await DB.query(sql, namedParams: bindings);
+      await executor.query(sql, namedParams: bindings);
     } else {
       final positionalParams = <dynamic>[];
       data.forEach((k, v) {
@@ -673,7 +675,7 @@ class QueryBuilder {
       positionalParams.addAll(_bindings.values);
 
       final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
-      await DB.query(sql, positionalParams: positionalParams);
+      await executor.query(sql, positionalParams: positionalParams);
     }
   }
 
@@ -685,11 +687,11 @@ class QueryBuilder {
     }
 
     final sql = 'DELETE FROM $table $whereSql';
-    await DB.query(
+    await executor.query(
       sql,
-      namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
+      namedParams: executor.driver == DBDriver.postgres ? _bindings : null,
       positionalParams:
-          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+          executor.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
   }
 
@@ -707,8 +709,8 @@ class QueryBuilder {
   /// --- Load primary key info from the database ---
   Future<_ColumnInfo> _loadIdColumnInfo(String idColumn) async {
     try {
-      if (DB.driver == DBDriver.mysql) {
-        final result = await DB.query(
+      if (executor.driver == DBDriver.mysql) {
+        final result = await executor.query(
           '''
         SELECT DATA_TYPE, EXTRA
         FROM information_schema.columns
@@ -737,8 +739,8 @@ class QueryBuilder {
                 !isAuto && (dataType.contains('char') || dataType == 'uuid'),
           );
         }
-      } else if (DB.driver == DBDriver.postgres) {
-        final result = await DB.query(
+      } else if (executor.driver == DBDriver.postgres) {
+        final result = await executor.query(
           '''
         SELECT data_type, is_identity
         FROM information_schema.columns

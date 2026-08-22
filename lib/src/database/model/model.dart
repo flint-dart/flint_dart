@@ -15,12 +15,21 @@ abstract class Model<T extends Model<T>> {
 
   T useTransaction(DBTransaction trx) {
     _trx = trx;
+    // A QueryBuilder captures its executor at construction time. Reset it so
+    // a model that enters a transaction cannot retain the global DB executor.
+    _queryBuilder = null;
     return this as T;
   }
 
   Model(this._factory) {
     _registerRelationLoaders();
   }
+
+  /// Creates a fresh instance of this model's concrete type.
+  ///
+  /// Integration packages can use this for metadata registration without
+  /// retaining or reusing a stateful model instance.
+  T newInstance() => _factory();
 
   /// Relations definition
   Map<String, RelationDefinition> get relations => {};
@@ -118,16 +127,16 @@ abstract class Model<T extends Model<T>> {
 
     if (value is Map) {
       return definition.relatedFactory().fromMap(
-        Map<dynamic, dynamic>.from(value),
-      );
+            Map<dynamic, dynamic>.from(value),
+          );
     }
 
     if (value is List) {
       return value.map((item) {
         if (item is Map) {
           return definition.relatedFactory().fromMap(
-            Map<dynamic, dynamic>.from(item),
-          );
+                Map<dynamic, dynamic>.from(item),
+              );
         }
         return item;
       }).toList();
@@ -138,7 +147,10 @@ abstract class Model<T extends Model<T>> {
 
   /// Get or create query builder
   QueryBuilder get qb {
-    _queryBuilder ??= QueryBuilder(table: table.name);
+    _queryBuilder ??= QueryBuilder(
+      table: table.name,
+      executor: _trx,
+    );
     return _queryBuilder!;
   }
 
@@ -169,9 +181,8 @@ abstract class Model<T extends Model<T>> {
 
   Future<List<T>> get() async {
     final results = await qb.get();
-    final models = results
-        .map((map) => fromMap(_convertDatabaseTypes(map)))
-        .toList();
+    final models =
+        results.map((map) => fromMap(_convertDatabaseTypes(map))).toList();
 
     // If we have requested relations, load them
     if (qb.withRelations.isNotEmpty) {
@@ -297,7 +308,9 @@ abstract class Model<T extends Model<T>> {
       );
     }
 
-    final query = definition.relatedFactory().resetQuery().qb;
+    final relatedModel = definition.relatedFactory();
+    if (_trx != null) relatedModel.useTransaction(_trx!);
+    final query = relatedModel.resetQuery().qb;
 
     switch (definition.type) {
       case RelationType.belongsTo:
@@ -477,7 +490,9 @@ abstract class Model<T extends Model<T>> {
     if (fkValues.isEmpty) return;
 
     // Fetch related models
-    final relatedQuery = relatedFactory().resetQuery().qb;
+    final relatedModel = relatedFactory();
+    if (_trx != null) relatedModel.useTransaction(_trx!);
+    final relatedQuery = relatedModel.resetQuery().qb;
     _applyRelationColumns(relatedQuery, config, [definition.ownerKey]);
     final relatedResults = await relatedQuery
         .whereIn(definition.ownerKey, fkValues.toList())
@@ -524,7 +539,9 @@ abstract class Model<T extends Model<T>> {
     if (parentIds.isEmpty) return;
 
     // Fetch related models
-    final relatedQuery = relatedFactory().resetQuery().qb;
+    final relatedModel = relatedFactory();
+    if (_trx != null) relatedModel.useTransaction(_trx!);
+    final relatedQuery = relatedModel.resetQuery().qb;
     _applyRelationColumns(relatedQuery, config, [definition.foreignKey]);
     final relatedResults = await relatedQuery
         .whereIn(definition.foreignKey, parentIds.toList())
@@ -577,7 +594,9 @@ abstract class Model<T extends Model<T>> {
     }
 
     // Fetch related models
-    final relatedQuery = relatedFactory().resetQuery().qb;
+    final relatedModel = relatedFactory();
+    if (_trx != null) relatedModel.useTransaction(_trx!);
+    final relatedQuery = relatedModel.resetQuery().qb;
     _applyRelationColumns(relatedQuery, config, [definition.foreignKey]);
     final relatedResults = await relatedQuery
         .whereIn(definition.foreignKey, parentIds.toList())

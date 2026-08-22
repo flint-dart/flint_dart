@@ -1,13 +1,13 @@
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/db_transaction.dart';
+import 'package:flint_dart/src/database/db_driver.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:flint_dart/src/env_parser.dart';
 import 'mysql_connection.dart';
 import 'pg_connection.dart';
 import 'dart:convert';
 
-/// Supported database drivers
-enum DBDriver { mysql, postgres }
+export 'db_driver.dart';
 
 /// Database manager for Flint Dart
 ///
