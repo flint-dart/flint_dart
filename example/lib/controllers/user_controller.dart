@@ -68,7 +68,7 @@ class UserController {
 
       final updatedUser = await User().find(userId);
 
-      return res.json({
+      return await res.json({
         "status": "success",
         "message": "User updated successfully.",
         "user": updatedUser?.toMap(),
