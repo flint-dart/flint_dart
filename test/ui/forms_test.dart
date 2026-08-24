@@ -331,10 +331,29 @@ void main() {
 
       final control = select.children[1] as FlintElement;
       expect(control.tag, 'select');
+      expect(control.props['value'], 'pro');
       expect(control.children, hasLength(3));
       final pro = control.children[2] as FlintElement;
       expect(pro.props['value'], 'pro');
       expect(pro.props['selected'], true);
+    });
+
+    test('Select compares typed option values by their DOM string value', () {
+      final select = Select(
+        name: 'quantity',
+        value: '2',
+        options: const [
+          SelectOption(label: 'One', value: 1),
+          SelectOption(label: 'Two', value: 2),
+        ],
+      );
+
+      final control = select.children.single as FlintElement;
+      final selected = control.children[1] as FlintElement;
+
+      expect(control.props['value'], '2');
+      expect(selected.props['value'], 2);
+      expect(selected.props['selected'], true);
     });
 
     test('TextArea and Select support input variants', () {

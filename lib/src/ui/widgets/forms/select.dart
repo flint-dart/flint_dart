@@ -115,6 +115,10 @@ class Select extends FlintElement {
               error: error,
               describedBy: ariaDescribedBy,
             ),
+            // Set 'value' directly on the <select> element so the reconciler
+            // can call element.value = ... imperatively during patch, which
+            // overrides stale browser-native selection state after setState.
+            if (value != null) 'value': value,
             if (onChanged != null) 'onChange': onChanged,
           },
           dartStyle: inputComponentStyle(
@@ -131,7 +135,7 @@ class Select extends FlintElement {
               'option',
               props: {
                 'value': '',
-                if (value == null) 'selected': true,
+                if (value == null || value.toString().isEmpty) 'selected': true,
                 if (required) 'disabled': true,
               },
               children: normalizeChildren(placeholder, const []),
@@ -141,7 +145,9 @@ class Select extends FlintElement {
               'option',
               props: {
                 'value': option.value,
-                if (value == option.value) 'selected': true,
+                if (value != null &&
+                    value.toString() == option.value.toString())
+                  'selected': true,
                 if (option.disabled) 'disabled': true,
               },
               children: normalizeChildren(option.label, const []),

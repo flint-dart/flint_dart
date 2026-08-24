@@ -132,12 +132,23 @@ class FlintRoot {
     Map<String, _ComponentMount> nextSlots,
   ) {
     final element = _createDomElement(tag);
+
+    // For <select>, defer applying 'value' until after child <option> elements
+    // are appended — setting element.value before options exist is a browser no-op.
+    final deferredSelectValue =
+        (tag == 'select') ? props['value']?.toString() : null;
+
     _applyProps(element, props);
 
     for (var i = 0; i < children.length; i++) {
       element.appendChild(
         _createDom(children[i], '$path.$i', previousSlots, nextSlots),
       );
+    }
+
+    // Apply deferred select value now that <option> children are in the DOM.
+    if (deferredSelectValue != null && element is web.HTMLSelectElement) {
+      element.value = deferredSelectValue;
     }
 
     return element;
