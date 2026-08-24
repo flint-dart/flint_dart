@@ -8,6 +8,7 @@ All notable changes to this project are documented in this file.
 - **Controlled Select State**: Applied the selected value directly to `<select>` controls after their `<option>` elements mount, and kept the value synchronized after state-driven rerenders.
 - **Typed Select Values**: Compared option and selected values by their DOM string representation so numeric and string-backed values select consistently.
 - **Model Creation Hydration**: Hydrated the model instance that calls `create()` with the inserted database row, including generated IDs and converted attribute types, while preserving the populated returned model.
+- **Example Static Analysis**: Awaited the example user update response inside its `try` block so strict Linux CI analysis remains clean.
 
 ## [1.3.2] - 2026-08-22
 
