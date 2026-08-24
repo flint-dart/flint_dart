@@ -94,7 +94,9 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
       ''';
 
       final result = await runQuery(sql, namedParams: insertMap);
-      return fromMap(_convertDatabaseTypes(result.first));
+      final converted = _convertDatabaseTypes(result.first);
+      setAttributes(converted);
+      return fromMap(converted);
     } else {
       // MySQL - use positional parameters
       final placeholders =
@@ -113,7 +115,9 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
           'SELECT * FROM ${table.name} WHERE ${idColumn.name} = ?',
           positionalParams: [lastId],
         );
-        return fromMap(_convertDatabaseTypes(result.first));
+        final converted = _convertDatabaseTypes(result.first);
+        setAttributes(converted);
+        return fromMap(converted);
       } else {
         // Fetch using UUID we just inserted
         final insertedId = insertMap[idColumn.name];
@@ -121,7 +125,9 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
           'SELECT * FROM ${table.name} WHERE ${idColumn.name} = ?',
           positionalParams: [insertedId],
         );
-        return fromMap(_convertDatabaseTypes(result.first));
+        final converted = _convertDatabaseTypes(result.first);
+        setAttributes(converted);
+        return fromMap(converted);
       }
     }
   }

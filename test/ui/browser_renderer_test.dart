@@ -119,6 +119,29 @@ void main() {
         expect(updatedInput.selectionEnd, 3);
       },
     );
+
+    test('controlled select applies its value after options render', () async {
+      final host = web.document.createElement('div');
+      web.document.body?.appendChild(host);
+      addTearDown(() => host.remove());
+
+      final component = _ControlledSelectComponent();
+      final root = createRootForElement(host);
+      root.render(component);
+      await _flushRender();
+
+      final select = host.querySelector('select') as web.HTMLSelectElement;
+      expect(select.value, 'starter');
+
+      select.value = 'pro';
+      select.dispatchEvent(web.Event('change'));
+      await _flushRender();
+
+      final updatedSelect =
+          host.querySelector('select') as web.HTMLSelectElement;
+      expect(component.value, 'pro');
+      expect(updatedSelect.value, 'pro');
+    });
   });
 }
 
@@ -158,6 +181,24 @@ class _ControlledInputComponent extends StatefulComponent {
   Object? build() {
     return TextField(
       value: value,
+      onChanged: (event) {
+        setState(() => value = FlintEvent.value(event));
+      },
+    );
+  }
+}
+
+class _ControlledSelectComponent extends StatefulComponent {
+  String value = 'starter';
+
+  @override
+  Object? build() {
+    return Select(
+      value: value,
+      options: const [
+        SelectOption(label: 'Starter', value: 'starter'),
+        SelectOption(label: 'Pro', value: 'pro'),
+      ],
       onChanged: (event) {
         setState(() => value = FlintEvent.value(event));
       },
