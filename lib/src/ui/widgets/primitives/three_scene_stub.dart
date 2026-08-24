@@ -3,16 +3,16 @@ import '../../node.dart';
 import '../../style.dart';
 
 /// Called when a [ThreeSceneController] attaches to a rendered canvas.
-typedef ThreeSceneAttachCallback =
-    void Function(ThreeSceneController controller);
+typedef ThreeSceneAttachCallback = void Function(
+    ThreeSceneController controller);
 
 /// Called for each requested animation frame.
-typedef ThreeSceneFrameCallback =
-    void Function(ThreeSceneController controller, double timestamp);
+typedef ThreeSceneFrameCallback = void Function(
+    ThreeSceneController controller, double timestamp);
 
 /// Called when a [ThreeSceneController] is disposed.
-typedef ThreeSceneDisposeCallback =
-    void Function(ThreeSceneController controller);
+typedef ThreeSceneDisposeCallback = void Function(
+    ThreeSceneController controller);
 
 /// Server-safe controller for a browser Three.js scene canvas.
 ///
@@ -75,7 +75,8 @@ class ThreeSceneController {
     Object? target,
     String method, [
     List<Object?> args = const [],
-  ]) => null;
+  ]) =>
+      null;
 
   /// Reads a JavaScript property from [target] in browser builds.
   Object? getProperty(Object? target, String property) => null;
@@ -122,29 +123,29 @@ class ThreeScene extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'canvas',
-         props: mergeComponentProps(
-           {
-             ...props,
-             'width': width,
-             'height': height,
-             if (controller != null) '_flintThreeSceneController': controller,
-             if (label != null) 'aria-label': label,
-             if (label == null) 'aria-hidden': true,
-             'tabIndex': props['tabIndex'] ?? 0,
-           },
-           className: className,
-           defaultStyle: const {
-             'display': 'block',
-             'width': '100%',
-             'max-width': '100%',
-             'height': 'auto',
-             'touch-action': 'none',
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-       );
+          'canvas',
+          props: mergeComponentProps(
+            {
+              ...props,
+              'width': width,
+              'height': height,
+              if (controller != null) '_flintThreeSceneController': controller,
+              if (label != null) 'aria-label': label,
+              if (label == null) 'aria-hidden': true,
+              'tabIndex': props['tabIndex'] ?? 0,
+            },
+            className: className,
+            defaultStyle: const {
+              'display': 'block',
+              'width': '100%',
+              'max-width': '100%',
+              'height': 'auto',
+              'touch-action': 'none',
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+        );
 
   /// Optional scene controller.
   final ThreeSceneController? controller;

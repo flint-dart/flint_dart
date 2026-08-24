@@ -2,6 +2,41 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.3] - 2026-08-24
+
+### Fixed
+- **Controlled Select State**: Applied the selected value directly to `<select>` controls after their `<option>` elements mount, and kept the value synchronized after state-driven rerenders.
+- **Typed Select Values**: Compared option and selected values by their DOM string representation so numeric and string-backed values select consistently.
+- **Model Creation Hydration**: Hydrated the model instance that calls `create()` with the inserted database row, including generated IDs and converted attribute types, while preserving the populated returned model.
+
+## [1.3.2] - 2026-08-22
+
+### Fixed
+- **Static Analysis & Pana Score**: Fixed unawaited `Future` returns inside `try` blocks in `getTableSchema` (`dialect.dart`) and JSON sanitization (`response.dart`) for 100% static analysis score (50/50).
+- **Documentation Reference**: Resolved unresolved doc reference in `Response.view` doc comment.
+- **Codebase Formatting**: Formatted all source files with `dart format`.
+
+## [1.3.1] - 2026-08-22
+
+### Fixed
+- **Static Analysis & Pana Score**: Resolved all unawaited Future returns across `port_utils.dart` and `flint_database_api.dart` for 100% clean static analysis.
+- **Unified Database Protocol**: Re-exported unified database protocol classes (`FlintDbQuery`, `FlintDbFilter`, `FlintDbResourceSchema`, etc.) from `flint_client` across `db_api.dart` and `db.dart` to prevent ambiguous type collisions.
+- **Dependency Compatibility**: Upgraded `flint_client` dependency constraint to support latest stable releases (`>=0.1.0 <1.0.0`).
+- **Code Health**: Modernized constructors with super parameters and initializing formals across UI primitives and style modules.
+
+## [1.3.0] - 2026-08-22
+
+### Added
+- **Fullstack Web UI Engine**: Merged Flint UI natively into `flint_dart` under `package:flint_dart/ui.dart`, giving developers declarative HTML/DOM components, Flutter-like widgets, 2D Canvas, 3D WebGL scenes, and reactive state signals with zero external packages.
+- **First-Class SEO & Server-Side Rendering (SSR)**: Instant HTML generation, meta tags, and OpenGraph crawlers with client-side hydration.
+- **Secure Database API Gateway**: Built-in Row-Level Security (`FlintDbPolicy`), Resource Registries (`FlintDbResource`), and Query Compilers under `package:flint_dart/db_api.dart`.
+- **Database Wire Protocol**: Integrated database query ASTs, mutations, results, and schema models directly into `flint_dart`.
+
+### Changed
+- Promoted `flint_dart` as the **First Official Full-Stack, Declarative, SEO-First Dart Web Framework**.
+- Modernized CLI templates (`make:page`, `make:ui`, `build`) to emit `package:flint_dart/ui.dart`.
+- Removed external `flint_ui` dependency constraint in favor of native built-in UI engine.
+
 ## [1.2.3] - 2026-08-17
 
 ### Changed

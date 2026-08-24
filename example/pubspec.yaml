@@ -7,8 +7,3 @@ environment:
 dependencies:
   flint_dart:
     path: ..
-  flint_ui: ^0.1.10
-
-dependency_overrides:
-  flint_client:
-    path: ../../flint-client

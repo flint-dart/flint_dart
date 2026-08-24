@@ -18,44 +18,44 @@ class SwitchRow extends FlintElement {
     DartStyle? dartStyle,
     void Function(Object event)? onChanged,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: _switchRowStyle,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           FlintElement(
-             'div',
-             props: const {
-               'style': {'min-width': 0},
-             },
-             children: [
-               FlintElement(
-                 'span',
-                 props: const {'style': _switchRowLabelStyle},
-                 children: [FlintText(label)],
-               ),
-               if (description != null && description.trim().isNotEmpty)
-                 FlintElement(
-                   'span',
-                   props: const {'style': _switchRowDescriptionStyle},
-                   children: [FlintText(description)],
-                 ),
-             ],
-           ),
-           Switch(
-             name: name ?? label.toLowerCase().replaceAll(RegExp(r'\s+'), '-'),
-             checked: checked,
-             disabled: disabled,
-             onChanged: onChanged,
-             inputProps: {'aria-label': label},
-             dartStyle: const DartStyle(width: SizeValue.auto),
-           ),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: _switchRowStyle,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            FlintElement(
+              'div',
+              props: const {
+                'style': {'min-width': 0},
+              },
+              children: [
+                FlintElement(
+                  'span',
+                  props: const {'style': _switchRowLabelStyle},
+                  children: [FlintText(label)],
+                ),
+                if (description != null && description.trim().isNotEmpty)
+                  FlintElement(
+                    'span',
+                    props: const {'style': _switchRowDescriptionStyle},
+                    children: [FlintText(description)],
+                  ),
+              ],
+            ),
+            Switch(
+              name: name ?? label.toLowerCase().replaceAll(RegExp(r'\s+'), '-'),
+              checked: checked,
+              disabled: disabled,
+              onChanged: onChanged,
+              inputProps: {'aria-label': label},
+              dartStyle: const DartStyle(width: SizeValue.auto),
+            ),
+          ],
+        );
 }
 
 const _switchRowStyle = {

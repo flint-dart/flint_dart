@@ -478,7 +478,7 @@ class FlintWebUiBuilder {
     generatedEntry.writeAsStringSync('''
 import 'dart:io';
 
-import 'package:flint_ui/flint_ui.dart' as flint;
+import 'package:flint_dart/ui.dart' as flint;
 import '$entryImport' as app;
 
 void main() {
@@ -811,7 +811,7 @@ void main() {
 
     if (target != null) {
       return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 import '${target.importUri}';
 ${rootImport == null ? '' : "import '$rootImport';"}
 
@@ -825,7 +825,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     }
 
     return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 import '${config.registryImport}';
 ${rootImport == null ? '' : "import '$rootImport';"}
 
@@ -848,7 +848,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
   ) {
     final sortedPages = config.pages.keys.toList()..sort();
     final imports = StringBuffer()
-      ..writeln("import 'package:flint_ui/flint_ui.dart';");
+      ..writeln("import 'package:flint_dart/ui.dart';");
     final cases = StringBuffer();
 
     if (config.rootDesignImport != null) {

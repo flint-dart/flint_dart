@@ -1,4 +1,4 @@
-﻿# Flint Web UI Example
+# Flint Web UI Example
 
 This example shows Flint Web UI as a small React-style Dart component app.
 
@@ -54,7 +54,7 @@ Use `flint run --no-web-build` to skip that step.
 Core API:
 
 ```dart
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 void main() {
   createFlintApp('#app', pages: {

@@ -19,8 +19,7 @@ class FlintServerRenderer {
     FlintComponent Function(String component)? missingPage,
   }) {
     final builder = registry[component];
-    final page =
-        builder?.call(props) ??
+    final page = builder?.call(props) ??
         missingPage?.call(component) ??
         _MissingServerPage(component);
     return render(page);
@@ -53,16 +52,16 @@ class FlintServerRenderer {
       FlintFragment(:final children) =>
         children.map((child) => _renderNode(child, context)).join(),
       FlintElement(:final tag, :final props, :final children) => _renderElement(
-        tag,
-        props,
-        children,
-        context,
-      ),
+          tag,
+          props,
+          children,
+          context,
+        ),
       FlintComponent() => _renderNode(_normalize(node.build()), context),
       FlintComponentNode(:final component) => _renderNode(
-        _normalize(component.build()),
-        context,
-      ),
+          _normalize(component.build()),
+          context,
+        ),
       _ => '',
     };
   }

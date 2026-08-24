@@ -57,8 +57,8 @@ FormController useForm(Map<String, Object?> initialValues) {
 class FormController {
   /// Creates a form controller from initial field values.
   FormController(Map<String, Object?> initialValues)
-    : _defaults = Map<String, Object?>.from(initialValues),
-      _data = Map<String, Object?>.from(initialValues);
+      : _defaults = Map<String, Object?>.from(initialValues),
+        _data = Map<String, Object?>.from(initialValues);
 
   final Map<String, Object?> _defaults;
   final Map<String, Object?> _data;

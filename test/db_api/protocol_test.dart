@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flint_dart/db_api.dart';
+import 'package:flint_dart/flint_dart.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -34,9 +34,9 @@ class ThemeTokens {
 
   /// CSS custom properties generated from token values.
   Map<String, Object?> get cssVariables => {
-    for (final entry in values.entries)
-      '--${_tokenCssName(entry.key)}': entry.value,
-  };
+        for (final entry in values.entries)
+          '--${_tokenCssName(entry.key)}': entry.value,
+      };
 }
 
 /// Built-in Flint UI theme modes.
@@ -309,16 +309,16 @@ class StyleRule {
 
   /// Creates a nested style rule for an at-rule.
   const StyleRule.nested(this.nestedRules)
-    : styles = const {},
-      hover = const {},
-      focus = const {},
-      focusVisible = const {},
-      active = const {},
-      disabled = const {},
-      checked = const {},
-      selected = const {},
-      expanded = const {},
-      invalid = const {};
+      : styles = const {},
+        hover = const {},
+        focus = const {},
+        focusVisible = const {},
+        active = const {},
+        disabled = const {},
+        checked = const {},
+        selected = const {},
+        expanded = const {},
+        invalid = const {};
 }
 
 /// Named stylesheet that compiles class-based style rules to CSS text.
@@ -350,14 +350,12 @@ class StyleSheet {
       final rule = entry.value;
 
       if (selector.startsWith('@')) {
-        final nested = rule.nestedRules.entries
-            .map((nestedEntry) {
-              return _compileRule(
-                _selector(nestedEntry.key),
-                nestedEntry.value,
-              );
-            })
-            .join('\n');
+        final nested = rule.nestedRules.entries.map((nestedEntry) {
+          return _compileRule(
+            _selector(nestedEntry.key),
+            nestedEntry.value,
+          );
+        }).join('\n');
         chunks.add('$selector {\n$nested\n}');
         continue;
       }
@@ -460,7 +458,7 @@ class KeyframeStep {
 
   /// CSS selector for this keyframe step.
   String get selector {
-    if (offset is num) return '${offset}%';
+    if (offset is num) return '$offset%';
     return offset.toString();
   }
 }

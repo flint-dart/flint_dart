@@ -4,7 +4,7 @@ class FormErrors {
 
   /// Creates a validation error collection from normalized messages.
   const FormErrors([Map<String, List<String>> messages = const {}])
-    : _messages = messages;
+      : _messages = messages;
 
   /// Creates validation errors from common error response shapes.
   factory FormErrors.from(Object? value) {
@@ -77,14 +77,14 @@ class FormErrors {
 
   /// First validation message for each field.
   Map<String, String> get firstMessages => {
-    for (final entry in _messages.entries)
-      if (entry.value.isNotEmpty) entry.key: entry.value.first,
-  };
+        for (final entry in _messages.entries)
+          if (entry.value.isNotEmpty) entry.key: entry.value.first,
+      };
 
   /// Converts validation messages to a JSON-like map.
   Map<String, Object?> toJson() => {
-    for (final entry in _messages.entries) entry.key: entry.value,
-  };
+        for (final entry in _messages.entries) entry.key: entry.value,
+      };
 }
 
 /// Resolves an explicit field error before falling back to [errors].

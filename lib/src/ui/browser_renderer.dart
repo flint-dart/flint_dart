@@ -64,38 +64,38 @@ class FlintRoot {
     return switch (node) {
       FlintText(:final value) => web.document.createTextNode(value),
       FlintRawHtml(:final value, :final trusted) => _createRawHtml(
-        value,
-        trusted,
-      ),
+          value,
+          trusted,
+        ),
       FlintFragment(:final children) => _createFragment(
-        children,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          children,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       FlintElement(:final tag, :final props, :final children) => _createElement(
-        tag,
-        props,
-        children,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          tag,
+          props,
+          children,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       FlintComponent() => _createComponent(
-        node,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          node,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       FlintComponentNode(:final component) => _createComponent(
-        component,
-        path,
-        previousSlots,
-        nextSlots,
-      ),
+          component,
+          path,
+          previousSlots,
+          nextSlots,
+        ),
       _ => throw UnsupportedError(
-        'Unsupported FlintNode type: ${node.runtimeType}',
-      ),
+          'Unsupported FlintNode type: ${node.runtimeType}',
+        ),
     };
   }
 
@@ -132,12 +132,23 @@ class FlintRoot {
     Map<String, _ComponentMount> nextSlots,
   ) {
     final element = _createDomElement(tag);
+
+    // For <select>, defer applying 'value' until after child <option> elements
+    // are appended — setting element.value before options exist is a browser no-op.
+    final deferredSelectValue =
+        (tag == 'select') ? props['value']?.toString() : null;
+
     _applyProps(element, props);
 
     for (var i = 0; i < children.length; i++) {
       element.appendChild(
         _createDom(children[i], '$path.$i', previousSlots, nextSlots),
       );
+    }
+
+    // Apply deferred select value now that <option> children are in the DOM.
+    if (deferredSelectValue != null && element is web.HTMLSelectElement) {
+      element.value = deferredSelectValue;
     }
 
     return element;
@@ -158,8 +169,7 @@ class FlintRoot {
     Map<String, _ComponentMount> nextSlots,
   ) {
     final previous = previousSlots[path];
-    final hasExisting =
-        previous != null &&
+    final hasExisting = previous != null &&
         previous.component.runtimeType == component.runtimeType &&
         previous.component.preserveState &&
         component.preserveState;

@@ -18,28 +18,28 @@ class UsageMeter extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {'display': 'grid', 'gap': '8px'},
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           FlintElement(
-             'div',
-             props: const {
-               'style': {
-                 'display': 'flex',
-                 'align-items': 'center',
-                 'justify-content': 'space-between',
-                 'gap': '12px',
-               },
-             },
-             children: [FlintText(label), FlintText('$used / $limit$unit')],
-           ),
-           ProgressBar(value: used, max: limit, tone: tone),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {'display': 'grid', 'gap': '8px'},
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            FlintElement(
+              'div',
+              props: const {
+                'style': {
+                  'display': 'flex',
+                  'align-items': 'center',
+                  'justify-content': 'space-between',
+                  'gap': '12px',
+                },
+              },
+              children: [FlintText(label), FlintText('$used / $limit$unit')],
+            ),
+            ProgressBar(value: used, max: limit, tone: tone),
+          ],
+        );
 }

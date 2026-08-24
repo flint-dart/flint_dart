@@ -404,9 +404,9 @@ Future<Table?> getTableSchema(String tableName) async {
     final driver = DB.driver;
     switch (driver) {
       case DBDriver.mysql:
-        return MySQLDialect().getTableSchema(tableName);
+        return await MySQLDialect().getTableSchema(tableName);
       case DBDriver.postgres:
-        return PostgresDialect().getTableSchema(tableName);
+        return await PostgresDialect().getTableSchema(tableName);
     }
   } catch (e) {
     Log.debug('Error in getTableSchema: $e');

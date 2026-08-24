@@ -15,28 +15,28 @@ class Divider extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           {
-             ...props,
-             'role': props['role'] ?? 'separator',
-             'aria-orientation': vertical ? 'vertical' : 'horizontal',
-           },
-           className: className,
-           defaultStyle: vertical
-               ? {
-                   'width': cssValue(thickness),
-                   'height': length == null ? 'auto' : cssValue(length),
-                   'background': color,
-                   'align-self': 'stretch',
-                 }
-               : {
-                   'height': cssValue(thickness),
-                   'width': length == null ? '100%' : cssValue(length),
-                   'background': color,
-                 },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-       );
+          'div',
+          props: mergeComponentProps(
+            {
+              ...props,
+              'role': props['role'] ?? 'separator',
+              'aria-orientation': vertical ? 'vertical' : 'horizontal',
+            },
+            className: className,
+            defaultStyle: vertical
+                ? {
+                    'width': cssValue(thickness),
+                    'height': length == null ? 'auto' : cssValue(length),
+                    'background': color,
+                    'align-self': 'stretch',
+                  }
+                : {
+                    'height': cssValue(thickness),
+                    'width': length == null ? '100%' : cssValue(length),
+                    'background': color,
+                  },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+        );
 }

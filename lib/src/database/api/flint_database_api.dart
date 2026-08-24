@@ -2,14 +2,6 @@ import 'dart:math';
 
 import '../../../flint_dart.dart';
 import '../../../auth.dart';
-import '../protocol/flint_db_protocol.dart';
-
-import 'config/flint_database_api_config.dart';
-import 'errors/flint_db_api_exception.dart';
-import 'execution/flint_db_query_compiler.dart';
-import 'exposure/flint_db_resource.dart';
-import 'exposure/flint_db_resource_registry.dart';
-import 'exposure/flint_db_operation.dart';
 
 class FlintDatabaseApi {
   FlintDatabaseApi({
@@ -107,7 +99,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
   Future<Response?> _schema(Context ctx) async {
     try {
       await _requireAuthorized(ctx);
-      return ctx.res?.json(
+      return await ctx.res?.json(
         _success(
           ctx,
           api.registry.schema().map((resource) => resource.toJson()).toList(),
@@ -115,7 +107,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
         ),
       );
     } on FlintDbApiException catch (error) {
-      return ctx.res?.status(error.statusCode).json(_failure(ctx, error));
+      return await ctx.res?.status(error.statusCode).json(_failure(ctx, error));
     }
   }
 
@@ -130,11 +122,11 @@ class _FlintDatabaseRoutes extends RouteGroup {
         query,
         enforcedFilter: await _readFilter(ctx, resourceName),
       );
-      return ctx.res?.json(_success(ctx, rows, count: rows.length));
+      return await ctx.res?.json(_success(ctx, rows, count: rows.length));
     } on FlintDbApiException catch (error) {
-      return ctx.res?.status(error.statusCode).json(_failure(ctx, error));
+      return await ctx.res?.status(error.statusCode).json(_failure(ctx, error));
     } on FormatException catch (error) {
-      return ctx.res?.status(400).json(
+      return await ctx.res?.status(400).json(
             _failure(
               ctx,
               FlintDbApiException(
@@ -144,7 +136,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
             ),
           );
     } catch (_) {
-      return ctx.res?.status(500).json(
+      return await ctx.res?.status(500).json(
             _failure(
               ctx,
               const FlintDbApiException(
@@ -182,11 +174,11 @@ class _FlintDatabaseRoutes extends RouteGroup {
           statusCode: 404,
         );
       }
-      return ctx.res?.json(_success(ctx, rows.first, count: 1));
+      return await ctx.res?.json(_success(ctx, rows.first, count: 1));
     } on FlintDbApiException catch (error) {
-      return ctx.res?.status(error.statusCode).json(_failure(ctx, error));
+      return await ctx.res?.status(error.statusCode).json(_failure(ctx, error));
     } catch (_) {
-      return ctx.res?.status(500).json(
+      return await ctx.res?.status(500).json(
             _failure(
               ctx,
               const FlintDbApiException(
@@ -211,11 +203,11 @@ class _FlintDatabaseRoutes extends RouteGroup {
         query,
         enforcedFilter: await _readFilter(ctx, resourceName),
       );
-      return ctx.res?.json(_success(ctx, rows, count: rows.length));
+      return await ctx.res?.json(_success(ctx, rows, count: rows.length));
     } on FlintDbApiException catch (error) {
-      return ctx.res?.status(error.statusCode).json(_failure(ctx, error));
+      return await ctx.res?.status(error.statusCode).json(_failure(ctx, error));
     } on FormatException catch (error) {
-      return ctx.res?.status(400).json(
+      return await ctx.res?.status(400).json(
             _failure(
               ctx,
               FlintDbApiException(
@@ -225,7 +217,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
             ),
           );
     } catch (_) {
-      return ctx.res?.status(500).json(
+      return await ctx.res?.status(500).json(
             _failure(
               ctx,
               const FlintDbApiException(
@@ -254,14 +246,14 @@ class _FlintDatabaseRoutes extends RouteGroup {
           if (api.config.auth.defaultRole case final role?) 'role': role,
         },
       );
-      return ctx.res?.status(201).json(
+      return await ctx.res?.status(201).json(
             _success(ctx, {
               'user': user,
               'token': Auth.generateToken(user),
             }),
           );
     } on ValidationException catch (error) {
-      return ctx.res?.status(422).json(
+      return await ctx.res?.status(422).json(
             _failure(
               ctx,
               FlintDbApiException(
@@ -273,7 +265,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
             ),
           );
     } on AuthException catch (error) {
-      return ctx.res?.status(409).json(
+      return await ctx.res?.status(409).json(
             _failure(
               ctx,
               FlintDbApiException(
@@ -293,9 +285,9 @@ class _FlintDatabaseRoutes extends RouteGroup {
         body['email']?.toString().trim().toLowerCase() ?? '',
         body['password']?.toString() ?? '',
       );
-      return ctx.res?.json(_success(ctx, result));
+      return await ctx.res?.json(_success(ctx, result));
     } on AuthException catch (_) {
-      return ctx.res?.status(401).json(
+      return await ctx.res?.status(401).json(
             _failure(
               ctx,
               const FlintDbApiException(
@@ -311,7 +303,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
   Future<Response?> _me(Context ctx) async {
     final identity = api.identity(ctx);
     if (identity == null) {
-      return ctx.res?.status(401).json(
+      return await ctx.res?.status(401).json(
             _failure(
               ctx,
               const FlintDbApiException(
@@ -322,7 +314,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
             ),
           );
     }
-    return ctx.res?.json(_success(ctx, identity));
+    return await ctx.res?.json(_success(ctx, identity));
   }
 
   Future<Response?> _insert(Context ctx) async {
@@ -337,13 +329,13 @@ class _FlintDatabaseRoutes extends RouteGroup {
       final row = await _ownedBuilder(ctx, resource)
           .where(resource.primaryKey, '=', data[resource.primaryKey])
           .first();
-      return ctx.res?.status(201).json(
+      return await ctx.res?.status(201).json(
             _success(ctx, row == null ? data : resource.concealRow(row)),
           );
     } on FlintDbApiException catch (error) {
-      return ctx.res?.status(error.statusCode).json(_failure(ctx, error));
+      return await ctx.res?.status(error.statusCode).json(_failure(ctx, error));
     } catch (_) {
-      return _internalFailure(ctx);
+      return await _internalFailure(ctx);
     }
   }
 
@@ -355,7 +347,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
       final id = _requiredParam(ctx, 'id');
       final builder = _ownedBuilder(ctx, resource)
         ..where(resource.primaryKey, '=', id);
-      if (await builder.first() == null) return _recordNotFound(ctx);
+      if (await builder.first() == null) return await _recordNotFound(ctx);
       final data = _writablePayload(resource, await ctx.req.json());
       if (data.isEmpty) {
         throw const FlintDbApiException(
@@ -370,11 +362,11 @@ class _FlintDatabaseRoutes extends RouteGroup {
       final row = await (_ownedBuilder(ctx, resource)
             ..where(resource.primaryKey, '=', id))
           .first();
-      return ctx.res?.json(_success(ctx, resource.concealRow(row!)));
+      return await ctx.res?.json(_success(ctx, resource.concealRow(row!)));
     } on FlintDbApiException catch (error) {
-      return ctx.res?.status(error.statusCode).json(_failure(ctx, error));
+      return await ctx.res?.status(error.statusCode).json(_failure(ctx, error));
     } catch (_) {
-      return _internalFailure(ctx);
+      return await _internalFailure(ctx);
     }
   }
 
@@ -386,14 +378,14 @@ class _FlintDatabaseRoutes extends RouteGroup {
       final id = _requiredParam(ctx, 'id');
       final builder = _ownedBuilder(ctx, resource)
         ..where(resource.primaryKey, '=', id);
-      if (await builder.first() == null) return _recordNotFound(ctx);
+      if (await builder.first() == null) return await _recordNotFound(ctx);
       await (_ownedBuilder(ctx, resource)..where(resource.primaryKey, '=', id))
           .delete();
-      return ctx.res?.json(_success(ctx, {'deleted': true}));
+      return await ctx.res?.json(_success(ctx, {'deleted': true}));
     } on FlintDbApiException catch (error) {
-      return ctx.res?.status(error.statusCode).json(_failure(ctx, error));
+      return await ctx.res?.status(error.statusCode).json(_failure(ctx, error));
     } catch (_) {
-      return _internalFailure(ctx);
+      return await _internalFailure(ctx);
     }
   }
 
@@ -579,7 +571,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
   Future<Response?> _recordNotFound(Context ctx) async {
     final response = ctx.res;
     if (response == null) return null;
-    return response.status(404).json(
+    return await response.status(404).json(
           _failure(
             ctx,
             const FlintDbApiException(
@@ -594,7 +586,7 @@ class _FlintDatabaseRoutes extends RouteGroup {
   Future<Response?> _internalFailure(Context ctx) async {
     final response = ctx.res;
     if (response == null) return null;
-    return response.status(500).json(
+    return await response.status(500).json(
           _failure(
             ctx,
             const FlintDbApiException(

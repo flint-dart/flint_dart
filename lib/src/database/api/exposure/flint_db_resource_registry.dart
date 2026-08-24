@@ -1,7 +1,4 @@
-import '../../protocol/flint_db_protocol.dart';
-
-import '../errors/flint_db_api_exception.dart';
-import 'flint_db_resource.dart';
+import 'package:flint_dart/flint_dart.dart';
 
 class FlintDbResourceRegistry {
   FlintDbResourceRegistry([Iterable<FlintDbResource> resources = const []]) {

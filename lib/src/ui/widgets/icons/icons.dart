@@ -50,43 +50,43 @@ class Icon extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'svg',
-         props: mergeComponentProps(
-           {
-             ...props,
-             'xmlns': 'http://www.w3.org/2000/svg',
-             'viewBox': icon.viewBox,
-             'fill': 'none',
-             'stroke': 'currentColor',
-             'stroke-width': strokeWidth,
-             'stroke-linecap': 'round',
-             'stroke-linejoin': 'round',
-             'focusable': 'false',
-             if (decorative ?? (label == null && title == null))
-               'aria-hidden': 'true'
-             else ...{
-               'role': 'img',
-               'aria-label': label ?? title ?? icon.name,
-             },
-           },
-           className: className,
-           defaultStyle: {
-             'display': 'inline-block',
-             'width': _iconCssSize(size),
-             'height': _iconCssSize(size),
-             'color': color ?? 'currentColor',
-             'vertical-align': 'middle',
-             'flex-shrink': 0,
-           },
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           if (title != null)
-             FlintElement('title', children: [FlintText(title)]),
-           ...icon.shapes.map((shape) => shape.toNode()),
-         ],
-       );
+          'svg',
+          props: mergeComponentProps(
+            {
+              ...props,
+              'xmlns': 'http://www.w3.org/2000/svg',
+              'viewBox': icon.viewBox,
+              'fill': 'none',
+              'stroke': 'currentColor',
+              'stroke-width': strokeWidth,
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'focusable': 'false',
+              if (decorative ?? (label == null && title == null))
+                'aria-hidden': 'true'
+              else ...{
+                'role': 'img',
+                'aria-label': label ?? title ?? icon.name,
+              },
+            },
+            className: className,
+            defaultStyle: {
+              'display': 'inline-block',
+              'width': _iconCssSize(size),
+              'height': _iconCssSize(size),
+              'color': color ?? 'currentColor',
+              'vertical-align': 'middle',
+              'flex-shrink': 0,
+            },
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            if (title != null)
+              FlintElement('title', children: [FlintText(title)]),
+            ...icon.shapes.map((shape) => shape.toNode()),
+          ],
+        );
 }
 
 /// Curated outline icons for Flint UI apps.
@@ -861,6 +861,12 @@ IconShape _ellipse(num cx, num cy, num rx, num ry) =>
     IconShape('ellipse', {'cx': cx, 'cy': cy, 'rx': rx, 'ry': ry});
 
 IconShape _rect(num x, num y, num width, num height, {num? rx}) => IconShape(
-  'rect',
-  {'x': x, 'y': y, 'width': width, 'height': height, if (rx != null) 'rx': rx},
-);
+      'rect',
+      {
+        'x': x,
+        'y': y,
+        'width': width,
+        'height': height,
+        if (rx != null) 'rx': rx
+      },
+    );

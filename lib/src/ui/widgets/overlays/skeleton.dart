@@ -15,32 +15,32 @@ class Skeleton extends FlintElement {
     Map<String, Object?> style = const {},
     DartStyle? dartStyle,
   }) : super(
-         'div',
-         props: mergeComponentProps(
-           props,
-           className: className,
-           defaultStyle: const {'display': 'grid', 'gap': '8px'},
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: [
-           for (var i = 0; i < lines; i++)
-             FlintElement(
-               'span',
-               props: {
-                 'aria-hidden': 'true',
-                 'data-shape': shape,
-                 'style': {
-                   'display': 'block',
-                   'width': width == null ? '100%' : cssValue(width),
-                   'height': height == null
-                       ? (shape == 'circle' ? '40px' : '12px')
-                       : cssValue(height),
-                   'border-radius': shape == 'circle' ? '999px' : '6px',
-                   'background': '#eaecf0',
-                 },
-               },
-             ),
-         ],
-       );
+          'div',
+          props: mergeComponentProps(
+            props,
+            className: className,
+            defaultStyle: const {'display': 'grid', 'gap': '8px'},
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [
+            for (var i = 0; i < lines; i++)
+              FlintElement(
+                'span',
+                props: {
+                  'aria-hidden': 'true',
+                  'data-shape': shape,
+                  'style': {
+                    'display': 'block',
+                    'width': width == null ? '100%' : cssValue(width),
+                    'height': height == null
+                        ? (shape == 'circle' ? '40px' : '12px')
+                        : cssValue(height),
+                    'border-radius': shape == 'circle' ? '999px' : '6px',
+                    'background': '#eaecf0',
+                  },
+                },
+              ),
+          ],
+        );
 }

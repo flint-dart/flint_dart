@@ -172,12 +172,10 @@ class PhotoCaptureController {
       throw ArgumentError('No video element found for id "$elementId".');
     }
 
-    final width = element.videoWidth > 0
-        ? element.videoWidth
-        : element.clientWidth;
-    final height = element.videoHeight > 0
-        ? element.videoHeight
-        : element.clientHeight;
+    final width =
+        element.videoWidth > 0 ? element.videoWidth : element.clientWidth;
+    final height =
+        element.videoHeight > 0 ? element.videoHeight : element.clientHeight;
     if (width <= 0 || height <= 0) {
       throw StateError('The video element is not ready for photo capture.');
     }

@@ -183,7 +183,7 @@ class MakeUiCommand extends FlintCommand {
     if (file.existsSync()) return;
 
     file.writeAsStringSync('''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 final componentRegistry = PageRegistry({
 });
@@ -198,7 +198,7 @@ final componentRegistry = PageRegistry({
     if (file.existsSync()) return;
 
     file.writeAsStringSync('''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 const appTheme = FlintTheme(
   colors: {
@@ -253,10 +253,17 @@ final appRootDesign = RootDesign(
     final entryLine = "  '$pageName': (props) => $className(props),";
 
     if (!content.contains(importLine)) {
-      final packageImport = "import 'package:flint_ui/flint_ui.dart';";
-      content = content.contains(packageImport)
-          ? content.replaceFirst(packageImport, '$packageImport\n$importLine')
-          : '$importLine\n$content';
+      final packageImport = "import 'package:flint_dart/ui.dart';";
+      final legacyImport = "import 'package:flint_ui/flint_ui.dart';";
+      if (content.contains(packageImport)) {
+        content =
+            content.replaceFirst(packageImport, '$packageImport\n$importLine');
+      } else if (content.contains(legacyImport)) {
+        content =
+            content.replaceFirst(legacyImport, '$legacyImport\n$importLine');
+      } else {
+        content = '$importLine\n$content';
+      }
     }
 
     if (!content.contains("'$pageName':")) {
@@ -277,7 +284,7 @@ final appRootDesign = RootDesign(
 
   String _mainTemplate() {
     return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 import 'component_registry.dart';
 
@@ -289,7 +296,7 @@ void main() {
 
   String _mainWithRootDesign() {
     return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 import 'component_registry.dart';
 import 'components/root_design.dart';
@@ -306,7 +313,7 @@ void main() {
 
   String _pageTemplate(String className, String pageName) {
     return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 class $className extends FlintComponent {
   final Map<String, dynamic> props;
@@ -332,7 +339,7 @@ class $className extends FlintComponent {
 
   String _componentTemplate(String className) {
     return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 class $className extends FlintComponent {
   @override
@@ -355,7 +362,7 @@ class $className extends FlintComponent {
 
   String _sectionTemplate(String className, String title) {
     return '''
-import 'package:flint_ui/flint_ui.dart';
+import 'package:flint_dart/ui.dart';
 
 class $className extends FlintComponent {
   @override

@@ -49,31 +49,31 @@ class Select extends FlintElement {
     DartStyle? selectDartStyle,
     void Function(Object event)? onChanged,
   }) : super(
-         'div',
-         props: fieldWrapperProps(
-           props: props,
-           className: className,
-           dartStyle: dartStyle,
-           style: style,
-         ),
-         children: _children(
-           label: label,
-           name: name,
-           value: value,
-           placeholder: placeholder,
-           options: options,
-           required: required,
-           disabled: disabled,
-           variant: variant,
-           size: size,
-           error: resolveFieldError(name: name, error: error, errors: errors),
-           helpText: helpText,
-           selectProps: selectProps,
-           selectStyle: selectStyle,
-           selectDartStyle: selectDartStyle,
-           onChanged: onChanged,
-         ),
-       );
+          'div',
+          props: fieldWrapperProps(
+            props: props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: _children(
+            label: label,
+            name: name,
+            value: value,
+            placeholder: placeholder,
+            options: options,
+            required: required,
+            disabled: disabled,
+            variant: variant,
+            size: size,
+            error: resolveFieldError(name: name, error: error, errors: errors),
+            helpText: helpText,
+            selectProps: selectProps,
+            selectStyle: selectStyle,
+            selectDartStyle: selectDartStyle,
+            onChanged: onChanged,
+          ),
+        );
 
   static List<FlintNode> _children({
     required String? label,
@@ -115,6 +115,10 @@ class Select extends FlintElement {
               error: error,
               describedBy: ariaDescribedBy,
             ),
+            // Set 'value' directly on the <select> element so the reconciler
+            // can call element.value = ... imperatively during patch, which
+            // overrides stale browser-native selection state after setState.
+            if (value != null) 'value': value,
             if (onChanged != null) 'onChange': onChanged,
           },
           dartStyle: inputComponentStyle(
@@ -131,7 +135,7 @@ class Select extends FlintElement {
               'option',
               props: {
                 'value': '',
-                if (value == null) 'selected': true,
+                if (value == null || value.toString().isEmpty) 'selected': true,
                 if (required) 'disabled': true,
               },
               children: normalizeChildren(placeholder, const []),
@@ -141,7 +145,9 @@ class Select extends FlintElement {
               'option',
               props: {
                 'value': option.value,
-                if (value == option.value) 'selected': true,
+                if (value != null &&
+                    value.toString() == option.value.toString())
+                  'selected': true,
                 if (option.disabled) 'disabled': true,
               },
               children: normalizeChildren(option.label, const []),

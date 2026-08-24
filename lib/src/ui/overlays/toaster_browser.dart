@@ -100,7 +100,8 @@ class ToastService {
       ..pointerEvents = 'auto'
       ..transform = 'translateY(-8px) scale(0.96)'
       ..opacity = '0'
-      ..transition = 'opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1)';
+      ..transition =
+          'opacity 180ms cubic-bezier(0.16, 1, 0.3, 1), transform 180ms cubic-bezier(0.16, 1, 0.3, 1)';
 
     final titleEl = web.document.createElement('strong') as web.HTMLElement;
     titleEl.textContent = title;

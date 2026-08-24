@@ -145,6 +145,30 @@ void main() {
       expect(user.getAttribute<int>('age'), 30);
     });
 
+    test('create hydrates both the source and returned model', () async {
+      final connection = _CapturingMySqlConnection([
+        const [],
+        [
+          {
+            'id': 'user-1',
+            'name': 'Ada',
+            'age': 30,
+            'active': 1,
+          },
+        ],
+      ]);
+      DB.overrideConnection(connection);
+      final user = User();
+
+      final created = await user.create({'name': 'Ada', 'age': 30});
+
+      expect(created, isNotNull);
+      expect(created!.id, 'user-1');
+      expect(user.id, 'user-1');
+      expect(user.getAttribute<String>('name'), 'Ada');
+      expect(user.getAttribute<bool>('active'), isTrue);
+    });
+
     test('fromMap hydrates belongsTo relation maps', () {
       final post = Post().fromMap({
         'status': 'published',
