@@ -639,6 +639,8 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
 
         case ColumnType.string:
         case ColumnType.text:
+        case ColumnType.mediumText:
+        case ColumnType.longText:
           // 🔥 Handle both normal string and byte array text
           if (value is String) {
             converted[key] = value;

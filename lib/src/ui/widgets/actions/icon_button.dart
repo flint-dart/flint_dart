@@ -2,6 +2,7 @@ import '../../component_props.dart';
 import '../../node.dart';
 import '../../style.dart';
 import '../feedback/spinner.dart';
+import '../icons/icons.dart';
 import '../shared/theme.dart';
 
 /// Accessible icon-only button with Flint UI variants and loading state.
@@ -54,6 +55,16 @@ class IconButton extends FlintElement {
           children: [
             if (loading)
               Spinner(size: ComponentSize.xs, tone: tone)
+            else if (icon is IconData)
+              Icon(
+                icon,
+                size: switch (size) {
+                  ComponentSize.xs => 12,
+                  ComponentSize.sm => 14,
+                  ComponentSize.md => 16,
+                  ComponentSize.lg => 20,
+                },
+              )
             else
               toFlintNode(icon),
           ],

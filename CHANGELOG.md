@@ -2,7 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
-## [1.3.4] - 2026-08-27
+## [1.4.0] - 2026-08-27
+
+### Added
+- **Native Document Canvas Engine**: Added full-fidelity, in-browser document viewers under `package:flint_dart/ui.dart`:
+  - `DocxViewer`: Client-side Microsoft Word (`.docx`) canvas renderer preserving vector drawings, shapes, tables, charts, typography, headers, footers, and page margins.
+  - `PdfViewer`: Multi-page `PDF.js` canvas studio with 2x Retina scaling, authentic paper elevation, drop shadows, and responsive page containers.
+  - Non-web stubs (`docx_viewer_stub.dart`, `pdf_viewer_stub.dart`, `doc_viewer_stub.dart`) ensuring seamless SSR and non-web compilation.
+- **`DocViewerController` & `DocTocItem`**:
+  - Programmatic navigation: `jumpToPage()`, `nextPage()`, `prevPage()`, `currentPage`, `totalPages`.
+  - Smooth zoom controls: `setZoom()`, `zoomIn()`, `zoomOut()`, `resetZoom()`.
+  - Full-text in-document search: `search()`, `nextMatch()`, `prevMatch()`, match counter, and real-time in-DOM `<mark>` highlighting with smooth centering auto-scroll.
+  - Automatic Table of Contents / Outline extraction from Word headings (`H1`, `H2`, `H3`) and PDF bookmarks with interactive sidebar navigation.
+- **`DocViewerToolbar` & Document Reading Modes**:
+  - Interactive sticky/floating topbar with page navigation, zoom display, live search box, and Table of Contents drawer.
+  - Tri-Mode Document Reading Engine:
+    - ☀️ **Paper Mode**: Authentic white paper with natural document styling.
+    - 🌙 **Dark Canvas Mode**: High-contrast slate background with light typography and clear table borders for comfortable night reading.
+    - 📜 **Sepia Mode**: Warm book paper for reduced eye strain.
+- **`Iframe` Native Primitive**:
+  - First-class typed `Iframe` component under `package:flint_dart/ui.dart`.
+
+### Fixed
+- **`IconButton` IconData Support**: Fixed `IconButton` to natively accept `IconData` (e.g. `Icons.minus`, `Icons.chevronLeft`) alongside `Icon` widgets without stringification (`Instance of 'IconData'`) artifacts.
+- **DOCX Virtual DOM Persistence**: Fixed DOM re-render wipe in `DocxViewer` and `PdfViewer` by decoupling the mount target from component re-renders.
 
 ### Fixed
 - **CLI Dependency Constraint**: Fixed invalid version constraint for `watcher` in `pubspec.yaml` (`watcher: ^1.1.0`) which caused package resolution failure during CLI invocation.
