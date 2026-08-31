@@ -214,6 +214,12 @@ enum ColumnType {
   /// Long text type (e.g., TEXT)
   text,
 
+  /// Long text type for large documents and payloads (e.g., LONGTEXT in MySQL, TEXT in PostgreSQL)
+  longText,
+
+  /// Medium text type (e.g., MEDIUMTEXT in MySQL, TEXT in PostgreSQL)
+  mediumText,
+
   /// Boolean type (e.g., TRUE/FALSE, 1/0)
   boolean,
 

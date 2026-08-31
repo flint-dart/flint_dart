@@ -1,6 +1,13 @@
 export 'actions/button.dart';
 export 'actions/button_group.dart';
 export 'actions/icon_button.dart';
+export 'content/doc_viewer_controller.dart';
+export 'content/doc_viewer_stub.dart'
+    if (dart.library.js_interop) 'content/doc_viewer.dart';
+export 'content/docx_viewer_stub.dart'
+    if (dart.library.js_interop) 'content/docx_viewer.dart';
+export 'content/pdf_viewer_stub.dart'
+    if (dart.library.js_interop) 'content/pdf_viewer.dart';
 export 'content/html_content_stub.dart'
     if (dart.library.js_interop) 'content/html_content.dart';
 export 'data/avatar.dart';
@@ -69,6 +76,7 @@ export 'primitives/container.dart';
 export 'primitives/flex.dart';
 export 'primitives/canvas_stub.dart'
     if (dart.library.js_interop) 'primitives/canvas.dart';
+export 'primitives/iframe.dart';
 export 'primitives/image.dart';
 export 'primitives/link.dart';
 export 'primitives/media_preview_stub.dart'
