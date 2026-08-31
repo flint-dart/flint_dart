@@ -129,6 +129,7 @@ final Map<String, String> aliasCommands = {
 };
 
 void main(List<String> args) async {
+  Log.minLevel = LogLevel.debug;
   if (args.isEmpty) {
     debugUsage();
     return;

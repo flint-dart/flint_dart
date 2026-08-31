@@ -18,7 +18,7 @@ enum LogLevel { debug, info, warning, error, critical }
 
 class Log {
   static bool enabled = true;
-  static LogLevel minLevel = LogLevel.info;
+  static LogLevel minLevel = LogLevel.debug;
   static bool consoleLogging = true; // controls colored console output
   static bool fileLogging = false; // disabled by default
   static String logDirectory = 'logs';

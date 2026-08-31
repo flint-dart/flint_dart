@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.4] - 2026-08-27
+
+### Fixed
+- **CLI Dependency Constraint**: Fixed invalid version constraint for `watcher` in `pubspec.yaml` (`watcher: ^1.1.0`) which caused package resolution failure during CLI invocation.
+- **CLI Output Visibility**: Ensured `Log.minLevel` defaults to `LogLevel.debug` for CLI commands (`migrate`, `seed`, `version`, `build`, etc.) so command progress and database migrations output clearly to the console.
+
 ## [1.3.3] - 2026-08-24
 
 ### Fixed
