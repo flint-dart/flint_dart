@@ -1,6 +1,3 @@
-import 'dart:js_interop';
-import 'package:universal_web/web.dart' as web;
-
 import '../../component.dart';
 import '../../node.dart';
 import '../../style.dart';
@@ -87,14 +84,17 @@ class DocViewerToolbar extends StatefulComponent {
       children: [
         // 🔹 Left: Document Title & TOC Drawer Toggle
         Row(
-          dartStyle: DartStyle(display: Display.flex, alignItems: AlignItems.center, gap: 8),
+          dartStyle: DartStyle(
+              display: Display.flex, alignItems: AlignItems.center, gap: 8),
           children: [
             if (showToc && controller.tableOfContents.isNotEmpty)
               IconButton(
                 icon: Icons.list,
                 label: 'Table of Contents',
                 tooltip: 'Table of Contents',
-                variant: controller.showOutline ? ButtonVariant.solid : ButtonVariant.ghost,
+                variant: controller.showOutline
+                    ? ButtonVariant.solid
+                    : ButtonVariant.ghost,
                 size: ComponentSize.sm,
                 onPressed: (_) => controller.toggleOutline(),
               ),
@@ -117,7 +117,8 @@ class DocViewerToolbar extends StatefulComponent {
         // 🔹 Center: Page Navigation Stepper
         if (showPageNav)
           Row(
-            dartStyle: DartStyle(display: Display.flex, alignItems: AlignItems.center, gap: 4),
+            dartStyle: DartStyle(
+                display: Display.flex, alignItems: AlignItems.center, gap: 4),
             children: [
               IconButton(
                 icon: Icons.chevronLeft,
@@ -128,15 +129,18 @@ class DocViewerToolbar extends StatefulComponent {
               ),
               Container(
                 dartStyle: DartStyle(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   background: const Color.rgba(255, 255, 255, 0.06),
-                  border: Border.all(color: const Color.rgba(255, 255, 255, 0.1)),
+                  border:
+                      Border.all(color: const Color.rgba(255, 255, 255, 0.1)),
                   radius: 4,
                   fontSize: 12,
                   fontWeight: 700,
                   color: const Color('#cbd5e1'),
                 ),
-                child: Text.span('Page ${controller.currentPage} of ${controller.totalPages}'),
+                child: Text.span(
+                    'Page ${controller.currentPage} of ${controller.totalPages}'),
               ),
               IconButton(
                 icon: Icons.chevronRight,
@@ -150,7 +154,8 @@ class DocViewerToolbar extends StatefulComponent {
 
         // 🔹 Right: Reading Mode, Zoom & Live Search Controls
         Row(
-          dartStyle: DartStyle(display: Display.flex, alignItems: AlignItems.center, gap: 8),
+          dartStyle: DartStyle(
+              display: Display.flex, alignItems: AlignItems.center, gap: 8),
           children: [
             // Reading Mode Switcher
             if (showReadingMode)
@@ -159,7 +164,11 @@ class DocViewerToolbar extends StatefulComponent {
                 variant: ButtonVariant.ghost,
                 onPressed: (_) => controller.toggleReadingMode(),
                 children: [
-                  Icon(modeIcon, size: 14, color: mode == DocReadingMode.dark ? const Color('#38bdf8') : const Color('#fbbf24')),
+                  Icon(modeIcon,
+                      size: 14,
+                      color: mode == DocReadingMode.dark
+                          ? const Color('#38bdf8')
+                          : const Color('#fbbf24')),
                   Text.span(modeLabel),
                 ],
               ),
@@ -167,7 +176,10 @@ class DocViewerToolbar extends StatefulComponent {
             // Zoom Controls
             if (showZoom)
               Row(
-                dartStyle: DartStyle(display: Display.flex, alignItems: AlignItems.center, gap: 2),
+                dartStyle: DartStyle(
+                    display: Display.flex,
+                    alignItems: AlignItems.center,
+                    gap: 2),
                 children: [
                   IconButton(
                     icon: Icons.minus,
@@ -200,9 +212,11 @@ class DocViewerToolbar extends StatefulComponent {
                   alignItems: AlignItems.center,
                   gap: 6,
                   background: const Color.rgba(255, 255, 255, 0.05),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   radius: 6,
-                  border: Border.all(color: const Color.rgba(255, 255, 255, 0.12)),
+                  border:
+                      Border.all(color: const Color.rgba(255, 255, 255, 0.12)),
                 ),
                 children: [
                   Icon(Icons.search, size: 14, color: const Color('#94a3b8')),
@@ -220,27 +234,32 @@ class DocViewerToolbar extends StatefulComponent {
                         'font-size': '12px',
                         'width': '100px',
                       },
-                      'onInput': (web.Event event) {
-                        final target = event.target;
-                        if (target != null && target is web.HTMLInputElement) {
-                          controller.search(target.value);
+                      'onInput': (Object event) {
+                        final dynamic evt = event;
+                        final dynamic target = evt?.target;
+                        if (target != null) {
+                          controller.search(target.value?.toString() ?? '');
                         }
-                      }.toJS,
-                      'onKeyDown': (web.KeyboardEvent event) {
-                        if (event.key == 'Enter') {
-                          if (event.shiftKey) {
+                      },
+                      'onKeyDown': (Object event) {
+                        final dynamic evt = event;
+                        if (evt?.key == 'Enter') {
+                          if (evt?.shiftKey == true) {
                             controller.prevMatch();
                           } else {
                             controller.nextMatch();
                           }
                         }
-                      }.toJS,
+                      },
                     },
                   ),
                   if (controller.totalMatches > 0)
                     Text.span(
                       '${controller.currentMatch}/${controller.totalMatches}',
-                      dartStyle: const DartStyle(fontSize: 11, color: Color('#38bdf8'), fontWeight: 700),
+                      dartStyle: const DartStyle(
+                          fontSize: 11,
+                          color: Color('#38bdf8'),
+                          fontWeight: 700),
                     ),
                   if (controller.totalMatches > 0)
                     IconButton(
