@@ -12,6 +12,10 @@ extension ColumnSQL on Column {
         return length > 0 ? 'VARCHAR($length)' : 'TEXT';
       case ColumnType.text:
         return 'TEXT';
+      case ColumnType.mediumText:
+        return 'MEDIUMTEXT';
+      case ColumnType.longText:
+        return 'LONGTEXT';
       case ColumnType.integer:
         return 'INT';
       case ColumnType.double:
@@ -40,6 +44,8 @@ extension ColumnSQL on Column {
       case ColumnType.string:
         return length > 0 ? 'VARCHAR($length)' : 'TEXT';
       case ColumnType.text:
+      case ColumnType.mediumText:
+      case ColumnType.longText:
         return 'TEXT';
       case ColumnType.integer:
         return 'INTEGER';
