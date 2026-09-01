@@ -236,6 +236,55 @@ void main() {
       expect(textarea.children, isEmpty);
     });
 
+    test('CodeEditor renders theme-aware content with line numbers', () {
+      final controller = TextEditingController(text: 'one\ntwo\nthree');
+      final editor = CodeEditor(
+        label: 'Environment file',
+        name: 'environment',
+        controller: controller,
+        height: 360,
+        helpText: 'Use KEY=value on each line.',
+      );
+
+      final label = editor.children[0] as FlintElement;
+      final surface = editor.children[1] as FlintElement;
+      final gutter = surface.children[0] as FlintElement;
+      final textarea = surface.children[1] as FlintElement;
+
+      expect(label.props['for'], 'flint-code-editor-environment');
+      expect(surface.props['style'], containsPair('height', '360px'));
+      expect(surface.children, hasLength(2));
+      expect(gutter.props['id'], 'flint-code-editor-environment-line-numbers');
+      expect((gutter.children.single as FlintText).value, '1\n2\n3');
+      expect(textarea.tag, 'textarea');
+      expect(textarea.props['value'], 'one\ntwo\nthree');
+      expect(textarea.props['wrap'], 'off');
+      expect(textarea.props['onInput'], isA<Function>());
+      expect(textarea.props['onScroll'], isA<Function>());
+      expect(
+        textarea.props['style'],
+        containsPair(
+            'font-family',
+            'var(--font-mono, '
+                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, '
+                '"Liberation Mono", monospace)'),
+      );
+    });
+
+    test('CodeEditor can render without a line-number gutter', () {
+      final editor = CodeEditor(
+        name: 'snippet',
+        value: 'print("Hello");',
+        showLineNumbers: false,
+      );
+
+      final surface = editor.children.single as FlintElement;
+      final textarea = surface.children.single as FlintElement;
+
+      expect(textarea.tag, 'textarea');
+      expect(textarea.props.containsKey('onScroll'), false);
+    });
+
     test('Checkbox and Switch render checked states', () {
       final checkbox = Checkbox(
         label: 'Active',

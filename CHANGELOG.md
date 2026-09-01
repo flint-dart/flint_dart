@@ -5,6 +5,9 @@ All notable changes to this project are documented in this file.
 ## [1.4.0] - 2026-08-27
 
 ### Added
+- **`CodeEditor` Form Component**: Added a reusable, theme-aware plain-text
+  editor with synchronized line numbers, controller support, validation
+  messages, and keystroke handling that does not rebuild its parent.
 - **Native Document Canvas Engine**: Added full-fidelity, in-browser document viewers under `package:flint_dart/ui.dart`:
   - `DocxViewer`: Client-side Microsoft Word (`.docx`) canvas renderer preserving vector drawings, shapes, tables, charts, typography, headers, footers, and page margins.
   - `PdfViewer`: Multi-page `PDF.js` canvas studio with 2x Retina scaling, authentic paper elevation, drop shadows, and responsive page containers.

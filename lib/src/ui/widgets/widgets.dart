@@ -22,6 +22,7 @@ export 'feedback/alert.dart';
 export 'feedback/spinner.dart';
 export 'feedback/status_badge.dart';
 export 'forms/checkbox.dart';
+export 'forms/code_editor.dart';
 export 'forms/controllers.dart';
 export 'forms/date_picker.dart';
 export 'forms/field_group.dart';
