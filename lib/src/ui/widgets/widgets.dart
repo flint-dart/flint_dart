@@ -8,6 +8,8 @@ export 'content/docx_viewer_stub.dart'
     if (dart.library.js_interop) 'content/docx_viewer.dart';
 export 'content/pdf_viewer_stub.dart'
     if (dart.library.js_interop) 'content/pdf_viewer.dart';
+export 'content/terminal_stub.dart'
+    if (dart.library.js_interop) 'content/terminal.dart';
 export 'content/html_content_stub.dart'
     if (dart.library.js_interop) 'content/html_content.dart';
 export 'data/avatar.dart';
