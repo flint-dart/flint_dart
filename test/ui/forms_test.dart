@@ -15,8 +15,14 @@ void main() {
       );
 
       expect(field.tag, 'div');
+      expect(field.props['style'], containsPair('align-content', 'start'));
+      expect(
+          field.props['style'], containsPair('grid-auto-rows', 'max-content'));
+      expect(field.props['style'], containsPair('min-width', '0'));
       final label = field.children[0] as FlintElement;
       final input = field.children[1] as FlintElement;
+      final help = field.children[2] as FlintElement;
+      final error = field.children[3] as FlintElement;
 
       expect(label.tag, 'label');
       expect(label.props['for'], 'flint-field-email');
@@ -31,6 +37,8 @@ void main() {
         input.props['aria-describedby'],
         'flint-field-email-help flint-field-email-error',
       );
+      expect(help.props['style'], containsPair('line-height', 1.45));
+      expect(error.props['style'], containsPair('line-height', 1.45));
     });
 
     test('TextEditingController controls TextField value', () {
