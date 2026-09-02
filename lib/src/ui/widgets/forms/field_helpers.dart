@@ -101,7 +101,18 @@ Map<String, Object?> controlProps({
 }
 
 /// Default wrapper style used by field components.
-const fieldWrapperStyle = {'display': 'grid', 'gap': '6px'};
+///
+/// Field wrappers can be placed inside stretched grid rows. Keep the field's
+/// label, control, help, and error rows at their natural height so helper text
+/// never squeezes or stretches the input control unless the caller explicitly
+/// provides a height override.
+const fieldWrapperStyle = {
+  'display': 'grid',
+  'grid-auto-rows': 'max-content',
+  'align-content': 'start',
+  'gap': '6px',
+  'min-width': '0',
+};
 
 /// Default label style used by field components.
 const fieldLabelStyle = {
@@ -111,10 +122,20 @@ const fieldLabelStyle = {
 };
 
 /// Default help text style used by field components.
-const fieldHelpStyle = {'margin': 0, 'font-size': '13px', 'color': '#667085'};
+const fieldHelpStyle = {
+  'margin': 0,
+  'font-size': '13px',
+  'line-height': 1.45,
+  'color': '#667085',
+};
 
 /// Default validation error style used by field components.
-const fieldErrorStyle = {'margin': 0, 'font-size': '13px', 'color': '#b42318'};
+const fieldErrorStyle = {
+  'margin': 0,
+  'font-size': '13px',
+  'line-height': 1.45,
+  'color': '#b42318',
+};
 
 /// Default input style used by simple field components.
 const inputBaseStyle = {
