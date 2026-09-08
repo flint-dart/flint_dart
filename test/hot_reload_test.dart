@@ -23,6 +23,24 @@ void main() {
     );
   });
 
+  test('template hot reload names regular view templates from lib/views', () {
+    expect(
+      hot_reload.templateNameForHotReload(
+        p.join('lib', 'views', 'admin', 'dashboard.flint.html'),
+      ),
+      'admin.dashboard',
+    );
+  });
+
+  test('template hot reload supports mail templates outside lib/views', () {
+    final name = hot_reload.templateNameForHotReload(
+      p.join('lib', 'mail', 'views', 'service_cancellation_notice.flint.html'),
+    );
+
+    expect(name, 'mail.views.service_cancellation_notice');
+    expect(name, isNot(contains('..')));
+  });
+
   test('generated Flint UI JS is not treated as a web asset change', () {
     final build = FlintWebUiBuild(
       entry: File(p.join('lib', 'ui', 'main.dart')),

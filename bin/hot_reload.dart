@@ -357,12 +357,12 @@ void watchFiles(int serverPort) {
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 300), () async {
         try {
-          final relative = p.relative(event.path, from: 'lib/views');
-          final templateName = relative
-              .replaceAll(Platform.pathSeparator, '.')
-              .replaceAll(RegExp(r'\.flint\.html|\.html'), '');
+          final templateName = templateNameForHotReload(event.path);
 
-          final htmlContent = TemplateEngine().render(templateName);
+          // Render the exact file that triggered the event. Logical template
+          // resolution is rooted in lib/views and cannot resolve valid
+          // templates stored elsewhere, such as lib/mail/views.
+          final htmlContent = TemplateEngine().render(event.path);
           Log.debug('[HOT-RELOAD] Template changed: $templateName');
           Log.debug('[HOT-RELOAD] File: ${event.path}');
 
@@ -389,6 +389,19 @@ void watchFiles(int serverPort) {
   envWatcher.events.listen(onEvent);
   uiWatcher?.events.listen(onEvent);
   webWatcher?.events.listen(onEvent);
+}
+
+String templateNameForHotReload(String filePath) {
+  final absolute = p.normalize(p.absolute(filePath));
+  final viewsRoot = p.normalize(p.absolute(p.join('lib', 'views')));
+  final libRoot = p.normalize(p.absolute('lib'));
+  final root = _isWithin(viewsRoot, absolute) ? viewsRoot : libRoot;
+  final relative = p.relative(absolute, from: root);
+  final withoutExtension = relative.replaceFirst(
+    RegExp(r'(?:\.flint)?\.html$'),
+    '',
+  );
+  return p.split(withoutExtension).where((part) => part != '..').join('.');
 }
 
 Future<void> _queueFlintUiRebuild(String filePath, int serverPort) async {
