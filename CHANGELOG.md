@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [1.4.0] - 2026-08-27
+## [1.4.0] - 2026-09-08
 
 ### Added
 - **Interactive `Terminal` Component**: Added a lifecycle-managed xterm.js
@@ -31,10 +31,11 @@ All notable changes to this project are documented in this file.
   - First-class typed `Iframe` component under `package:flint_dart/ui.dart`.
 
 ### Fixed
+- **Template Hot Reload for Custom View Locations**: Fixed logical template resolution during hot-reload to support templates located outside `lib/views` (such as `lib/mail/views`).
+- **`DocViewerToolbar` Web Compilation**: Fixed event handlers in `DocViewerToolbar` for clean `dart2js` compilation without JS-interop typing conflicts.
 - **`IconButton` IconData Support**: Fixed `IconButton` to natively accept `IconData` (e.g. `Icons.minus`, `Icons.chevronLeft`) alongside `Icon` widgets without stringification (`Instance of 'IconData'`) artifacts.
 - **DOCX Virtual DOM Persistence**: Fixed DOM re-render wipe in `DocxViewer` and `PdfViewer` by decoupling the mount target from component re-renders.
-
-### Fixed
+- **Form Help Text Sizing**: Fixed form help text sizing across inputs.
 - **CLI Dependency Constraint**: Fixed invalid version constraint for `watcher` in `pubspec.yaml` (`watcher: ^1.1.0`) which caused package resolution failure during CLI invocation.
 - **CLI Output Visibility**: Ensured `Log.minLevel` defaults to `LogLevel.debug` for CLI commands (`migrate`, `seed`, `version`, `build`, etc.) so command progress and database migrations output clearly to the console.
 
