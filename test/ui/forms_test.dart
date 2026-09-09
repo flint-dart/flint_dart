@@ -85,6 +85,51 @@ void main() {
       expect(input.props['_flintStyleCss'], contains(':focus-visible'));
     });
 
+    test('TextField supports label style overrides', () {
+      final field = TextField(
+        label: 'Email',
+        name: 'email',
+        labelDartStyle: const DartStyle(
+          color: Color('#f8fafc'),
+          fontWeight: 700,
+        ),
+        labelStyle: const {'font-size': '12px'},
+      );
+
+      final label = field.children.first as FlintElement;
+
+      expect(label.tag, 'label');
+      expect(label.props['for'], 'flint-field-email');
+      expect(label.props['style'], containsPair('color', '#f8fafc'));
+      expect(label.props['style'], containsPair('font-weight', '700'));
+      expect(label.props['style'], containsPair('font-size', '12px'));
+    });
+
+    test('Select, TextArea, and CodeEditor support label style overrides', () {
+      final labelStyle = const DartStyle(color: Color('#f8fafc'));
+      final select = Select(
+        label: 'Plan',
+        name: 'plan',
+        labelDartStyle: labelStyle,
+        options: const [SelectOption(label: 'Starter', value: 'starter')],
+      );
+      final area = TextArea(
+        label: 'Notes',
+        name: 'notes',
+        labelDartStyle: labelStyle,
+      );
+      final editor = CodeEditor(
+        label: 'Config',
+        name: 'config',
+        labelDartStyle: labelStyle,
+      );
+
+      for (final field in [select, area, editor]) {
+        final label = field.children.first as FlintElement;
+        expect(label.props['style'], containsPair('color', '#f8fafc'));
+      }
+    });
+
     test('TextField supports readonly locked values', () {
       final field = TextField(
         label: 'Email',

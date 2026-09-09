@@ -164,6 +164,13 @@ class Icons {
       _path('M10 21h4'),
     ],
   );
+  static final bold = IconData(
+    'bold',
+    shapes: [
+      _path('M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z'),
+      _path('M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z'),
+    ],
+  );
   static final book = IconData(
     'book',
     shapes: [
@@ -237,6 +244,14 @@ class Icons {
   static final chevronUp = IconData(
     'chevronUp',
     shapes: [_polyline('18 15 12 9 6 15')],
+  );
+  static final circle = IconData(
+    'circle',
+    shapes: [_circle(12, 12, 10)],
+  );
+  static final close = IconData(
+    'close',
+    shapes: [_line(18, 6, 6, 18), _line(6, 6, 18, 18)],
   );
   static final clipboard = IconData(
     'clipboard',
@@ -415,6 +430,14 @@ class Icons {
       _path('M9 21v-7h6v7'),
     ],
   );
+  static final image = IconData(
+    'image',
+    shapes: [
+      _rect(3, 3, 18, 18, rx: 2),
+      _circle(8.5, 8.5, 1.5),
+      _polyline('21 15 16 10 5 21'),
+    ],
+  );
   static final inbox = IconData(
     'inbox',
     shapes: [_path('M4 4h16l2 10v6H2v-6L4 4z'), _path('M2 14h6l2 3h4l2-3h6')],
@@ -426,6 +449,14 @@ class Icons {
   static final laptop = IconData(
     'laptop',
     shapes: [_rect(4, 5, 16, 11, rx: 1), _path('M2 20h20l-2-4H4l-2 4z')],
+  );
+  static final layout = IconData(
+    'layout',
+    shapes: [
+      _rect(3, 3, 18, 18, rx: 2),
+      _line(3, 9, 21, 9),
+      _line(9, 21, 9, 9),
+    ],
   );
   static final layers = IconData(
     'layers',
@@ -464,9 +495,29 @@ class Icons {
       _line(4.93, 19.07, 9.17, 14.83),
     ],
   );
+  static final loader = IconData(
+    'loader',
+    shapes: [
+      _line(12, 2, 12, 6),
+      _line(12, 18, 12, 22),
+      _line(4.93, 4.93, 7.76, 7.76),
+      _line(16.24, 16.24, 19.07, 19.07),
+      _line(2, 12, 6, 12),
+      _line(18, 12, 22, 12),
+      _line(4.93, 19.07, 7.76, 16.24),
+      _line(16.24, 7.76, 19.07, 4.93),
+    ],
+  );
   static final lock = IconData(
     'lock',
     shapes: [_rect(5, 11, 14, 10, rx: 2), _path('M8 11V7a4 4 0 0 1 8 0v4')],
+  );
+  static final unlock = IconData(
+    'unlock',
+    shapes: [
+      _rect(5, 11, 14, 10, rx: 2),
+      _path('M8 11V7a4 4 0 0 1 7.5-2'),
+    ],
   );
   static final logIn = IconData(
     'logIn',
@@ -557,6 +608,13 @@ class Icons {
       _path('M6 18H4a2 2 0 0 1-2-2v-5h20v5a2 2 0 0 1-2 2h-2'),
     ],
   );
+  static final redo = IconData(
+    'redo',
+    shapes: [
+      _polyline('15 14 20 9 15 4'),
+      _path('M4 20v-7a4 4 0 0 1 4-4h12'),
+    ],
+  );
   static final refresh = IconData(
     'refresh',
     shapes: [
@@ -636,6 +694,17 @@ class Icons {
       _path('M19 13l1 2.2 2 .8-2 .8L19 19l-1-2.2-2-.8 2-.8L19 13z'),
     ],
   );
+  static final smartphone = IconData(
+    'smartphone',
+    shapes: [
+      _rect(5, 2, 14, 20, rx: 2),
+      _line(12, 18, 12, 18),
+    ],
+  );
+  static final square = IconData(
+    'square',
+    shapes: [_rect(3, 3, 18, 18, rx: 2)],
+  );
   static final star = IconData(
     'star',
     shapes: [
@@ -683,6 +752,13 @@ class Icons {
       _polyline('17 6 23 6 23 12'),
     ],
   );
+  static final undo = IconData(
+    'undo',
+    shapes: [
+      _polyline('9 14 4 9 9 4'),
+      _path('M20 20v-7a4 4 0 0 0-4-4H4'),
+    ],
+  );
   static final upload = IconData(
     'upload',
     shapes: [_path('M12 21V9'), _polyline('17 14 12 9 7 14'), _path('M5 3h14')],
@@ -707,6 +783,28 @@ class Icons {
       _circle(9, 7, 4),
       _path('M22 21v-2a4 4 0 0 0-3-3.9'),
       _path('M16 3.1a4 4 0 0 1 0 7.8'),
+    ],
+  );
+  static final tv = IconData(
+    'tv',
+    shapes: [
+      _rect(2, 7, 20, 15, rx: 2),
+      _polyline('17 2 12 7 7 2'),
+    ],
+  );
+  static final type = IconData(
+    'type',
+    shapes: [
+      _polyline('4 7 4 4 20 4 20 7'),
+      _line(12, 4, 12, 20),
+      _line(9, 20, 15, 20),
+    ],
+  );
+  static final video = IconData(
+    'video',
+    shapes: [
+      _polygon('23 7 16 12 23 17 23 7'),
+      _rect(1, 5, 15, 14, rx: 2),
     ],
   );
   static final wallet = IconData(
@@ -749,6 +847,7 @@ class Icons {
     award,
     bank,
     bell,
+    bold,
     book,
     bookmark,
     box,
@@ -763,6 +862,7 @@ class Icons {
     chevronLeft,
     chevronRight,
     chevronUp,
+    circle,
     clipboard,
     clock,
     cloud,
@@ -787,13 +887,16 @@ class Icons {
     heart,
     headphones,
     home,
+    image,
     inbox,
     key,
     laptop,
+    layout,
     layers,
     lifeBuoy,
     link,
     list,
+    loader,
     lock,
     logIn,
     logOut,
@@ -811,6 +914,7 @@ class Icons {
     play,
     plus,
     printer,
+    redo,
     refresh,
     rocket,
     route,
@@ -821,17 +925,24 @@ class Icons {
     settings,
     shield,
     shoppingCart,
+    smartphone,
     sparkles,
+    square,
     star,
     sun,
     tag,
     terminal,
     trash,
     trendingUp,
+    tv,
+    type,
+    undo,
+    unlock,
     upload,
     user,
     userPlus,
     users,
+    video,
     wallet,
     wifi,
     x,

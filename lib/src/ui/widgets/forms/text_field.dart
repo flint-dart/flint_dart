@@ -29,8 +29,10 @@ class TextField extends FlintElement {
     Map<String, Object?> props = const {},
     Map<String, Object?> inputProps = const {},
     Map<String, Object?> style = const {},
+    Map<String, Object?> labelStyle = const {},
     Map<String, Object?> inputStyle = const {},
     DartStyle? dartStyle,
+    DartStyle? labelDartStyle,
     DartStyle? inputDartStyle,
     void Function(Object event)? onChanged,
     void Function(String value)? onSubmitted,
@@ -56,7 +58,9 @@ class TextField extends FlintElement {
             error: resolveFieldError(name: name, error: error, errors: errors),
             helpText: helpText,
             inputProps: inputProps,
+            labelStyle: labelStyle,
             inputStyle: inputStyle,
+            labelDartStyle: labelDartStyle,
             inputDartStyle: inputDartStyle,
             onChanged: _controlledOnChanged(controller, onChanged),
             onSubmitted: onSubmitted,
@@ -92,7 +96,9 @@ class TextField extends FlintElement {
     required String? error,
     required String? helpText,
     required Map<String, Object?> inputProps,
+    required Map<String, Object?> labelStyle,
     required Map<String, Object?> inputStyle,
+    required DartStyle? labelDartStyle,
     required DartStyle? inputDartStyle,
     required void Function(Object event)? onChanged,
     required void Function(String value)? onSubmitted,
@@ -106,7 +112,14 @@ class TextField extends FlintElement {
     );
 
     return [
-      if (label != null) fieldLabel(id: id, label: label, required: required),
+      if (label != null)
+        fieldLabel(
+          id: id,
+          label: label,
+          required: required,
+          dartStyle: labelDartStyle,
+          style: labelStyle,
+        ),
       FlintElement(
         'input',
         props: mergeComponentProps(

@@ -497,28 +497,31 @@ class _ActiveControl {
     final active = web.document.activeElement;
     if (active == null || !scope.contains(active)) return null;
 
-    if (active is web.HTMLInputElement) {
+    final tagName = active.tagName.toLowerCase();
+    if (tagName == 'input') {
+      final input = active as web.HTMLInputElement;
       return _ActiveControl(
         tag: 'input',
-        value: active.value,
-        id: active.id.isEmpty ? null : active.id,
-        name: active.name.isEmpty ? null : active.name,
-        type: active.type.isEmpty ? null : active.type,
+        value: input.value,
+        id: input.id.isEmpty ? null : input.id,
+        name: input.name.isEmpty ? null : input.name,
+        type: input.type.isEmpty ? null : input.type,
         domPath: _pathFrom(scope, active),
-        selectionStart: active.selectionStart,
-        selectionEnd: active.selectionEnd,
+        selectionStart: input.selectionStart,
+        selectionEnd: input.selectionEnd,
       );
     }
 
-    if (active is web.HTMLTextAreaElement) {
+    if (tagName == 'textarea') {
+      final textarea = active as web.HTMLTextAreaElement;
       return _ActiveControl(
         tag: 'textarea',
-        value: active.value,
-        id: active.id.isEmpty ? null : active.id,
-        name: active.name.isEmpty ? null : active.name,
+        value: textarea.value,
+        id: textarea.id.isEmpty ? null : textarea.id,
+        name: textarea.name.isEmpty ? null : textarea.name,
         domPath: _pathFrom(scope, active),
-        selectionStart: active.selectionStart,
-        selectionEnd: active.selectionEnd,
+        selectionStart: textarea.selectionStart,
+        selectionEnd: textarea.selectionEnd,
       );
     }
 
@@ -529,21 +532,24 @@ class _ActiveControl {
     final control = _find(scope);
     if (control == null) return;
 
-    if (control is web.HTMLInputElement) {
-      if (control.value != value) {
-        control.value = value;
+    final tagName = control.tagName.toLowerCase();
+    if (tagName == 'input') {
+      final input = control as web.HTMLInputElement;
+      if (input.value != value) {
+        input.value = value;
       }
-      control.focus();
-      _restoreSelection(control);
+      input.focus();
+      _restoreSelection(input);
       return;
     }
 
-    if (control is web.HTMLTextAreaElement) {
-      if (control.value != value) {
-        control.value = value;
+    if (tagName == 'textarea') {
+      final textarea = control as web.HTMLTextAreaElement;
+      if (textarea.value != value) {
+        textarea.value = value;
       }
-      control.focus();
-      _restoreSelection(control);
+      textarea.focus();
+      _restoreSelection(textarea);
     }
   }
 
@@ -587,18 +593,21 @@ class _ActiveControl {
   }
 
   bool _matches(web.Element element, {bool allowUnkeyed = false}) {
-    if (element.localName != tag) return false;
+    final elemTag = element.tagName.toLowerCase();
+    if (elemTag != tag) return false;
 
-    if (element is web.HTMLInputElement) {
-      if (type != null && element.type != type) return false;
-      if (name != null && element.name == name) return true;
-      if (id != null && element.id == id) return true;
+    if (elemTag == 'input') {
+      final input = element as web.HTMLInputElement;
+      if (type != null && input.type != type) return false;
+      if (name != null && input.name == name) return true;
+      if (id != null && input.id == id) return true;
       return allowUnkeyed && name == null && id == null;
     }
 
-    if (element is web.HTMLTextAreaElement) {
-      if (name != null && element.name == name) return true;
-      if (id != null && element.id == id) return true;
+    if (elemTag == 'textarea') {
+      final textarea = element as web.HTMLTextAreaElement;
+      if (name != null && textarea.name == name) return true;
+      if (id != null && textarea.id == id) return true;
       return allowUnkeyed && name == null && id == null;
     }
 
@@ -611,10 +620,11 @@ class _ActiveControl {
     if (start == null || end == null) return;
 
     try {
-      if (control is web.HTMLInputElement) {
-        control.setSelectionRange(start, end);
-      } else if (control is web.HTMLTextAreaElement) {
-        control.setSelectionRange(start, end);
+      final elemTag = control.tagName.toLowerCase();
+      if (elemTag == 'input') {
+        (control as web.HTMLInputElement).setSelectionRange(start, end);
+      } else if (elemTag == 'textarea') {
+        (control as web.HTMLTextAreaElement).setSelectionRange(start, end);
       }
     } catch (_) {
       // Some input types, such as number/date, do not support text selection.

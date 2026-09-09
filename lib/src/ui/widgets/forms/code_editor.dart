@@ -36,8 +36,10 @@ class CodeEditor extends FlintElement {
     Map<String, Object?> props = const {},
     Map<String, Object?> editorProps = const {},
     Map<String, Object?> style = const {},
+    Map<String, Object?> labelStyle = const {},
     Map<String, Object?> editorStyle = const {},
     DartStyle? dartStyle,
+    DartStyle? labelDartStyle,
     DartStyle? editorDartStyle,
     void Function(String value)? onChanged,
   }) : super(
@@ -64,7 +66,9 @@ class CodeEditor extends FlintElement {
             error: resolveFieldError(name: name, error: error, errors: errors),
             helpText: helpText,
             editorProps: editorProps,
+            labelStyle: labelStyle,
             editorStyle: editorStyle,
+            labelDartStyle: labelDartStyle,
             editorDartStyle: editorDartStyle,
             onChanged: onChanged,
           ),
@@ -86,7 +90,9 @@ class CodeEditor extends FlintElement {
     required String? error,
     required String? helpText,
     required Map<String, Object?> editorProps,
+    required Map<String, Object?> labelStyle,
     required Map<String, Object?> editorStyle,
+    required DartStyle? labelDartStyle,
     required DartStyle? editorDartStyle,
     required void Function(String value)? onChanged,
   }) {
@@ -260,7 +266,14 @@ class CodeEditor extends FlintElement {
     );
 
     return [
-      if (label != null) fieldLabel(id: id, label: label, required: required),
+      if (label != null)
+        fieldLabel(
+          id: id,
+          label: label,
+          required: required,
+          dartStyle: labelDartStyle,
+          style: labelStyle,
+        ),
       surface,
       ...fieldMessages(id: id, helpText: helpText, error: error),
     ];

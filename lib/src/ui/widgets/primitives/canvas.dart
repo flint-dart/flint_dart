@@ -89,11 +89,24 @@ class CanvasController extends stub.CanvasController {
   /// Binds this controller to a browser canvas element.
   void attachTo(Object? element) {
     if (element is! web.HTMLCanvasElement) return;
+    _activeCanvasController = this;
+    final isNewElement = _canvas != element;
     _canvas = element;
     final context = element.getContext('2d');
     if (context is web.CanvasRenderingContext2D) {
       _context = context;
-      setCanvasSize(element.width.toDouble(), element.height.toDouble());
+      if (canvasWidth != null &&
+          canvasHeight != null &&
+          canvasWidth! > 0 &&
+          canvasHeight! > 0) {
+        element.width = canvasWidth!.toInt();
+        element.height = canvasHeight!.toInt();
+      } else {
+        setCanvasSize(element.width.toDouble(), element.height.toDouble());
+      }
+      if (isNewElement) {
+        _listenersAttached = false;
+      }
       _attachPointerListeners(element);
       render();
     }
@@ -114,6 +127,7 @@ class CanvasController extends stub.CanvasController {
     final canvas = _canvas;
     final context = _context;
     if (canvas == null || context == null) return;
+    _activeCanvasController = this;
 
     context.clearRect(0, 0, canvas.width, canvas.height);
     _drawGrid(context, canvas);
@@ -214,16 +228,47 @@ class CanvasController extends stub.CanvasController {
     context.restore();
   }
 
+  (double, double, double, double) _textBounds(
+    web.CanvasRenderingContext2D? context,
+    stub.CanvasTextObject text,
+  ) {
+    final font = text.paint.font;
+    final match = RegExp(r'(\d+(?:\.\d+)?)px').firstMatch(font);
+    final fontSize =
+        match != null ? double.tryParse(match.group(1)!) ?? 24.0 : 24.0;
+    final isBold = font.toLowerCase().contains('bold');
+    double textWidth;
+    if (context != null) {
+      context.save();
+      context.font = font;
+      final m = context.measureText(text.text);
+      textWidth = m.width > 0
+          ? m.width.toDouble()
+          : text.text.length * fontSize * (isBold ? 0.65 : 0.58);
+      context.restore();
+    } else {
+      textWidth = text.text.length * fontSize * (isBold ? 0.65 : 0.58);
+    }
+    const padX = 6.0;
+    const padY = 4.0;
+    final left = text.x - padX;
+    final top = text.y - (fontSize * 0.88) - padY;
+    final width = math.max(fontSize, textWidth) + (padX * 2);
+    final height = (fontSize * 1.15) + (padY * 2);
+    return (left, top, width, height);
+  }
+
   @override
   void drawText(stub.CanvasTextObject text) {
     final context = _context;
     if (context == null) return;
     _activeCanvasController = this;
+    final (bx, by, bw, bh) = _textBounds(context, text);
     context.save();
     _rotateAround(
       context,
-      text.x + (text.text.length * 5),
-      text.y - 8,
+      bx + bw / 2,
+      by + bh / 2,
       text.rotation,
     );
     _applyPaint(context, text.paint);
@@ -273,6 +318,21 @@ class CanvasController extends stub.CanvasController {
     _dragging = false;
   }
 
+  (double, double) _eventPoint(
+    web.MouseEvent event,
+    web.HTMLCanvasElement canvas,
+  ) {
+    final rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      return (event.offsetX.toDouble(), event.offsetY.toDouble());
+    }
+    final scaleX = canvas.width / rect.width;
+    final scaleY = canvas.height / rect.height;
+    final x = (event.clientX - rect.left) * scaleX;
+    final y = (event.clientY - rect.top) * scaleY;
+    return (x.toDouble(), y.toDouble());
+  }
+
   void _attachPointerListeners(web.HTMLCanvasElement canvas) {
     if (_listenersAttached) return;
     _listenersAttached = true;
@@ -282,8 +342,9 @@ class CanvasController extends stub.CanvasController {
       ((web.Event event) {
         if (event is! web.MouseEvent) return;
         canvas.focus();
-        final x = event.offsetX;
-        final y = event.offsetY;
+        final point = _eventPoint(event, canvas);
+        final x = point.$1;
+        final y = point.$2;
         final handle = _hitSelectionHandle(x, y);
         final hitObject = hitTest(x, y);
         onPointerDown?.call(
@@ -334,8 +395,9 @@ class CanvasController extends stub.CanvasController {
       'mousemove',
       ((web.Event event) {
         if (!_dragging || event is! web.MouseEvent) return;
-        final x = event.offsetX;
-        final y = event.offsetY;
+        final point = _eventPoint(event, canvas);
+        final x = point.$1;
+        final y = point.$2;
         final handle = _activeHandle;
         if (handle == stub.CanvasSelectionHandle.rotate) {
           _rotateSelectedToPointer(x, y);
@@ -355,9 +417,10 @@ class CanvasController extends stub.CanvasController {
     );
 
     void stopDrag(web.Event event) {
-      final pointer = event is web.MouseEvent
-          ? _pointerEvent(event.offsetX, event.offsetY, handle: _activeHandle)
-          : _pointerEvent(_lastX, _lastY, handle: _activeHandle);
+      final (stopX, stopY) = event is web.MouseEvent
+          ? _eventPoint(event, canvas)
+          : (_lastX, _lastY);
+      final pointer = _pointerEvent(stopX, stopY, handle: _activeHandle);
       if (_activeOperation == _CanvasOperation.selectBox) {
         _selectionCurrentX = pointer.x;
         _selectionCurrentY = pointer.y;
@@ -381,11 +444,14 @@ class CanvasController extends stub.CanvasController {
       'mousemove',
       ((web.Event event) {
         if (_dragging || event is! web.MouseEvent) return;
-        final object = hitTest(event.offsetX, event.offsetY);
+        final point = _eventPoint(event, canvas);
+        final x = point.$1;
+        final y = point.$2;
+        final object = hitTest(x, y);
         if (object?.id == _hoveredObjectId) return;
         _hoveredObjectId = object?.id;
         onHover?.call(
-          _pointerEvent(event.offsetX, event.offsetY, object: object),
+          _pointerEvent(x, y, object: object),
         );
       }).toJS,
     );
@@ -404,11 +470,31 @@ class CanvasController extends stub.CanvasController {
       }).toJS,
     );
 
+    web.window.addEventListener(
+      'keydown',
+      ((web.Event event) {
+        if (event is! web.KeyboardEvent) return;
+        final active = web.document.activeElement;
+        if (active != null) {
+          final tag = active.tagName.toLowerCase();
+          if (tag == 'input' || tag == 'textarea') return;
+        }
+        final handled = handleKeyboardCommand(
+          event.key,
+          control: event.ctrlKey,
+          meta: event.metaKey,
+          shift: event.shiftKey,
+        );
+        if (handled) event.preventDefault();
+      }).toJS,
+    );
+
     canvas.addEventListener(
       'dblclick',
       ((web.Event event) {
         if (event is! web.MouseEvent) return;
-        final object = hitTest(event.offsetX, event.offsetY);
+        final point = _eventPoint(event, canvas);
+        final object = hitTest(point.$1, point.$2);
         if (object is! stub.CanvasTextObject ||
             object.id == null ||
             object.locked) {
@@ -559,19 +645,15 @@ class CanvasController extends stub.CanvasController {
         context.stroke();
         context.restore();
       case stub.CanvasTextObject text:
+        final (bx, by, bw, bh) = _textBounds(context, text);
         context.save();
         _rotateAround(
           context,
-          text.x + (text.text.length * 5),
-          text.y - 8,
+          bx + bw / 2,
+          by + bh / 2,
           text.rotation,
         );
-        context.strokeRect(
-          text.x - 3,
-          text.y - 22,
-          text.text.length * 10 + 6,
-          28,
-        );
+        context.strokeRect(bx, by, bw, bh);
         context.restore();
       case stub.CanvasImageObject image:
         context.save();
