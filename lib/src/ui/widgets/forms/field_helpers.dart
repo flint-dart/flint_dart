@@ -55,10 +55,17 @@ FlintElement fieldLabel({
   required String id,
   required String label,
   bool required = false,
+  DartStyle? dartStyle,
+  Map<String, Object?> style = const {},
 }) {
   return FlintElement(
     'label',
-    props: {'for': id, 'style': fieldLabelStyle},
+    props: mergeComponentProps(
+      {'for': id},
+      defaultStyle: fieldLabelStyle,
+      dartStyle: dartStyle,
+      style: style,
+    ),
     children: [FlintText(label), if (required) const FlintText(' *')],
   );
 }

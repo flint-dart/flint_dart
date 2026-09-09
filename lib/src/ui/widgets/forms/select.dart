@@ -44,8 +44,10 @@ class Select extends FlintElement {
     Map<String, Object?> props = const {},
     Map<String, Object?> selectProps = const {},
     Map<String, Object?> style = const {},
+    Map<String, Object?> labelStyle = const {},
     Map<String, Object?> selectStyle = const {},
     DartStyle? dartStyle,
+    DartStyle? labelDartStyle,
     DartStyle? selectDartStyle,
     void Function(Object event)? onChanged,
   }) : super(
@@ -69,7 +71,9 @@ class Select extends FlintElement {
             error: resolveFieldError(name: name, error: error, errors: errors),
             helpText: helpText,
             selectProps: selectProps,
+            labelStyle: labelStyle,
             selectStyle: selectStyle,
+            labelDartStyle: labelDartStyle,
             selectDartStyle: selectDartStyle,
             onChanged: onChanged,
           ),
@@ -88,7 +92,9 @@ class Select extends FlintElement {
     required String? error,
     required String? helpText,
     required Map<String, Object?> selectProps,
+    required Map<String, Object?> labelStyle,
     required Map<String, Object?> selectStyle,
+    required DartStyle? labelDartStyle,
     required DartStyle? selectDartStyle,
     required void Function(Object event)? onChanged,
   }) {
@@ -101,7 +107,14 @@ class Select extends FlintElement {
     );
 
     return [
-      if (label != null) fieldLabel(id: id, label: label, required: required),
+      if (label != null)
+        fieldLabel(
+          id: id,
+          label: label,
+          required: required,
+          dartStyle: labelDartStyle,
+          style: labelStyle,
+        ),
       FlintElement(
         'select',
         props: mergeComponentProps(

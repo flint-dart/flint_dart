@@ -28,8 +28,10 @@ class TextArea extends FlintElement {
     Map<String, Object?> props = const {},
     Map<String, Object?> textareaProps = const {},
     Map<String, Object?> style = const {},
+    Map<String, Object?> labelStyle = const {},
     Map<String, Object?> textareaStyle = const {},
     DartStyle? dartStyle,
+    DartStyle? labelDartStyle,
     DartStyle? textareaDartStyle,
     void Function(Object event)? onChanged,
   }) : super(
@@ -53,7 +55,9 @@ class TextArea extends FlintElement {
             error: resolveFieldError(name: name, error: error, errors: errors),
             helpText: helpText,
             textareaProps: textareaProps,
+            labelStyle: labelStyle,
             textareaStyle: textareaStyle,
+            labelDartStyle: labelDartStyle,
             textareaDartStyle: textareaDartStyle,
             onChanged: _controlledOnChanged(controller, onChanged),
           ),
@@ -87,7 +91,9 @@ class TextArea extends FlintElement {
     required String? error,
     required String? helpText,
     required Map<String, Object?> textareaProps,
+    required Map<String, Object?> labelStyle,
     required Map<String, Object?> textareaStyle,
+    required DartStyle? labelDartStyle,
     required DartStyle? textareaDartStyle,
     required void Function(Object event)? onChanged,
   }) {
@@ -100,7 +106,14 @@ class TextArea extends FlintElement {
     );
 
     return [
-      if (label != null) fieldLabel(id: id, label: label, required: required),
+      if (label != null)
+        fieldLabel(
+          id: id,
+          label: label,
+          required: required,
+          dartStyle: labelDartStyle,
+          style: labelStyle,
+        ),
       FlintElement(
         'textarea',
         props: mergeComponentProps(

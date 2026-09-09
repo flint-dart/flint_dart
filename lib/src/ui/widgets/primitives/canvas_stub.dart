@@ -950,6 +950,12 @@ class CanvasController {
   double? _canvasWidth;
   double? _canvasHeight;
 
+  /// Retained canvas width constraint.
+  double? get canvasWidth => _canvasWidth;
+
+  /// Retained canvas height constraint.
+  double? get canvasHeight => _canvasHeight;
+
   /// Whether the controller is attached to a browser canvas.
   bool get isAttached => false;
 
@@ -1317,20 +1323,38 @@ class CanvasController {
     return object;
   }
 
-  /// Selects all visible objects fully contained in [bounds].
+  /// Selects all visible objects that intersect or are contained in [bounds].
   bool selectInBounds(CanvasBounds bounds) {
     final ids = <String>[];
     for (final object in _objects) {
       if (object.id == null || object.hidden) continue;
       final objectBounds = _boundsFor(object);
-      if (objectBounds.left >= bounds.left &&
-          objectBounds.right <= bounds.right &&
-          objectBounds.top >= bounds.top &&
-          objectBounds.bottom <= bounds.bottom) {
+      final intersects = objectBounds.left <= bounds.right &&
+          objectBounds.right >= bounds.left &&
+          objectBounds.top <= bounds.bottom &&
+          objectBounds.bottom >= bounds.top;
+      if (intersects) {
         ids.add(object.id!);
       }
     }
     return selectMany(ids);
+  }
+
+  /// Selects all visible, unlocked objects on the canvas.
+  bool selectAll() {
+    final ids = _objects
+        .where(
+            (object) => object.id != null && !object.hidden && !object.locked)
+        .map((object) => object.id!)
+        .toList();
+    return selectMany(ids);
+  }
+
+  /// Duplicates the selected objects and places them offset by [dx], [dy].
+  List<CanvasObject> duplicateSelected({double dx = 20, double dy = 20}) {
+    if (_selectedObjectIds.isEmpty) return const [];
+    copySelected();
+    return pasteCopied(dx: dx, dy: dy);
   }
 
   /// Returns the topmost object at [x], [y].
@@ -1690,6 +1714,13 @@ class CanvasController {
   }) {
     final shortcut = control || meta;
     final normalized = key.toLowerCase();
+    if (shortcut && normalized == 'a') return selectAll();
+    if (shortcut && normalized == 'd') return duplicateSelected().isNotEmpty;
+    if (shortcut && normalized == 'z') {
+      if (shift) return redo();
+      return undo();
+    }
+    if (shortcut && normalized == 'y') return redo();
     if (shortcut && normalized == 'c') return copySelected();
     if (shortcut && normalized == 'v') return pasteCopied().isNotEmpty;
     if (key == 'Delete' || key == 'Backspace') return deleteSelected();
@@ -1793,6 +1824,8 @@ class CanvasController {
     _pushRedo(toJson());
     _loadJson(_undoStack.removeLast());
     render();
+    _emitSelect();
+    _emitChange();
     onUndo?.call(this);
     return true;
   }
@@ -1803,6 +1836,8 @@ class CanvasController {
     _pushUndo(toJson());
     _loadJson(_redoStack.removeLast());
     render();
+    _emitSelect();
+    _emitChange();
     onRedo?.call(this);
     return true;
   }
@@ -2092,6 +2127,15 @@ class CanvasController {
   }
 }
 
+double _parseFontSize(String? font) {
+  if (font == null || font.isEmpty) return 24.0;
+  final match = RegExp(r'(\d+(?:\.\d+)?)px').firstMatch(font);
+  if (match != null) {
+    return double.tryParse(match.group(1)!) ?? 24.0;
+  }
+  return 24.0;
+}
+
 CanvasBounds _boundsFor(CanvasObject object) {
   return switch (object) {
     CanvasRect rect => CanvasBounds(
@@ -2112,12 +2156,20 @@ CanvasBounds _boundsFor(CanvasObject object) {
         width: (line.x2 - line.x1).abs(),
         height: (line.y2 - line.y1).abs(),
       ),
-    CanvasTextObject text => CanvasBounds(
-        x: text.x,
-        y: text.y - 20,
-        width: _max(1, text.text.length * 10),
-        height: 26,
-      ),
+    CanvasTextObject text => () {
+        final fontSize = _parseFontSize(text.paint.font);
+        final isBold = text.paint.font.toLowerCase().contains('bold');
+        final charWidth = fontSize * (isBold ? 0.65 : 0.58);
+        final textWidth = _max(fontSize, text.text.length * charWidth);
+        const padX = 6.0;
+        const padY = 4.0;
+        return CanvasBounds(
+          x: text.x - padX,
+          y: text.y - (fontSize * 0.88) - padY,
+          width: textWidth + (padX * 2),
+          height: (fontSize * 1.15) + (padY * 2),
+        );
+      }(),
     CanvasImageObject image => CanvasBounds(
         x: image.x,
         y: image.y,
@@ -2267,10 +2319,19 @@ bool _containsPoint(CanvasObject object, double x, double y) {
     CanvasLine line =>
       _distanceToLine(x, y, line.x1, line.y1, line.x2, line.y2) <=
           (line.paint.lineWidth <= 0 ? 4 : line.paint.lineWidth + 4),
-    CanvasTextObject text => x >= text.x &&
-        x <= text.x + (text.text.length * 10) &&
-        y >= text.y - 20 &&
-        y <= text.y + 6,
+    CanvasTextObject text => () {
+        final fontSize = _parseFontSize(text.paint.font);
+        final isBold = text.paint.font.toLowerCase().contains('bold');
+        final charWidth = fontSize * (isBold ? 0.65 : 0.58);
+        final textWidth = _max(fontSize, text.text.length * charWidth);
+        const padX = 8.0;
+        const padY = 6.0;
+        final left = text.x - padX;
+        final top = text.y - (fontSize * 0.88) - padY;
+        final right = left + textWidth + (padX * 2);
+        final bottom = top + (fontSize * 1.15) + (padY * 2);
+        return x >= left && x <= right && y >= top && y <= bottom;
+      }(),
     CanvasImageObject image => x >= image.x &&
         x <= image.x + image.width &&
         y >= image.y &&
@@ -2756,11 +2817,11 @@ class Canvas extends FlintElement {
           'canvas',
           props: mergeComponentProps(
             {
-              ...props,
-              if (controller != null) '_flintCanvasController': controller,
               'width': width,
               'height': height,
               'tabIndex': props['tabIndex'] ?? 0,
+              ...props,
+              if (controller != null) '_flintCanvasController': controller,
             },
             className: className,
             defaultStyle: const {
