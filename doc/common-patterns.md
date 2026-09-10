@@ -882,7 +882,6 @@ Do not hand-edit generated output when the source file can be fixed instead.
 - Do not log cookies, tokens, OTPs, passwords, authorization headers, or raw
   request bodies.
 - Do not hand-edit generated docs or built frontend assets.
-- Do not use `deploy-globe`, `globe.yaml`, or `globe_cli`; Globe deployment is no longer supported.
 
 ## Implementation Checklist
 

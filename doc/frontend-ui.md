@@ -187,9 +187,9 @@ dart run flint_dart:flint web
 The older `make:ui` alias is deprecated and will be removed in Flint Dart
 `1.5.0`; use `--make-ui` in new examples and generated guidance.
 
-## AI Checklist
+## Frontend Checklist
 
-When asked to work on frontend code:
+When working on frontend code:
 
 1. Read `docs/frontend-ui.md`, `docs/ui-widgets.md`, `docs/build-and-rendering.md`, `docs/project-structure.md`, and any local design notes.
 2. Inspect `lib/ui/main.dart` and `lib/ui/component_registry.dart`.

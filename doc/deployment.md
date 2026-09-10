@@ -6,10 +6,8 @@ server must run with production environment values, the browser UI assets must
 exist, the database must be migrated, and any durable queue jobs need a worker
 process.
 
-Globe deployment is no longer supported. Do not teach `deploy-globe`,
-`globe.yaml`, or `globe_cli` as a supported path for new Flint apps. Use
-Docker, `flint build`, or the deployment platform's normal Dart/server process
-model.
+Use Docker, `flint build`, or the deployment platform's normal Dart/server
+process model.
 
 ## Files To Inspect First
 
@@ -400,16 +398,6 @@ A practical deploy order:
     migrations if the app uses AI.
 11. Check HTTP server logs, worker logs, request logs, and error logs. Read
     `docs/logging.md` if the app needs log-level or file-log changes.
-
-## Unsupported: Globe
-
-`deploy-globe` is no longer supported and has been removed from the CLI because
-Globe is no longer an active deployment target for Flint apps.
-
-Do not add `globe.yaml`, do not ask users to install `globe_cli`, and do not use
-Globe examples in new docs or generated guidance. If an existing app still has a
-`globe.yaml`, treat it as old deployment configuration and move the app to
-Docker, `flint build`, or the hosting provider's standard Dart process.
 
 ## Common Mistakes
 

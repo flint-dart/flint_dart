@@ -119,7 +119,6 @@ For example, if the task is "add an auth check", read `docs/authentication.md`, 
 - Use `Hashing(algorithm: HashingAlgorithm.bcrypt)` for passwords, `FlintJwt` only for lower-level JWT work, and `Str` for simple random/string helpers.
 - Use `DB.query(...)` parameters, `QueryBuilder`, or model methods. Do not interpolate request input into SQL.
 - Use `app.websocket(...)` with `Context ctx` and `ctx.socket` for realtime features; attach socket guards through the WebSocket `middlewares:` argument.
-- Do not use `deploy-globe`, `globe.yaml`, or `globe_cli`; Globe deployment is no longer supported.
 
 ## Commands
 
