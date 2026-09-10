@@ -9,6 +9,8 @@ import 'package:flint_dart/src/env_parser.dart';
 import 'package:path/path.dart' as path;
 import 'package:test/test.dart';
 
+import '../bin/flint_dart.dart' as flint_cli;
+
 void main() {
   test('getFlintVersion reads the current package version', () async {
     final packageUri = await Isolate.resolvePackageUri(
@@ -66,6 +68,11 @@ void main() {
 
   test('DbSeedCommand uses the clean seed command name', () {
     expect(DbSeedCommand().name, 'seed');
+  });
+
+  test('Globe deployment command is not registered', () {
+    expect(flint_cli.commands, isNot(contains('deploy-globe')));
+    expect(flint_cli.aliasCommands, isNot(contains('--deploy-globe')));
   });
 
   test('RunServerCommand defaults to PORT from .env', () async {

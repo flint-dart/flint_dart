@@ -25,6 +25,8 @@ export 'logs.dart';
 export 'session.dart';
 export 'db.dart';
 export 'cache.dart';
+export 'storage.dart';
+export 'src/storage/uploaded_file.dart';
 export 'isolate.dart';
 export 'jobs.dart';
 

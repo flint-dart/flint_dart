@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:async';
+import 'dart:io' hide HttpException;
 
 import 'package:test/test.dart';
 import 'package:flint_dart/flint_dart.dart';
@@ -117,6 +118,63 @@ void main() {
   });
 
   group('Middleware', () {
+    test('LoggerMiddleware logs sanitized request metadata', () async {
+      final previousEnabled = Log.enabled;
+      final previousMinLevel = Log.minLevel;
+      final previousConsoleLogging = Log.consoleLogging;
+      final previousFileLogging = Log.fileLogging;
+      final previousLogDirectory = Log.logDirectory;
+
+      final logs = <String>[];
+
+      try {
+        await runZoned(
+          () async {
+            Log.debug('configure logger for middleware test');
+            Log.enabled = true;
+            Log.minLevel = LogLevel.debug;
+            Log.consoleLogging = true;
+            Log.fileLogging = false;
+
+            final headers = FakeHttpHeaders()
+              ..set(HttpHeaders.cookieHeader, 'session=secret-cookie')
+              ..set(HttpHeaders.authorizationHeader, 'Bearer secret-token')
+              ..set('x-forwarded-for', '203.0.113.8, 10.0.0.1');
+            final raw = FakeHttpRequest(
+              method: 'GET',
+              uri: Uri.parse('/reports?token=secret-query'),
+              headers: headers,
+            );
+            final request = Request(raw);
+            final response = Response(raw.response);
+            final handler = LoggerMiddleware().handle(
+              (ctx) async => ctx.res?.send('ok', status: 201),
+            );
+
+            await handler(Context(req: request, res: response));
+          },
+          zoneSpecification: ZoneSpecification(
+            print: (_, __, ___, line) {
+              logs.add(line);
+            },
+          ),
+        );
+      } finally {
+        Log.enabled = previousEnabled;
+        Log.minLevel = previousMinLevel;
+        Log.consoleLogging = previousConsoleLogging;
+        Log.fileLogging = previousFileLogging;
+        Log.logDirectory = previousLogDirectory;
+      }
+
+      final output = logs.join('\n');
+      expect(output, contains('[request] GET /reports status=201'));
+      expect(output, contains('ip=203.0.113.8'));
+      expect(output, isNot(contains('secret-cookie')));
+      expect(output, isNot(contains('secret-token')));
+      expect(output, isNot(contains('secret-query')));
+    });
+
     test('CacheMiddleware applies public cache headers to GET requests',
         () async {
       final handler = CacheMiddleware.public(
@@ -364,6 +422,66 @@ void main() {
       expect(
         rawResponse.buffer.toString(),
         '{"status":false,"error":"Unauthorized","message":"User already exists with this email"}',
+      );
+    });
+
+    test('catches ForbiddenException with 403 status', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw ForbiddenException(message: 'Admin access required');
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 403);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"message":"Admin access required"}',
+      );
+    });
+
+    test('catches framework HttpException with explicit status', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw HttpException(409, 'Course already exists', data: {'id': '42'});
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 409);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"message":"Course already exists","data":{"id":"42"}}',
+      );
+    });
+
+    test('Unauthenticated is exported and handled as 401', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw Unauthenticated();
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 401);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"error":"Unauthorized","message":"Unauthenticated"}',
       );
     });
   });

@@ -402,15 +402,15 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.get('/users', (req, res) async {
-  ///   return res.json({'message': 'All users'});
+  /// app.get('/users', (Context ctx) async {
+  ///   return ctx.res?.json({'message': 'All users'});
   /// });
   /// ```
   ///
   /// ### Chaining middleware
   /// ```dart
   /// app.get('/profile', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -438,9 +438,9 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.post('/users', (req, res) async {
-  ///   final data = await req.json();
-  ///   return res.json({
+  /// app.post('/users', (Context ctx) async {
+  ///   final data = await ctx.req.json();
+  ///   return ctx.res?.json({
   ///     'success': true,
   ///     'user': data,
   ///   });
@@ -450,8 +450,8 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.post('/login', handler)
-  ///    .use(ValidateBodyMiddleware())
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(ValidateBodyMiddleware())
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -479,11 +479,11 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.put('/users/:id', (req, res) async {
-  ///   final id = req.params['id'];
-  ///   final data = await req.json();
+  /// app.put('/users/:id', (Context ctx) async {
+  ///   final id = ctx.req.params['id'];
+  ///   final data = await ctx.req.json();
   ///
-  ///   return res.json({
+  ///   return ctx.res?.json({
   ///     'updated': true,
   ///     'id': id,
   ///     'data': data,
@@ -494,7 +494,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.put('/profile/:id', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -522,10 +522,10 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.delete('/users/:id', (req, res) async {
-  ///   final id = req.params['id'];
+  /// app.delete('/users/:id', (Context ctx) async {
+  ///   final id = ctx.req.params['id'];
   ///
-  ///   return res.json({
+  ///   return ctx.res?.json({
   ///     'deleted': true,
   ///     'id': id,
   ///   });
@@ -535,7 +535,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.delete('/posts/:id', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -564,11 +564,11 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.patch('/users/:id', (req, res) async {
-  ///   final id = req.params['id'];
-  ///   final updates = await req.json();
+  /// app.patch('/users/:id', (Context ctx) async {
+  ///   final id = ctx.req.params['id'];
+  ///   final updates = await ctx.req.json();
   ///
-  ///   return res.json({
+  ///   return ctx.res?.json({
   ///     'patched': true,
   ///     'id': id,
   ///     'updates': updates,
@@ -579,7 +579,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.patch('/settings', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -620,7 +620,9 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.route('OPTIONS', '/users', (req, res) async {
+  /// app.route('OPTIONS', '/users', (Context ctx) async {
+  ///   final res = ctx.res;
+  ///   if (res == null) return null;
   ///   res.raw.headers.add('Allow', 'GET, POST, PUT, DELETE');
   ///   return res.send('');
   /// });
@@ -629,7 +631,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.route('HEAD', '/health', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -699,8 +701,8 @@ class Flint {
 
   /// Adds a global [middleware] to the application.
   ///
-  /// Middlewares registered with this method are executed for **every
-  /// incoming HTTP request**, in the exact order they are added.
+  /// Middlewares registered with this method are executed for HTTP requests
+  /// and WebSocket routes.
   /// Each middleware can inspect, modify, or short-circuit the request
   /// and response lifecycle.
   ///
@@ -725,7 +727,8 @@ class Flint {
   /// ```
   ///
   /// ### Notes
-  /// - Middleware order matters; earlier middlewares wrap later ones.
+  /// - Middleware order matters; the last middleware in a list is the
+  ///   outermost wrapper and runs first on the way in.
   /// - Use route-specific middleware when logic should not apply globally.
   ///
   /// ### Parameters

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flint_dart/src/error/auth_exception.dart';
 import 'package:flint_dart/src/error/validation_exception.dart';
+import 'package:flint_dart/storage.dart';
 import 'package:test/test.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart';

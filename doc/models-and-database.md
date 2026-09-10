@@ -115,6 +115,42 @@ await PostModel().delete(post?.id);
 
 `QueryBuilder.update()` and `QueryBuilder.delete()` require a where clause. `Model.update()` requires either a primary key or an existing query where clause.
 
+## Database API
+
+The model and query layers are the normal tools for backend workflows. Flint also
+has a secure Database API resource layer for exposing selected models through a
+bounded JSON protocol.
+
+Use the Database API when a client needs controlled CRUD/query access to model
+resources:
+
+```dart
+final api = FlintDatabaseApi(
+  config: FlintDatabaseApiConfig(
+    auth: const FlintDbAuth.enabled(defaultRole: 'user'),
+  ),
+  resources: [
+    Course.new.resource,
+  ],
+);
+
+app.databaseApi(api);
+```
+
+A registered resource controls:
+
+- which model is exposed
+- which operations are allowed
+- which fields are readable
+- which fields are writable
+- which fields are hidden or concealed
+- which owner, parent, role, or read-filter policies apply
+
+Read `docs/database-api.md` before exposing a model through
+`FlintDatabaseApi`. Do not use the Database API for business workflows that need
+custom decisions, side effects, audit logic, or multi-step behavior; put those in
+controllers and action classes.
+
 ## Migrations
 
 `DBMigrateCommand` loads table definitions from `lib/config/table_registry.dart` unless tables are passed directly. The sample registry:
@@ -129,6 +165,10 @@ void main(dynamic data, SendPort? sendPort) {
 }
 ```
 
+`flintAiTables` are the built-in AI persistence tables for runs, traces,
+artifacts, and thread memory. Read `docs/ai.md` before adding, removing, or
+depending on those tables.
+
 The migration command:
 
 - ensures the database exists when requested
@@ -140,6 +180,63 @@ The migration command:
 - drops columns that are no longer declared, except protected timestamp/auth columns
 - syncs declared indexes
 - creates PostgreSQL `updated_at` triggers
+
+## Seeders
+
+Seeders are classes that extend `Seeder` and implement `Future<void> run()`.
+They are used to create or update predictable data such as roles, permissions,
+settings, admin users, lookup tables, demo records, and test fixtures.
+
+Create a seeder with:
+
+```bash
+dart run flint_dart:flint --make-seeder RoleSeeder
+```
+
+The generator creates `lib/seeders/role_seeder.dart`. If
+`lib/config/seeder_registry.dart` does not exist, it creates a modern registry:
+
+```dart
+class AppSeederRegistry extends SeederRegistry {
+  const AppSeederRegistry();
+
+  @override
+  Iterable<Seeder> get seeders => [
+        RoleSeeder(),
+      ];
+}
+
+Future<void> main() => const AppSeederRegistry().registerAll();
+```
+
+Run registered seeders with:
+
+```bash
+dart run flint_dart:flint seed
+```
+
+The `seed` command runs `lib/config/seeder_registry.dart` as a Dart script. The
+registry order is the seeding order, so put dependency records first. `RoleSeeder`
+should run before `AdminUserSeeder` if the admin user references a role.
+
+In an app process, configure seeders through `Flint`:
+
+```dart
+final app = Flint(
+  seederRegistry: const AppSeederRegistry(),
+  autoSeed: true,
+  closeSeederConnection: false,
+);
+```
+
+`autoSeed` runs during startup after enabled migrations and before the HTTP
+server binds. It is disabled by default because seeders mutate application data.
+Only enable startup seeding for idempotent seeders.
+
+Prefer `upsert`, `upsertMany`, or `firstOrCreate` inside seeders so running the
+same seeder twice updates stable rows instead of creating duplicates.
+
+See `docs/seeders.md` for the full seeder guide.
 
 ## Important Limits
 

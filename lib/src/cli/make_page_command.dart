@@ -201,15 +201,15 @@ class $className extends FlintComponent {
 
   void _printHelp() {
     Log.debug('''
-Usage: flint make:page <Name> [options]
+Usage: flint --make-page <Name> [options]
 
 Options:
   --no-register    Create the page file without updating component_registry.dart
   --help, -h       Show this help
 
 Examples:
-  flint make:page Dashboard
-  flint make:page Settings --no-register
+  flint --make-page Dashboard
+  flint --make-page Settings --no-register
 ''');
   }
 }

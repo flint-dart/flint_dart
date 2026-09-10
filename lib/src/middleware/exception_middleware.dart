@@ -59,7 +59,8 @@ class ExceptionMiddleware extends Middleware {
         return res.json({"status": false, "message": e.message}, status: 500);
       } on ForbiddenException catch (e) {
         if (res == null) rethrow;
-        return res.json({"status": false, "message": e.message}, status: 500);
+        return res
+            .json({"status": false, "message": e.message}, status: e.code);
       } on AuthException catch (e) {
         if (res == null) rethrow;
         return res.json(
@@ -68,7 +69,17 @@ class ExceptionMiddleware extends Middleware {
             "error": "Unauthorized",
             "message": e.message,
           },
-          status: 401,
+          status: e.code,
+        );
+      } on HttpException catch (e) {
+        if (res == null) rethrow;
+        return res.json(
+          {
+            "status": false,
+            "message": e.message,
+            if (e.data != null) "data": e.data,
+          },
+          status: e.status,
         );
       } on BaseException catch (e) {
         if (res == null) rethrow;

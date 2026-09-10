@@ -48,25 +48,25 @@ class MakeControllerCommand extends FlintCommand {
     return '''
 import 'package:flint_dart/flint_dart.dart';
 
-class $className {
-  Future<Response> index(Request req, Response res) async {
-   return res.send('Listing all items...');
+class $className extends Controller {
+  Future<Response> index() async {
+    return res.send('Listing all items...');
   }
 
-  Future<Response> show(Request req, Response res) async {
-   return res.send('Showing item \${req.params['id']}');
+  Future<Response> show() async {
+    return res.send('Showing item \${req.params['id']}');
   }
 
-  Future<Response> create(Request req, Response res) async {
-   return res.send('Creating item...');
+  Future<Response> create() async {
+    return res.send('Creating item...');
   }
 
-  Future<Response> update(Request req, Response res) async {
-   return res.send('Updating item \${req.params['id']}');
+  Future<Response> update() async {
+    return res.send('Updating item \${req.params['id']}');
   }
 
-  Future<Response> delete(Request req, Response res) async {
-   return res.send('Deleting item \${req.params['id']}');
+  Future<Response> delete() async {
+    return res.send('Deleting item \${req.params['id']}');
   }
 }
 ''';

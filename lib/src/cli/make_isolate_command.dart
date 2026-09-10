@@ -44,10 +44,11 @@ class MakeIsolateCommand extends FlintCommand {
   String _generateTask(String className) {
     return '''
 import 'package:flint_dart/isolate.dart';
+import 'package:flint_dart/logs.dart';
 
 class $className extends IsolateTask<void> {
   @override
-  Future<void> perform() async {
+  Future<void> performTask() async {
     // Heavy or blocking logic here
     // Example: email sending, PDF generation, hashing, etc.
 

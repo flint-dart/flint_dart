@@ -2,16 +2,16 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/src/jobs/flint_job.dart';
 import 'package:flint_dart/src/jobs/flint_job_context.dart';
 import 'package:flint_dart/src/jobs/flint_job_record.dart';
 import 'package:flint_dart/src/jobs/flint_job_schedule.dart';
 import 'package:flint_dart/src/jobs/flint_job_store.dart';
+import 'package:flint_dart/src/jobs/queue_job.dart';
 
 class FlintJobs {
   FlintJobs._();
 
-  static final Map<String, FlintJob> _registry = {};
+  static final Map<String, QueueJob> _registry = {};
   static final Map<String, FlintSchedule> _schedules = {};
   static FlintJobStore _store = const FlintDatabaseJobStore();
   static Timer? _workerTimer;
@@ -21,15 +21,15 @@ class FlintJobs {
   static bool _schedulerRunning = false;
   static bool _runtimeRunning = false;
 
-  static Map<String, FlintJob> get registered => Map.unmodifiable(_registry);
+  static Map<String, QueueJob> get registered => Map.unmodifiable(_registry);
   static Map<String, FlintSchedule> get schedules =>
       Map.unmodifiable(_schedules);
 
-  static void register(Iterable<FlintJob> jobs) {
+  static void register(Iterable<QueueJob> jobs) {
     for (final job in jobs) {
       final type = job.type.trim();
       if (type.isEmpty) {
-        throw ArgumentError('FlintJob.type cannot be empty');
+        throw ArgumentError('QueueJob.type cannot be empty');
       }
       _registry[type] = job;
     }
@@ -295,14 +295,14 @@ class FlintJobs {
     final run = await _store.startRun(record, workerId: workerId);
 
     if (definition == null) {
-      final error = 'No Flint job registered for type "${record.type}"';
+      final error = 'No QueueJob registered for type "${record.type}"';
       await _store.fail(record, error: error, retry: false);
       await _store.finishRun(run, status: FlintJobStatus.failed, error: error);
       Log.warning(error, tag: 'jobs');
       return;
     }
 
-    final context = FlintJobContext(
+    final context = QueueJobContext(
       store: _store,
       record: record,
       attempt: record.attempts,
@@ -340,7 +340,7 @@ class FlintJobs {
         error: error.toString(),
       );
       Log.error(
-        'Flint job failed type=${record.type} id=${record.id}: $error',
+        'QueueJob failed type=${record.type} id=${record.id}: $error',
         stackTrace: stack,
         tag: 'jobs',
       );

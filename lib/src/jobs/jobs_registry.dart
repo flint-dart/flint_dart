@@ -1,11 +1,11 @@
-import 'package:flint_dart/src/jobs/flint_job.dart';
 import 'package:flint_dart/src/jobs/flint_job_schedule.dart';
 import 'package:flint_dart/src/jobs/flint_jobs.dart';
+import 'package:flint_dart/src/jobs/queue_job.dart';
 
 abstract class JobsRegistry {
   const JobsRegistry();
 
-  Iterable<FlintJob> get jobs;
+  Iterable<QueueJob> get jobs;
 
   Iterable<FlintSchedule> get schedules => const [];
 
