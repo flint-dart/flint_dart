@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## Unreleased
+## [1.4.1] - 2026-09-28
 
 ### Added
 - Added `RedisCacheStore` for Redis-backed application caching with TTL,
@@ -13,6 +13,61 @@ All notable changes to this project are documented in this file.
 - Added an app-owned cache service available as `app.cache`, `ctx.cache`, and
   `Controller.cache`, with automatic memory, file, or Redis selection through
   `CACHE_DRIVER` and typed `CacheDriver` constructor options.
+- Added `QueueJob` and the `QueueJobContext` alias as the preferred public API
+  for durable background jobs.
+- Exported `UploadedFile` and `Storage` from the main framework entrypoint so
+  uploaded files can be handled without an additional storage import.
+- Added label styling overrides (`labelStyle` and `labelDartStyle`) to
+  `TextField`, `TextArea`, `Select`, and `CodeEditor`.
+- Added Canvas editor commands for select all, duplicate, keyboard undo/redo,
+  and redo through Ctrl/Cmd+Y or Ctrl/Cmd+Shift+Z.
+- Added built-in UI icons for bold, circle, close, image, layout, loader,
+  redo, smartphone, square, TV, type, undo, unlock, and video actions.
+- Added comprehensive framework-authored AI agent documentation and made
+  `flint agent` copy the package's complete Markdown documentation set into an
+  application, with `--force` overwrite support.
+
+### Changed
+- Improved Canvas interaction on responsive displays with CSS-to-canvas pointer
+  coordinate scaling, intersection-based marquee selection, font-aware text
+  bounds and hit testing, retained size constraints, and selection/change
+  notifications after undo and redo.
+- Updated controller, resource, route, and middleware generators to emit
+  request-scoped `Controller` subclasses, `Context` middleware, typed
+  `app.controller(...)` routes, relative imports, and fuller OpenAPI comments.
+- Updated request logging to report sanitized method, path, status, duration,
+  and client IP metadata without logging cookies or authentication state.
+- Updated the example app to use `SeederRegistry`, remove a redundant storage
+  import, and let HTTP-only auth middleware continue WebSocket requests.
+- Expanded generated project guidance for Flint UI, AI, storage, jobs,
+  templates, testing, deployment, logging, and security workflows.
+
+### Deprecated
+- Deprecated `FlintJob` in favor of `QueueJob`; existing `FlintJob`
+  implementations remain supported.
+- Deprecated the misspelled `ForbiddenErorr` alias in favor of
+  `ForbiddenError`.
+- Deprecated `make:*` CLI aliases in favor of `--make-*`; the old aliases are
+  scheduled for removal in `1.5.0` and now print a warning.
+- Deprecated the `deploy-globe` and `--deploy-globe` CLI commands; they remain
+  available for compatibility and are scheduled for removal in `1.5.0`.
+
+### Fixed
+- Corrected `AuthException`, `Unauthenticated`, `ForbiddenException`, and
+  `NotFoundException` defaults and made exception middleware preserve framework
+  HTTP status codes and `HttpException` response data.
+- Fixed browser renderer control restoration for input and textarea elements
+  after component rerenders.
+- Fixed Canvas text selection bounds, responsive pointer targeting, keyboard
+  shortcuts, and initial controller attachment behavior.
+- Fixed generated middleware so WebSocket contexts without an HTTP response
+  continue through the middleware pipeline.
+
+### Security
+- Hardened public file storage by sanitizing uploaded filenames and rejecting
+  absolute paths and `.`/`..` traversal segments during create, update, and
+  delete operations.
+- Removed cookies and authentication-state values from default request logs.
 
 ## [1.4.0] - 2026-09-08
 

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/src/auth/auth.dart';
-import 'package:flint_dart/src/storage/uploaded_file.dart';
 import 'package:mime/mime.dart';
 
 /// Enhanced HTTP request wrapper with comprehensive parsing, validation, and session management.

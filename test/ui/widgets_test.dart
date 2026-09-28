@@ -720,6 +720,71 @@ void main() {
       },
     );
 
+    test(
+      'CanvasController supports editor shortcuts and partial marquee overlap',
+      () {
+        final events = <String>[];
+        final controller = CanvasController(
+          onSelect: (_) => events.add('select'),
+          onChange: (_) => events.add('change'),
+        );
+        controller.addRect(
+          const CanvasRect(id: 'editable', x: 10, y: 10, width: 20, height: 20),
+        );
+        controller.addRect(
+          const CanvasRect(
+            id: 'locked',
+            x: 50,
+            y: 10,
+            width: 20,
+            height: 20,
+            locked: true,
+          ),
+        );
+        controller.addRect(
+          const CanvasRect(
+            id: 'hidden',
+            x: 90,
+            y: 10,
+            width: 20,
+            height: 20,
+            hidden: true,
+          ),
+        );
+
+        expect(
+          controller.selectInBounds(
+            const CanvasBounds(x: 25, y: 15, width: 10, height: 10),
+          ),
+          isTrue,
+        );
+        expect(controller.selectedObjectIds, ['editable']);
+
+        expect(controller.handleKeyboardCommand('a', control: true), isTrue);
+        expect(controller.selectedObjectIds, ['editable']);
+        expect(controller.handleKeyboardCommand('d', meta: true), isTrue);
+        expect(controller.objects, hasLength(4));
+        expect(controller.selectedObjectId, 'editable_copy_1');
+
+        events.clear();
+        expect(controller.handleKeyboardCommand('z', control: true), isTrue);
+        expect(controller.objects, hasLength(3));
+        expect(events, containsAllInOrder(['select', 'change']));
+
+        events.clear();
+        expect(
+          controller.handleKeyboardCommand('z', control: true, shift: true),
+          isTrue,
+        );
+        expect(controller.objects, hasLength(4));
+        expect(events, containsAllInOrder(['select', 'change']));
+
+        expect(controller.handleKeyboardCommand('z', meta: true), isTrue);
+        expect(controller.handleKeyboardCommand('y', meta: true), isTrue);
+        expect(controller.objects, hasLength(4));
+      },
+    );
+
     test('CanvasController groups selected objects and fires events', () {
       final events = <String>[];
       final controller = CanvasController(

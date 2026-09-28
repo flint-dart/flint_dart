@@ -7,6 +7,7 @@ import 'package:flint_dart/src/cli/create_project_command.dart';
 import 'package:flint_dart/src/cli/db_commands.dart';
 import 'package:flint_dart/src/cli/db_admin_commands.dart';
 import 'package:flint_dart/src/cli/db_seed_command.dart';
+import 'package:flint_dart/src/cli/deploy_globe_command.dart';
 import 'package:flint_dart/src/cli/generate_docs_command.dart';
 import 'package:flint_dart/src/cli/make_controller_command.dart';
 import 'package:flint_dart/src/cli/make_docker_command.dart';
@@ -35,6 +36,7 @@ final Map<String, FlintCommand> commands = {
   'build': BuildCommand(),
   'web': WebUiCommand(),
   '--make-docker': MakeDockerCommand(),
+  'deploy-globe': DeployGlobeCommand(),
   'migrate': DBMigrateCommand(),
   '--db-create': DBCreateCommand(),
   '--db-user-create': DBUserCreateCommand(),
@@ -62,6 +64,7 @@ final Map<String, FlintCommand> commands = {
 };
 
 final Map<String, String> aliasCommands = {
+  '--deploy-globe': 'deploy-globe',
   'agents': 'agent',
   'docs:agent': 'agent',
   'docs:agents': 'agent',
@@ -145,6 +148,13 @@ void main(List<String> args) async {
       'The make:* generator aliases are deprecated and will be removed in '
       'Flint Dart 1.5.0. Use --make-* commands instead, for example '
       '`flint --make-model User`.',
+    );
+  }
+
+  if (firstArg == 'deploy-globe') {
+    Log.warning(
+      'The deploy-globe command is deprecated and will be removed in Flint '
+      'Dart 1.5.0.',
     );
   }
 

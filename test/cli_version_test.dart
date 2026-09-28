@@ -70,9 +70,9 @@ void main() {
     expect(DbSeedCommand().name, 'seed');
   });
 
-  test('Globe deployment command is not registered', () {
-    expect(flint_cli.commands, isNot(contains('deploy-globe')));
-    expect(flint_cli.aliasCommands, isNot(contains('--deploy-globe')));
+  test('Globe deployment command remains available for compatibility', () {
+    expect(flint_cli.commands, contains('deploy-globe'));
+    expect(flint_cli.aliasCommands['--deploy-globe'], 'deploy-globe');
   });
 
   test('RunServerCommand defaults to PORT from .env', () async {
