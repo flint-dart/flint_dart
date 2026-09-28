@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/src/error/base_exception.dart';
+import 'package:flint_dart/src/response.dart';
 
 class ForbiddenException extends BaseException {
   ForbiddenException({
@@ -10,4 +11,7 @@ class ForbiddenException extends BaseException {
   });
 }
 
+typedef ForbiddenError = ForbiddenException;
+
+@Deprecated('Use ForbiddenError instead.')
 typedef ForbiddenErorr = ForbiddenException;

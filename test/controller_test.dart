@@ -17,6 +17,18 @@ void main() {
   });
 
   group('Controller', () {
+    test('exposes the cache attached to its context', () async {
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/cache'));
+      final cache = MemoryCacheStore();
+      final context = Context(req: Request(raw))..write<CacheStore>(cache);
+      final controller = _TestController()..bind(context);
+
+      await controller.cache.set('controller', true);
+
+      expect(controller.cache, same(cache));
+      expect(await cache.get('controller'), isTrue);
+    });
+
     test('exposes req and res in HTTP context and flags websocket as false',
         () {
       final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/http'));

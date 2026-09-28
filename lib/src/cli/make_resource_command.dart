@@ -49,24 +49,24 @@ class MakeResourceCommand extends FlintCommand {
     await file.writeAsString('''
 import 'package:flint_dart/flint_dart.dart';
 
-class $className {
-  Future<Response> index(Request req, Response res) async {
+class $className extends Controller {
+  Future<Response> index() async {
     return res.send('Listing $name');
   }
 
-  Future<Response> show(Request req, Response res) async {
+  Future<Response> show() async {
     return res.send('Showing $name \${req.params['id']}');
   }
 
-  Future<Response> create(Request req, Response res) async {
+  Future<Response> create() async {
     return res.send('Creating $name');
   }
 
-  Future<Response> update(Request req, Response res) async {
+  Future<Response> update() async {
     return res.send('Updating $name \${req.params['id']}');
   }
 
-  Future<Response> delete(Request req, Response res) async {
+  Future<Response> delete() async {
     return res.send('Deleting $name \${req.params['id']}');
   }
 }
@@ -90,8 +90,7 @@ class $className {
 import 'package:flint_dart/flint_dart.dart';
 import '../controllers/${_snake(name)}_controller.dart';
 
-/// $name API routes
-/// @prefix /api/$name
+/// ${_capitalize(name)} API routes.
 class $className extends RouteGroup {
   @override
   String get prefix => '/$name';
@@ -101,13 +100,54 @@ class $className extends RouteGroup {
 
   @override
   void register(Flint app) {
-    final controller = $controllerName();
+    final routes = app.controller($controllerName.new);
 
-    app.get('/', controller.index);
-    app.post('/', controller.create);
-    app.get('/:id', controller.show);
-    app.put('/:id', controller.update);
-    app.delete('/:id', controller.delete);
+    /// @summary List ${_capitalize(name)}
+    /// @query page integer optional Page number
+    /// @query perPage integer optional Items per page
+    /// @response 200 ${_capitalize(name)} list loaded
+    /// @response 400 Bad request
+    /// @response 401 Unauthorized
+    /// @response 500 Internal server error
+    routes.get('/', (controller) => controller.index());
+
+    /// @summary Create ${_capitalize(name)}
+    /// @response 201 ${_capitalize(name)} created
+    /// @response 400 Bad request
+    /// @response 401 Unauthorized
+    /// @response 422 Validation failed
+    /// @response 500 Internal server error
+    /// @body {"name": "string"}
+    routes.post('/', (controller) => controller.create());
+
+    /// @summary Show ${_capitalize(name)}
+    /// @param id path string required ${_capitalize(name)} ID
+    /// @response 200 ${_capitalize(name)} loaded
+    /// @response 400 Bad request
+    /// @response 401 Unauthorized
+    /// @response 404 ${_capitalize(name)} not found
+    /// @response 500 Internal server error
+    routes.get('/:id', (controller) => controller.show());
+
+    /// @summary Update ${_capitalize(name)}
+    /// @param id path string required ${_capitalize(name)} ID
+    /// @response 200 ${_capitalize(name)} updated
+    /// @response 400 Bad request
+    /// @response 401 Unauthorized
+    /// @response 404 ${_capitalize(name)} not found
+    /// @response 422 Validation failed
+    /// @response 500 Internal server error
+    /// @body {"name": "string"}
+    routes.put('/:id', (controller) => controller.update());
+
+    /// @summary Delete ${_capitalize(name)}
+    /// @param id path string required ${_capitalize(name)} ID
+    /// @response 200 ${_capitalize(name)} deleted
+    /// @response 400 Bad request
+    /// @response 401 Unauthorized
+    /// @response 404 ${_capitalize(name)} not found
+    /// @response 500 Internal server error
+    routes.delete('/:id', (controller) => controller.delete());
   }
 }
 ''');
@@ -125,17 +165,18 @@ class $className extends RouteGroup {
     final content = await file.readAsString();
 
     final routeClass = '${_capitalize(name)}Routes';
-    final importLine =
-        "import 'package:eucloudhost_backend/routes/${_snake(name)}_routes.dart';";
+    final importLine = "import '${_snake(name)}_routes.dart';";
 
     if (content.contains(importLine)) return;
 
     final updated = content
-        .replaceFirst(RegExp(r"(import 'package:flint_dart/flint_dart.dart';)"),
-            "$importLine\n\\1")
-        .replaceFirst(
+        .replaceFirstMapped(
+          RegExp(r"(import 'package:flint_dart/flint_dart.dart';)"),
+          (match) => '$importLine\n${match.group(1)}',
+        )
+        .replaceFirstMapped(
           RegExp(r"(void register\(Flint app\) \{)"),
-          "\\1\n    app.routes($routeClass());",
+          (match) => '${match.group(1)}\n    app.routes($routeClass());',
         );
 
     await file.writeAsString(updated);

@@ -51,3 +51,5 @@ class FlintJobContext {
     await _store.log(_record, message, metadata: metadata);
   }
 }
+
+typedef QueueJobContext = FlintJobContext;

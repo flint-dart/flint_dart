@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'cache/cache_manager.dart';
 import 'context.dart';
 import 'request.dart';
 import 'response.dart';
@@ -113,6 +114,9 @@ abstract class Controller {
     }
     return ws;
   }
+
+  /// The application cache shared with routes and middleware.
+  CacheStore get cache => context.cache;
 
   /// Extensible typed storage for future session/user injection.
   T? read<T>() => context.read<T>();

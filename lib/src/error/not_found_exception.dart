@@ -4,7 +4,7 @@ import 'base_exception.dart';
 
 class NotFoundException extends BaseException {
   NotFoundException({
-    super.message = 'Not Fount 404',
+    super.message = 'Not Found',
     super.code = HttpStatus.notFound,
     super.responseType = RespondType.html,
   });

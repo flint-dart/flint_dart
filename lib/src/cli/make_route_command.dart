@@ -52,10 +52,9 @@ class MakeRouteCommand extends FlintCommand {
   ) {
     return '''
 import 'package:flint_dart/flint_dart.dart';
-import '../controllers/${_toSnakeCase(name)}.dart';
+import '../controllers/${_toSnakeCase(name)}_controller.dart';
 
-/// ${_capitalize(name)} API routes
-/// @prefix /api/$name
+/// ${_capitalize(name)} API routes.
 class $className extends RouteGroup {
   @override
   String get prefix => '/$name';
@@ -65,44 +64,54 @@ class $className extends RouteGroup {
 
   @override
   void register(Flint app) {
-    final controller = $controllerName();
+    final routes = app.controller($controllerName.new);
 
-    /// @summary Get  $name
-    /// @response 200 Success response description
+    /// @summary List ${_capitalize(name)}
+    /// @query page integer optional Page number
+    /// @query perPage integer optional Items per page
+    /// @response 200 ${_capitalize(name)} list loaded
     /// @response 400 Bad request
     /// @response 401 Unauthorized
     /// @response 500 Internal server error
-    app.get('/', controller.index);
+    routes.get('/', (controller) => controller.index());
 
-    /// @summary create $name by id
-    /// @response 200 Success response description
+    /// @summary Create ${_capitalize(name)}
+    /// @response 201 ${_capitalize(name)} created
     /// @response 400 Bad request
     /// @response 401 Unauthorized
+    /// @response 422 Validation failed
     /// @response 500 Internal server error
-    /// @body {"name": "string","email": "string","password": "string"}
-    app.post('/', controller.create);
+    /// @body {"name": "string"}
+    routes.post('/', (controller) => controller.create());
 
-    /// @summary Get  $name by id
-    /// @response 200 Success response description
+    /// @summary Show ${_capitalize(name)}
+    /// @param id path string required ${_capitalize(name)} ID
+    /// @response 200 ${_capitalize(name)} loaded
     /// @response 400 Bad request
     /// @response 401 Unauthorized
+    /// @response 404 ${_capitalize(name)} not found
     /// @response 500 Internal server error
-    app.get('/:id', controller.show);
-  
-    /// @summary update  $name by id
-    /// @response 200 Success response description
-    /// @response 400 Bad request
-    /// @response 401 Unauthorized
-    /// @response 500 Internal server error
-    /// @body {"name": "string","email": "string","password": "string"}
-    app.put('/:id', controller.update);
+    routes.get('/:id', (controller) => controller.show());
 
-     /// @summary delete  $name by id
-    /// @response 200 Success response description
+    /// @summary Update ${_capitalize(name)}
+    /// @param id path string required ${_capitalize(name)} ID
+    /// @response 200 ${_capitalize(name)} updated
     /// @response 400 Bad request
     /// @response 401 Unauthorized
+    /// @response 404 ${_capitalize(name)} not found
+    /// @response 422 Validation failed
     /// @response 500 Internal server error
-    app.delete('/:id', controller.delete);
+    /// @body {"name": "string"}
+    routes.put('/:id', (controller) => controller.update());
+
+    /// @summary Delete ${_capitalize(name)}
+    /// @param id path string required ${_capitalize(name)} ID
+    /// @response 200 ${_capitalize(name)} deleted
+    /// @response 400 Bad request
+    /// @response 401 Unauthorized
+    /// @response 404 ${_capitalize(name)} not found
+    /// @response 500 Internal server error
+    routes.delete('/:id', (controller) => controller.delete());
   }
 }
 ''';

@@ -29,7 +29,7 @@ class FlintJobs {
     for (final job in jobs) {
       final type = job.type.trim();
       if (type.isEmpty) {
-        throw ArgumentError('FlintJob.type cannot be empty');
+        throw ArgumentError('QueueJob.type cannot be empty');
       }
       _registry[type] = job;
     }
@@ -295,7 +295,7 @@ class FlintJobs {
     final run = await _store.startRun(record, workerId: workerId);
 
     if (definition == null) {
-      final error = 'No Flint job registered for type "${record.type}"';
+      final error = 'No QueueJob registered for type "${record.type}"';
       await _store.fail(record, error: error, retry: false);
       await _store.finishRun(run, status: FlintJobStatus.failed, error: error);
       Log.warning(error, tag: 'jobs');
@@ -340,7 +340,7 @@ class FlintJobs {
         error: error.toString(),
       );
       Log.error(
-        'Flint job failed type=${record.type} id=${record.id}: $error',
+        'QueueJob failed type=${record.type} id=${record.id}: $error',
         stackTrace: stack,
         tag: 'jobs',
       );

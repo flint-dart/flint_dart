@@ -1,6 +1,6 @@
 name: flint_dart
 description: The fullstack Dart web framework by Eulogia Technologies - Server, Web UI, and APIs.
-version: 1.4.0
+version: 1.4.1
 homepage: https://flintdart.dev
 repository: https://github.com/flint-dart/flint_dart
 issue_tracker: https://github.com/flint-dart/flint_dart/issues
@@ -26,6 +26,7 @@ dependencies:
   worker_manager: ^7.2.7
   args: ^2.7.0
   watcher: ^1.1.0
+  redis: ^4.1.0
 
 dev_dependencies:
   lints: ^6.1.0         # Dart lint rules

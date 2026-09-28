@@ -129,10 +129,10 @@ class MakeUiCommand extends FlintCommand {
     final name = _cleanName(rawName, suffixToRemove: 'section');
     final className = '${_toPascalCase(name)}Section';
     final fileName = '${_toSnakeCase(name)}_section.dart';
-    final componentsDir = Directory(path.join(uiRoot.path, 'components'));
-    componentsDir.createSync(recursive: true);
+    final sectionsDir = Directory(path.join(uiRoot.path, 'sections'));
+    sectionsDir.createSync(recursive: true);
 
-    final file = File(path.join(componentsDir.path, fileName));
+    final file = File(path.join(sectionsDir.path, fileName));
     if (file.existsSync()) {
       Log.debug('Section already exists: ${file.path}');
       return;

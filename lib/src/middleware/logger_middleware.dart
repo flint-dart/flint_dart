@@ -5,11 +5,20 @@ class LoggerMiddleware extends Middleware {
   Handler handle(Handler next) {
     return (ctx) async {
       final req = ctx.req;
-      Log.debug('[${req.method}] ${req.path}');
-      Log.debug("${req.cookies}");
-      Log.debug(req.ipAddress);
-      Log.debug("is isAuthenticated ${req.isAuthenticated}");
-      return await next(ctx);
+      final stopwatch = Stopwatch()..start();
+
+      try {
+        return await next(ctx);
+      } finally {
+        stopwatch.stop();
+        final status = ctx.res?.statusCode.toString() ?? 'socket';
+        Log.info(
+          '${req.method} ${req.path} status=$status '
+          'duration=${stopwatch.elapsedMilliseconds}ms '
+          'ip=${req.clientIpAddress}',
+          tag: 'request',
+        );
+      }
     };
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flint_ai/flint_ai.dart';
+import 'cache/cache_manager.dart';
 import 'request.dart';
 import 'response.dart';
 import 'websocket/websocket.dart';
@@ -110,6 +111,17 @@ class Context {
     final service = read<FlintAi>();
     if (service == null) {
       throw StateError('FlintAi is not attached to this context.');
+    }
+    return service;
+  }
+
+  /// The application cache selected by Flint.
+  ///
+  /// The same store is shared by routes, middleware, and controllers.
+  CacheStore get cache {
+    final service = read<CacheStore>();
+    if (service == null) {
+      throw StateError('CacheStore is not attached to this context.');
     }
     return service;
   }

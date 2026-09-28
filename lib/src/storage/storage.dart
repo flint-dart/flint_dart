@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/src/storage/uploaded_file.dart';
 import 'package:uuid/uuid.dart';
 
 /// Handles file storage operations for uploaded files in Flint Dart.
@@ -30,13 +30,14 @@ class Storage {
     UploadedFile file, {
     String? subdirectory,
   }) async {
-    final safeFileName = file.filename.replaceAll(' ', '_');
+    final safeFileName = _sanitizeFileName(file.filename);
     final uniqueFileName = '${Uuid().v4()}_$safeFileName';
 
-    // Determine folder
-    final folder = (subdirectory == null || subdirectory.isEmpty)
-        ? _defaultUploadsFolder
-        : subdirectory;
+    final folder = _normalizeRelativePath(
+      subdirectory,
+      fallback: _defaultUploadsFolder,
+      label: 'subdirectory',
+    );
 
     final directoryPath = '$_baseDir/$folder';
 
@@ -57,11 +58,9 @@ class Storage {
   /// Example:
   /// `/uploads/abc.png` → deletes `public/uploads/abc.png`
   static Future<void> delete(String fileUrl) async {
-    if (fileUrl.startsWith('/')) {
-      fileUrl = fileUrl.substring(1); // remove leading "/"
-    }
+    final safePath = _normalizePublicFileUrl(fileUrl);
 
-    final filePath = '$_baseDir/$fileUrl';
+    final filePath = '$_baseDir/$safePath';
     final fileToDelete = File(filePath);
 
     if (await fileToDelete.exists()) {
@@ -79,5 +78,84 @@ class Storage {
   }) async {
     await delete(oldFileUrl);
     return await create(newFile, subdirectory: subdirectory);
+  }
+
+  static String _sanitizeFileName(String filename) {
+    final parts = filename
+        .replaceAll('\\', '/')
+        .split('/')
+        .where((part) => part.isNotEmpty)
+        .toList();
+    final baseName = parts.isEmpty ? null : parts.last.trim();
+
+    if (baseName == null ||
+        baseName.isEmpty ||
+        baseName == '.' ||
+        baseName == '..') {
+      throw ArgumentError('Uploaded filename is invalid.');
+    }
+
+    final safe = baseName
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+
+    if (safe.isEmpty || safe == '.' || safe == '..') {
+      throw ArgumentError('Uploaded filename is invalid.');
+    }
+
+    return safe;
+  }
+
+  static String _normalizePublicFileUrl(String fileUrl) {
+    var path = fileUrl.trim().replaceAll('\\', '/');
+
+    while (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+
+    if (path == 'public') {
+      throw ArgumentError('Storage file URL must point to a file.');
+    }
+
+    if (path.startsWith('public/')) {
+      path = path.substring('public/'.length);
+    }
+
+    final normalized = _normalizeRelativePath(
+      path,
+      label: 'fileUrl',
+    );
+
+    if (normalized.isEmpty || normalized.endsWith('/')) {
+      throw ArgumentError('Storage file URL must point to a file.');
+    }
+
+    return normalized;
+  }
+
+  static String _normalizeRelativePath(
+    String? value, {
+    String? fallback,
+    required String label,
+  }) {
+    var path = value?.trim().replaceAll('\\', '/') ?? '';
+    if (path.isEmpty) {
+      path = fallback ?? '';
+    }
+
+    if (path.isEmpty) {
+      return path;
+    }
+
+    if (path.startsWith('/') || RegExp(r'^[A-Za-z]:').hasMatch(path)) {
+      throw ArgumentError('Storage $label must be relative to public/.');
+    }
+
+    final parts = path.split('/').where((part) => part.isNotEmpty).toList();
+    if (parts.any((part) => part == '.' || part == '..')) {
+      throw ArgumentError('Storage $label cannot contain . or .. segments.');
+    }
+
+    return parts.join('/');
   }
 }

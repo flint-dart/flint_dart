@@ -2,7 +2,7 @@ import 'package:flint_dart/jobs.dart';
 import 'package:flint_dart/src/jobs/flint_job_store.dart';
 import 'package:test/test.dart';
 
-class _CountingJob extends FlintJob {
+class _CountingJob extends QueueJob {
   _CountingJob(this.calls);
 
   final List<Map<String, dynamic>> calls;
@@ -11,13 +11,13 @@ class _CountingJob extends FlintJob {
   String get type => 'COUNTING';
 
   @override
-  Future<void> handle(FlintJobContext ctx) async {
+  Future<void> handle(QueueJobContext ctx) async {
     calls.add(Map<String, dynamic>.from(ctx.payload));
     ctx.payload['handled'] = true;
   }
 }
 
-class _FailingJob extends FlintJob {
+class _FailingJob extends QueueJob {
   _FailingJob({this.max = 2});
 
   final int max;
@@ -32,17 +32,17 @@ class _FailingJob extends FlintJob {
   Duration? retryDelay(int attempt) => Duration.zero;
 
   @override
-  Future<void> handle(FlintJobContext ctx) async {
+  Future<void> handle(QueueJobContext ctx) async {
     throw StateError('boom ${ctx.attempt}');
   }
 }
 
-class _ReleaseJob extends FlintJob {
+class _ReleaseJob extends QueueJob {
   @override
   String get type => 'RELEASE';
 
   @override
-  Future<void> handle(FlintJobContext ctx) async {
+  Future<void> handle(QueueJobContext ctx) async {
     await ctx.release(
       nextRunAt: DateTime.now().add(const Duration(hours: 1)),
       reason: 'waiting',
@@ -50,17 +50,32 @@ class _ReleaseJob extends FlintJob {
   }
 }
 
-class _RegistryJob extends FlintJob {
+class _RegistryJob extends QueueJob {
   @override
   String get type => 'REGISTRY_TEST';
 
   @override
-  Future<void> handle(FlintJobContext ctx) async {}
+  Future<void> handle(QueueJobContext ctx) async {}
+}
+
+// ignore: deprecated_member_use_from_same_package
+class _DeprecatedCompatibilityJob extends FlintJob {
+  _DeprecatedCompatibilityJob(this.calls);
+
+  final List<Map<String, dynamic>> calls;
+
+  @override
+  String get type => 'DEPRECATED_COMPATIBILITY';
+
+  @override
+  Future<void> handle(FlintJobContext ctx) async {
+    calls.add(Map<String, dynamic>.from(ctx.payload));
+  }
 }
 
 class _TestJobsRegistry extends JobsRegistry {
   @override
-  Iterable<FlintJob> get jobs => [_RegistryJob()];
+  Iterable<QueueJob> get jobs => [_RegistryJob()];
 
   @override
   Iterable<FlintSchedule> get schedules => const [
@@ -131,7 +146,7 @@ void main() {
       await FlintJobs.runOnce();
 
       expect(store.jobs.single.status, FlintJobStatus.failed);
-      expect(store.jobs.single.lastError, contains('No Flint job registered'));
+      expect(store.jobs.single.lastError, contains('No QueueJob registered'));
       expect(store.runs.single.status, FlintJobStatus.failed);
     });
 
@@ -282,6 +297,23 @@ void main() {
       expect(FlintJobs.registered.containsKey('REGISTRY_TEST'), isTrue);
       expect(FlintJobs.schedules.containsKey('registry-test-every'), isTrue);
       expect(store.schedules.single.jobType, 'REGISTRY_TEST');
+    });
+
+    test('deprecated FlintJob remains compatible', () async {
+      final calls = <Map<String, dynamic>>[];
+      FlintJobs.register([_DeprecatedCompatibilityJob(calls)]);
+
+      await FlintJobs.dispatch(
+        'DEPRECATED_COMPATIBILITY',
+        payload: {'source': 'old-api'},
+      );
+      final handled = await FlintJobs.runOnce();
+
+      expect(handled, 1);
+      expect(calls, [
+        {'source': 'old-api'},
+      ]);
+      expect(store.jobs.single.status, FlintJobStatus.completed);
     });
   });
 }

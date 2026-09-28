@@ -143,12 +143,31 @@ void main(List<String> args) async {
     exit(1);
   }
 
+  if (_isDeprecatedMakeAlias(args[0])) {
+    Log.warning(
+      'The make:* generator aliases are deprecated and will be removed in '
+      'Flint Dart 1.5.0. Use --make-* commands instead, for example '
+      '`flint --make-model User`.',
+    );
+  }
+
+  if (firstArg == 'deploy-globe') {
+    Log.warning(
+      'The deploy-globe command is deprecated and will be removed in Flint '
+      'Dart 1.5.0.',
+    );
+  }
+
   try {
     await commands[firstArg]!.execute(args.sublist(1));
   } catch (e) {
     Log.debug('Error: $e');
     exitCode = 1;
   }
+}
+
+bool _isDeprecatedMakeAlias(String command) {
+  return command.startsWith('make:');
 }
 
 void debugUsage() {
@@ -159,5 +178,8 @@ Usage: flint <command> [options]
 
 Available commands:
 ${commands.entries.map((e) => '  ${e.key.padRight(20)}${e.value.description}').join('\n')}
+
+Note: make:* generator aliases are deprecated and will be removed in Flint Dart
+1.5.0. Use --make-* generator commands instead.
 ''');
 }

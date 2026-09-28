@@ -5,12 +5,16 @@ import 'package:flint_dart/src/cli/commands.dart';
 import 'package:package_config/package_config.dart';
 import 'package:path/path.dart' as path;
 
+@Deprecated(
+  'Globe deployment support is deprecated and will be removed in Flint Dart '
+  '1.5.0.',
+)
 class DeployGlobeCommand extends FlintCommand {
   DeployGlobeCommand()
       : super(
-            'deploy-globe',
-            'Prepare Globe deployment files '
-                '(globe.yaml, optional swagger-ui assets)');
+          'deploy-globe',
+          'Prepare Globe deployment files (deprecated)',
+        );
 
   @override
   Future<void> execute(List<String> args) async {
@@ -25,13 +29,15 @@ class DeployGlobeCommand extends FlintCommand {
       } else if (arg == '--entry' && i + 1 < args.length) {
         entryPointArg = args[++i];
       } else if (arg == '--entry') {
-        Log.debug('❌ Missing value for --entry');
+        Log.debug('Missing value for --entry');
         _printHelp();
-        exit(1);
+        exitCode = 64;
+        return;
       } else if (arg.startsWith('--')) {
-        Log.debug('❌ Unknown option: $arg');
+        Log.debug('Unknown option: $arg');
         _printHelp();
-        exit(1);
+        exitCode = 64;
+        return;
       } else {
         outputDir = arg;
       }
@@ -43,23 +49,26 @@ class DeployGlobeCommand extends FlintCommand {
     }
 
     final entryPoint = await _resolveEntryPoint(entryPointArg);
+    if (entryPoint == null) return;
+
     _createGlobeYaml(target.path, entryPoint);
     await _ensureSwaggerUiAssets(target.path);
 
-    Log.info('✅ Globe deployment files prepared');
-    Log.info('📁 Output: ${target.path}');
-    Log.info('🚀 Next steps:');
-    Log.info('   1) dart pub global activate globe_cli');
-    Log.info('   2) globe login');
-    Log.info('   3) globe deploy');
+    Log.info('Globe deployment files prepared');
+    Log.info('Output: ${target.path}');
+    Log.info('Next steps:');
+    Log.info('  1) dart pub global activate globe_cli');
+    Log.info('  2) globe login');
+    Log.info('  3) globe deploy');
   }
 
-  Future<String> _resolveEntryPoint(String? entryPointArg) async {
+  Future<String?> _resolveEntryPoint(String? entryPointArg) async {
     if (entryPointArg != null) {
       final file = File(entryPointArg);
       if (!await file.exists()) {
-        Log.debug('❌ Entry file not found: $entryPointArg');
-        exit(1);
+        Log.debug('Entry file not found: $entryPointArg');
+        exitCode = 66;
+        return null;
       }
       return entryPointArg;
     }
@@ -70,9 +79,11 @@ class DeployGlobeCommand extends FlintCommand {
     }
 
     Log.debug(
-        '❌ No entry point found. Expected one of: ${candidates.join(', ')}');
-    Log.debug('   Or provide a custom entry with --entry <path>');
-    exit(1);
+      'No entry point found. Expected one of: ${candidates.join(', ')}',
+    );
+    Log.debug('Or provide a custom entry with --entry <path>');
+    exitCode = 66;
+    return null;
   }
 
   void _createGlobeYaml(String outputDir, String entryPoint) {
@@ -107,28 +118,26 @@ build:
     automatic_detection: true$assetsBlock''';
 
     File(path.join(outputDir, 'globe.yaml')).writeAsStringSync(content);
-    Log.debug('🌍 Created globe.yaml');
+    Log.debug('Created globe.yaml');
   }
 
   Future<void> _ensureSwaggerUiAssets(String outputDir) async {
     final existingTarget = Directory(path.join(outputDir, 'swagger-ui'));
     if (existingTarget.existsSync()) {
-      Log.debug('ℹ️  swagger-ui already exists. Skipping copy.');
+      Log.debug('swagger-ui already exists. Skipping copy.');
       return;
     }
 
     final source = await _resolveSwaggerUiSourceDir();
     if (source == null) {
-      Log.debug(
-          'ℹ️  No swagger-ui assets found (checked package and local paths).');
+      Log.debug('No swagger-ui assets found.');
       return;
     }
 
     final targetDir = Directory(path.join(outputDir, 'swagger-ui'))
       ..createSync(recursive: true);
     _copyDirectoryContents(source, targetDir);
-    Log.debug(
-        '📚 Copied Swagger UI assets: ${source.path} -> ${targetDir.path}');
+    Log.debug('Copied Swagger UI assets to ${targetDir.path}');
   }
 
   Future<Directory?> _resolveSwaggerUiSourceDir() async {
@@ -137,9 +146,20 @@ build:
       path.join(Directory.current.path, 'build', 'swagger-ui'),
       path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'),
       path.join(
-          Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'),
-      path.join(Directory.current.path, '..', 'flint_dart', 'lib', 'swagger',
-          'swagger-ui'),
+        Directory.current.path,
+        'flint_dart',
+        'lib',
+        'swagger',
+        'swagger-ui',
+      ),
+      path.join(
+        Directory.current.path,
+        '..',
+        'flint_dart',
+        'lib',
+        'swagger',
+        'swagger-ui',
+      ),
     ];
 
     try {
@@ -147,12 +167,17 @@ build:
       final flintPackage = packageConfig?['flint_dart'];
       if (flintPackage != null) {
         candidates.insert(
-            0,
-            path.join(flintPackage.root.toFilePath(windows: Platform.isWindows),
-                'lib', 'swagger', 'swagger-ui'));
+          0,
+          path.join(
+            flintPackage.root.toFilePath(windows: Platform.isWindows),
+            'lib',
+            'swagger',
+            'swagger-ui',
+          ),
+        );
       }
     } catch (_) {
-      // Ignore package resolution errors and continue with local fallbacks.
+      // Continue with local fallbacks when package resolution is unavailable.
     }
 
     for (final dirPath in candidates) {
@@ -180,8 +205,10 @@ build:
     Log.debug('''
 Usage: flint deploy-globe [output_dir] [options]
 
+Deprecated: Globe deployment support will be removed in Flint Dart 1.5.0.
+
 Options:
-  --entry <path>       Entry file for Globe (default order: lib/main.dart, bin/main.dart, bin/server.dart)
+  --entry <path>       Entry file for Globe
   --help, -h           Show this help
 ''');
   }

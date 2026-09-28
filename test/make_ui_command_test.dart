@@ -72,7 +72,7 @@ void main() {
       final componentFile =
           File(path.join(uiRoot, 'components', 'project_card.dart'));
       final sectionFile =
-          File(path.join(uiRoot, 'components', 'skills_section.dart'));
+          File(path.join(uiRoot, 'sections', 'skills_section.dart'));
 
       expect(componentFile.existsSync(), isTrue);
       expect(sectionFile.existsSync(), isTrue);
