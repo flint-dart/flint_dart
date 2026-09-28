@@ -19,8 +19,9 @@ storage, jobs, WebSockets, and related utilities.
 
 `Flint` is the application object. The object you create from `Flint(...)` owns
 the HTTP router, WebSocket route list, middleware stack, optional database
-bootstrapping, optional mail bootstrapping, optional job registration, optional
-Flint UI server rendering, and optional Swagger docs routes.
+bootstrapping, a shared application cache, optional mail bootstrapping,
+optional job registration, optional Flint UI server rendering, and optional
+Swagger docs routes.
 
 ```dart
 import 'package:flint_dart/flint_dart.dart';
@@ -52,6 +53,14 @@ Common constructor options:
 - `withDefaultMiddleware`: adds `ExceptionMiddleware`, `CookieSessionMiddleware`, and `StaticFileMiddleware`. Defaults to `true`.
 - `enableSwaggerDocs`: registers `/swagger.json`, `/docs`, and `/swagger-ui/*`.
 - `autoConnectDb`: lazily connects the database when needed. Defaults to `true`.
+- `cacheDriver`: explicitly selects `CacheDriver.memory`, `CacheDriver.file`,
+  or `CacheDriver.redis`. When omitted, Flint reads `CACHE_DRIVER` and defaults
+  to memory.
+- `cacheDirectory`: overrides `CACHE_DIRECTORY` for the file driver.
+- `cacheMemoryMaxSize`: overrides `CACHE_MEMORY_MAX_SIZE` for the memory
+  driver. Defaults to `100`.
+- `autoConnectRedis`: compatibility shortcut for
+  `cacheDriver: CacheDriver.redis`. Defaults to `false`.
 - `autoConnectMail`: prepares mail configuration from `.env`. Defaults to `true`.
 - `autoMigrate`: overrides whether migrations run during startup.
 - `autoMigrateDefault`: default startup migration behavior when `autoMigrate` is not set.
@@ -93,8 +102,9 @@ See `docs/templates.md` before changing server-rendered HTML templates,
 `{{ }}` syntax, includes, layouts, sections, control flow, assets, session
 helpers, or mail template syntax.
 
-See `docs/cache.md` before adding `CacheStore`, response cache headers, ETags,
-or cached app data.
+See `docs/cache.md` before using `ctx.cache`, changing `CACHE_DRIVER`, adding
+`RedisCacheStore`/`REDIS_URL`, response cache headers, ETags, or cached app
+data.
 
 See `docs/logging.md` before adding `LoggerMiddleware`, production log settings,
 job logs, error logs, or committed log calls.
@@ -255,6 +265,17 @@ await ctx.res?.close();
 
 Because `ctx.res` is nullable, global middleware and WebSocket handlers should
 check it before writing an HTTP response.
+
+`ctx.cache` is the app-owned `CacheStore` shared with routes, middleware,
+controllers, and WebSockets:
+
+```dart
+final value = await ctx.cache.remember(
+  'dashboard.summary',
+  const Duration(minutes: 5),
+  () => loadDashboardSummary(),
+);
+```
 
 ## Middleware
 
@@ -506,6 +527,9 @@ The command registry is in `lib/src/cli/commands.dart`.
 
 - `Flint.listen()` uses hot reload by default. Set `hotReload: false` or `FLINT_HOT=0` when you want a single process.
 - Database auto-connect defaults to `true`; examples often use `autoConnectDb: false` so routes can run without a configured database.
+- Cache defaults to the memory driver. Set `CACHE_DRIVER=file` for local
+  persistent JSON cache or `CACHE_DRIVER=redis` for shared cache, and configure
+  `REDIS_URL` or explicit Redis host settings before selecting Redis.
 - Static file middleware only serves from `public` by default. `app.static('/web', 'flint_ui/web')` is a separate route registration.
 - HTTP handlers should use `Context ctx`; the older two-argument handler shape exists for compatibility.
 - WebSocket handlers should use `Context ctx`; `ctx.socket` holds the connected `FlintWebSocket`.

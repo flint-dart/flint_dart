@@ -18,6 +18,7 @@ When behavior is unclear, inspect these files in the installed package:
 - `lib/cache.dart`
 - `lib/src/cache/cache_manager.dart`
 - `lib/src/cache/file_based.dart`
+- `lib/src/cache/redis_cache.dart`
 - `lib/src/middleware/cache_middleware.dart`
 - `lib/src/middleware/static_file_middleware.dart`
 - `lib/src/response.dart`
@@ -80,6 +81,97 @@ Use a cache store when the app itself wants to avoid repeating work:
 
 Do not use a cache store as a source of truth. The database, filesystem, external
 service, or model layer remains the source of truth.
+
+## Application Cache And Driver Selection
+
+Every `Flint` app owns one shared `CacheStore`. Flint attaches that same store
+to each HTTP and WebSocket `Context`, so routes and middleware use `ctx.cache`.
+Controllers use the inherited `cache` getter, and startup code can use
+`app.cache`.
+
+Memory is the default driver. A minimal app needs no cache setup:
+
+```dart
+final app = Flint();
+
+app.get('/settings', (ctx) async {
+  final settings = await ctx.cache.remember<Map<String, dynamic>>(
+    'settings.public',
+    const Duration(minutes: 5),
+    () => PublicSettings().load(),
+  );
+
+  return {'settings': settings};
+});
+```
+
+Select a driver in `.env` or the process environment:
+
+```env
+CACHE_DRIVER=memory
+# CACHE_MEMORY_MAX_SIZE=100
+```
+
+```env
+CACHE_DRIVER=file
+CACHE_DIRECTORY=storage/cache
+```
+
+```env
+CACHE_DRIVER=redis
+REDIS_URL=redis://default:password@localhost:6379/0
+```
+
+`CACHE_DRIVER` accepts `memory`, `file`, or `redis`, without regard to case.
+An unknown value fails while `Flint` is being created. When the variable is
+omitted, Flint uses `memory`.
+
+Constructor settings override the environment:
+
+```dart
+final app = Flint(
+  cacheDriver: CacheDriver.file,
+  cacheDirectory: 'storage/cache',
+  cacheMemoryMaxSize: 200,
+);
+```
+
+`cacheDirectory` only configures the file driver. If it and
+`CACHE_DIRECTORY` are omitted, file cache uses `<working directory>/cache`.
+`cacheMemoryMaxSize` overrides `CACHE_MEMORY_MAX_SIZE`, whose default is `100`.
+
+Middleware receives the same cache as a route:
+
+```dart
+class LoadFlagsMiddleware extends Middleware {
+  @override
+  Handler handle(Handler next) {
+    return (ctx) async {
+      final flags = await ctx.cache.get('feature-flags');
+      ctx['featureFlags'] = flags;
+      return next(ctx);
+    };
+  }
+}
+```
+
+Controllers use `cache` directly:
+
+```dart
+class DashboardController extends Controller {
+  Future<Object?> show() async {
+    final stats = await cache.remember<Map<String, dynamic>>(
+      'dashboard.stats',
+      const Duration(minutes: 2),
+      () => DashboardStats().load(),
+    );
+    return res.json({'data': stats});
+  }
+}
+```
+
+Do not create a new store in each request. Flint's app-owned store is what lets
+values be reused across routes, middleware, and controllers.
 
 ## MemoryCacheStore
 
@@ -177,6 +269,244 @@ await cache.set(
 
 final settings = await cache.get('settings.public') as Map<String, dynamic>?;
 ```
+
+## RedisCacheStore
+
+`RedisCacheStore` shares cached JSON values across Flint processes and uses
+Redis TTLs for expiration. It is independent of Flint's SQL database. Calling
+`cache.set(...)` writes only to Redis; it does not call `DB`, save a model, or
+otherwise copy the value into MySQL/PostgreSQL. Redis itself may persist data to
+disk through its own RDB/AOF configuration, but that is separate from Flint's
+database layer.
+
+Use the focused import or the main Flint export:
+
+```dart
+import 'package:flint_dart/cache.dart';
+// Or: import 'package:flint_dart/flint_dart.dart';
+```
+
+### Redis URLs
+
+Flint accepts standard Redis URLs in this shape:
+
+```text
+redis[s]://[username:password@]host[:port][/database]
+```
+
+- `redis://` opens a normal TCP connection.
+- `rediss://` opens a TLS connection.
+- The default port is `6379` when no port is present.
+- The optional path selects a zero-based Redis database such as `/0` or `/2`.
+- Credentials are optional. Managed Redis commonly uses the username
+  `default` plus a password.
+- Percent-encode reserved characters in credentials. For example, `@` in a
+  password becomes `%40`.
+
+Never commit a real Redis URL containing credentials. Put it in the hosting
+platform's secret manager, the process environment, or a local ignored `.env`
+file. Rotate a credential if it is exposed in source control, logs, screenshots,
+issues, or chat.
+
+Connect a standalone store directly from a URL:
+
+```dart
+final cache = await RedisCacheStore.connectFromUrl(
+  'redis://default:password@localhost:6379/0',
+);
+
+await cache.set(
+  'verification.user-123',
+  {'code': '482901'},
+  ttl: const Duration(minutes: 5),
+);
+```
+
+The component-based API remains available when an app does not use a URL:
+
+```dart
+final cache = await RedisCacheStore.connect(
+  host: 'localhost',
+  port: 6379,
+  username: 'default',
+  password: redisPassword,
+  database: 0,
+  secure: false,
+);
+```
+
+### Automatic Flint Connection
+
+For automatic Flint startup, select Redis and put the URL in the system
+environment or `.env`:
+
+```env
+CACHE_DRIVER=redis
+REDIS_URL=redis://default:password@localhost:6379/0
+```
+
+Then create and use the app normally:
+
+```dart
+final app = Flint();
+
+app.get('/settings', (ctx) async {
+  final settings = await ctx.cache.get('settings.public');
+  return {'settings': settings};
+});
+
+await app.listen();
+```
+
+When Redis is selected, Flint establishes the connection before accepting HTTP
+requests. Dedicated workers started with `app.runJobsWorker()` use the same
+automatic connection. `autoConnectRedis: true` remains supported as a
+backwards-compatible shortcut:
+
+```dart
+final app = Flint(autoConnectRedis: true);
+```
+
+Do not combine that shortcut with a non-Redis `cacheDriver`.
+
+Flint reads `REDIS_URL` through `FlintEnv`, so a real process environment value
+overrides the value in `.env`. A URL is convenient for managed providers, but it
+is not required. Keep Redis connection details out of `Flint(...)` and connect
+explicitly when host/port configuration is preferred:
+
+```dart
+final app = Flint();
+
+await app.connectRedis(
+  host: 'localhost',
+  port: 6379,
+  secure: false,
+  username: 'default', // Optional.
+  password: redisPassword, // Optional.
+  database: 0, // Optional.
+);
+```
+
+Calling `connectRedis(...)` switches `app.cache` to that Redis store, and Flint
+then injects it as `ctx.cache`. Automatic Redis startup throws when `REDIS_URL`
+is missing or invalid, authentication or database selection fails, or the
+server cannot be reached. This is intentional: an app that selects Redis does
+not start with an unavailable cache.
+
+Check connection state without touching the cache:
+
+```dart
+if (app.isRedisConnected) {
+  await app.cache.set('health.redis', true);
+}
+```
+
+With memory and file drivers, `app.cache` is available immediately. With a
+Redis driver, accessing it before Flint startup or manual connection throws
+`StateError`. Connect manually when startup code needs Redis before
+`app.listen()`:
+
+```dart
+await app.connectRedis(); // Reads REDIS_URL.
+await app.connectRedis(url: anotherRedisUrl);
+
+await app.connectRedis(
+  host: 'localhost',
+  port: 6379,
+  secure: false,
+  username: 'default',
+  password: redisPassword,
+  database: 0,
+);
+```
+
+Repeated or concurrent `app.connectRedis()` calls reuse the connection already
+owned by the app. Pass the intended URL or host settings on the first call.
+
+### Values And TTL
+
+Values are encoded with `jsonEncode` and decoded with `jsonDecode`. Store JSON
+values such as strings, numbers, booleans, null, lists, and maps with string
+keys. Convert `DateTime`, models, and custom objects to JSON-friendly values
+before caching them. Decoded maps and lists are dynamic; rebuild application
+types after reading when needed.
+
+```dart
+await app.cache.set(
+  'user.42.summary',
+  {
+    'id': 42,
+    'name': 'Ada',
+    'cachedAt': DateTime.now().toIso8601String(),
+  },
+  ttl: const Duration(minutes: 10),
+);
+
+final summary =
+    await app.cache.get('user.42.summary') as Map<String, dynamic>?;
+```
+
+- Omitting `ttl` leaves the Redis key without an expiration.
+- A positive `ttl` uses Redis's native millisecond expiration.
+- A zero or negative `ttl` removes the key instead of storing it.
+- `get(...)` returns `null` when the key does not exist or has expired.
+
+Use `remember(...)` when Redis should load and retain a value only on a miss:
+
+```dart
+final settings = await app.cache.remember<Map<String, dynamic>>(
+  'settings.public',
+  const Duration(minutes: 5),
+  () async => PublicSettings().load(),
+);
+```
+
+Redis is best for cache data, OTPs, rate-limit counters, short-lived state, and
+shared computed results. Do not make cached data the only copy of business data
+that must survive expiration, eviction, Redis restarts, or cache clearing.
+
+### Prefixes And Cleanup
+
+The default key prefix is `flint:cache:`. Set a different namespace per app:
+
+```dart
+await app.connectRedis(
+  host: 'localhost',
+  prefix: 'billing:cache:',
+);
+```
+
+All store operations add the prefix. `get('settings')`, for example, reads the
+Redis key `billing:cache:settings` with the configuration above.
+
+`clear()` and `removeWhere()` use Redis `SCAN` and only delete keys within the
+configured prefix; they do not run `FLUSHDB`. Use separate prefixes for apps or
+environments that share one Redis database.
+
+```dart
+await app.cache.remove('user.42.summary');
+await app.cache.removeMany(['settings.public', 'catalog.count']);
+await app.cache.removeWhere((key) => key.startsWith('catalog.'));
+await app.cache.clear(); // Only this store's prefix.
+```
+
+### Lifecycle And Operations
+
+Flint closes its Redis connection when its HTTP worker or dedicated jobs worker
+shuts down normally through the framework signal handlers. Close manually
+managed connections explicitly:
+
+```dart
+await app.closeRedis(); // Connection owned by Flint.
+await cache.close(); // Standalone RedisCacheStore.
+```
+
+The current adapter maintains one connection per `RedisCacheStore` and does not
+implement pooling or automatic reconnection after a live connection drops.
+Command and connection errors propagate to the caller. Deploy the app where it
+can resolve and reach the provider's Redis hostname, use `rediss://` when the
+provider requires TLS, and configure monitoring/restarts appropriate for the
+application.
 
 ## Remember
 
@@ -308,21 +638,19 @@ class CourseCache {
 }
 ```
 
-Route/controller usage should reuse the same cache store:
+Route/controller usage should reuse Flint's application cache:
 
 ```dart
-final appCache = MemoryCacheStore();
-final courseCache = CourseCache(appCache);
-
 app.get('/courses/stats', (Context ctx) async {
+  final courseCache = CourseCache(ctx.cache);
   final stats = await courseCache.stats();
   return ctx.res?.json({'data': stats});
 });
 ```
 
-For real apps, create the cache store once and inject or pass it into services.
-Do not create a new `MemoryCacheStore()` inside every request if the goal is to
-reuse cached values across requests.
+Pass `ctx.cache`, `controller.cache`, or `app.cache` into services that accept a
+`CacheStore`. Do not create a new `MemoryCacheStore()` inside every request if
+the goal is to reuse cached values across requests.
 
 ## Response Cache Helpers
 

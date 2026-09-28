@@ -1,3 +1,26 @@
+/// Cache backends supported by Flint's automatic cache configuration.
+enum CacheDriver {
+  memory,
+  file,
+  redis;
+
+  /// Parses a `CACHE_DRIVER` value.
+  static CacheDriver parse(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'memory':
+        return CacheDriver.memory;
+      case 'file':
+        return CacheDriver.file;
+      case 'redis':
+        return CacheDriver.redis;
+      default:
+        throw FormatException(
+          'Unsupported cache driver "$value". Use memory, file, or redis.',
+        );
+    }
+  }
+}
+
 abstract class CacheStore {
   Future<void> set(String key, dynamic value, {Duration? ttl});
   Future<dynamic> get(String key);

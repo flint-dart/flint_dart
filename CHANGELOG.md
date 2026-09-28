@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Added
+- Added `RedisCacheStore` for Redis-backed application caching with TTL,
+  prefix-scoped cleanup, URL/auth support, and database selection.
+- Added opt-in `Flint(autoConnectRedis: true)` startup using `REDIS_URL` or
+  explicit `app.connectRedis(...)` host, port, TLS, credential, and database
+  settings.
+- Added an app-owned cache service available as `app.cache`, `ctx.cache`, and
+  `Controller.cache`, with automatic memory, file, or Redis selection through
+  `CACHE_DRIVER` and typed `CacheDriver` constructor options.
+
 ## [1.4.0] - 2026-09-08
 
 ### Added

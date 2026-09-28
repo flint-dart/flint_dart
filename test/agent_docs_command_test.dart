@@ -52,8 +52,24 @@ dependencies:
       final generatedAuthentication = await File(
         path.join(generatedDocsDir.path, 'authentication.md'),
       ).readAsString();
+      final generatedCache = await File(
+        path.join(generatedDocsDir.path, 'cache.md'),
+      ).readAsString();
 
       expect(generatedAuthentication, sourceAuthentication);
+      expect(generatedCache, contains('RedisCacheStore.connectFromUrl'));
+      expect(generatedCache, contains('Flint(autoConnectRedis: true)'));
+      expect(generatedCache, contains('await app.connectRedis()'));
+      expect(generatedCache, contains('CACHE_DRIVER=memory'));
+      expect(generatedCache, contains('CACHE_DRIVER=file'));
+      expect(generatedCache, contains('CACHE_DRIVER=redis'));
+      expect(generatedCache, contains('ctx.cache'));
+      expect(generatedCache, contains('Controllers use `cache` directly'));
+      expect(generatedCache, contains("host: 'localhost'"));
+      expect(generatedCache, contains('await app.connectRedis('));
+      expect(generatedCache, contains('port: 6379'));
+      expect(generatedCache, contains('REDIS_URL'));
+      expect(generatedCache, contains('writes only to Redis'));
 
       final agents =
           await File(path.join(tempDir.path, 'AGENTS.md')).readAsString();
@@ -69,6 +85,11 @@ dependencies:
       expect(agents, contains('docs/logging.md'));
       expect(agents, contains('docs/testing.md'));
       expect(agents, contains('docs/templates.md'));
+      expect(agents, contains('autoConnectRedis'));
+      expect(agents, contains('CACHE_DRIVER'));
+      expect(agents, contains('ctx.cache'));
+      expect(agents, contains('REDIS_URL'));
+      expect(agents, contains('app.connectRedis'));
       expect(agents, contains('lib/ui/'));
 
       final generatedMarkdown = [

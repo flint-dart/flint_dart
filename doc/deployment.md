@@ -13,8 +13,8 @@ process model.
 
 Before changing deployment behavior, inspect:
 
-- `lib/main.dart` for `Flint(...)`, `listen(...)`, static assets, database
-  options, jobs registry, and SSR options.
+- `lib/main.dart` for `Flint(...)`, `listen(...)`, static assets, database and
+  Redis connection options, jobs registry, and SSR options.
 - `lib/config/table_registry.dart` before migrating production schemas.
 - `lib/config/jobs_registry.dart` and `bin/worker.dart` before deploying queue
   workers.
@@ -81,6 +81,27 @@ DB_USER=<database-user>
 DB_PASSWORD=<database-password>
 DB_SECURE=true|false
 ```
+
+Application cache settings:
+
+```text
+CACHE_DRIVER=memory|file|redis
+CACHE_DIRECTORY=storage/cache
+CACHE_MEMORY_MAX_SIZE=100
+REDIS_URL=redis[s]://[username:password@]host[:port][/database]
+```
+
+Keep Redis credentials in platform secrets. Use `rediss://` when required by
+the provider, and make the same `REDIS_URL` available to HTTP and jobs worker
+processes that use `CACHE_DRIVER=redis`. Flint connects before the process
+starts serving work and fails startup if the required Redis connection cannot
+be established. Memory is the default when `CACHE_DRIVER` is omitted. See
+`docs/cache.md` for file settings, URL encoding, prefixes, TTLs, context access,
+manual connection, and shutdown behavior.
+
+Applications that do not use a URL may call `await app.connectRedis(...)` with
+host, port, TLS, username, password, and database settings before startup. Keep
+credentials in environment-backed configuration rather than source code.
 
 Auth values:
 
@@ -372,7 +393,8 @@ Worker deployment rules:
 
 - Run at least one worker process for durable background jobs.
 - Use the same production environment values as the HTTP server.
-- Make sure the worker can connect to the same database and mail provider.
+- Make sure the worker can connect to the same database, Redis service, and
+  mail provider it uses.
 - Configure AI providers, tool policy, tools, and workflows in the worker
   process too when jobs execute AI runs.
 - Keep `QueueJob` definitions registered in `lib/config/jobs_registry.dart`.

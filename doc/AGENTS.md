@@ -15,7 +15,9 @@ Before coding, read the local Flint docs for the topic you are changing. These f
 - Logging, log levels, request logs, job logs, and error logs: `docs/logging.md`
 - Testing routes, controllers, middleware, validators, storage, jobs, seeders,
   and UI components: `docs/testing.md`
-- Cache stores, response cache headers, ETags, and response-vs-app-data caching: `docs/cache.md`
+- `ctx.cache`, automatic memory/file/Redis driver selection, Redis URLs,
+  response cache headers, ETags, and response-vs-app-data caching:
+  `docs/cache.md`
 - AI runtime, providers, tools, workflows, memory stores, run, thread, trace, artifact persistence, and DB-backed AI tables: `docs/ai.md`
 - Build output, `flint build`, `flint web`, browser entrypoints, generated bundles, page registry, and SSR: `docs/build-and-rendering.md`
 - Deployment, Docker generation, production server process, env variables, static files, migrations, and jobs workers: `docs/deployment.md`
@@ -47,6 +49,9 @@ For example, if the task is "add an auth check", read `docs/authentication.md`, 
 
 - `pubspec.yaml` for package name and dependencies.
 - `lib/main.dart` for `Flint(...)`, global middleware, route registration, static assets, database flags, and `listen(...)`.
+- `.env` or deployment secrets plus `lib/main.dart` before changing
+  `CACHE_DRIVER`, `CACHE_DIRECTORY`, `REDIS_URL`, `app.connectRedis(...)`, or
+  the Redis cache prefix.
 - `test/` for existing app testing style, helpers, fakes, and coverage.
 - `lib/routes/` for `RouteGroup` classes.
 - `lib/controllers/` for request handlers.
@@ -109,7 +114,16 @@ For example, if the task is "add an auth check", read `docs/authentication.md`, 
   for mail templates. Read `docs/templates.md` before changing `{{ }}`,
   includes, layouts, sections, control flow, assets, session helpers, or mail
   template syntax.
-- Use `CacheStore` for app data caching. Use `CacheMiddleware`, `ETagMiddleware`, and `res.cachePublic(...)`/`res.cachePrivate(...)`/`res.noStore()` for HTTP response caching. Read `docs/cache.md` before adding cache behavior.
+- Use the app-owned `ctx.cache` in routes and middleware, or `cache` in a
+  controller. Flint defaults to memory cache; set `CACHE_DRIVER` to `file` or
+  `redis` when needed. Redis can use `REDIS_URL` or an explicit
+  `app.connectRedis(host: ..., port: ...)` call. Keep Redis connection details
+  out of `Flint(...)`. `Flint(autoConnectRedis: true)` remains a compatibility
+  shortcut for the Redis driver. A Redis cache write does not write to the SQL
+  database. Use
+  `CacheMiddleware`, `ETagMiddleware`, and
+  `res.cachePublic(...)`/`res.cachePrivate(...)`/`res.noStore()` for HTTP
+  response caching. Read `docs/cache.md` before adding cache behavior.
 - Use `Log.debug(...)`, `Log.info(...)`, `Log.warning(...)`, `Log.error(...)`, and `Log.critical(...)` instead of committed `print(...)` calls. Do not log cookies, tokens, OTPs, passwords, raw request bodies, or authorization headers.
 - Read `docs/testing.md` before adding tests. Use app-local HTTP fakes, bind
   controllers with `Context`, reset `FlintJobs` global state in job tests, use

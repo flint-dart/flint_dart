@@ -356,6 +356,8 @@ dart run flint_dart:flint jobs-work tool/mail_worker.dart
 
 `app.runJobsWorker(...)` does this:
 
+- prepares the shared `app.cache` selected by `CACHE_DRIVER`; Redis connects
+  from `REDIS_URL` or explicit host settings before work starts
 - ensures migrations when enabled
 - registers schedules from `jobsRegistry`
 - starts the jobs runtime
@@ -363,6 +365,7 @@ dart run flint_dart:flint jobs-work tool/mail_worker.dart
 - keeps the process alive until shutdown
 - stops the jobs runtime on shutdown
 - closes the DB connection when Flint opened it
+- closes the app's Redis connection
 
 Common options:
 

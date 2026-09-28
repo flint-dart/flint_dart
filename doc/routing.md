@@ -46,6 +46,8 @@ middleware, and controllers.
 - `ctx.socket` is the `FlintWebSocket?`; it exists for WebSocket routes.
 - `ctx.isHttp` is true when `ctx.res` exists.
 - `ctx.isWebSocket` is true when `ctx.socket` exists.
+- `ctx.cache` is the app-owned `CacheStore` selected by `CACHE_DRIVER` or
+  `app.connectRedis(...)`.
 - `ctx.write<T>(value)` stores typed data for later middleware, routes, or controllers.
 - `ctx.read<T>()` reads typed data from the context.
 
@@ -489,6 +491,7 @@ Inside a controller:
 - `req` is `context.req`.
 - `res` is `context.res`, and throws if the action is running in a WebSocket context.
 - `socket` is `context.socket`, and throws if the action is running in an HTTP context.
+- `cache` is the same app-owned store exposed as `context.cache`.
 - `read<T>()` and `write<T>(value)` proxy to `context.read<T>()` and `context.write<T>()`.
 
 If a controller action is not registered through `app.controller(...)`, wrap it

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flint_dart/ai.dart';
+import 'package:flint_dart/cache.dart';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
 import 'package:flint_dart/middlewares.dart';
@@ -179,6 +180,7 @@ class ControllerRouteBuilder<T extends controller_api.Controller> {
 /// - Middleware support
 /// - Mounting of sub-applications
 /// - Automatic database connection (via `.env`)
+/// - Shared memory, file, or Redis cache access
 /// - Hot reload support during development
 class Flint {
   /// The root path of your Flint project (defaults to `"lib"`).
@@ -192,6 +194,29 @@ class Flint {
   /// - If `false`, Flint will not auto-connect, and you must manually call
   ///   `DB.connect()` before using any database features.
   final bool autoConnectDb;
+
+  /// Whether to use Redis for [cache] when the app starts.
+  ///
+  /// This is a backwards-compatible shortcut for
+  /// `cacheDriver: CacheDriver.redis`. New applications can use
+  /// [cacheDriver] or `CACHE_DRIVER` instead.
+  final bool autoConnectRedis;
+
+  /// The cache backend shared by the application and every request context.
+  ///
+  /// Constructor configuration takes precedence over `CACHE_DRIVER`. When
+  /// neither is set, Flint uses [CacheDriver.memory].
+  late final CacheDriver cacheDriver;
+
+  /// Directory used by [CacheDriver.file].
+  ///
+  /// Falls back to `CACHE_DIRECTORY`, then `<working directory>/cache`.
+  late final String? cacheDirectory;
+
+  /// Maximum number of entries retained by [CacheDriver.memory].
+  ///
+  /// Falls back to `CACHE_MEMORY_MAX_SIZE`, then `100`.
+  late final int cacheMemoryMaxSize;
 
   /// Whether to include Flint’s default middleware stack.
   ///
@@ -228,6 +253,10 @@ class Flint {
       FlintPageServerRenderer? flintPageServerRenderer,
       bool serverRenderFlintPages = false,
       this.autoConnectDb = true,
+      this.autoConnectRedis = false,
+      CacheDriver? cacheDriver,
+      String? cacheDirectory,
+      int? cacheMemoryMaxSize,
       this.autoConnectMail = true,
       this.autoMigrate,
       this.autoMigrateDefault = false,
@@ -245,6 +274,25 @@ class Flint {
       this.enableSwaggerDocs = false})
       : _flintPageServerRenderer = flintPageServerRenderer,
         _serverRenderFlintPages = serverRenderFlintPages {
+    this.cacheDriver = _resolveCacheDriver(cacheDriver, autoConnectRedis);
+    this.cacheDirectory = _resolveCacheDirectory(cacheDirectory);
+    this.cacheMemoryMaxSize =
+        cacheMemoryMaxSize ?? FlintEnv.getInt('CACHE_MEMORY_MAX_SIZE', 100);
+    if (this.cacheMemoryMaxSize <= 0) {
+      throw ArgumentError.value(
+        this.cacheMemoryMaxSize,
+        'cacheMemoryMaxSize',
+        'must be greater than zero',
+      );
+    }
+
+    _fallbackCache = switch (this.cacheDriver) {
+      CacheDriver.memory => MemoryCacheStore(maxSize: this.cacheMemoryMaxSize),
+      CacheDriver.file => FileCacheStore(directory: this.cacheDirectory),
+      CacheDriver.redis => null,
+    };
+    _cache = _fallbackCache;
+
     DB.setLazyAutoConnect(autoConnectDb);
     if (autoRegisterJobs) {
       jobsRegistry?.registerJobs();
@@ -266,6 +314,34 @@ class Flint {
     if (viewPath != null) {
       Flint.viewPath = viewPath;
     }
+  }
+
+  static CacheDriver _resolveCacheDriver(
+    CacheDriver? configured,
+    bool autoConnectRedis,
+  ) {
+    if (configured != null) {
+      if (autoConnectRedis && configured != CacheDriver.redis) {
+        throw ArgumentError(
+          'autoConnectRedis: true conflicts with cacheDriver: '
+          '${configured.name}. Use CacheDriver.redis or disable '
+          'autoConnectRedis.',
+        );
+      }
+      return configured;
+    }
+    if (autoConnectRedis) return CacheDriver.redis;
+
+    final fromEnvironment = FlintEnv.get('CACHE_DRIVER').trim();
+    return fromEnvironment.isEmpty
+        ? CacheDriver.memory
+        : CacheDriver.parse(fromEnvironment);
+  }
+
+  static String? _resolveCacheDirectory(String? configured) {
+    final value = configured ?? FlintEnv.get('CACHE_DIRECTORY');
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   void _registerSwaggerDocs() async {
@@ -377,9 +453,139 @@ class Flint {
   );
 
   bool _dbInitialized = false;
+  late final CacheStore? _fallbackCache;
+  CacheStore? _cache;
+  RedisCacheStore? _redisCache;
+  Future<RedisCacheStore>? _redisConnection;
 
   /// Returns `true` if the database connection has been established.
   bool get isDatabaseConnected => _dbInitialized;
+
+  /// Returns `true` once Flint has established its Redis connection.
+  bool get isRedisConnected => _redisCache != null;
+
+  /// The application cache shared by routes, middleware, and controllers.
+  ///
+  /// This is immediately available for memory and file drivers. A Redis
+  /// driver becomes available after Flint starts or [connectRedis] completes.
+  CacheStore get cache {
+    final value = _cache;
+    if (value == null) {
+      throw StateError(
+        'The Redis cache is not connected. Start Flint or call '
+        'await app.connectRedis() before accessing app.cache.',
+      );
+    }
+    return value;
+  }
+
+  /// Connects [cache] using a URL, explicit connection fields, or `REDIS_URL`.
+  ///
+  /// Concurrent and repeated calls reuse the connection owned by this app.
+  Future<RedisCacheStore> connectRedis({
+    String? url,
+    String? host,
+    int port = 6379,
+    bool secure = false,
+    String? username,
+    String? password,
+    int? database,
+    String prefix = 'flint:cache:',
+  }) async {
+    final connected = _redisCache;
+    if (connected != null) return connected;
+
+    final pending = _redisConnection;
+    if (pending != null) return pending;
+
+    final future = _openRedis(
+      url: url,
+      host: host,
+      port: port,
+      secure: secure,
+      username: username,
+      password: password,
+      database: database,
+      prefix: prefix,
+    );
+    _redisConnection = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_redisConnection, future)) {
+        _redisConnection = null;
+      }
+    }
+  }
+
+  Future<RedisCacheStore> _openRedis({
+    String? url,
+    String? host,
+    required int port,
+    required bool secure,
+    String? username,
+    String? password,
+    int? database,
+    required String prefix,
+  }) async {
+    if (url != null && host != null) {
+      throw ArgumentError('Provide either url or host, not both.');
+    }
+
+    late final RedisCacheStore store;
+    if (url != null) {
+      if (url.trim().isEmpty) {
+        throw StateError('Redis URL cannot be empty.');
+      }
+      store = await RedisCacheStore.connectFromUrl(
+        url,
+        prefix: prefix,
+      );
+    } else if (host != null) {
+      store = await RedisCacheStore.connect(
+        host: host,
+        port: port,
+        secure: secure,
+        username: username,
+        password: password,
+        database: database,
+        prefix: prefix,
+      );
+    } else {
+      final redisUrl = FlintEnv.get('REDIS_URL').trim();
+      if (redisUrl.isEmpty) {
+        throw StateError(
+          'Redis is not configured. Set REDIS_URL or pass host to '
+          'app.connectRedis().',
+        );
+      }
+      store = await RedisCacheStore.connectFromUrl(
+        redisUrl,
+        prefix: prefix,
+      );
+    }
+
+    _redisCache = store;
+    _cache = store;
+    Log.debug('[FLINT] Redis cache connected');
+    return store;
+  }
+
+  /// Closes this app's Redis connection, if one is open.
+  Future<void> closeRedis() async {
+    final store = _redisCache;
+    _redisCache = null;
+    if (identical(_cache, store)) {
+      _cache = _fallbackCache;
+    }
+    if (store != null) await store.close();
+  }
+
+  Future<void> _ensureCacheReady() async {
+    if (cacheDriver == CacheDriver.redis && !isRedisConnected) {
+      await connectRedis();
+    }
+  }
 
   FlintAi get ai => _ai;
 
@@ -989,6 +1195,8 @@ class Flint {
 
   /// Binds the server and starts the request loop
   Future<void> _runServer(int port) async {
+    await _ensureCacheReady();
+
     HttpServer? server;
     try {
       await _ensureMigrationsIfEnabled();
@@ -1009,6 +1217,7 @@ class Flint {
     ProcessSignal.sigint.watch().listen((_) async {
       Log.debug('\n[FLINT] Worker shutting down...');
       await server?.close(force: true);
+      await closeRedis();
       exit(0);
     });
 
@@ -1111,6 +1320,7 @@ class Flint {
     bool ensureMigrations = true,
   }) async {
     final resolvedWorkerId = workerId ?? FlintJobs.randomWorkerId();
+    await _ensureCacheReady();
     if (ensureMigrations) {
       await _ensureMigrationsIfEnabled();
     }
@@ -1159,6 +1369,7 @@ class Flint {
       if (autoConnectDb && DB.isConnected) {
         await DB.close();
       }
+      await closeRedis();
     }
   }
 
@@ -1187,6 +1398,8 @@ class Flint {
 
   /// Dispatches requests to WebSockets or HTTP Routes
   Future<void> _handleIncomingRequest(HttpRequest req) async {
+    await _ensureCacheReady();
+
     // ===== WebSocket check =====
     if (WebSocketTransformer.isUpgradeRequest(req)) {
       await _handleWebSocketUpgrade(req);
@@ -1219,6 +1432,7 @@ class Flint {
 
     final ctx = Context(req: request, res: response);
     ctx.write<FlintAi>(_ai);
+    ctx.write<CacheStore>(cache);
 
     try {
       final result = await pipeline(ctx);
@@ -1295,6 +1509,7 @@ class Flint {
         try {
           final ctx = Context(req: wsRequest, socket: client);
           ctx.write<FlintAi>(_ai);
+          ctx.write<CacheStore>(cache);
           await pipeline(ctx);
         } catch (e, st) {
           Log.debug('[FLINT] ❌ WebSocket handler error: $e\n$st');

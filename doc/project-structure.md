@@ -30,14 +30,14 @@ lib/
   flint_ui_core.dart     # shared Flint UI primitives
   flint_ui_server.dart   # server-side Flint UI rendering APIs
   src/
-    app.dart             # Flint app and request loop
+    app.dart             # Flint app, request loop, and cache driver selection
     ai_env.dart          # AI provider and production policy env helpers
     ai_database.dart     # Flint DB-backed AI memory and repository adapters
     ai_tables.dart       # canonical AI table definitions
     routing/             # Router, RouteBuilder, RouteGroup
     middleware/          # Middleware implementations
     logs/                # Log, LogLevel, console output, and optional file logs
-    cache/               # CacheStore, MemoryCacheStore, and FileCacheStore
+    cache/               # CacheStore, CacheDriver, memory, file, Redis adapters
     database/            # DB wrappers, ORM, migrations, seeders, DB API
       api/               # secure Database API resources, policies, and routes
     auth/                # Auth facade, config, OAuth providers

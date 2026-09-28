@@ -13,6 +13,24 @@ void main() {
   });
 
   group('Context', () {
+    test('exposes the attached application cache', () async {
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/ctx-cache'));
+      final cache = MemoryCacheStore();
+      final ctx = Context(req: Request(raw))..write<CacheStore>(cache);
+
+      await ctx.cache.set('message', 'hello');
+
+      expect(ctx.cache, same(cache));
+      expect(await ctx.cache.get('message'), 'hello');
+    });
+
+    test('throws when cache is not attached', () {
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/no-cache'));
+      final ctx = Context(req: Request(raw));
+
+      expect(() => ctx.cache, throwsA(isA<StateError>()));
+    });
+
     test('isHttp is true when response is present', () {
       final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/ctx-http'));
       final request = Request(raw);

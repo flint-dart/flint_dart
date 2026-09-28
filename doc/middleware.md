@@ -47,6 +47,8 @@ controllers receive.
 - `ctx.res` is available for HTTP requests.
 - `ctx.socket` is available for WebSocket connections.
 - `ctx.isHttp` and `ctx.isWebSocket` tell you which kind of request is running.
+- `ctx.cache` is the shared application `CacheStore`; middleware can read,
+  write, remember, or invalidate cache values before or after `next(ctx)`.
 - `ctx.write<T>(value)` stores typed request data for later middleware, routes, or controllers.
 - `ctx.read<T>()` reads typed request data that was stored earlier.
 

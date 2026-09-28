@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:io' as io;
 
 import 'package:test/test.dart';
 import 'package:flint_dart/flint_dart.dart';
@@ -34,6 +35,128 @@ void main() {
       expect(Flint.viewPath, 'views');
       // Use the instance to avoid unused warnings.
       expect(app.normalizePath('/test'), '/test');
+    });
+
+    test('memory cache is shared with request contexts', () async {
+      final app = Flint(
+        cacheDriver: CacheDriver.memory,
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+      app.use(_AppCacheMiddleware());
+      app.get('/cache', (ctx) async {
+        expect(await ctx.cache.get('from-middleware'), isTrue);
+        await ctx.cache.set('request-count', 1);
+        return ctx.res!.send('cached');
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/cache'));
+      await app.handleRequest(raw);
+
+      expect(app.cache, isA<MemoryCacheStore>());
+      expect(await app.cache.get('request-count'), 1);
+      expect((raw.response as FakeHttpResponse).buffer.toString(), 'cached');
+    });
+
+    test('file cache driver uses the configured directory', () async {
+      final directory =
+          await Directory.systemTemp.createTemp('flint_app_cache_');
+      try {
+        final app = Flint(
+          cacheDriver: CacheDriver.file,
+          cacheDirectory: directory.path,
+          autoConnectDb: false,
+          autoConnectMail: false,
+          withDefaultMiddleware: false,
+          enableSwaggerDocs: false,
+        );
+
+        await app.cache.set('persistent', {'enabled': true});
+
+        expect(app.cache, isA<FileCacheStore>());
+        expect(await app.cache.get('persistent'), {'enabled': true});
+      } finally {
+        await directory.delete(recursive: true);
+      }
+    });
+
+    test('CACHE_DRIVER selects the application cache', () async {
+      final root = await Directory.systemTemp.createTemp('flint_cache_env_');
+      final envFile = File('${root.path}${Platform.pathSeparator}.env');
+      final cacheDirectory =
+          '${root.path}${Platform.pathSeparator}configured-cache';
+      await envFile.writeAsString(
+        'CACHE_DRIVER=file\nCACHE_DIRECTORY=$cacheDirectory\n',
+      );
+      FlintEnv.setEnvFilePath(envFile.path);
+
+      try {
+        final app = Flint(
+          autoConnectDb: false,
+          autoConnectMail: false,
+          withDefaultMiddleware: false,
+          enableSwaggerDocs: false,
+        );
+
+        expect(app.cacheDriver, CacheDriver.file);
+        expect(app.cache, isA<FileCacheStore>());
+        expect((app.cache as FileCacheStore).cacheDir, cacheDirectory);
+      } finally {
+        FlintEnv.setEnvFilePath(null);
+        await root.delete(recursive: true);
+      }
+    });
+
+    test('Redis auto-connect is opt-in and requires configuration', () async {
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectRedis: true,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+
+      expect(app.autoConnectRedis, isTrue);
+      expect(app.isRedisConnected, isFalse);
+      expect(() => app.cache, throwsA(isA<StateError>()));
+      await expectLater(
+        app.connectRedis(url: ''),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('Redis can connect from explicit host settings without a URL',
+        () async {
+      final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+      final acceptedSockets = <io.Socket>[];
+      server.listen(acceptedSockets.add);
+
+      final app = Flint(
+        autoConnectDb: false,
+        autoConnectMail: false,
+        withDefaultMiddleware: false,
+        enableSwaggerDocs: false,
+      );
+
+      try {
+        final cache = await app.connectRedis(
+          host: InternetAddress.loopbackIPv4.address,
+          port: server.port,
+        );
+
+        expect(app.isRedisConnected, isTrue);
+        expect(app.cache, same(cache));
+
+        await app.closeRedis();
+        expect(app.isRedisConnected, isFalse);
+      } finally {
+        for (final socket in acceptedSockets) {
+          socket.destroy();
+        }
+        await server.close();
+      }
     });
 
     test('runs configured seeder registry through app.seed', () async {
@@ -568,6 +691,16 @@ class _AppRecordingMiddleware extends Middleware {
       final result = await next(ctx);
       log.add('after-$name');
       return result;
+    };
+  }
+}
+
+class _AppCacheMiddleware extends Middleware {
+  @override
+  Handler handle(Handler next) {
+    return (ctx) async {
+      await ctx.cache.set('from-middleware', true);
+      return next(ctx);
     };
   }
 }
