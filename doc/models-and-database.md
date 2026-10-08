@@ -115,6 +115,8 @@ await PostModel().delete(post?.id);
 
 `QueryBuilder.update()` and `QueryBuilder.delete()` require a where clause. `Model.update()` requires either a primary key or an existing query where clause.
 
+`Model.update(data: ...)` and `save()` write included null attributes as SQL `NULL`. Leave a field out of the update map, or unset on a partial model, to keep its stored value. For example, `hosting.setAttribute('cancellationReason', null); await hosting.save();` clears the reason.
+
 ## Database API
 
 The model and query layers are the normal tools for backend workflows. Flint also
