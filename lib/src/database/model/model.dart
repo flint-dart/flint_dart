@@ -94,11 +94,40 @@ abstract class Model<T extends Model<T>> {
     setAttribute(field.name, value);
   }
 
-  /// Primary key column
-  String get primaryKey => 'id';
+  /// Primary key column. Defaults to the column with `isPrimaryKey: true` in [fields],
+  /// or `'id'` if not specified.
+  String get primaryKey {
+    for (final f in fields) {
+      if (f.isPrimaryKey) return f.name;
+    }
+    return 'id';
+  }
 
-  /// Table schema definition
-  Table get table;
+  /// Optional table name for this model.
+  ///
+  /// When provided alongside [fields], [table] is automatically constructed
+  /// without needing to instantiate [Table] manually.
+  String get tableName => '';
+
+  /// Optional list of [ColumnField] descriptors. When provided alongside [tableName],
+  /// [table] is automatically constructed without needing to instantiate [Table] manually.
+  List<ColumnField<dynamic>> get fields => const [];
+
+  /// Table schema definition.
+  ///
+  /// Subclasses can either override [table] directly, or provide [tableName] and [fields]
+  /// to have [table] automatically constructed for them via [Table.fromFields].
+  Table get table {
+    if (tableName.isNotEmpty) {
+      if (fields.isNotEmpty) {
+        return Table.fromFields(name: tableName, fields: fields);
+      }
+      return Table(name: tableName, columns: const []);
+    }
+    throw UnimplementedError(
+      'Model $runtimeType must either override `Table get table` or provide `String get tableName` and `List<ColumnField> get fields`.',
+    );
+  }
 
   /// Concealed fields that should not appear in toMap()
   List<String> get conceal => [];
