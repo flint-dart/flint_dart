@@ -19,12 +19,13 @@ All notable changes to this project are documented in this file.
   - Added `res.pageRoute<TProps>(route, props)` on `Response` and updated `res.page(...)` to accept both strongly-typed `FlintProps` and backward-compatible `Map<String, dynamic>` maps.
   - Added typed request parameter extraction methods on `Request`: `req.paramTyped<T>(name)`, `req.requireParam<T>(name)`, `req.paramInt(name)`, `req.paramBool(name)`, `req.queryParamTyped<T>(name)`, and `req.queryList(name)`.
 
-- **Direct ORM Query Ergonomics & Compile-Time Column Descriptors**:
+- **Direct ORM Query Ergonomics & Fluent `schema()` Builder**:
   - Folded all query builder methods (`where`, `whereField`, `orderBy`, `orderByField`, `paginate`, `count`, `first`, `find`, `findField`, `exists`, `pluck`, `cursorPaginate`, etc.) directly into `Model<T>`, eliminating the requirement to import `package:flint_dart/model_query.dart`.
   - Folded all model persistence and CRUD methods (`create`, `update`, `upsert`, `delete`, `save`, `restore`, `forceDelete`) directly into `Model<T>`, eliminating the requirement to import `package:flint_dart/model_crud.dart`.
   - Preserved `model_query.dart` and `model_crud.dart` as backward-compatible empty extensions with deprecation annotations so existing code continues to compile without breaking changes.
-  - Introduced `ColumnField<T>` compile-time column descriptors with `const` constructors supporting `type`, `length`, `isPrimaryKey`, `isNullable`, `isUnique`, `defaultValue`, `autoIncrement`, and `index`.
-  - Added `Table.fromFields({required String name, required List<ColumnField> fields})` to construct database tables directly from `ColumnField` constants.
+  - Added fluent `void schema()` builder hook on `Model<T>` with column helpers (`string`, `text`, `textCol`, `integer`, `boolean`, `datetime`, `timestamp`, `jsonCol`, `jsonField`, `float`, `mediumText`, `longText`, `enumeration`, `column`) that automatically populates the model's `Table` definition at runtime without code generation (`build_runner`) or manual array management.
+  - Added automatic `table` and `primaryKey` derivation on `Model<T>` when `tableName` and either `schema()` or `fields` are provided, eliminating the need to construct `Table(...)` or `Table.fromFields(...)` manually.
+  - Introduced optional `ColumnField<T>` compile-time column descriptors with `const` constructors for teams desiring compile-time query constants (`whereField`).
   - Added `Model.getField<R>(ColumnField)` and `Model.setField<R>(ColumnField, R? value)` for type-safe attribute access on models.
   - Added automatic table deduplication in `GlobalTableRegistry` (`TableRegistry.uniqueTables`) and `MigrationEngine` to prevent duplicate migrations or repeated `ALTER TABLE` queries when the same table schema is registered more than once.
   - Updated CLI code generators (`make:model`, `make:page`) to generate `ColumnField`, `Table.fromFields`, `TypedStatefulComponent`, and `initProps` by default.
