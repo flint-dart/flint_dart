@@ -97,6 +97,28 @@ class _ArticleModel extends Model<_ArticleModel> {
   List<schema.ColumnField> get fields => [colTitle, colStatus, colViews];
 }
 
+class _FluentPostModel extends Model<_FluentPostModel> {
+  _FluentPostModel() : super(_FluentPostModel.new);
+
+  @override
+  String get tableName => 'blog_posts';
+
+  @override
+  void schema() {
+    string('title', length: 255);
+    string('slug', isUnique: true);
+    this.text('content');
+    json('tagIds', isNullable: true);
+    string('status', defaultValue: 'draft');
+  }
+
+  String get title => getAttribute('title') ?? '';
+  set title(String val) => setAttribute('title', val);
+
+  String get slug => getAttribute('slug') ?? '';
+  set slug(String val) => setAttribute('slug', val);
+}
+
 class _DuplicateTableRegistry extends schema.TableRegistry {
   const _DuplicateTableRegistry();
 
@@ -193,6 +215,21 @@ void main() {
       expect(whereSql, contains('views IN'));
       expect(model.qb.whereParams.values, contains('published'));
       expect(model.qb.whereParams.values, containsAll([10, 20, 120]));
+    });
+
+    test('auto-constructs Table from fluent schema() builder without code generation', () {
+      final post = _FluentPostModel()
+        ..title = 'Fluent Flint Dart'
+        ..slug = 'fluent-flint-dart';
+
+      expect(post.title, equals('Fluent Flint Dart'));
+      expect(post.slug, equals('fluent-flint-dart'));
+      expect(post.table.name, equals('blog_posts'));
+      // Auto-prepended id + 5 columns defined in schema()
+      expect(post.table.columns.length, equals(6));
+      final colNames = post.table.columns.map((c) => c.name).toList();
+      expect(colNames, equals(['id', 'title', 'slug', 'content', 'tagIds', 'status']));
+      expect(post.primaryKey, equals('id'));
     });
 
     test('deduplicates tables in TableRegistry.uniqueTables', () {
