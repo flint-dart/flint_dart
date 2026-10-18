@@ -27,6 +27,17 @@ abstract class FlintComponent extends FlintNode {
   FlintComponent();
 
   void Function()? _scheduleRender;
+  bool _initialized = false;
+
+  /// Whether [ensureInitialized] ([initProps] and [initState]) has run on this
+  /// component instance.
+  bool get isInitialized => _initialized;
+
+  /// Whether this component is currently running in a browser JS runtime.
+  bool get isBrowser => const bool.fromEnvironment('dart.library.js_interop');
+
+  /// Whether this component is currently running on the server (SSR / VM).
+  bool get isServer => !isBrowser;
 
   /// Builds this component's renderable output.
   ///
@@ -58,7 +69,34 @@ abstract class FlintComponent extends FlintNode {
     _scheduleRender?.call();
   }
 
-  /// Called after the component is first mounted in the browser.
+  /// Universal synchronous hook called before [initState] and [build] on BOTH
+  /// the server (SSR) and the browser client.
+  ///
+  /// Also called after [updateFrom] when a preserved component receives new
+  /// props from its parent.
+  void initProps() {}
+
+  /// Universal synchronous lifecycle hook called once before the first [build]
+  /// on BOTH the server (SSR) and the browser client.
+  ///
+  /// Use this to initialize `late` fields or derive initial state from `props`
+  /// so SSR (`res.page`) never encounters a `LateInitializationError`.
+  /// Keep browser-only DOM queries and network calls in [didMount].
+  void initState() {}
+
+  /// Ensures [initProps] and [initState] have executed once before [build].
+  void ensureInitialized() {
+    if (_initialized) return;
+    _initialized = true;
+    initProps();
+    initState();
+  }
+
+  /// Called after the component is first mounted in the browser DOM.
+  ///
+  /// Note: This is browser-only and does NOT run during server-side rendering
+  /// (SSR). Initialize `late` fields used by [build] in the constructor,
+  /// [initProps], or [initState] instead.
   void didMount() {}
 
   /// Called after the component updates following a rerender.
@@ -87,6 +125,13 @@ abstract class FlintComponent extends FlintNode {
   }
 }
 
+/// Base contract for strongly-typed page and component props that can be
+/// serialized across the server-to-UI boundary.
+abstract interface class FlintProps {
+  /// Converts this typed props object into a JSON-encodable map.
+  Map<String, dynamic> toJson();
+}
+
 /// Base class for components that own local state or lifecycle resources.
 ///
 /// Use this for pages, controllers, sockets, subscriptions, text editing
@@ -95,11 +140,36 @@ abstract class FlintComponent extends FlintNode {
 /// fresh child instance by default so constructor values cannot go stale.
 abstract class StatefulComponent extends FlintComponent {}
 
+/// Base class for stateful components or pages that receive strongly-typed
+/// [props] of type [TProps].
+abstract class TypedStatefulComponent<TProps> extends StatefulComponent {
+  /// Creates a typed stateful component with [props].
+  TypedStatefulComponent(this.props);
+
+  /// Strongly-typed props passed to this component.
+  TProps props;
+
+  @override
+  void updateFrom(covariant TypedStatefulComponent<TProps> next) {
+    props = next.props;
+  }
+}
+
 /// Base class for components that only render constructor-provided values.
 ///
 /// Flint replaces stateless component instances during parent rerenders, so
 /// final fields naturally receive the newest values.
 abstract class StatelessComponent extends FlintComponent {}
+
+/// Base class for stateless components or pages that receive strongly-typed
+/// [props] of type [TProps].
+abstract class TypedStatelessComponent<TProps> extends StatelessComponent {
+  /// Creates a typed stateless component with [props].
+  TypedStatelessComponent(this.props);
+
+  /// Strongly-typed props passed to this component.
+  final TProps props;
+}
 
 /// Component wrapper for a function that returns renderable output.
 class FunctionalComponent extends StatelessComponent {

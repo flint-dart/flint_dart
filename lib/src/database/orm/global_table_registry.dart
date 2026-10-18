@@ -22,9 +22,16 @@ void registerTableRegistry(
 
   final sqlDefinitions = <String>[];
   final registeredTables = <Map<String, Object?>>[];
+  final seenTableNames = <String>{};
 
   try {
     for (final table in tables) {
+      if (!seenTableNames.add(table.name)) {
+        Log.debug(
+          '[FLINT] Warning: Duplicate table "${table.name}" in TableRegistry was skipped.',
+        );
+        continue;
+      }
       final createSql = table.toCreateSQL();
       sqlDefinitions.add(createSql);
       registeredTables.add({
@@ -64,11 +71,27 @@ abstract class TableRegistry {
 
   Iterable<Table> get tables;
 
+  /// Returns [tables] deduplicated by `table.name` while preserving registration order.
+  List<Table> get uniqueTables {
+    final seen = <String>{};
+    final result = <Table>[];
+    for (final table in tables) {
+      if (seen.add(table.name)) {
+        result.add(table);
+      } else {
+        Log.debug(
+          '[FLINT] Warning: Duplicate table "${table.name}" in $runtimeType was skipped.',
+        );
+      }
+    }
+    return result;
+  }
+
   void registerTables([
     dynamic data,
     SendPort? sendPort,
   ]) {
-    registerTableRegistry(tables, data, sendPort);
+    registerTableRegistry(uniqueTables, data, sendPort);
   }
 
   void registerAll([

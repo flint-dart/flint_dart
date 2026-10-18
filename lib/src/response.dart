@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
+import 'package:flint_dart/src/ui/component.dart';
+import 'package:flint_dart/src/ui/component_registry.dart';
 import 'package:path/path.dart' as p;
 
 import '../flint_dart.dart';
@@ -373,7 +375,7 @@ class Response {
 
   Response flintPage(
     String component, {
-    Map<String, dynamic> props = const {},
+    Object? props = const <String, dynamic>{},
     String rootId = 'app',
     String? script,
     List<String>? stylesheets,
@@ -385,9 +387,10 @@ class Response {
     int? status,
   }) {
     try {
+      final normalizedProps = _normalizePageProps(props);
       final page = {
         'component': component,
-        'props': _jsonSafeValue(props),
+        'props': _jsonSafeValue(normalizedProps),
         if (request != null) 'url': request!.uri.toString(),
       };
       final scriptResolution = script == null
@@ -457,6 +460,27 @@ $hotReloadScript
     return this;
   }
 
+  Map<String, dynamic> _normalizePageProps(Object? props) {
+    if (props == null) return const {};
+    if (props is FlintProps) return props.toJson();
+    if (props is Map<String, dynamic>) return props;
+    if (props is Map) {
+      return props.map((key, value) => MapEntry(key.toString(), value));
+    }
+    try {
+      final jsonValue = (props as dynamic).toJson();
+      if (jsonValue is Map<String, dynamic>) return jsonValue;
+      if (jsonValue is Map) {
+        return jsonValue.map((key, value) => MapEntry(key.toString(), value));
+      }
+    } catch (_) {}
+    throw ArgumentError.value(
+      props,
+      'props',
+      'Expected Map<String, dynamic> or FlintProps',
+    );
+  }
+
   dynamic _jsonSafeValue(dynamic value) {
     if (value == null || value is String || value is num || value is bool) {
       return value;
@@ -465,6 +489,7 @@ $hotReloadScript
     if (value is Uri) return value.toString();
     if (value is Enum) return value.name;
     if (value is Model) return _jsonSafeValue(value.toMap());
+    if (value is FlintProps) return _jsonSafeValue(value.toJson());
     if (value is Map) {
       return value.map(
         (key, mapValue) => MapEntry(key.toString(), _jsonSafeValue(mapValue)),
@@ -489,7 +514,7 @@ $hotReloadScript
 
   Response page(
     String component, {
-    Map<String, dynamic> props = const {},
+    Object? props = const <String, dynamic>{},
     String rootId = 'app',
     String? script,
     List<String>? stylesheets,
@@ -503,6 +528,34 @@ $hotReloadScript
       flintPage(
         component,
         props: props,
+        rootId: rootId,
+        script: script,
+        stylesheets: stylesheets,
+        preloadScript: preloadScript,
+        title: title,
+        meta: meta,
+        serverHtml: serverHtml,
+        serverRender: serverRender,
+        status: status,
+      );
+
+  /// Renders a strongly-typed [FlintPageRoute] with compile-time verified [props].
+  Response pageRoute<TProps extends FlintProps>(
+    FlintPageRoute<TProps> route,
+    TProps props, {
+    String rootId = 'app',
+    String? script,
+    List<String>? stylesheets,
+    bool preloadScript = true,
+    String? title,
+    FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
+    int? status,
+  }) =>
+      flintPage(
+        route.name,
+        props: props.toJson(),
         rootId: rootId,
         script: script,
         stylesheets: stylesheets,
