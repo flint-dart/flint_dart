@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.2] - 2026-10-08
+
+### Fixed
+- Persist included `null` values in model `save()` and `update()` so nullable
+  columns can be cleared; omitted attributes remain unchanged.
+- Preserve native MySQL `DateTime` parameters on model updates to avoid
+  timezone shifts when saving and reloading renewal dates.
+
 ## [1.4.1] - 2026-09-28
 
 ### Added

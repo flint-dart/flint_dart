@@ -165,7 +165,8 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
     }
   }
 
-  /// Update existing record using the helper method
+  /// Update existing record using the helper method.
+  /// Included null values clear columns; omitted attributes remain unchanged.
   Future<T?> update({
     dynamic id,
     Map<String, dynamic>? data,
@@ -184,10 +185,6 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
       ..remove(primaryKey)
       ..removeWhere((k, v) => k.trim().isEmpty);
 
-    if (isUpdate) {
-      updateData.removeWhere((k, v) => v == null);
-    }
-
     if (updateData.isEmpty) {
       throw Exception("No data provided for update");
     }
@@ -204,9 +201,6 @@ extension ModelCrud<T extends Model<T>> on Model<T> {
         if (column.type == ColumnType.json) return jsonEncode(value);
         if (value is bool) return value ? 1 : 0;
         if (value is Enum) return value.name; // enum → string
-        if (value is DateTime) {
-          return value.toIso8601String(); // <-- convert DateTime
-        }
         return value;
       });
     }
