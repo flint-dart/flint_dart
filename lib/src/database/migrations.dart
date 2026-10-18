@@ -53,10 +53,27 @@ class FlintMigrations {
       if (verbose) '--verbose',
     ];
 
+    final deduplicatedTables = tables == null
+        ? null
+        : () {
+            final seen = <String>{};
+            final unique = <schema.Table>[];
+            for (final table in tables) {
+              if (seen.add(table.name)) {
+                unique.add(table);
+              } else {
+                Log.debug(
+                  '[FLINT] Warning: Duplicate table "${table.name}" in migration list was skipped.',
+                );
+              }
+            }
+            return unique;
+          }();
+
     final wasConnected = DB.isConnected;
     Log.debug('[FLINT] Running database migrations before server start...');
     try {
-      await DBMigrateCommand().execute(args, tables: tables);
+      await DBMigrateCommand().execute(args, tables: deduplicatedTables);
       if (reconnectIfPreviouslyConnected && wasConnected && !DB.isConnected) {
         await DB.autoConnect();
       }

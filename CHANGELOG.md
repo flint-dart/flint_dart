@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.0] - Unreleased
+
+### Added
+- **SSR Universal Lifecycle Guardrails (`initProps()` & `initState()`)**:
+  - Added universal `initProps()` and `initState()` lifecycle hooks to `Component`, `StatefulComponent`, `TypedStatefulComponent`, and `TypedStatelessComponent` that run synchronously prior to `build()` in both server-side rendering (SSR) and client browser hydration.
+  - Added `ensureInitialized()` lifecycle enforcement contract to guarantee initialization executes exactly once per component render cycle across both server and client renderers.
+  - Added `isServer` and `isBrowser` environment getters to `Component` and `StatefulComponent` so components can conditionally branch without checking platform strings or importing conditional dart libraries.
+  - Added diagnostic SSR exception handling in `server_renderer.dart` that intercepts `LateInitializationError` thrown during server `build()` and displays an actionable error banner identifying the component, explaining that client-only lifecycle hooks like `didMount()` do not execute during SSR, and instructing developers to initialize props in `initProps()` or constructor fields instead.
+  - Updated client `browser_renderer.dart` to trigger `initProps()` during component reconciliation when props change across page navigation.
+
+- **Type-Safe Props & Route Parameters (`FlintProps` & `FlintPageRoute`)**:
+  - Added strongly-typed `FlintProps` interface with required `Map<String, dynamic> toJson()` for compile-time verified page and widget properties across the server-to-client boundary.
+  - Added `TypedStatefulComponent<TProps extends FlintProps>` and `TypedStatelessComponent<TProps extends FlintProps>` base classes providing a strongly-typed `props` getter.
+  - Added `FlintPageRoute<TProps>` and `PageRegistry.registerTyped<TProps>()`, `registerRoute()`, and `registerRoutes()` to define type-safe route descriptors linking URL paths, component builders, and prop deserializers (`fromJson`).
+  - Added `res.pageRoute<TProps>(route, props)` on `Response` and updated `res.page(...)` to accept both strongly-typed `FlintProps` and backward-compatible `Map<String, dynamic>` maps.
+  - Added typed request parameter extraction methods on `Request`: `req.paramTyped<T>(name)`, `req.requireParam<T>(name)`, `req.paramInt(name)`, `req.paramBool(name)`, `req.queryParamTyped<T>(name)`, and `req.queryList(name)`.
+
+- **Direct ORM Query Ergonomics & Compile-Time Column Descriptors**:
+  - Folded all query builder methods (`where`, `whereField`, `orderBy`, `orderByField`, `paginate`, `count`, `first`, `find`, `findField`, `exists`, `pluck`, `cursorPaginate`, etc.) directly into `Model<T>`, eliminating the requirement to import `package:flint_dart/model_query.dart`.
+  - Folded all model persistence and CRUD methods (`create`, `update`, `upsert`, `delete`, `save`, `restore`, `forceDelete`) directly into `Model<T>`, eliminating the requirement to import `package:flint_dart/model_crud.dart`.
+  - Preserved `model_query.dart` and `model_crud.dart` as backward-compatible empty extensions with deprecation annotations so existing code continues to compile without breaking changes.
+  - Introduced `ColumnField<T>` compile-time column descriptors with `const` constructors supporting `type`, `length`, `isPrimaryKey`, `isNullable`, `isUnique`, `defaultValue`, `autoIncrement`, and `index`.
+  - Added `Table.fromFields({required String name, required List<ColumnField> fields})` to construct database tables directly from `ColumnField` constants.
+  - Added `Model.getField<R>(ColumnField)` and `Model.setField<R>(ColumnField, R? value)` for type-safe attribute access on models.
+  - Added automatic table deduplication in `GlobalTableRegistry` (`TableRegistry.uniqueTables`) and `MigrationEngine` to prevent duplicate migrations or repeated `ALTER TABLE` queries when the same table schema is registered more than once.
+  - Updated CLI code generators (`make:model`, `make:page`) to generate `ColumnField`, `Table.fromFields`, `TypedStatefulComponent`, and `initProps` by default.
+
+### Problems Addressed
+- **SSR LateInitializationError on Unmounted Client Fields**:
+  - *Problem*: In Flint Dart SSR (`res.page`), `build()` executes on the server to generate HTML, but `didMount()` is strictly browser-only and runs after client hydration. Developers who initialized `late` variables inside `didMount()` experienced sudden `LateInitializationError` crashes during SSR. The original crash trace offered no hint that the issue was caused by server vs client lifecycle timing.
+  - *Resolution*: Universal `initProps()` and `initState()` run synchronously before `build()` on both server and client. If an uninitialized `late` field is still accessed during SSR `build()`, `server_renderer.dart` catches the `LateInitializationError` and outputs an actionable diagnostic message pinpointing the component and demonstrating the `initProps()` fix.
+
+- **Runtime Typing Footguns Across Server/Client Boundary**:
+  - *Problem*: Passing page props via untyped `Map<String, dynamic>` maps and parsing route parameters via `req.param('id')` was prone to silent typos, missing keys, and invalid runtime casts with zero compile-time feedback between server controllers and UI pages.
+  - *Resolution*: `FlintProps`, `TypedStatefulComponent<TProps>`, `FlintPageRoute<TProps>`, and `req.paramTyped<T>()` enforce end-to-end compile-time type safety across route handlers, controller serialization, and browser components.
+
+- **Fragmented ORM Imports, Magic Strings & Duplicate Migration Passes**:
+  - *Problem*: Using query builder (`where`, `first`, `paginate`) or CRUD methods on `Model` required separate extension imports (`model_query.dart`, `model_crud.dart`), causing confusing missing method errors for developers. Column names were hardcoded string literals with no autocomplete or compile-time validation. Additionally, registering multiple model instances or duplicate table references in `TableRegistry` caused duplicate migrations or SQL errors during table alters.
+  - *Resolution*: Query builder and CRUD methods are now directly part of `Model<T>`. `ColumnField<T>` provides compile-time constants for column names and schema definitions. `TableRegistry.uniqueTables` automatically deduplicates registered tables by table name and logs a diagnostic warning.
+
 ## [1.4.2] - 2026-10-08
 
 ### Fixed

@@ -188,6 +188,7 @@ class FlintRoot {
     if (hasExisting) {
       shouldRender = mount.component.shouldUpdate(component);
       mount.component.updateFrom(component);
+      mount.component.initProps();
     }
     mount.component.attach(() => _scheduleComponentRender(mount));
     if (shouldRender) {
@@ -220,6 +221,7 @@ class FlintRoot {
     final nextSlots = <String, _ComponentMount>{};
     final activeControl = _ActiveControl.capture(mount.boundary);
 
+    mount.component.ensureInitialized();
     mount.boundary.textContent = '';
     mount.boundary.setAttribute('style', 'display: contents;');
     mount.boundary.appendChild(

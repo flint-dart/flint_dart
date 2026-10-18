@@ -140,25 +140,59 @@ final componentRegistry = PageRegistry({
   }
 
   String _pageTemplate(String className, String pageName) {
+    final propsClassName = '${_toPascalCase(pageName)}PageProps';
     return '''
 import 'package:flint_dart/ui.dart';
 
-class $className extends FlintComponent {
-  final Map<String, dynamic> props;
+class $propsClassName implements FlintProps {
+  final String title;
 
-  $className(this.props);
+  const $propsClassName({this.title = '$pageName'});
+
+  factory $propsClassName.fromJson(Map<String, dynamic> json) {
+    return $propsClassName(
+      title: json['title']?.toString() ?? '$pageName',
+    );
+  }
 
   @override
-  FlintNode build() {
-    final title = props['title']?.toString() ?? '$pageName';
+  Map<String, dynamic> toJson() => {'title': title};
+}
 
+class $className extends TypedStatefulComponent<$propsClassName> {
+  static final route = FlintPageRoute<$propsClassName>(
+    name: '$pageName',
+    fromJson: $propsClassName.fromJson,
+    builder: $className.Typed,
+  );
+
+  $className(Map<String, dynamic> rawProps)
+      : super($propsClassName.fromJson(rawProps));
+
+  $className.Typed(super.props);
+
+  late String heading;
+
+  @override
+  void initProps() {
+    // Runs synchronously before build() on BOTH server (SSR) and client.
+    heading = props.title;
+  }
+
+  @override
+  void didMount() {
+    // Runs on the browser client only after DOM mount.
+  }
+
+  @override
+  View build() {
     return Container(
       props: {'className': '${_toKebabCase(pageName)}-page'},
       children: [
         Column(
           props: {'className': 'page-shell'},
           children: [
-            h('h1', children: [title]),
+            h('h1', children: [heading]),
             h('p', children: [
               'This page is rendered by Flint UI.',
             ]),

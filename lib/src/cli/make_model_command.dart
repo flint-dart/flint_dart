@@ -48,19 +48,29 @@ import 'package:flint_dart/model.dart';
 import 'package:flint_dart/schema.dart';
 
 class $className extends Model<$className> {
-  $className() : super(() => $className());
+  $className() : super($className.new);
 
-  // Define your fields here
-  String? get name => getAttribute("name");
-
-  @override
-  Table get table => Table(
-    name: '${fileName.split('.').first}s',
-    columns: [
-      Column(name: 'name', type: ColumnType.string),
-    ],
+  static const colId = ColumnField<String>(
+    'id',
+    type: ColumnType.string,
+    isPrimaryKey: true,
+  );
+  static const colName = ColumnField<String>(
+    'name',
+    type: ColumnType.string,
   );
 
+  String? get name => getField(colName);
+  set name(String? value) => setField(colName, value ?? '');
+
+  @override
+  Table get table => Table.fromFields(
+    name: '${fileName.split('.').first}s',
+    fields: [
+      colId,
+      colName,
+    ],
+  );
 }
 ''';
   }
@@ -73,122 +83,84 @@ class $className extends Model<$className> {
       return;
     }
 
-    // 1️⃣ Get the package name from pubspec.yaml
     final packageName = await _getPackageName();
-
-    // 2️⃣ Read current content
     var content = await registryFile.readAsString();
-
-    // 3️⃣ Add import if missing
     final importLine = "import 'package:$packageName/models/$fileName.dart';";
 
-    // Check if import already exists
     if (!content.contains(importLine)) {
-      // Find the last import statement
       final importPattern = RegExp(r'^import .+?;\s*$', multiLine: true);
       final imports = importPattern.allMatches(content);
 
       if (imports.isNotEmpty) {
-        // Insert after the last import
         final lastImport = imports.last;
         final insertPosition = lastImport.end;
         content =
             '${content.substring(0, insertPosition)}\n$importLine${content.substring(insertPosition)}';
       } else {
-        // No imports found, add at the beginning
         content = '$importLine\n$content';
       }
     }
 
-    // 4️⃣ Find and update runTableRegistry - updated pattern to match your format
-    // Pattern looks for: runTableRegistry([...], _, sendPort)
-    final registryPattern = RegExp(
-      r'runTableRegistry\s*\(\s*\[(.*?)\]\s*,\s*_\s*,\s*sendPort\s*\)',
-      dotAll: true,
-    );
-
-    final match = registryPattern.firstMatch(content);
-
-    if (match == null) {
-      // Try alternative pattern without sendPort parameter
-      final altPattern = RegExp(
-        r'runTableRegistry\s*\(\s*\[(.*?)\]\s*\)',
-        dotAll: true,
-      );
-
-      final altMatch = altPattern.firstMatch(content);
-
-      if (altMatch == null) {
-        Log.debug('⚠️ runTableRegistry not found in table_registry.dart');
-        return;
-      } else {
-        // Use the alternative match
-        final insideBrackets = altMatch.group(1)?.trim() ?? '';
-        final tableEntry = '$className().table';
-
-        // Check if already registered
-        if (insideBrackets.contains(tableEntry)) {
-          Log.debug('ℹ️ $className already registered in table_registry.dart');
-          return;
-        }
-
-        // Build new inside brackets content
-        String newInsideBrackets;
-        if (insideBrackets.isEmpty) {
-          newInsideBrackets = '\n    $tableEntry,';
-        } else {
-          // Remove trailing comma if present and add new entry
-          final cleaned = insideBrackets.trim();
-          if (cleaned.endsWith(',')) {
-            newInsideBrackets = '$cleaned\n    $tableEntry,';
-          } else {
-            newInsideBrackets = '$cleaned,\n    $tableEntry,';
-          }
-        }
-
-        // Replace the content
-        final before = content.substring(
-            0, altMatch.start + altMatch.group(0)!.indexOf('[') + 1);
-        final after =
-            content.substring(altMatch.start + altMatch.group(0)!.indexOf(']'));
-
-        content = before + newInsideBrackets + after;
-      }
-    } else {
-      // Original pattern matched
-      final insideBrackets = match.group(1)?.trim() ?? '';
-      final tableEntry = '$className().table';
-
-      // Check if already registered
-      if (insideBrackets.contains(tableEntry)) {
-        Log.debug('ℹ️ $className already registered in table_registry.dart');
-        return;
-      }
-
-      // Build new inside brackets content
-      String newInsideBrackets;
-      if (insideBrackets.isEmpty) {
-        newInsideBrackets = '\n    $tableEntry,';
-      } else {
-        // Remove trailing comma if present and add new entry
-        final cleaned = insideBrackets.trim();
-        if (cleaned.endsWith(',')) {
-          newInsideBrackets = '$cleaned\n    $tableEntry,';
-        } else {
-          newInsideBrackets = '$cleaned,\n    $tableEntry,';
-        }
-      }
-
-      // Replace the content
-      final before =
-          content.substring(0, match.start + match.group(0)!.indexOf('[') + 1);
-      final after =
-          content.substring(match.start + match.group(0)!.indexOf(']'));
-
-      content = before + newInsideBrackets + after;
+    final tableEntry = '$className().table';
+    if (content.contains(tableEntry)) {
+      Log.debug('ℹ️ $className already registered in table_registry.dart');
+      return;
     }
 
-    // 6️⃣ Write back
+    // Support both modern `List<Table> get tables => [...]` and legacy `runTableRegistry([...])`
+    final tablesGetterPattern = RegExp(
+      r'List<Table>\s+get\s+tables\s*=>\s*\[(.*?)\];',
+      dotAll: true,
+    );
+    final getterMatch = tablesGetterPattern.firstMatch(content);
+    if (getterMatch != null) {
+      final insideBrackets = getterMatch.group(1)?.trim() ?? '';
+      final String newInsideBrackets;
+      if (insideBrackets.isEmpty) {
+        newInsideBrackets = '\n    $tableEntry,\n  ';
+      } else {
+        final cleaned = insideBrackets.trim();
+        newInsideBrackets = cleaned.endsWith(',')
+            ? '\n    $cleaned\n    $tableEntry,\n  '
+            : '\n    $cleaned,\n    $tableEntry,\n  ';
+      }
+      final openBracket = getterMatch.start + getterMatch.group(0)!.indexOf('[') + 1;
+      final closeBracket = getterMatch.start + getterMatch.group(0)!.lastIndexOf(']');
+      content =
+          content.substring(0, openBracket) +
+          newInsideBrackets +
+          content.substring(closeBracket);
+      await registryFile.writeAsString(content);
+      Log.debug('✅ $className registered in table_registry.dart');
+      return;
+    }
+
+    final registryPattern = RegExp(
+      r'runTableRegistry\s*\(\s*\[(.*?)\]\s*(?:,\s*_\s*,\s*sendPort\s*)?\)',
+      dotAll: true,
+    );
+    final match = registryPattern.firstMatch(content);
+    if (match == null) {
+      Log.debug('⚠️ Table list not found in table_registry.dart');
+      return;
+    }
+
+    final insideBrackets = match.group(1)?.trim() ?? '';
+    final String newInsideBrackets;
+    if (insideBrackets.isEmpty) {
+      newInsideBrackets = '\n    $tableEntry,';
+    } else {
+      final cleaned = insideBrackets.trim();
+      newInsideBrackets = cleaned.endsWith(',')
+          ? '$cleaned\n    $tableEntry,'
+          : '$cleaned,\n    $tableEntry,';
+    }
+
+    final before =
+        content.substring(0, match.start + match.group(0)!.indexOf('[') + 1);
+    final after = content.substring(match.start + match.group(0)!.indexOf(']'));
+    content = before + newInsideBrackets + after;
+
     await registryFile.writeAsString(content);
     Log.debug('✅ $className registered in table_registry.dart');
   }
