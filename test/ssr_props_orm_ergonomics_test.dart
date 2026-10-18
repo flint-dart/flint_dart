@@ -91,10 +91,10 @@ class _ArticleModel extends Model<_ArticleModel> {
   set views(int value) => setField(colViews, value);
 
   @override
-  schema.Table get table => schema.Table.fromFields(
-        name: 'articles',
-        fields: [colTitle, colStatus, colViews],
-      );
+  String get tableName => 'articles';
+
+  @override
+  List<schema.ColumnField> get fields => [colTitle, colStatus, colViews];
 }
 
 class _DuplicateTableRegistry extends schema.TableRegistry {
@@ -178,6 +178,9 @@ void main() {
       expect(model.title, equals('Flint 1.5 Release'));
       expect(model.status, equals('draft'));
       expect(model.views, equals(120));
+      expect(model.table.name, equals('articles'));
+      expect(model.table.columns.length, equals(4)); // auto-prepended id + 3 fields
+      expect(model.primaryKey, equals('id'));
 
       model
           .whereField(_ArticleModel.colStatus, 'published')

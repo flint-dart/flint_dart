@@ -64,13 +64,13 @@ class $className extends Model<$className> {
   set name(String? value) => setField(colName, value ?? '');
 
   @override
-  Table get table => Table.fromFields(
-    name: '${fileName.split('.').first}s',
-    fields: [
-      colId,
-      colName,
-    ],
-  );
+  String get tableName => '${fileName.split('.').first}s';
+
+  @override
+  List<ColumnField> get fields => [
+    colId,
+    colName,
+  ];
 }
 ''';
   }
