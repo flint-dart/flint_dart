@@ -24,6 +24,7 @@ abstract class Model<T extends Model<T>> {
 
   Model(this._factory) {
     _registerRelationLoaders();
+    _initSchema();
   }
 
   /// Creates a fresh instance of this model's concrete type.
@@ -94,9 +95,264 @@ abstract class Model<T extends Model<T>> {
     setAttribute(field.name, value);
   }
 
-  /// Primary key column. Defaults to the column with `isPrimaryKey: true` in [fields],
-  /// or `'id'` if not specified.
+  final List<Column> _schemaColumns = [];
+
+  /// Override this method to fluently define the model's database schema.
+  ///
+  /// Example:
+  /// ```dart
+  /// @override
+  /// String get tableName => 'blog_posts';
+  ///
+  /// @override
+  /// void schema() {
+  ///   string('title', length: 255);
+  ///   string('slug', isUnique: true);
+  ///   text('content');
+  ///   json('tagIds', isNullable: true);
+  ///   string('status', defaultValue: 'draft');
+  /// }
+  /// ```
+  void schema() {}
+
+  void _initSchema() {
+    schema();
+  }
+
+  /// Appends a raw or custom [Column] definition to the model's schema.
+  Column column(Column col) {
+    _schemaColumns.add(col);
+    return col;
+  }
+
+  /// Adds a string column (e.g. VARCHAR) to the model's schema.
+  Column string(
+    String name, {
+    int length = 255,
+    bool isNullable = false,
+    bool isUnique = false,
+    String? defaultValue,
+    bool isPrimaryKey = false,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.string,
+      length: length,
+      isNullable: isNullable,
+      isUnique: isUnique,
+      defaultValue: defaultValue,
+      isPrimaryKey: isPrimaryKey,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds a text column (e.g. TEXT) to the model's schema.
+  Column text(
+    String name, {
+    bool isNullable = false,
+    String? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.text,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Alias for [text] to avoid naming collisions when UI packages are imported.
+  Column textCol(
+    String name, {
+    bool isNullable = false,
+    String? defaultValue,
+    String? comment,
+    String? after,
+  }) =>
+      text(name, isNullable: isNullable, defaultValue: defaultValue, comment: comment, after: after);
+
+  /// Adds a medium text column (e.g. MEDIUMTEXT) to the model's schema.
+  Column mediumText(
+    String name, {
+    bool isNullable = false,
+    String? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.mediumText,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds a long text column (e.g. LONGTEXT) to the model's schema.
+  Column longText(
+    String name, {
+    bool isNullable = false,
+    String? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.longText,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds an integer column (e.g. INT) to the model's schema.
+  Column integer(
+    String name, {
+    bool isNullable = false,
+    bool isUnique = false,
+    int? defaultValue,
+    bool isPrimaryKey = false,
+    bool isAutoIncrement = false,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.integer,
+      isNullable: isNullable,
+      isUnique: isUnique,
+      defaultValue: defaultValue,
+      isPrimaryKey: isPrimaryKey,
+      isAutoIncrement: isAutoIncrement,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds a boolean column (e.g. BOOLEAN / TINYINT(1)) to the model's schema.
+  Column boolean(
+    String name, {
+    bool isNullable = false,
+    bool? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.boolean,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds a double/float column to the model's schema.
+  Column float(
+    String name, {
+    bool isNullable = false,
+    double? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.double,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds a datetime column to the model's schema.
+  Column datetime(
+    String name, {
+    bool isNullable = false,
+    DateTime? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.datetime,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds a timestamp column to the model's schema.
+  Column timestamp(
+    String name, {
+    bool isNullable = false,
+    DateTime? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.timestamp,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds a JSON column to the model's schema.
+  Column json(
+    String name, {
+    bool isNullable = false,
+    dynamic defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.json,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Adds an enumeration column to the model's schema.
+  Column enumeration(
+    String name, {
+    required List<String> options,
+    bool isNullable = false,
+    String? defaultValue,
+    String? comment,
+    String? after,
+  }) {
+    return column(Column(
+      name: name,
+      type: ColumnType.enumeration,
+      options: options,
+      isNullable: isNullable,
+      defaultValue: defaultValue,
+      comment: comment,
+      after: after,
+    ));
+  }
+
+  /// Primary key column. Defaults to the column with `isPrimaryKey: true` in
+  /// `_schemaColumns` or `fields`, or `'id'` if not specified.
   String get primaryKey {
+    for (final col in _schemaColumns) {
+      if (col.isPrimaryKey) return col.name;
+    }
     for (final f in fields) {
       if (f.isPrimaryKey) return f.name;
     }
@@ -105,7 +361,7 @@ abstract class Model<T extends Model<T>> {
 
   /// Optional table name for this model.
   ///
-  /// When provided alongside [fields], [table] is automatically constructed
+  /// When provided alongside [schema] or [fields], [table] is automatically constructed
   /// without needing to instantiate [Table] manually.
   String get tableName => '';
 
@@ -115,9 +371,15 @@ abstract class Model<T extends Model<T>> {
 
   /// Table schema definition.
   ///
-  /// Subclasses can either override [table] directly, or provide [tableName] and [fields]
-  /// to have [table] automatically constructed for them via [Table.fromFields].
+  /// Subclasses can either override [table] directly, implement [schema], or provide
+  /// [tableName] and [fields] to have [table] automatically constructed for them.
   Table get table {
+    if (_schemaColumns.isNotEmpty && tableName.isNotEmpty) {
+      return Table(
+        name: tableName,
+        columns: List<Column>.from(_schemaColumns),
+      );
+    }
     if (tableName.isNotEmpty) {
       if (fields.isNotEmpty) {
         return Table.fromFields(name: tableName, fields: fields);
@@ -125,7 +387,7 @@ abstract class Model<T extends Model<T>> {
       return Table(name: tableName, columns: const []);
     }
     throw UnimplementedError(
-      'Model $runtimeType must either override `Table get table` or provide `String get tableName` and `List<ColumnField> get fields`.',
+      'Model $runtimeType must either override `Table get table`, implement `void schema()`, or provide `String get tableName` and `List<ColumnField> get fields`.',
     );
   }
 
