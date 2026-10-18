@@ -310,7 +310,7 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Adds a JSON column to the model's schema.
-  Column json(
+  Column jsonCol(
     String name, {
     bool isNullable = false,
     dynamic defaultValue,
@@ -326,6 +326,22 @@ abstract class Model<T extends Model<T>> {
       after: after,
     ));
   }
+
+  /// Alias for [jsonCol].
+  Column jsonField(
+    String name, {
+    bool isNullable = false,
+    dynamic defaultValue,
+    String? comment,
+    String? after,
+  }) =>
+      jsonCol(
+        name,
+        isNullable: isNullable,
+        defaultValue: defaultValue,
+        comment: comment,
+        after: after,
+      );
 
   /// Adds an enumeration column to the model's schema.
   Column enumeration(

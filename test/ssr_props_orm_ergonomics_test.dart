@@ -108,7 +108,7 @@ class _FluentPostModel extends Model<_FluentPostModel> {
     string('title', length: 255);
     string('slug', isUnique: true);
     this.text('content');
-    json('tagIds', isNullable: true);
+    jsonCol('tagIds', isNullable: true);
     string('status', defaultValue: 'draft');
   }
 
