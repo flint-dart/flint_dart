@@ -115,7 +115,8 @@ void main() {
       expect(page.isServer, isTrue);
     });
 
-    test('wraps LateInitializationError in build() with actionable SSR message', () {
+    test('wraps LateInitializationError in build() with actionable SSR message',
+        () {
       const renderer = FlintServerRenderer(includeScopedStyles: false);
 
       expect(
@@ -173,7 +174,8 @@ void main() {
       expect(model.status, equals('draft'));
       expect(model.views, equals(120));
       expect(model.table.name, equals('blog_posts'));
-      expect(model.table.columns.length, equals(7)); // auto-prepended id + 6 schema columns
+      expect(model.table.columns.length,
+          equals(7)); // auto-prepended id + 6 schema columns
       expect(model.primaryKey, equals('id'));
 
       model
@@ -189,7 +191,9 @@ void main() {
       expect(model.qb.whereParams.values, containsAll([10, 20, 120]));
     });
 
-    test('auto-constructs Table from fluent schema() builder without code generation', () {
+    test(
+        'auto-constructs Table from fluent schema() builder without code generation',
+        () {
       final post = _FluentPostModel()
         ..title = 'Fluent Flint Dart'
         ..slug = 'fluent-flint-dart';
@@ -200,7 +204,10 @@ void main() {
       // Auto-prepended id + 6 columns defined in schema()
       expect(post.table.columns.length, equals(7));
       final colNames = post.table.columns.map((c) => c.name).toList();
-      expect(colNames, equals(['id', 'title', 'slug', 'content', 'tagIds', 'status', 'views']));
+      expect(
+          colNames,
+          equals(
+              ['id', 'title', 'slug', 'content', 'tagIds', 'status', 'views']));
       expect(post.primaryKey, equals('id'));
     });
 
