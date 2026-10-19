@@ -43,6 +43,10 @@ All notable changes to this project are documented in this file.
   - *Problem*: Using query builder (`where`, `first`, `paginate`) or CRUD methods on `Model` required separate extension imports (`model_query.dart`, `model_crud.dart`), causing confusing missing method errors for developers. Column names were hardcoded string literals with no autocomplete or compile-time validation. Additionally, registering multiple model instances or duplicate table references in `TableRegistry` caused duplicate migrations or SQL errors during table alters.
   - *Resolution*: Query builder and CRUD methods are now directly part of `Model<T>`. `ColumnField<T>` provides compile-time constants for column names and schema definitions. `TableRegistry.uniqueTables` automatically deduplicates registered tables by table name and logs a diagnostic warning.
 
+- **Model Schema Boilerplate & Code-Gen Independence**:
+  - *Problem*: Defining database models previously required high ceremony: either repeating every column in `static const col...` constants and assembling them in a manual `List<ColumnField> get fields => [...]` list, or hand-constructing verbose `Table(name: ..., columns: [...])` definitions. Other ecosystems solve this with heavy code generators (like `build_runner`), but code generation slows down compilation, breaks transparency, creates confusing `.g.dart` artifacts, and prevents developers from seeing what is actually happening behind the scenes.
+  - *Resolution*: Introduced the fluent `void schema()` builder hook directly on `Model<T>` (`string()`, `text()`, `textCol()`, `integer()`, `boolean()`, `datetime()`, `timestamp()`, `jsonCol()`, `float()`, `mediumText()`, `longText()`, `enumeration()`). Models simply declare their columns in a clean, declarative block without managing a `fields` array or `Table` constructor. The table definition and primary keys are auto-constructed in pure Dart at runtime with zero code generation. Safe aliases like `jsonCol()` and `textCol()` ensure no collisions with model getters like `get json`.
+
 ## [1.4.2] - 2026-10-08
 
 ### Fixed
