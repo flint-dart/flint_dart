@@ -26,31 +26,6 @@ class Table {
     this.foreignKeys = const [],
   }) : columns = _ensureIdColumn(columns);
 
-  /// Creates a new [Table] definition from [ColumnField] or [Column] items.
-  factory Table.fromFields({
-    required String name,
-    required Iterable<Object> fields,
-    List<Index> indexes = const [],
-    List<ForeignKey> foreignKeys = const [],
-  }) {
-    final resolvedColumns = fields.map((item) {
-      if (item is Column) return item;
-      if (item is ColumnField<dynamic>) return item.toColumn();
-      throw ArgumentError.value(
-        item,
-        'fields',
-        'Expected Column or ColumnField',
-      );
-    }).toList(growable: false);
-
-    return Table(
-      name: name,
-      columns: resolvedColumns,
-      indexes: indexes,
-      foreignKeys: foreignKeys,
-    );
-  }
-
   /// Ensures every table has an `id` column by default (UUID-based).
   static List<Column> _ensureIdColumn(List<Column> columns) {
     final hasPrimary = columns.any((c) => c.isPrimaryKey);
@@ -67,81 +42,6 @@ class Table {
     }
     return columns;
   }
-}
-
-/// Compile-time typed column descriptor that pairs a column's SQL schema
-/// with its Dart value type [T] for type-safe model access and queries.
-class ColumnField<T> {
-  /// The database column name.
-  final String name;
-
-  /// The database column type.
-  final ColumnType type;
-
-  /// Column length (for string/varchar columns).
-  final int length;
-
-  /// Whether this column is a primary key.
-  final bool isPrimaryKey;
-
-  /// Whether this column is auto-incremented.
-  final bool isAutoIncrement;
-
-  /// Whether this column allows `NULL` values.
-  final bool isNullable;
-
-  /// Default value for the column.
-  final dynamic defaultValue;
-
-  /// Whether this column has a UNIQUE constraint.
-  final bool isUnique;
-
-  /// Allowed enum values when [type] is [ColumnType.enumeration].
-  final List<String>? options;
-
-  /// Optional column comment.
-  final String? comment;
-
-  /// Optional column name to place this column after in MySQL migrations.
-  final String? after;
-
-  /// Optional previous column name when renaming during migrations.
-  final String? renamedFrom;
-
-  /// Creates a compile-time typed column descriptor.
-  const ColumnField(
-    this.name, {
-    required this.type,
-    this.isPrimaryKey = false,
-    this.isAutoIncrement = false,
-    bool? isNullable,
-    this.isUnique = false,
-    this.length = 255,
-    this.defaultValue,
-    this.options,
-    this.comment,
-    this.after,
-    this.renamedFrom,
-  }) : isNullable = isNullable ?? (null is T);
-
-  /// Converts this typed field descriptor into a [Column] schema definition.
-  Column toColumn() => Column(
-        name: name,
-        type: type,
-        isPrimaryKey: isPrimaryKey,
-        isAutoIncrement: isAutoIncrement,
-        isNullable: isNullable,
-        isUnique: isUnique,
-        length: length,
-        defaultValue: defaultValue,
-        options: options,
-        comment: comment,
-        after: after,
-        renamedFrom: renamedFrom,
-      );
-
-  @override
-  String toString() => name;
 }
 
 /// Describes a column in a database table.
