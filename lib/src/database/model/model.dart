@@ -81,20 +81,6 @@ abstract class Model<T extends Model<T>> {
     _attributes[key] = value;
   }
 
-  /// Reads a strongly-typed attribute using a compile-time [ColumnField] descriptor.
-  R? getField<R>(ColumnField<dynamic> field) {
-    final value = getAttribute<R>(field.name);
-    if (value != null) return value;
-    final defaultVal = field.defaultValue;
-    if (defaultVal is R) return defaultVal;
-    return null;
-  }
-
-  /// Sets a strongly-typed attribute using a compile-time [ColumnField] descriptor.
-  void setField<R>(ColumnField<dynamic> field, R? value) {
-    setAttribute(field.name, value);
-  }
-
   final List<Column> _schemaColumns = [];
 
   /// Override this method to fluently define the model's database schema.
@@ -364,46 +350,33 @@ abstract class Model<T extends Model<T>> {
   }
 
   /// Primary key column. Defaults to the column with `isPrimaryKey: true` in
-  /// `_schemaColumns` or `fields`, or `'id'` if not specified.
+  /// `_schemaColumns`, or `'id'` if not specified.
   String get primaryKey {
     for (final col in _schemaColumns) {
       if (col.isPrimaryKey) return col.name;
     }
-    for (final f in fields) {
-      if (f.isPrimaryKey) return f.name;
-    }
     return 'id';
   }
 
-  /// Optional table name for this model.
+  /// Table name for this model.
   ///
-  /// When provided alongside [schema] or [fields], [table] is automatically constructed
+  /// When provided alongside [schema], [table] is automatically constructed
   /// without needing to instantiate [Table] manually.
   String get tableName => '';
 
-  /// Optional list of [ColumnField] descriptors. When provided alongside [tableName],
-  /// [table] is automatically constructed without needing to instantiate [Table] manually.
-  List<ColumnField<dynamic>> get fields => const [];
-
   /// Table schema definition.
   ///
-  /// Subclasses can either override [table] directly, implement [schema], or provide
-  /// [tableName] and [fields] to have [table] automatically constructed for them.
+  /// Subclasses can either override [table] directly, or implement [schema]
+  /// alongside [tableName] to have [table] automatically constructed for them.
   Table get table {
-    if (_schemaColumns.isNotEmpty && tableName.isNotEmpty) {
+    if (tableName.isNotEmpty) {
       return Table(
         name: tableName,
         columns: List<Column>.from(_schemaColumns),
       );
     }
-    if (tableName.isNotEmpty) {
-      if (fields.isNotEmpty) {
-        return Table.fromFields(name: tableName, fields: fields);
-      }
-      return Table(name: tableName, columns: const []);
-    }
     throw UnimplementedError(
-      'Model $runtimeType must either override `Table get table`, implement `void schema()`, or provide `String get tableName` and `List<ColumnField> get fields`.',
+      'Model $runtimeType must either override `Table get table`, or implement `void schema()` alongside `String get tableName`.',
     );
   }
 
@@ -1004,12 +977,6 @@ abstract class Model<T extends Model<T>> {
     return this as T;
   }
 
-  /// Strongly-typed WHERE clause using a compile-time [ColumnField].
-  T whereField<V>(ColumnField<V> field, V value, [String operator = '=']) {
-    qb.where(field.name, operator, value);
-    return this as T;
-  }
-
   /// WHERE with custom operator - chainable.
   T whereOperator(String field, String operator, dynamic value) {
     qb.where(field, operator, value);
@@ -1019,12 +986,6 @@ abstract class Model<T extends Model<T>> {
   /// WHERE IN clause - chainable.
   T whereIn(String field, List<dynamic> values) {
     qb.whereIn(field, values);
-    return this as T;
-  }
-
-  /// Strongly-typed WHERE IN clause using a compile-time [ColumnField].
-  T whereInField<V>(ColumnField<V> field, List<V> values) {
-    qb.whereIn(field.name, values);
     return this as T;
   }
 
@@ -1072,11 +1033,6 @@ abstract class Model<T extends Model<T>> {
     return this as T;
   }
 
-  /// Strongly-typed ORDER BY clause using a compile-time [ColumnField].
-  T orderByField<V>(ColumnField<V> field, {bool? asc, bool? desc}) {
-    return orderBy(field.name, asc: asc, desc: desc);
-  }
-
   /// LIMIT clause - chainable.
   T limit(int value) {
     qb.limit(value);
@@ -1098,12 +1054,6 @@ abstract class Model<T extends Model<T>> {
   /// SELECT specific fields - chainable.
   T select(List<String> fields) {
     qb.select(fields);
-    return this as T;
-  }
-
-  /// Select specific typed [ColumnField] descriptors - chainable.
-  T selectFields(Iterable<ColumnField<dynamic>> fields) {
-    qb.select(fields.map((f) => f.name).toList(growable: false));
     return this as T;
   }
 
