@@ -62,41 +62,6 @@ class _BrokenLateDidMountComponent extends StatefulComponent {
   }
 }
 
-class _ArticleModel extends Model<_ArticleModel> {
-  _ArticleModel() : super(_ArticleModel.new);
-
-  static const colTitle = schema.ColumnField<String>(
-    'title',
-    type: schema.ColumnType.string,
-    length: 200,
-  );
-  static const colStatus = schema.ColumnField<String>(
-    'status',
-    type: schema.ColumnType.string,
-    defaultValue: 'draft',
-  );
-  static const colViews = schema.ColumnField<int>(
-    'views',
-    type: schema.ColumnType.integer,
-    defaultValue: 0,
-  );
-
-  String get title => getField(colTitle) ?? '';
-  set title(String value) => setField(colTitle, value);
-
-  String get status => getField(colStatus) ?? 'draft';
-  set status(String value) => setField(colStatus, value);
-
-  int get views => getField(colViews) ?? 0;
-  set views(int value) => setField(colViews, value);
-
-  @override
-  String get tableName => 'articles';
-
-  @override
-  List<schema.ColumnField> get fields => [colTitle, colStatus, colViews];
-}
-
 class _FluentPostModel extends Model<_FluentPostModel> {
   _FluentPostModel() : super(_FluentPostModel.new);
 
@@ -110,6 +75,7 @@ class _FluentPostModel extends Model<_FluentPostModel> {
     this.text('content');
     jsonCol('tagIds', isNullable: true);
     string('status', defaultValue: 'draft');
+    integer('views', defaultValue: 0);
   }
 
   String get title => getAttribute('title') ?? '';
@@ -117,6 +83,12 @@ class _FluentPostModel extends Model<_FluentPostModel> {
 
   String get slug => getAttribute('slug') ?? '';
   set slug(String val) => setAttribute('slug', val);
+
+  String get status => getAttribute('status') ?? 'draft';
+  set status(String val) => setAttribute('status', val);
+
+  int get views => getAttribute('views') ?? 0;
+  set views(int val) => setAttribute('views', val);
 }
 
 class _DuplicateTableRegistry extends schema.TableRegistry {
@@ -124,8 +96,8 @@ class _DuplicateTableRegistry extends schema.TableRegistry {
 
   @override
   List<schema.Table> get tables => [
-        _ArticleModel().table,
-        _ArticleModel().table,
+        _FluentPostModel().table,
+        _FluentPostModel().table,
       ];
 }
 
@@ -190,24 +162,24 @@ void main() {
     });
   });
 
-  group('ORM Ergonomics & ColumnField Constants', () {
-    test('exposes query builder and ColumnField methods directly on Model<T>', () {
+  group('ORM Ergonomics & Fluent Schema Builder', () {
+    test('exposes query builder methods directly on Model<T>', () {
       // Notice: model_query.dart is NOT imported in this test file!
-      final model = _ArticleModel()
+      final model = _FluentPostModel()
         ..title = 'Flint 1.5 Release'
         ..views = 120;
 
       expect(model.title, equals('Flint 1.5 Release'));
       expect(model.status, equals('draft'));
       expect(model.views, equals(120));
-      expect(model.table.name, equals('articles'));
-      expect(model.table.columns.length, equals(4)); // auto-prepended id + 3 fields
+      expect(model.table.name, equals('blog_posts'));
+      expect(model.table.columns.length, equals(7)); // auto-prepended id + 6 schema columns
       expect(model.primaryKey, equals('id'));
 
       model
-          .whereField(_ArticleModel.colStatus, 'published')
-          .whereInField(_ArticleModel.colViews, [10, 20, 120])
-          .orderByField(_ArticleModel.colViews, desc: true)
+          .where('status', 'published')
+          .whereIn('views', [10, 20, 120])
+          .orderBy('views', desc: true)
           .limit(5);
 
       final whereSql = model.qb.compileWhereSql();
@@ -225,10 +197,10 @@ void main() {
       expect(post.title, equals('Fluent Flint Dart'));
       expect(post.slug, equals('fluent-flint-dart'));
       expect(post.table.name, equals('blog_posts'));
-      // Auto-prepended id + 5 columns defined in schema()
-      expect(post.table.columns.length, equals(6));
+      // Auto-prepended id + 6 columns defined in schema()
+      expect(post.table.columns.length, equals(7));
       final colNames = post.table.columns.map((c) => c.name).toList();
-      expect(colNames, equals(['id', 'title', 'slug', 'content', 'tagIds', 'status']));
+      expect(colNames, equals(['id', 'title', 'slug', 'content', 'tagIds', 'status', 'views']));
       expect(post.primaryKey, equals('id'));
     });
 
@@ -236,7 +208,7 @@ void main() {
       const registry = _DuplicateTableRegistry();
       expect(registry.tables.length, equals(2));
       expect(registry.uniqueTables.length, equals(1));
-      expect(registry.uniqueTables.first.name, equals('articles'));
+      expect(registry.uniqueTables.first.name, equals('blog_posts'));
     });
   });
 }
