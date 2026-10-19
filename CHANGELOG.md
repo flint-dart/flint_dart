@@ -20,15 +20,13 @@ All notable changes to this project are documented in this file.
   - Added typed request parameter extraction methods on `Request`: `req.paramTyped<T>(name)`, `req.requireParam<T>(name)`, `req.paramInt(name)`, `req.paramBool(name)`, `req.queryParamTyped<T>(name)`, and `req.queryList(name)`.
 
 - **Direct ORM Query Ergonomics & Fluent `schema()` Builder**:
-  - Folded all query builder methods (`where`, `whereField`, `orderBy`, `orderByField`, `paginate`, `count`, `first`, `find`, `findField`, `exists`, `pluck`, `cursorPaginate`, etc.) directly into `Model<T>`, eliminating the requirement to import `package:flint_dart/model_query.dart`.
+  - Folded all query builder methods (`where`, `whereIn`, `orderBy`, `paginate`, `count`, `first`, `find`, `exists`, `pluck`, `cursorPaginate`, etc.) directly into `Model<T>`, eliminating the requirement to import `package:flint_dart/model_query.dart`.
   - Folded all model persistence and CRUD methods (`create`, `update`, `upsert`, `delete`, `save`, `restore`, `forceDelete`) directly into `Model<T>`, eliminating the requirement to import `package:flint_dart/model_crud.dart`.
   - Preserved `model_query.dart` and `model_crud.dart` as backward-compatible empty extensions with deprecation annotations so existing code continues to compile without breaking changes.
-  - Added fluent `void schema()` builder hook on `Model<T>` with column helpers (`string`, `text`, `textCol`, `integer`, `boolean`, `datetime`, `timestamp`, `jsonCol`, `jsonField`, `float`, `mediumText`, `longText`, `enumeration`, `column`) that automatically populates the model's `Table` definition at runtime without code generation (`build_runner`) or manual array management.
-  - Added automatic `table` and `primaryKey` derivation on `Model<T>` when `tableName` and either `schema()` or `fields` are provided, eliminating the need to construct `Table(...)` or `Table.fromFields(...)` manually.
-  - Introduced optional `ColumnField<T>` compile-time column descriptors with `const` constructors for teams desiring compile-time query constants (`whereField`).
-  - Added `Model.getField<R>(ColumnField)` and `Model.setField<R>(ColumnField, R? value)` for type-safe attribute access on models.
+  - Added fluent `void schema()` builder hook on `Model<T>` with column helpers (`string`, `text`, `textCol`, `integer`, `boolean`, `datetime`, `timestamp`, `jsonCol`, `jsonField`, `float`, `mediumText`, `longText`, `enumeration`, `column`) that automatically populates the model's `Table` definition at runtime without code generation (`build_runner`), manual array management, or boilerplate field descriptors.
+  - Added automatic `table` and `primaryKey` derivation on `Model<T>` when `tableName` and `schema()` are provided, eliminating the need to construct `Table(...)` manually.
   - Added automatic table deduplication in `GlobalTableRegistry` (`TableRegistry.uniqueTables`) and `MigrationEngine` to prevent duplicate migrations or repeated `ALTER TABLE` queries when the same table schema is registered more than once.
-  - Updated CLI code generators (`make:model`, `make:page`) to generate `ColumnField`, `Table.fromFields`, `TypedStatefulComponent`, and `initProps` by default.
+  - Updated CLI code generators (`make:model`, `make:page`) to generate the fluent `schema()`, `TypedStatefulComponent`, and `initProps` by default.
 
 ### Problems Addressed
 - **SSR LateInitializationError on Unmounted Client Fields**:
@@ -39,9 +37,13 @@ All notable changes to this project are documented in this file.
   - *Problem*: Passing page props via untyped `Map<String, dynamic>` maps and parsing route parameters via `req.param('id')` was prone to silent typos, missing keys, and invalid runtime casts with zero compile-time feedback between server controllers and UI pages.
   - *Resolution*: `FlintProps`, `TypedStatefulComponent<TProps>`, `FlintPageRoute<TProps>`, and `req.paramTyped<T>()` enforce end-to-end compile-time type safety across route handlers, controller serialization, and browser components.
 
-- **Fragmented ORM Imports, Magic Strings & Duplicate Migration Passes**:
-  - *Problem*: Using query builder (`where`, `first`, `paginate`) or CRUD methods on `Model` required separate extension imports (`model_query.dart`, `model_crud.dart`), causing confusing missing method errors for developers. Column names were hardcoded string literals with no autocomplete or compile-time validation. Additionally, registering multiple model instances or duplicate table references in `TableRegistry` caused duplicate migrations or SQL errors during table alters.
-  - *Resolution*: Query builder and CRUD methods are now directly part of `Model<T>`. `ColumnField<T>` provides compile-time constants for column names and schema definitions. `TableRegistry.uniqueTables` automatically deduplicates registered tables by table name and logs a diagnostic warning.
+- **Fragmented ORM Imports & Duplicate Migration Passes**:
+  - *Problem*: Using query builder (`where`, `first`, `paginate`) or CRUD methods on `Model` required separate extension imports (`model_query.dart`, `model_crud.dart`), causing confusing missing method errors for developers. Additionally, registering multiple model instances or duplicate table references in `TableRegistry` caused duplicate migrations or SQL errors during table alters.
+  - *Resolution*: Query builder and CRUD methods are now directly part of `Model<T>`. `TableRegistry.uniqueTables` automatically deduplicates registered tables by table name and logs a diagnostic warning.
+
+- **Model Schema Boilerplate & Code-Gen Independence**:
+  - *Problem*: Defining database models previously required high ceremony: either repeating every column across verbose descriptors, or hand-constructing manual `Table(name: ..., columns: [...])` definitions. Other ecosystems solve this with heavy code generators (like `build_runner`), but code generation slows down compilation, breaks transparency, creates confusing `.g.dart` artifacts, and prevents developers from seeing what is actually happening behind the scenes.
+  - *Resolution*: Introduced the fluent `void schema()` builder hook directly on `Model<T>` (`string()`, `text()`, `textCol()`, `integer()`, `boolean()`, `datetime()`, `timestamp()`, `jsonCol()`, `float()`, `mediumText()`, `longText()`, `enumeration()`). Models simply declare their columns in a clean, declarative block. The table definition and primary keys are auto-constructed in pure Dart at runtime with zero code generation. Safe aliases like `jsonCol()` and `textCol()` ensure no collisions with model getters like `get json`.
 
 ## [1.4.2] - 2026-10-08
 

@@ -45,32 +45,20 @@ class MakeModelCommand extends FlintCommand {
   String _generateModelTemplate(String className, String fileName) {
     return '''
 import 'package:flint_dart/model.dart';
-import 'package:flint_dart/schema.dart';
 
 class $className extends Model<$className> {
   $className() : super($className.new);
-
-  static const colId = ColumnField<String>(
-    'id',
-    type: ColumnType.string,
-    isPrimaryKey: true,
-  );
-  static const colName = ColumnField<String>(
-    'name',
-    type: ColumnType.string,
-  );
-
-  String? get name => getField(colName);
-  set name(String? value) => setField(colName, value ?? '');
 
   @override
   String get tableName => '${fileName.split('.').first}s';
 
   @override
-  List<ColumnField> get fields => [
-    colId,
-    colName,
-  ];
+  void schema() {
+    string('name');
+  }
+
+  String get name => getAttribute('name') ?? '';
+  set name(String value) => setAttribute('name', value);
 }
 ''';
   }
