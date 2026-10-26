@@ -15,6 +15,7 @@ class FlintRoot {
   final web.Element host;
   FlintNode? _node;
   Map<String, _ComponentMount> _componentSlots = {};
+  final _registeredStyleIds = <String>{};
   bool _renderQueued = false;
   bool _mounted = false;
 
@@ -43,8 +44,14 @@ class FlintRoot {
     final activeControl = _ActiveControl.capture(host);
     final previousSlots = _componentSlots;
     final nextSlots = <String, _ComponentMount>{};
-    host.textContent = '';
-    host.appendChild(_createDom(node, '0', previousSlots, nextSlots));
+    final nextDom = _createDom(node, '0', previousSlots, nextSlots);
+    final firstChild =
+        host.childNodes.length > 0 ? host.childNodes.item(0) : null;
+    if (firstChild != null) {
+      host.replaceChild(nextDom, firstChild);
+    } else {
+      host.appendChild(nextDom);
+    }
     _restoreActiveControl(activeControl, host);
     for (final entry in previousSlots.entries) {
       if (!nextSlots.containsKey(entry.key)) {
@@ -247,9 +254,10 @@ class FlintRoot {
   void _restoreActiveControl(_ActiveControl? activeControl, web.Element scope) {
     if (activeControl == null) return;
 
-    activeControl.restore(scope);
-    scheduleMicrotask(() => activeControl.restore(scope));
-    Timer.run(() => activeControl.restore(scope));
+    final restored = activeControl.restore(scope);
+    if (!restored) {
+      scheduleMicrotask(() => activeControl.restore(scope));
+    }
   }
 
   void _unmountComponentTree(_ComponentMount mount) {
@@ -392,10 +400,8 @@ class FlintRoot {
     if (cssText.trim().isEmpty) return;
 
     final id = 'flint-style-${cssText.hashCode}';
-    if (web.document.querySelector('style[data-flint-style-id="$id"]') !=
-        null) {
-      return;
-    }
+    if (_registeredStyleIds.contains(id)) return;
+    _registeredStyleIds.add(id);
 
     final head = web.document.querySelector('head');
     if (head == null) return;
@@ -530,9 +536,9 @@ class _ActiveControl {
     return null;
   }
 
-  void restore(web.Element scope) {
+  bool restore(web.Element scope) {
     final control = _find(scope);
-    if (control == null) return;
+    if (control == null) return false;
 
     final tagName = control.tagName.toLowerCase();
     if (tagName == 'input') {
@@ -542,7 +548,7 @@ class _ActiveControl {
       }
       input.focus();
       _restoreSelection(input);
-      return;
+      return true;
     }
 
     if (tagName == 'textarea') {
@@ -552,7 +558,10 @@ class _ActiveControl {
       }
       textarea.focus();
       _restoreSelection(textarea);
+      return true;
     }
+
+    return false;
   }
 
   web.Element? _find(web.Element scope) {

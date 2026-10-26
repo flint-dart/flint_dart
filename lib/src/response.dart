@@ -1052,9 +1052,13 @@ $hotReloadScript
       raw.statusCode = 200;
       raw.headers.contentType = ContentType.html;
 
+      final renderData = includePreview
+          ? mailable.resolvePreviewData()
+          : mailable.data;
+
       final html = TemplateEngine().render(
         mailable.view,
-        mailable.data,
+        renderData,
       );
 
       raw.write(html);

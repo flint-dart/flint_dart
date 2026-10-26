@@ -226,6 +226,8 @@ class Flint {
   ///   This is useful for very minimal or fully customized setups.
   final bool withDefaultMiddleware;
   final bool enableSwaggerDocs;
+  final bool? enableMailPreview;
+  final MailRegistry? mailRegistry;
   final bool autoConnectMail;
   final bool? autoMigrate;
   final bool autoMigrateDefault;
@@ -271,7 +273,9 @@ class Flint {
       this.autoRegisterJobs = true,
       this.includeJobTablesInMigrations = true,
       this.withDefaultMiddleware = true,
-      this.enableSwaggerDocs = false})
+      this.enableSwaggerDocs = false,
+      this.enableMailPreview,
+      this.mailRegistry})
       : _flintPageServerRenderer = flintPageServerRenderer,
         _serverRenderFlintPages = serverRenderFlintPages {
     this.cacheDriver = _resolveCacheDriver(cacheDriver, autoConnectRedis);
@@ -297,6 +301,7 @@ class Flint {
     if (autoRegisterJobs) {
       jobsRegistry?.registerJobs();
     }
+    mailRegistry?.registerMailables();
     Response.flintPageServerRenderer = flintPageServerRenderer;
     Response.flintPageServerRenderingEnabled = serverRenderFlintPages;
 
@@ -313,7 +318,37 @@ class Flint {
 
     if (viewPath != null) {
       Flint.viewPath = viewPath;
+      FlintViewPathLookup.customViewPath = viewPath;
     }
+
+    if ( _shouldEnableMailPreview(enableMailPreview)) {
+      _registerMailPreviewRoutes();
+    }
+  }
+
+  static bool _shouldEnableMailPreview(bool? explicitValue) {
+    if (explicitValue != null) return explicitValue;
+    final env = FlintEnv.get('APP_ENV', FlintEnv.get('FLINT_ENV', 'development'))
+        .trim()
+        .toLowerCase();
+    if (env == 'production' || env == 'prod') {
+      return false;
+    }
+    return FlintEnv.getBool('FLINT_MAIL_PREVIEW', true);
+  }
+
+  /// Registers a [ViewMailable] for live browser preview at `/mail/preview/:name`.
+  void previewMail(ViewMailable mailable, {String? name}) {
+    MailPreviewRegistry.register(mailable, name: name);
+  }
+
+  void _registerMailPreviewRoutes() {
+    get('/mail/preview', (req, res) {
+      return MailPreviewRegistry.handleIndex(req, res, rootPath: rootPath);
+    });
+    get('/mail/preview/:name', (req, res) {
+      return MailPreviewRegistry.handlePreview(req, res, rootPath: rootPath);
+    });
   }
 
   static CacheDriver _resolveCacheDriver(
