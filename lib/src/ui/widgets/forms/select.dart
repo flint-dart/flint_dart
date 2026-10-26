@@ -134,6 +134,7 @@ class Select extends FlintElement {
             if (value != null) 'value': value,
             if (onChanged != null) 'onChange': onChanged,
           },
+          defaultStyle: const {'outline': 'none'},
           dartStyle: inputComponentStyle(
             variant: variant,
             size: size,

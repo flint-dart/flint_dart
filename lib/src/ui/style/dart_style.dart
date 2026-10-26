@@ -185,6 +185,9 @@ class DartStyle {
   /// CSS `border-collapse` value.
   final Object? borderCollapse;
 
+  /// CSS `outline` value.
+  final Object? outline;
+
   /// CSS `box-shadow` value.
   final Object? shadow;
 
@@ -321,6 +324,7 @@ class DartStyle {
     this.borderBottom,
     this.borderLeft,
     this.borderCollapse,
+    this.outline,
     this.shadow,
     this.opacity,
     this.gradient,
@@ -422,6 +426,7 @@ class DartStyle {
       'border-bottom': borderBottom?.toCss(),
       'border-left': borderLeft?.toCss(),
       'border-collapse': cssValue(borderCollapse, unitlessNumber: true),
+      'outline': cssValue(outline, unitlessNumber: true),
       'box-shadow':
           shadow is Shadow ? (shadow as Shadow).toCss() : cssValue(shadow),
       'opacity': opacity,
@@ -545,6 +550,7 @@ class DartStyle {
       borderBottom: override.borderBottom ?? borderBottom,
       borderLeft: override.borderLeft ?? borderLeft,
       borderCollapse: override.borderCollapse ?? borderCollapse,
+      outline: override.outline ?? outline,
       shadow: override.shadow ?? shadow,
       opacity: override.opacity ?? opacity,
       gradient: override.gradient ?? gradient,

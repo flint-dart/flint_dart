@@ -109,6 +109,7 @@ final buttonBaseStyle = DartStyle(
   justifyContent: JustifyContent.center,
   gap: 8,
   radius: 8,
+  outline: 'none',
   border: Border.all(color: Colors.transparent),
   fontWeight: 600,
   textDecoration: TextDecorationStyle.none,
@@ -133,7 +134,17 @@ DartStyle buttonComponentStyle({
             : DartStyle(
                 hover: buttonHoverStyle(variant, tone),
                 active: DartStyle(transform: StyleTransform.scale(0.98)),
+                focus: DartStyle(
+                  outline: 'none',
+                  shadow: Shadow(
+                    y: 0,
+                    blur: 0,
+                    spread: 3,
+                    color: toneFocus(tone),
+                  ),
+                ),
                 focusVisible: DartStyle(
+                  outline: 'none',
                   shadow: Shadow(
                     y: 0,
                     blur: 0,
@@ -325,8 +336,15 @@ DartStyle inputComponentStyle({
   required bool disabled,
   required bool invalid,
 }) {
+  final focusRingStyle = const DartStyle(
+    outline: 'none',
+    shadow: Shadow.none,
+  );
+
   final base = DartStyle(
     width: SizeValue.full,
+    outline: 'none',
+    shadow: Shadow.none,
     border: Border.all(
       color: ThemeToken.color('inputBorder', fallback: '#d0d5dd').toCss(),
     ),
@@ -335,26 +353,13 @@ DartStyle inputComponentStyle({
     color: ThemeToken.color('inputText', fallback: '#101828').toCss(),
     background: ThemeToken.color('inputSurface', fallback: '#ffffff').toCss(),
     transition: StyleTransition.colors(milliseconds: 120),
-    focusVisible: DartStyle(
-      border: Border.all(
-        color: ThemeToken.color('primarySolid', fallback: '#155eef').toCss(),
-      ),
-      shadow: Shadow(
-        y: 0,
-        blur: 0,
-        spread: 3,
-        color: ThemeToken.color('primaryFocus', fallback: '#155eef').toCss(),
-      ),
-    ),
+    focus: focusRingStyle,
+    focusVisible: focusRingStyle,
     invalid: DartStyle(
+      outline: 'none',
+      shadow: Shadow.none,
       border: Border.all(
         color: ThemeToken.color('dangerSolid', fallback: '#d92d20').toCss(),
-      ),
-      shadow: Shadow(
-        y: 0,
-        blur: 0,
-        spread: 3,
-        color: ThemeToken.color('dangerFocus', fallback: '#d92d20').toCss(),
       ),
     ),
     disabled: DartStyle(
@@ -496,7 +501,17 @@ DartStyle navItemComponentStyle({
         disabled
             ? null
             : DartStyle(
+                focus: DartStyle(
+                  outline: 'none',
+                  shadow: Shadow(
+                    y: 0,
+                    blur: 0,
+                    spread: 3,
+                    color: toneFocus(tone),
+                  ),
+                ),
                 focusVisible: DartStyle(
+                  outline: 'none',
                   shadow: Shadow(
                     y: 0,
                     blur: 0,

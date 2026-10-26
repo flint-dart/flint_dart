@@ -20,6 +20,7 @@ class WebUiCommand extends FlintCommand {
     String? pageArg;
     var pageBundles = true;
     var sharedRuntime = false;
+    var watchMode = false;
 
     for (var i = 0; i < args.length; i++) {
       final arg = args[i];
@@ -54,6 +55,10 @@ class WebUiCommand extends FlintCommand {
         sharedRuntime = true;
         pageBundles = false;
       } else if (arg == '--no-shared-runtime') {
+        sharedRuntime = false;
+      } else if (arg == '--watch') {
+        watchMode = true;
+        pageBundles = true;
         sharedRuntime = false;
       } else if (arg == '--help' || arg == '-h') {
         _printHelp();
@@ -125,11 +130,126 @@ class WebUiCommand extends FlintCommand {
       Log.info('Done building Flint UI.');
     }
 
+    if (watchMode) {
+      await _watch(build, pagesConfigArg);
+      return;
+    }
+
     if (buildOnly) {
       return;
     }
 
     await _serve(build.webDir, port);
+  }
+
+  Future<void> _watch(
+    FlintWebUiBuild build,
+    String? configPath,
+  ) async {
+    Log.info('[FLINT] Watch mode active. Listening for changes in ${build.uiDir.path}');
+    Log.debug('Press Ctrl+C to stop.');
+
+    final config = FlintWebUiBuilder.discoverPageBundleConfig(
+      build,
+      configPath: configPath,
+    );
+
+    ProcessSignal.sigint.watch().listen((_) {
+      Log.debug('\n[FLINT] Watch mode stopped.');
+      exit(0);
+    });
+
+    DateTime? lastRebuild;
+
+    await for (final event in build.uiDir.watch(recursive: true)) {
+      final now = DateTime.now();
+      if (lastRebuild != null &&
+          now.difference(lastRebuild).inMilliseconds < 300) {
+        continue;
+      }
+      lastRebuild = now;
+
+      final changedFile = event.path;
+      final lower = changedFile.toLowerCase();
+      if (!lower.endsWith('.dart') && !lower.endsWith('.yaml')) continue;
+
+      Log.info('[FLINT] Change detected: $changedFile');
+
+      final affectedPages = <String>{};
+      if (config != null) {
+        final stem = path.basenameWithoutExtension(changedFile).toLowerCase();
+        final fileBase = path.basename(changedFile);
+
+        // 1. Direct stem match in page target import
+        for (final target in config.pageTargets.entries) {
+          final targetImport = target.value.importUri.toLowerCase();
+          if (targetImport.contains('/$stem.dart') || targetImport.endsWith('/$stem')) {
+            affectedPages.add(target.key);
+          }
+        }
+
+        // 2. Section / Component naming prefix heuristic (e.g. login_section -> login_page)
+        if (affectedPages.isEmpty) {
+          final cleanStem = stem.replaceAll(
+            RegExp(r'_(section|form|component|modal|view|card|item|table|header|footer|hero)$'),
+            '',
+          );
+          if (cleanStem != stem) {
+            for (final target in config.pageTargets.entries) {
+              final targetImport = target.value.importUri.toLowerCase();
+              if (targetImport.contains('/${cleanStem}_page.dart') ||
+                  targetImport.contains('/$cleanStem.dart') ||
+                  targetImport.endsWith('/$cleanStem')) {
+                affectedPages.add(target.key);
+              }
+            }
+          }
+        }
+
+        // 3. Inspect page files to find ALL pages that import the changed file or component
+        if (affectedPages.isEmpty) {
+          final libRoot = Directory('lib').absolute.path;
+          for (final target in config.pageTargets.entries) {
+            final targetUri = target.value.importUri;
+            String? pagePath;
+            if (targetUri.startsWith('package:')) {
+              final parts = targetUri.substring('package:'.length).split('/');
+              if (parts.length > 1) {
+                pagePath = path.joinAll([libRoot, ...parts.skip(1)]);
+              }
+            }
+            if (pagePath != null) {
+              final pageFile = File(pagePath);
+              if (pageFile.existsSync()) {
+                try {
+                  final content = pageFile.readAsStringSync();
+                  if (content.contains(fileBase) || content.contains(stem)) {
+                    affectedPages.add(target.key);
+                  }
+                } catch (_) {}
+              }
+            }
+          }
+        }
+      }
+
+      try {
+        if (affectedPages.isNotEmpty && config != null) {
+          Log.info('[FLINT] Rebuilding only changed page(s): ${affectedPages.join(", ")}');
+          await FlintWebUiBuilder.compilePageBundles(
+            build,
+            configPath: configPath,
+            onlyPages: affectedPages,
+          );
+        } else {
+          Log.info('[FLINT] Rebuilding all pages...');
+          await FlintWebUiBuilder.compileDefault(build, configPath: configPath);
+        }
+        Log.info('[FLINT] Rebuild complete.');
+      } catch (e) {
+        Log.error('[FLINT] Rebuild failed: $e');
+      }
+    }
   }
 
   Future<void> _serve(Directory webDir, int port) async {
@@ -191,6 +311,7 @@ Options:
   --page <name>        Compile one page-level bundle by component name
   --port <number>      Local server port (default: 8080)
   --build-only         Compile JavaScript without starting the server
+  --watch              Watch for file changes and rebuild incrementally
   --help, -h           Show this help
 
 Examples:
@@ -202,6 +323,7 @@ Examples:
   flint web --build-only --shared-runtime
   flint web --build-only --no-page-bundles
   flint web --build-only --page Home
+  flint web --watch
 ''');
   }
 }
