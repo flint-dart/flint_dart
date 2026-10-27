@@ -24,6 +24,7 @@ class Popover extends StatelessComponent {
   final bool open;
   final String placement;
   final String? className;
+  @override
   final Map<String, Object?> props;
   final Map<String, Object?> style;
   final DartStyle? dartStyle;

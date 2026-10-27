@@ -2,6 +2,7 @@ import '../../component.dart';
 import '../../component_props.dart';
 import '../../node.dart';
 import '../../style.dart';
+import '../../browser/events.dart';
 
 /// Modal dialog overlay with optional header, close action, and footer actions.
 class Modal extends StatelessComponent {
@@ -28,6 +29,7 @@ class Modal extends StatelessComponent {
   final Object? actions;
   final String size;
   final String? className;
+  @override
   final Map<String, Object?> props;
   final Map<String, Object?> style;
   final DartStyle? dartStyle;
@@ -49,7 +51,12 @@ class Modal extends StatelessComponent {
           'role': 'dialog',
           'aria-modal': 'true',
           if (title != null) 'aria-label': title,
-          if (onClose != null && closeOnBackdrop) 'onClick': onClose,
+          if (onClose != null && closeOnBackdrop)
+            'onClick': (event) {
+              if (FlintEvent.target(event) == FlintEvent.currentTarget(event)) {
+                onClose!(event);
+              }
+            },
         },
         className: className,
         defaultStyle: const {
@@ -164,9 +171,5 @@ String _modalWidth(String size) {
 }
 
 void _stopPropagation(Object event) {
-  try {
-    (event as dynamic).stopPropagation();
-  } catch (_) {
-    // Non-browser renderers do not expose DOM event helpers.
-  }
+  FlintEvent.stopPropagation(event);
 }

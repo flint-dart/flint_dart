@@ -265,6 +265,7 @@ class MediaPreview extends StatefulComponent {
   final String? className;
 
   /// Additional element props.
+  @override
   final Map<String, Object?> props;
 
   /// Additional inline styles.

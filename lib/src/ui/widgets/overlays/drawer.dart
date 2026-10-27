@@ -25,6 +25,7 @@ class Drawer extends StatelessComponent {
   final List<Object?> children;
   final String side;
   final String? className;
+  @override
   final Map<String, Object?> props;
   final Map<String, Object?> style;
   final DartStyle? dartStyle;

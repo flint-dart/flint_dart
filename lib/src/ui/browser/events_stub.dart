@@ -36,6 +36,8 @@ class FlintEvent {
 
   static Object? target(Object? event) => null;
 
+  static Object? currentTarget(Object? event) => null;
+
   static String value(Object? event) => '';
 
   static String html(Object? event) => '';
