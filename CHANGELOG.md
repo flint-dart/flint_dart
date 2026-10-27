@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## [1.5.1+3] - 2026-10-27
+## [1.5.2] - 2026-10-27
 
 ### Fixed & Improved
 - **Button Hover Ergonomics & Developer Style Precedence**:
