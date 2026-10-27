@@ -42,6 +42,7 @@ class HtmlContent extends StatefulComponent {
   DartStyle? dartStyle;
 
   /// Extra props for the wrapper element.
+  @override
   Map<String, Object?> props;
 
   /// When true, writes [html] as HTML. When false, writes it as text content.

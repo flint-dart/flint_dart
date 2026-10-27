@@ -242,6 +242,7 @@ class Terminal extends StatefulComponent {
   final String? className;
 
   /// Additional wrapper HTML properties.
+  @override
   final Map<String, Object?> props;
 
   /// Additional wrapper inline styles.

@@ -28,6 +28,7 @@ class Modal extends StatelessComponent {
   final Object? actions;
   final String size;
   final String? className;
+  @override
   final Map<String, Object?> props;
   final Map<String, Object?> style;
   final DartStyle? dartStyle;

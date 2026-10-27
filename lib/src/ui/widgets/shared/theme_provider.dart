@@ -32,6 +32,7 @@ class ThemeProvider extends StatelessComponent {
   final String? className;
 
   /// Additional props merged onto the provider element.
+  @override
   final Map<String, Object?> props;
 
   @override

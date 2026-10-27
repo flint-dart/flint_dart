@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.1+2] - 2026-10-27
+
+### Added
+- **Default Generic Typed Props on `StatefulComponent<TProps>` & `StatelessComponent<TProps>`**:
+  - Upgraded `StatefulComponent<TProps>` and `StatelessComponent<TProps>` to support optional strongly-typed `TProps` generics natively (`class MyPage extends StatefulComponent<MyPageProps>` and `class MyView extends StatelessComponent<MyViewProps>`), eliminating the need to import or extend separate `TypedStatefulComponent` / `TypedStatelessComponent` classes.
+  - Added optional positional `[TProps? props]` constructor parameter and `TProps get props` / `set props(covariant TProps value)` on `StatefulComponent<TProps>` (plus `TProps get props` on `StatelessComponent<TProps>`), automatically syncing `_props` across `updateFrom(...)` when component instances are preserved.
+  - Fully backwards-compatible with unparameterized components (`class Counter extends StatefulComponent` and `class Header extends StatelessComponent`), where `TProps` defaults to `dynamic` and no constructor arguments are required.
+  - Kept `TypedStatefulComponent<TProps>` and `TypedStatelessComponent<TProps>` as zero-cost `typedef` aliases to `StatefulComponent<TProps>` and `StatelessComponent<TProps>` so existing codebases continue to compile without changes.
+  - Updated `flint --make-page <Name>` CLI generator to scaffold `class <Name>Page extends StatefulComponent<<Name>PageProps>` by default.
+
 ## [1.5.1+1] - 2026-10-27
 
 ### Added

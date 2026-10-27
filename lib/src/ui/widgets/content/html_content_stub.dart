@@ -20,6 +20,7 @@ class HtmlContent extends StatefulComponent {
   String? selector;
   String? className;
   DartStyle? dartStyle;
+  @override
   Map<String, Object?> props;
   bool trusted;
 

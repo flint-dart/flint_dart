@@ -137,6 +137,7 @@ class RichTextEditor extends StatefulComponent {
   String? className;
 
   /// Extra HTML properties for the wrapper element.
+  @override
   Map<String, Object?> props;
 
   /// Extra HTML properties for the contenteditable element.

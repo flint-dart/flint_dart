@@ -159,7 +159,7 @@ class $propsClassName implements FlintProps {
   Map<String, dynamic> toJson() => {'title': title};
 }
 
-class $className extends TypedStatefulComponent<$propsClassName> {
+class $className extends StatefulComponent<$propsClassName> {
   static final route = FlintPageRoute<$propsClassName>(
     name: '$pageName',
     fromJson: $propsClassName.fromJson,
