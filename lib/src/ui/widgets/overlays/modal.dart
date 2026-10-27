@@ -2,7 +2,8 @@ import '../../component.dart';
 import '../../component_props.dart';
 import '../../node.dart';
 import '../../style.dart';
-import '../../browser/events.dart';
+import '../../browser/events_stub.dart'
+    if (dart.library.js_interop) '../../browser/events.dart';
 
 /// Modal dialog overlay with optional header, close action, and footer actions.
 class Modal extends StatelessComponent {
