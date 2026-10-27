@@ -103,6 +103,20 @@ class Router {
     Map<String, String> paramsOut, {
     required bool includeWildcard,
   }) {
+    if (!includeWildcard) {
+      // Prefer exact static routes over parameterized routes regardless of order
+      for (final route in routes) {
+        if (route.method != method) continue;
+        if (route.path.endsWith('/*') || route.path.contains(':')) continue;
+
+        final params = <String, String>{};
+        if (_pathMatches(route.path, pathToMatch, params)) {
+          paramsOut.addAll(params);
+          return _wrapWithMiddlewares(route.handler, route.middlewares);
+        }
+      }
+    }
+
     for (final route in routes) {
       if (route.method != method) continue;
 

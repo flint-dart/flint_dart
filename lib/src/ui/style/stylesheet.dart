@@ -321,6 +321,10 @@ class StyleRule {
         invalid = const {};
 }
 
+// Expando cache for StyleSheet.cssText — allows memoization while keeping the
+// const constructor intact. Each StyleSheet instance is computed at most once.
+final _stylesheetCssTextCache = Expando<String>();
+
 /// Named stylesheet that compiles class-based style rules to CSS text.
 class StyleSheet {
   /// Stylesheet namespace used in generated class names.
@@ -342,7 +346,10 @@ class StyleSheet {
   }
 
   /// Compiled CSS text for this stylesheet.
-  String get cssText {
+  /// The result is memoized per instance — computed at most once.
+  String get cssText => _stylesheetCssTextCache[this] ??= _compileCssText();
+
+  String _compileCssText() {
     final chunks = <String>[];
 
     for (final entry in rules.entries) {

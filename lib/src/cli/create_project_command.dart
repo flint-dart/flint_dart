@@ -56,6 +56,7 @@ class CreateProjectCommand extends FlintCommand {
     // 🟦 5. Update internal imports
     await _updatePackageImports(dir.path, 'sample', projectName);
     await _writeAgentGuide(dir.path, projectName);
+    await _ensureGitignore(dir.path);
 
     // 🟦 6. Run pub get
     Log.debug('⚙️ Running `dart pub get`...');
@@ -265,4 +266,57 @@ If deeper framework behavior is needed, inspect the installed `flint_dart` packa
 - `test/`
 ''';
   }
+
+  Future<void> _ensureGitignore(String projectPath) async {
+    final gitignoreFile = File('$projectPath/.gitignore');
+    const defaultIgnore = '''# Dart and Flint build directories
+.dart_tool/
+pubspec_overrides.yaml
+build/
+
+# Flint UI browser build output. The app build/start flow regenerates these.
+public/assets/js/flint-ui/
+public/assets/css/flint-ui/
+public/flint-sw.js
+public/flint-sw.js.gz
+
+# Logs and scratch files
+*.log
+.server.*
+''';
+
+    if (!await gitignoreFile.exists()) {
+      await gitignoreFile.writeAsString(defaultIgnore);
+      return;
+    }
+
+    final content = await gitignoreFile.readAsString();
+    if (content.trim().isEmpty) {
+      await gitignoreFile.writeAsString(defaultIgnore);
+      return;
+    }
+
+    final additions = <String>[];
+    if (!content.contains('.dart_tool')) additions.add('.dart_tool/');
+    if (!content.contains('pubspec_overrides.yaml')) {
+      additions.add('pubspec_overrides.yaml');
+    }
+    if (!content.contains('build/')) additions.add('build/');
+    if (!content.contains('public/assets/js/flint-ui')) {
+      additions.add('public/assets/js/flint-ui/');
+    }
+    if (!content.contains('public/assets/css/flint-ui')) {
+      additions.add('public/assets/css/flint-ui/');
+    }
+    if (!content.contains('public/flint-sw.js')) {
+      additions.add('public/flint-sw.js\npublic/flint-sw.js.gz');
+    }
+
+    if (additions.isNotEmpty) {
+      final updated =
+          '${content.trimRight()}\n\n# Flint UI and build outputs\n${additions.join('\n')}\n';
+      await gitignoreFile.writeAsString(updated);
+    }
+  }
 }
+

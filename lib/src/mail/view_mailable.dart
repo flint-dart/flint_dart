@@ -24,6 +24,34 @@ abstract class ViewMailable {
   /// Data for interpolation inside the template
   Map<String, dynamic> get data;
 
+  /// Sample data used when rendering email previews at `/mail/preview/:name`.
+  ///
+  /// Override this in your [ViewMailable] subclass to provide mock data so you
+  /// can preview and live-edit the `.flint.html` template directly in the browser.
+  Map<String, dynamic> get previewData => data;
+
+  /// Optional slug used for `/mail/preview/:name`.
+  ///
+  /// Defaults to the kebab-case template name derived from [view].
+  String? get previewName => null;
+
+  /// Resolves the template data map to use when rendering an email preview.
+  Map<String, dynamic> resolvePreviewData([Map<String, dynamic>? overrides]) {
+    final merged = <String, dynamic>{};
+    try {
+      merged.addAll(data);
+    } catch (_) {
+      // Ignore if runtime fields are not populated in preview mode.
+    }
+    try {
+      merged.addAll(previewData);
+    } catch (_) {}
+    if (overrides != null && overrides.isNotEmpty) {
+      merged.addAll(overrides);
+    }
+    return merged;
+  }
+
   /// Optional sender email and name
   String? get from => null;
   String? get fromName => null;

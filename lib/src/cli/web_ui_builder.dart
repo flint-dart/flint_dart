@@ -222,6 +222,7 @@ class FlintWebUiBuilder {
     FlintWebUiBuild build, {
     String? configPath,
     String? onlyPage,
+    Iterable<String>? onlyPages,
   }) async {
     final config = discoverPageBundleConfig(build, configPath: configPath);
     if (config == null) {
@@ -230,22 +231,30 @@ class FlintWebUiBuilder {
       );
     }
 
-    final requestedPages = onlyPage == null
+    final targetPageSet = onlyPages != null
+        ? onlyPages.toSet()
+        : (onlyPage != null ? {onlyPage} : null);
+
+    final isPartialBuild = targetPageSet != null;
+
+    final requestedPages = !isPartialBuild
         ? config.pages
         : {
             for (final entry in config.pages.entries)
-              if (entry.key == onlyPage) entry.key: entry.value,
+              if (targetPageSet.contains(entry.key)) entry.key: entry.value,
           };
 
     if (requestedPages.isEmpty) {
-      throw StateError('No page bundle target found for "$onlyPage".');
+      throw StateError(
+        'No page bundle target found for "${targetPageSet?.join(", ")}".',
+      );
     }
 
     await _compileRootDesignCss(build);
 
     final pagesOutDir = Directory(path.join(path.dirname(build.jsOut), 'pages'))
       ..createSync(recursive: true);
-    if (onlyPage == null && pagesOutDir.existsSync()) {
+    if (!isPartialBuild && pagesOutDir.existsSync()) {
       for (final entity in pagesOutDir.listSync()) {
         if (entity is File) _deleteFileIfExists(entity);
       }
@@ -275,32 +284,19 @@ class FlintWebUiBuilder {
 
     final manifestPages = <String, String>{};
 
-    for (final entry in requestedPages.entries) {
-      final component = entry.key;
-      final slug = entry.value;
-      final generatedEntry = File(path.join(generatedDir.path, '$slug.dart'));
-      final jsOut = path.join(pagesOutDir.path, '$slug.dart.js');
-
-      generatedEntry.writeAsStringSync(
-        _pageEntrypointSource(component, config),
-      );
-
-      _logVerbose('Compiling Flint UI page bundle: $component');
-      await _compileDartFile(generatedEntry.path, jsOut);
-      final hashedJsOut = _hashDartJsAssetFamily(jsOut);
-      if (onlyPage == null) {
-        await _compressAssetFamily(hashedJsOut);
-      }
-      manifestPages[component] = _assetUrlFor(build.webDir, hashedJsOut);
-      if (onlyPage == null) {
-        _writePageBundlesManifest(
-          build,
-          manifestFile,
-          existingPages: existingPages,
-          manifestPages: manifestPages,
-        );
-      }
-    }
+    final pageEntries = await Future.wait([
+      for (final entry in requestedPages.entries)
+        _compileOnePage(
+          component: entry.key,
+          slug: entry.value,
+          config: config,
+          build: build,
+          generatedDir: generatedDir,
+          pagesOutDir: pagesOutDir,
+          compress: !isPartialBuild,
+        ),
+    ]);
+    manifestPages.addEntries(pageEntries);
 
     _writePageBundlesManifest(
       build,
@@ -309,11 +305,11 @@ class FlintWebUiBuilder {
       manifestPages: manifestPages,
     );
     _logVerbose('Flint UI manifest generated: ${manifestFile.path}');
-    if (onlyPage == null) {
+    if (!isPartialBuild) {
       await _compressAssetIfUseful(manifestFile);
     }
     _writeServiceWorker(build);
-    if (onlyPage == null) {
+    if (!isPartialBuild) {
       await _compressAssetIfUseful(
         File(path.join(build.webDir.path, 'flint-sw.js')),
       );
@@ -341,6 +337,29 @@ class FlintWebUiBuilder {
     manifestFile.writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(manifest),
     );
+  }
+
+  /// Compiles a single page bundle and returns its manifest entry.
+  static Future<MapEntry<String, String>> _compileOnePage({
+    required String component,
+    required String slug,
+    required FlintWebUiPageBundleConfig config,
+    required FlintWebUiBuild build,
+    required Directory generatedDir,
+    required Directory pagesOutDir,
+    required bool compress,
+  }) async {
+    final generatedEntry = File(path.join(generatedDir.path, '$slug.dart'));
+    final jsOut = path.join(pagesOutDir.path, '$slug.dart.js');
+
+    generatedEntry.writeAsStringSync(_pageEntrypointSource(component, config));
+    _logVerbose('Compiling Flint UI page bundle: $component');
+    await _compileDartFile(generatedEntry.path, jsOut);
+    final hashedJsOut = _hashDartJsAssetFamily(jsOut);
+    if (compress) {
+      await _compressAssetFamily(hashedJsOut);
+    }
+    return MapEntry(component, _assetUrlFor(build.webDir, hashedJsOut));
   }
 
   static Future<void> compileSharedRuntimeBundle(
@@ -441,6 +460,21 @@ class FlintWebUiBuilder {
     }
   }
 
+  /// Returns the most recent last-modified timestamp of any `.dart` or `.yaml`
+  /// file inside [dir], or `null` if the directory is empty / does not exist.
+  static DateTime? _latestMtimeInDir(Directory dir) {
+    if (!dir.existsSync()) return null;
+    DateTime? latest;
+    for (final entity in dir.listSync(recursive: true)) {
+      if (entity is! File) continue;
+      final lower = entity.path.toLowerCase();
+      if (!lower.endsWith('.dart') && !lower.endsWith('.yaml')) continue;
+      final mtime = entity.lastModifiedSync();
+      if (latest == null || mtime.isAfter(latest)) latest = mtime;
+    }
+    return latest;
+  }
+
   static File? _resolveTailwindInput(Directory uiDir) {
     final candidates = [
       File(path.join(uiDir.path, 'tailwind.css')),
@@ -467,6 +501,16 @@ class FlintWebUiBuilder {
   static Future<void> _compileRootDesignCss(FlintWebUiBuild build) async {
     if (build.cssOut == null) return;
     if (Platform.environment['FLINT_HOT'] == '1') return;
+
+    final cssOutput = File(build.cssOut!);
+    if (cssOutput.existsSync()) {
+      final cssModified = cssOutput.lastModifiedSync();
+      final sourceModified = _latestMtimeInDir(build.uiDir);
+      if (sourceModified != null && cssModified.isAfter(sourceModified)) {
+        _logVerbose('Root design CSS is up-to-date; skipping extraction.');
+        return;
+      }
+    }
 
     final packageName = _readPackageName();
     final entryImport = _packageImportFor(packageName, build.entry.path);
@@ -525,7 +569,8 @@ void main() {
       cssText,
       '[data-flint-page] { min-height: 100vh; }',
       'img, picture, video, canvas, svg { max-width: 100%; }',
-      'button, input, textarea, select { font: inherit; }',
+      'button, input, textarea, select { font: inherit; outline: none; }',
+      'button:focus, input:focus, textarea:focus, select:focus, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }',
     ].where((chunk) => chunk.trim().isNotEmpty).join('\n');
 
     output.writeAsStringSync('$generated\n');
@@ -896,14 +941,15 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     final jsFile = File(jsOut);
     if (!jsFile.existsSync()) return jsOut;
 
-    final hash = _shortFileHash(jsFile);
+    final bytes = jsFile.readAsBytesSync();
+    final hash = sha256.convert(bytes).toString().substring(0, 12);
     final hashedJsPath = _hashedDartJsPath(jsOut, hash);
     final hashedJsFile = File(hashedJsPath);
     final hashedMapFile = File('$hashedJsPath.map');
     final hashedDepsFile = File('$hashedJsPath.deps');
     final sourceMapName = path.basename(hashedMapFile.path);
 
-    var js = jsFile.readAsStringSync();
+    var js = utf8.decode(bytes);
     js = _rewriteSourceMapUrl(js, sourceMapName);
     hashedJsFile.writeAsStringSync(js);
 
@@ -1158,9 +1204,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
       File('$jsPath.deps'),
     ];
 
-    for (final file in files) {
-      await _compressAssetIfUseful(file);
-    }
+    await Future.wait(files.map(_compressAssetIfUseful));
   }
 
   static Future<void> _compressAssetIfUseful(File file) async {
@@ -1286,7 +1330,6 @@ self.addEventListener('activate', event => {
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'FLINT_PREFETCH') {
     event.waitUntil((async () => {
-      await new Promise(resolve => setTimeout(resolve, 12000));
       await flintCacheUrls(await flintManifestAssets());
     })());
   }
