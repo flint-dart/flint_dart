@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.1+3] - 2026-10-27
+
+### Fixed & Improved
+- **Button Hover Ergonomics & Developer Style Precedence**:
+  - Completely eliminated unwanted automatic blue hover styles injected onto `Button`, `IconButton`, and `Link` at the framework level.
+  - Previously, `buttonComponentStyle` injected a default `hover: buttonHoverStyle(variant, tone)` (`#004eeb !important`), causing buttons with custom backgrounds (e.g. green, black, white, or brand themes) to flash or switch to bright blue on hover and blocking external CSS `:hover` rules.
+  - The framework no longer applies any default `:hover` pseudo-class styles unless explicitly specified by the developer.
+  - Enhanced `DartStyle.merge` to recursively merge state styles (`hover`, `focus`, `focusVisible`, `active`, `disabled`, etc.), ensuring developer-specified hover styles (`dartStyle: DartStyle(hover: DartStyle(...))`) merge cleanly and work directly with their custom styling.
+
 ## [1.5.1+2] - 2026-10-27
 
 ### Added
