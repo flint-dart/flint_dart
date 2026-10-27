@@ -560,7 +560,9 @@ class DartStyle {
       transition: override.transition ?? transition,
       animation: override.animation ?? animation,
       willChange: override.willChange ?? willChange,
-      hover: override.hover ?? hover,
+      hover: override.hover != null
+          ? (hover != null ? hover!.merge(override.hover) : override.hover)
+          : hover,
       focus: override.focus ?? focus,
       focusVisible: override.focusVisible ?? focusVisible,
       active: override.active ?? active,
