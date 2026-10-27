@@ -19,7 +19,85 @@ class Request {
   /// param() returns the value of a route parameter.
   String? param(String key) => params[key];
 
+  /// Parses a route parameter into type [T] (`String`, `int`, `double`, `bool`, `num`, `DateTime`, `Uri`).
+  ///
+  /// Returns [defaultValue] when the parameter is missing or cannot be parsed.
+  T? paramTyped<T>(String key, {T? defaultValue}) {
+    return _coerceRequestValue<T>(params[key], defaultValue: defaultValue);
+  }
+
+  /// Parses a required route parameter into type [T] or throws an [HttpException] (400).
+  T requireParam<T>(String key) {
+    final rawValue = params[key];
+    if (rawValue == null || rawValue.trim().isEmpty) {
+      throw HttpException(
+        HttpStatus.badRequest,
+        'Missing required route parameter "$key".',
+      );
+    }
+    final parsed = _coerceRequestValue<T>(rawValue);
+    if (parsed == null) {
+      throw HttpException(
+        HttpStatus.badRequest,
+        'Invalid route parameter "$key": expected $T.',
+      );
+    }
+    return parsed;
+  }
+
+  /// Parses a route parameter as an [int].
+  int? paramInt(String key, {int? defaultValue}) =>
+      paramTyped<int>(key, defaultValue: defaultValue);
+
+  /// Parses a route parameter as a [bool].
+  bool? paramBool(String key, {bool? defaultValue}) =>
+      paramTyped<bool>(key, defaultValue: defaultValue);
+
   String? queryParam(String key) => query[key];
+
+  /// Parses a query parameter into type [T] (`String`, `int`, `double`, `bool`, `num`, `DateTime`, `Uri`).
+  ///
+  /// Returns [defaultValue] when the parameter is missing or cannot be parsed.
+  T? queryParamTyped<T>(String key, {T? defaultValue}) {
+    return _coerceRequestValue<T>(query[key], defaultValue: defaultValue);
+  }
+
+  /// Returns all values for query parameter [key], supporting both repeated
+  /// query keys (`?tag=a&tag=b`) and comma-separated values (`?tag=a,b`).
+  List<String> queryList(String key) {
+    final all = raw.uri.queryParametersAll[key];
+    if (all == null || all.isEmpty) return const [];
+    return all
+        .expand((item) => item.split(','))
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  T? _coerceRequestValue<T>(String? rawValue, {T? defaultValue}) {
+    if (rawValue == null) return defaultValue;
+    final trimmed = rawValue.trim();
+    if (T == dynamic || T == Object || T == String) {
+      return rawValue as T;
+    }
+    if (trimmed.isEmpty) return defaultValue;
+    if (T == int) return (int.tryParse(trimmed) as T?) ?? defaultValue;
+    if (T == double) return (double.tryParse(trimmed) as T?) ?? defaultValue;
+    if (T == num) return (num.tryParse(trimmed) as T?) ?? defaultValue;
+    if (T == bool) {
+      final lower = trimmed.toLowerCase();
+      if (lower == 'true' || lower == '1' || lower == 'yes') return true as T;
+      if (lower == 'false' || lower == '0' || lower == 'no') return false as T;
+      return defaultValue;
+    }
+    if (T == DateTime) {
+      return (DateTime.tryParse(trimmed) as T?) ?? defaultValue;
+    }
+    if (T == Uri) {
+      return (Uri.tryParse(trimmed) as T?) ?? defaultValue;
+    }
+    return defaultValue;
+  }
 
   /// Access route parameters using bracket notation.
   String? operator [](String key) {

@@ -1,5 +1,4 @@
 import 'package:flint_dart/helper.dart';
-import 'package:flint_dart/model.dart';
 import 'package:flint_dart/src/jobs/flint_job_models.dart';
 import 'package:flint_dart/src/jobs/flint_job_record.dart';
 import 'package:flint_dart/src/jobs/flint_job_run_record.dart';

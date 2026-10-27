@@ -552,5 +552,88 @@ void main() {
       final label = rangePicker.children[0] as FlintElement;
       expect(label.tag, 'label');
     });
+
+    test('TextField supports prefix, suffix, and togglePassword', () {
+      final fieldWithPrefix = TextField(
+        name: 'search',
+        prefix: '🔍',
+      );
+      expect(fieldWithPrefix.children.single, isA<FlintElement>());
+      final wrapper = fieldWithPrefix.children.single as FlintElement;
+      expect(wrapper.props['class'], 'flint-input-wrapper');
+      final prefix = wrapper.children[0] as FlintElement;
+      expect(prefix.props['class'], 'flint-input-prefix');
+
+      final passwordField = TextField(
+        name: 'password',
+        type: 'password',
+        togglePassword: true,
+      );
+      final pwWrapper = passwordField.children.single as FlintElement;
+      expect(pwWrapper.props['class'], 'flint-input-wrapper');
+      final suffix = pwWrapper.children[1] as FlintElement;
+      expect(suffix.props['class'], 'flint-input-suffix');
+      final icon = suffix.children.first as FlintElement;
+      expect(icon.props['class'], 'flint-password-icon');
+    });
+
+    test('TextField supports validator and AutovalidateMode', () {
+      final invalidField = TextField(
+        name: 'password',
+        value: '123',
+        validator: (v) => (v != null && v.length < 8) ? 'Must be at least 8 chars' : null,
+        autovalidateMode: AutovalidateMode.always,
+      );
+
+      final input = invalidField.children[0] as FlintElement;
+      final error = invalidField.children[1] as FlintElement;
+      expect(input.props['aria-invalid'], 'true');
+      expect(input.props['aria-describedby'], 'flint-field-password-error');
+      expect(error.tag, 'p');
+      expect(error.props['id'], 'flint-field-password-error');
+      final errorText = error.children.first as FlintText;
+      expect(errorText.value, 'Must be at least 8 chars');
+
+      final validField = TextField(
+        name: 'password',
+        value: 'valid-secret-123',
+        validator: (v) => (v != null && v.length < 8) ? 'Must be at least 8 chars' : null,
+        autovalidateMode: AutovalidateMode.always,
+      );
+      expect(validField.children.length, 1);
+      final validInput = validField.children.single as FlintElement;
+      expect(validInput.props['aria-invalid'], isNull);
+    });
+
+    test('FormController validate() and submit() run validators and handle failures', () async {
+      final form = useForm({'username': '', 'password': '123'});
+      form.controller('username', validator: (v) => (v == null || v.isEmpty) ? 'Username required' : null);
+      form.controller('password', validator: (v) => (v != null && v.length < 6) ? 'Password too short' : null);
+
+      expect(form.validate(), false);
+      expect(form.error('username'), 'Username required');
+      expect(form.error('password'), 'Password too short');
+
+      var submitExecuted = false;
+      final result = await form.submit<bool>((data) async {
+        submitExecuted = true;
+        return true;
+      });
+
+      expect(result, isNull);
+      expect(submitExecuted, false);
+
+      form.setField('username', 'hybiekay');
+      form.setField('password', 'strong-password-123');
+      expect(form.validate(), true);
+      expect(form.errors.isEmpty, true);
+
+      final successResult = await form.submit<bool>((data) async {
+        submitExecuted = true;
+        return true;
+      });
+      expect(successResult, true);
+      expect(submitExecuted, true);
+    });
   });
 }

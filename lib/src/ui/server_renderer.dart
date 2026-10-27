@@ -15,14 +15,28 @@ class FlintServerRenderer {
   String renderPage(
     PageRegistry registry,
     String component, {
-    Map<String, dynamic> props = const {},
+    Object? props = const <String, dynamic>{},
     FlintComponent Function(String component)? missingPage,
   }) {
+    final normalizedProps = switch (props) {
+      FlintProps typed => typed.toJson(),
+      Map<String, dynamic> map => map,
+      Map map => map.map((key, value) => MapEntry(key.toString(), value)),
+      _ => const <String, dynamic>{},
+    };
     final builder = registry[component];
-    final page = builder?.call(props) ??
+    final page = builder?.call(normalizedProps) ??
         missingPage?.call(component) ??
         _MissingServerPage(component);
     return render(page);
+  }
+
+  /// Renders a strongly-typed [FlintPageRoute] directly to HTML.
+  String renderPageRoute<TProps extends FlintProps>(
+    FlintPageRoute<TProps> route,
+    TProps props,
+  ) {
+    return render(route.builder(props));
   }
 
   /// Renders any Flint renderable value to HTML.
@@ -57,13 +71,33 @@ class FlintServerRenderer {
           children,
           context,
         ),
-      FlintComponent() => _renderNode(_normalize(node.build()), context),
-      FlintComponentNode(:final component) => _renderNode(
-          _normalize(component.build()),
-          context,
-        ),
+      FlintComponent() => _renderComponent(node, context),
+      FlintComponentNode(:final component) =>
+        _renderComponent(component, context),
       _ => '',
     };
+  }
+
+  String _renderComponent(
+    FlintComponent component,
+    _ServerRenderContext context,
+  ) {
+    try {
+      component.ensureInitialized();
+      return _renderNode(_normalize(component.build()), context);
+    } catch (error) {
+      final errorText = error.toString();
+      if (error.runtimeType.toString().contains('LateInitializationError') ||
+          errorText.contains('LateInitializationError')) {
+        throw StateError(
+          '[Flint SSR] LateInitializationError in ${component.runtimeType}.build(). '
+          'Move field initialization from didMount() (which is browser-only) '
+          'to the constructor, initProps(), or initState(), which run on both '
+          'server and client. Original error: $error',
+        );
+      }
+      rethrow;
+    }
   }
 
   String _renderElement(

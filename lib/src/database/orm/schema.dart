@@ -31,7 +31,7 @@ class Table {
     final hasPrimary = columns.any((c) => c.isPrimaryKey);
     if (!hasPrimary) {
       return [
-        Column(
+        const Column(
           name: 'id',
           type: ColumnType.string,
           isPrimaryKey: true,
@@ -83,7 +83,7 @@ class Column {
   final String? renamedFrom;
 
   /// Creates a new [Column] definition.
-  Column({
+  const Column({
     required this.name,
     required this.type,
     this.isPrimaryKey = false,
