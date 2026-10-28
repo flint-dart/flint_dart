@@ -276,9 +276,13 @@ class Flint {
       this.enableSwaggerDocs = false,
       this.enableMailPreview,
       this.mailRegistry,
-      String? flavor})
+      String? flavor,
+      List<String>? args})
       : _flintPageServerRenderer = flintPageServerRenderer,
         _serverRenderFlintPages = serverRenderFlintPages {
+    if (args != null && args.isNotEmpty) {
+      FlintEnv.resolveFlavorFromArgs(args);
+    }
     if (flavor != null && flavor.trim().isNotEmpty) {
       FlintEnv.setFlavor(flavor);
     }

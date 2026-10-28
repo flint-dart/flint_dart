@@ -208,6 +208,29 @@ class FlintEnv {
     reload();
   }
 
+  /// Resolves and sets flavor from command-line arguments (`--flavor=<name>` or `--flavor <name>`).
+  ///
+  /// Returns the resolved flavor name if found, or null otherwise.
+  static String? resolveFlavorFromArgs(List<String> args) {
+    for (var i = 0; i < args.length; i++) {
+      final arg = args[i];
+      if (arg.startsWith('--flavor=')) {
+        final resolved = arg.substring('--flavor='.length).trim();
+        if (resolved.isNotEmpty) {
+          setFlavor(resolved);
+          return resolved;
+        }
+      } else if (arg == '--flavor' && i + 1 < args.length) {
+        final resolved = args[++i].trim();
+        if (resolved.isNotEmpty) {
+          setFlavor(resolved);
+          return resolved;
+        }
+      }
+    }
+    return null;
+  }
+
   /// Checks if the current flavor matches [name] (case-insensitive).
   static bool isFlavor(String name) =>
       flavor == name.trim().toLowerCase();
