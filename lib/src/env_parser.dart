@@ -279,7 +279,7 @@ class FlintEnv {
   /// - Values surrounded by quotes (`'` or `"`) will have quotes removed.
   static Map<String, String> _parseLines(List<String> lines) {
     final result = <String, String>{};
-    final regex = RegExp(r'^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$');
+    final regex = RegExp(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$');
 
     for (var line in lines) {
       line = line.trim();
@@ -287,23 +287,22 @@ class FlintEnv {
       // Ignore full-line comments
       if (line.isEmpty || line.startsWith('#')) continue;
 
-      // Remove inline comments (# ...)
-      final commentIndex = line.indexOf('#');
-      if (commentIndex != -1) {
-        line = line.substring(0, commentIndex).trim();
-      }
-
-      if (line.isEmpty) continue;
-
       final match = regex.firstMatch(line);
       if (match != null) {
         final key = match.group(1)!;
-        var value = match.group(2)!;
+        var value = match.group(2)!.trim();
 
-        // Remove surrounding quotes
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        // Remove surrounding quotes if paired
+        if (value.length >= 2 &&
+            ((value.startsWith('"') && value.endsWith('"')) ||
+             (value.startsWith("'") && value.endsWith("'")))) {
           value = value.substring(1, value.length - 1);
+        } else {
+          // If unquoted, strip trailing comment (# ...)
+          final commentIndex = value.indexOf('#');
+          if (commentIndex != -1) {
+            value = value.substring(0, commentIndex).trim();
+          }
         }
 
         result[key] = value;
