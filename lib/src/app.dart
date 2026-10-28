@@ -1237,7 +1237,7 @@ class Flint {
         rootPath,
         '--port=$port'
       ],
-      environment: {'FLINT_HOT': '1'},
+      environment: {'FLINT_HOT': '1', 'APP_FLAVOR': FlintEnv.flavor, 'FLAVOR': FlintEnv.flavor},
       mode: ProcessStartMode.inheritStdio,
       runInShell: true,
     );
