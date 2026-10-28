@@ -105,6 +105,7 @@ void createFlintApp(
   Map<String, PageRegistry>? flavors,
   Map<String, RootDesign>? flavorDesigns,
   String? defaultFlavor,
+  bool fallbackToDefault = true,
   FlintAsyncPageBuilder? resolvePage,
   List<FlintPageMiddleware> middlewares = const [],
   List<StyleSheet> stylesheets = const [],
@@ -135,6 +136,7 @@ void createFlintApp(
       flavors,
       defaultFlavor: defaultFlavor ?? 'default',
       activeFlavor: activeFlavor,
+      fallbackToDefault: fallbackToDefault,
     );
   } else if (registry is FlavoredPageRegistry) {
     registry.setActiveFlavor(activeFlavor);

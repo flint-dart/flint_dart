@@ -46,6 +46,7 @@ class PageRegistry {
     Map<String, PageRegistry> flavors, {
     String defaultFlavor,
     String? activeFlavor,
+    bool fallbackToDefault,
   }) = FlavoredPageRegistry;
 
   /// Registered page builders keyed by page name.
@@ -124,12 +125,14 @@ class FlavoredPageRegistry extends PageRegistry {
   final Map<String, PageRegistry> _flavorRegistries = {};
   String defaultFlavor;
   String? _activeFlavor;
+  final bool fallbackToDefault;
 
   /// Creates a flavored registry with initial [flavors].
   FlavoredPageRegistry(
     Map<String, PageRegistry> flavors, {
     this.defaultFlavor = 'default',
     String? activeFlavor,
+    this.fallbackToDefault = true,
   }) : _activeFlavor = activeFlavor {
     registerFlavors(flavors);
   }
@@ -180,7 +183,7 @@ class FlavoredPageRegistry extends PageRegistry {
     if (builder != null) return builder;
 
     final defaultKey = defaultFlavor.toLowerCase().trim();
-    if (target != defaultKey) {
+    if (fallbackToDefault && target != defaultKey) {
       final defaultRegistry = _flavorRegistries[defaultKey];
       final fallback = defaultRegistry?[name];
       if (fallback != null) return fallback;
