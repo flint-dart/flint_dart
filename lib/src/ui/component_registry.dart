@@ -41,6 +41,14 @@ class PageRegistry {
     if (routes != null) registerRoutes(routes);
   }
 
+  /// Factory constructor to create a multi-flavor registry.
+  factory PageRegistry.flavored(
+    Map<String, PageRegistry> flavors, {
+    String defaultFlavor,
+    String? activeFlavor,
+    bool fallbackToDefault,
+  }) = FlavoredPageRegistry;
+
   /// Registered page builders keyed by page name.
   Map<String, FlintPageBuilder> get pages => Map.unmodifiable(_pages);
 
@@ -107,5 +115,84 @@ class FlintComponentRegistry extends PageRegistry {
       if (builder != null) selected[name] = builder;
     }
     return FlintComponentRegistry(selected);
+  }
+}
+
+/// A multi-flavor page registry that maps flavors (e.g. 'stokash', 'FarmsBenefit')
+/// to their respective [PageRegistry] instances, with automatic fallback to default flavor.
+class FlavoredPageRegistry extends PageRegistry {
+  final Map<String, PageRegistry> _flavorRegistries = {};
+  String defaultFlavor;
+  String? _activeFlavor;
+  final bool fallbackToDefault;
+
+  /// Creates a flavored registry with initial [flavors].
+  FlavoredPageRegistry(
+    Map<String, PageRegistry> flavors, {
+    this.defaultFlavor = 'default',
+    String? activeFlavor,
+    this.fallbackToDefault = true,
+  }) : _activeFlavor = activeFlavor {
+    registerFlavors(flavors);
+  }
+
+  /// Sets the currently active flavor.
+  void setActiveFlavor(String flavor) {
+    _activeFlavor = flavor.toLowerCase().trim();
+  }
+
+  /// Gets the currently active flavor, defaulting to [defaultFlavor].
+  String get activeFlavor =>
+      _activeFlavor ?? defaultFlavor.toLowerCase().trim();
+
+  /// Registers a registry for [flavor].
+  void registerFlavor(String flavor, PageRegistry registry) {
+    _flavorRegistries[flavor.toLowerCase().trim()] = registry;
+  }
+
+  /// Registers multiple flavor registries.
+  void registerFlavors(Map<String, PageRegistry> flavors) {
+    for (final entry in flavors.entries) {
+      registerFlavor(entry.key, entry.value);
+    }
+  }
+
+  /// Resolves the underlying [PageRegistry] for [flavor].
+  PageRegistry registryFor([String? flavor]) {
+    final target = (flavor != null && flavor.isNotEmpty)
+        ? flavor.toLowerCase().trim()
+        : activeFlavor;
+
+    return _flavorRegistries[target] ??
+        _flavorRegistries[defaultFlavor.toLowerCase().trim()] ??
+        this;
+  }
+
+  /// Resolves a page builder for [name] with flavor precedence:
+  /// 1. Requested flavor's registry
+  /// 2. Default flavor's registry
+  /// 3. Root/shared pages registered directly on this registry
+  FlintPageBuilder? resolveForFlavor(String name, [String? flavor]) {
+    final target = (flavor != null && flavor.isNotEmpty)
+        ? flavor.toLowerCase().trim()
+        : activeFlavor;
+
+    final targetRegistry = _flavorRegistries[target];
+    final builder = targetRegistry?[name];
+    if (builder != null) return builder;
+
+    final defaultKey = defaultFlavor.toLowerCase().trim();
+    if (fallbackToDefault && target != defaultKey) {
+      final defaultRegistry = _flavorRegistries[defaultKey];
+      final fallback = defaultRegistry?[name];
+      if (fallback != null) return fallback;
+    }
+
+    return super[name];
+  }
+
+  @override
+  FlintPageBuilder? operator [](String name) {
+    return resolveForFlavor(name, activeFlavor);
   }
 }

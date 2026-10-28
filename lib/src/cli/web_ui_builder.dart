@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 
@@ -252,18 +253,28 @@ class FlintWebUiBuilder {
 
     await _compileRootDesignCss(build);
 
-    final pagesOutDir = Directory(path.join(path.dirname(build.jsOut), 'pages'))
-      ..createSync(recursive: true);
+    final effectiveFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+        ? FlintEnv.flavor.toLowerCase().trim()
+        : null;
+
+    final pagesOutDir = Directory(
+      effectiveFlavor != null
+          ? path.join(path.dirname(build.jsOut), 'pages', effectiveFlavor)
+          : path.join(path.dirname(build.jsOut), 'pages'),
+    )..createSync(recursive: true);
     if (!isPartialBuild && pagesOutDir.existsSync()) {
       for (final entity in pagesOutDir.listSync()) {
         if (entity is File) _deleteFileIfExists(entity);
       }
     }
     final generatedDir =
-        Directory(path.join('.dart_tool', 'flint_ui', 'page_bundles'))
+        Directory(path.join('.dart_tool', 'flint_ui', 'page_bundles', effectiveFlavor ?? 'default'))
           ..createSync(recursive: true);
+    final manifestFileName = effectiveFlavor != null
+        ? 'manifest-$effectiveFlavor.json'
+        : 'manifest.json';
     final manifestFile =
-        File(path.join(path.dirname(build.jsOut), 'manifest.json'));
+        File(path.join(path.dirname(build.jsOut), manifestFileName));
     final existingPages = <String, String>{};
     if (manifestFile.existsSync()) {
       try {
@@ -738,55 +749,152 @@ void main() {
   }
 
   static String? _detectRegistryName(String source) {
-    final match = RegExp(
-      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry|FlintComponentRegistry)\s*\(',
+    final matches = RegExp(
+      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry(?:\.flavored)?|FlavoredPageRegistry|FlintComponentRegistry)\s*\(',
       multiLine: true,
-    ).firstMatch(source);
-    return match?.group(1);
+    ).allMatches(source);
+    if (matches.isEmpty) return null;
+    // Prefer appRegistry, componentRegistry, or registry if found
+    for (final match in matches) {
+      final name = match.group(1);
+      if (name == 'appRegistry' || name == 'componentRegistry' || name == 'registry') {
+        return name;
+      }
+    }
+    return matches.first.group(1);
   }
 
   static Map<String, FlintWebUiPageTarget> _detectRegistryPageTargets(
     String source,
     File registryFile,
-    String packageName,
-  ) {
-    final registryStart =
-        RegExp(r'(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{')
-            .firstMatch(source);
-    if (registryStart == null) return const {};
+    String packageName, {
+    String? flavor,
+  }) {
+    final effectiveFlavor = (flavor != null && flavor.isNotEmpty && flavor != 'default')
+        ? flavor.toLowerCase().trim()
+        : FlintEnv.flavor.toLowerCase().trim();
 
-    final start = registryStart.end;
-    var depth = 1;
-    var index = start;
-    while (index < source.length && depth > 0) {
-      final char = source[index];
-      if (char == '{') depth++;
-      if (char == '}') depth--;
-      index++;
-    }
-    if (depth != 0) return const {};
-
-    final body = source.substring(start, index - 1);
     final imports = _detectImports(source, registryFile, packageName);
-    final targets = <String, FlintWebUiPageTarget>{};
-    final pattern = RegExp(
-      r'''['"]([^'"]+)['"]\s*:\s*\([^)]*\)\s*=>\s*([A-Za-z_]\w*)\s*\(''',
+
+    // 1. Find all named PageRegistry blocks: final <name> = PageRegistry({ ... });
+    final namedRegistries = <String, Map<String, FlintWebUiPageTarget>>{};
+    final regPattern = RegExp(
+      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{',
     );
 
-    for (final match in pattern.allMatches(body)) {
-      final name = match.group(1)?.trim();
-      final className = match.group(2)?.trim();
-      if (name == null || name.isEmpty || className == null) continue;
-
-      final importUri = imports[className];
-      if (importUri == null) continue;
-      targets[name] = FlintWebUiPageTarget(
-        importUri: importUri,
-        className: className,
+    for (final regMatch in regPattern.allMatches(source)) {
+      final regVarName = regMatch.group(1)!;
+      final start = regMatch.end;
+      var depth = 1;
+      var index = start;
+      while (index < source.length && depth > 0) {
+        final char = source[index];
+        if (char == '{') depth++;
+        if (char == '}') depth--;
+        index++;
+      }
+      if (depth != 0) continue;
+      final body = source.substring(start, index - 1);
+      final targets = <String, FlintWebUiPageTarget>{};
+      final pattern = RegExp(
+        r'''['"]([^'"]+)['"]\s*:\s*\([^)]*\)\s*=>\s*([A-Za-z_]\w*)\s*\(''',
       );
+      for (final match in pattern.allMatches(body)) {
+        final name = match.group(1)?.trim();
+        final className = match.group(2)?.trim();
+        if (name == null || name.isEmpty || className == null) continue;
+        final importUri = imports[className];
+        if (importUri == null) continue;
+        targets[name] = FlintWebUiPageTarget(
+          importUri: importUri,
+          className: className,
+        );
+      }
+      namedRegistries[regVarName] = targets;
     }
 
-    return targets;
+    if (namedRegistries.isEmpty) {
+      final registryStart =
+          RegExp(r'(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{')
+              .firstMatch(source);
+      if (registryStart != null) {
+        final start = registryStart.end;
+        var depth = 1;
+        var index = start;
+        while (index < source.length && depth > 0) {
+          final char = source[index];
+          if (char == '{') depth++;
+          if (char == '}') depth--;
+          index++;
+        }
+        if (depth == 0) {
+          final body = source.substring(start, index - 1);
+          final targets = <String, FlintWebUiPageTarget>{};
+          final pattern = RegExp(
+            r'''['"]([^'"]+)['"]\s*:\s*\([^)]*\)\s*=>\s*([A-Za-z_]\w*)\s*\(''',
+          );
+          for (final match in pattern.allMatches(body)) {
+            final name = match.group(1)?.trim();
+            final className = match.group(2)?.trim();
+            if (name == null || name.isEmpty || className == null) continue;
+            final importUri = imports[className];
+            if (importUri == null) continue;
+            targets[name] = FlintWebUiPageTarget(
+              importUri: importUri,
+              className: className,
+            );
+          }
+          return targets;
+        }
+      }
+      return const {};
+    }
+
+    // 2. Parse PageRegistry.flavored mappings: 'farmsbenefit': farmsBenefitRegistry
+    final flavorToRegistry = <String, String>{};
+    final flavoredMatch = RegExp(
+      r'(?:PageRegistry\.flavored|FlavoredPageRegistry)\s*\(\s*\{([^}]+)\}',
+    ).firstMatch(source);
+    if (flavoredMatch != null) {
+      final body = flavoredMatch.group(1)!;
+      for (final m in RegExp(r'''['"]([^'"]+)['"]\s*:\s*([A-Za-z_]\w*)''').allMatches(body)) {
+        flavorToRegistry[m.group(1)!.toLowerCase().trim()] = m.group(2)!.trim();
+      }
+    }
+
+    // 3. Resolve which registry to use for effectiveFlavor
+    String? chosenRegistryName;
+    if (effectiveFlavor.isNotEmpty && effectiveFlavor != 'default') {
+      chosenRegistryName = flavorToRegistry[effectiveFlavor];
+      if (chosenRegistryName == null) {
+        final cleanFlavor = effectiveFlavor.replaceAll(RegExp(r'[^a-z0-9]'), '');
+        for (final regName in namedRegistries.keys) {
+          final cleanRegName = regName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+          if (cleanRegName.contains(cleanFlavor) || cleanFlavor.contains(cleanRegName)) {
+            chosenRegistryName = regName;
+            break;
+          }
+        }
+      }
+    }
+
+    final defaultRegistryName = flavorToRegistry['default'] ??
+        flavorToRegistry['stokash'] ??
+        namedRegistries.keys.first;
+
+    final defaultTargets = namedRegistries[defaultRegistryName] ??
+        namedRegistries.values.first;
+
+    if (chosenRegistryName == null || chosenRegistryName == defaultRegistryName) {
+      return defaultTargets;
+    }
+
+    final flavorTargets = namedRegistries[chosenRegistryName] ?? const {};
+
+    return {
+      ...defaultTargets,
+      ...flavorTargets,
+    };
   }
 
   static Map<String, String> _detectImports(
@@ -799,11 +907,17 @@ void main() {
     for (final importMatch
         in RegExp(r'''import\s+['"]([^'"]+)['"]\s*;''').allMatches(source)) {
       final importUri = importMatch.group(1);
-      if (importUri == null || importUri.startsWith('package:')) continue;
+      if (importUri == null) continue;
 
-      final importedFile =
-          File(path.normalize(path.join(fromFile.parent.path, importUri)));
-      if (!importedFile.existsSync()) continue;
+      File? importedFile;
+      if (importUri.startsWith('package:$packageName/')) {
+        final subPath = importUri.substring('package:$packageName/'.length);
+        importedFile = File(path.normalize(path.join('lib', subPath)));
+      } else if (!importUri.startsWith('package:')) {
+        importedFile =
+            File(path.normalize(path.join(fromFile.parent.path, importUri)));
+      }
+      if (importedFile == null || !importedFile.existsSync()) continue;
 
       final importedSource = importedFile.readAsStringSync();
       for (final classMatch
@@ -817,26 +931,49 @@ void main() {
     return imports;
   }
 
-  static _DetectedRootDesign? _detectRootDesign(String source, File mainFile) {
-    final nameMatch =
-        RegExp(r'rootDesign\s*:\s*([A-Za-z_]\w*)').firstMatch(source);
-    final name = nameMatch?.group(1);
+  static _DetectedRootDesign? _detectRootDesign(
+    String source,
+    File mainFile, {
+    String? flavor,
+  }) {
+    final effectiveFlavor = (flavor != null && flavor.isNotEmpty && flavor != 'default')
+        ? flavor.toLowerCase().trim()
+        : FlintEnv.flavor.toLowerCase().trim();
+
+    String? name;
+    final flavorDesignsMatch =
+        RegExp(r'flavorDesigns\s*:\s*\{([^}]+)\}').firstMatch(source);
+    if (flavorDesignsMatch != null) {
+      final body = flavorDesignsMatch.group(1)!;
+      final map = <String, String>{};
+      for (final m in RegExp(r'''['"]([^'"]+)['"]\s*:\s*([A-Za-z_]\w*)''').allMatches(body)) {
+        map[m.group(1)!.toLowerCase().trim()] = m.group(2)!.trim();
+      }
+      name = map[effectiveFlavor] ?? map['stokash'] ?? map['default'];
+    }
+    name ??= RegExp(r'rootDesign\s*:\s*([A-Za-z_]\w*)').firstMatch(source)?.group(1);
     if (name == null || name.isEmpty) return null;
 
+    final packageName = _readPackageName();
     for (final importMatch
         in RegExp(r'''import\s+['"]([^'"]+)['"]\s*;''').allMatches(source)) {
       final importUri = importMatch.group(1);
-      if (importUri == null || importUri.startsWith('package:')) continue;
+      if (importUri == null) continue;
 
-      final importedFile =
-          File(path.normalize(path.join(mainFile.parent.path, importUri)));
-      if (!importedFile.existsSync()) continue;
+      File? importedFile;
+      if (importUri.startsWith('package:$packageName/')) {
+        final subPath = importUri.substring('package:$packageName/'.length);
+        importedFile = File(path.normalize(path.join('lib', subPath)));
+      } else if (!importUri.startsWith('package:')) {
+        importedFile =
+            File(path.normalize(path.join(mainFile.parent.path, importUri)));
+      }
+      if (importedFile == null || !importedFile.existsSync()) continue;
       if (!RegExp('\\b${RegExp.escape(name)}\\b')
           .hasMatch(importedFile.readAsStringSync())) {
         continue;
       }
 
-      final packageName = _readPackageName();
       return _DetectedRootDesign(
         name: name,
         importUri: _packageImportFor(packageName, importedFile.path),

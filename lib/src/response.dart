@@ -385,6 +385,7 @@ class Response {
     String? serverHtml,
     bool? serverRender,
     int? status,
+    String? flavor,
   }) {
     try {
       final normalizedProps = _normalizePageProps(props);
@@ -399,6 +400,10 @@ class Response {
       final isBuildingPageBundle = scriptResolution.isBuilding;
       final resolvedScript = scriptResolution.script;
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
+      final currentFlavor = (flavor != null && flavor.trim().isNotEmpty)
+          ? flavor.trim().toLowerCase()
+          : (request?.flavor ?? FlintEnv.flavor);
+      final safeFlavor = _escapeHtmlAttribute(currentFlavor);
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
       final renderedHtml = serverHtml ??
@@ -438,10 +443,11 @@ class Response {
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta name="flint-flavor" content="$safeFlavor">
 $headTags
   </head>
   <body>
-    <main id="$safeRootId" data-flint-page="$encodedPage">$renderedHtml</main>
+    <main id="$safeRootId" data-flint-page="$encodedPage" data-flint-flavor="$safeFlavor">$renderedHtml</main>
 $pageScriptTag
 $buildOverlayScript
 $serviceWorkerScript
@@ -524,6 +530,7 @@ $hotReloadScript
     String? serverHtml,
     bool? serverRender,
     int? status,
+    String? flavor,
   }) =>
       flintPage(
         component,
@@ -537,6 +544,7 @@ $hotReloadScript
         serverHtml: serverHtml,
         serverRender: serverRender,
         status: status,
+        flavor: flavor,
       );
 
   /// Renders a strongly-typed [FlintPageRoute] with compile-time verified [props].
@@ -552,6 +560,7 @@ $hotReloadScript
     String? serverHtml,
     bool? serverRender,
     int? status,
+    String? flavor,
   }) =>
       flintPage(
         route.name,
@@ -802,28 +811,33 @@ $hotReloadScript
 
   bool _buildFlintPageBundleOnDemand(String component) {
     if (Platform.environment['FLINT_HOT'] != '1') return false;
-    if (_flintPageBundlesBuilding.contains(component)) return true;
-    if (_flintPageBundlesUnavailable.contains(component)) return false;
+    final effectiveFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+        ? FlintEnv.flavor.toLowerCase().trim()
+        : null;
+    final bundleKey = effectiveFlavor != null ? '$component:$effectiveFlavor' : component;
+    if (_flintPageBundlesBuilding.contains(bundleKey)) return true;
+    if (_flintPageBundlesUnavailable.contains(bundleKey)) return false;
 
     final build = FlintWebUiBuilder.resolve();
     if (build == null) return false;
 
-    _flintPageBundlesBuilding.add(component);
+    _flintPageBundlesBuilding.add(bundleKey);
     unawaited(
       Future<void>(() async {
         try {
-          Log.info('Building Flint UI page: $component...');
+          final flavorSuffix = effectiveFlavor != null ? ' ($effectiveFlavor)' : '';
+          Log.info('Building Flint UI page: $component$flavorSuffix...');
           await FlintWebUiBuilder.compilePageBundles(build,
               onlyPage: component);
-          Log.info('Done building Flint UI page: $component.');
+          Log.info('Done building Flint UI page: $component$flavorSuffix.');
         } on StateError catch (e) {
-          _flintPageBundlesUnavailable.add(component);
+          _flintPageBundlesUnavailable.add(bundleKey);
           Log.debug(
               'Flint UI page bundle skipped for "$component": ${e.message}');
         } catch (e, stack) {
           Log.debug('Flint UI page bundle failed for "$component": $e\n$stack');
         } finally {
-          _flintPageBundlesBuilding.remove(component);
+          _flintPageBundlesBuilding.remove(bundleKey);
         }
       }),
     );
@@ -835,46 +849,60 @@ $hotReloadScript
     bool includeFallback = true,
     bool requireExistingFile = false,
   }) {
-    final manifestFile =
-        File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json'));
-    if (!manifestFile.existsSync()) return null;
+    final effectiveFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+        ? FlintEnv.flavor.toLowerCase().trim()
+        : null;
 
-    try {
-      final decoded = jsonDecode(manifestFile.readAsStringSync());
-      if (decoded is! Map) return null;
+    final manifestFiles = [
+      if (effectiveFlavor != null) ...[
+        File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest-$effectiveFlavor.json')),
+        if (effectiveFlavor == 'farmsbenefit')
+          File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest-farmbenefit.json')),
+        if (effectiveFlavor == 'farmbenefit')
+          File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest-farmsbenefit.json')),
+      ],
+      File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json')),
+    ];
 
-      if (decoded['mode'] == 'shared-runtime') {
-        final runtime = decoded['runtime'];
-        if (_isUsableManifestScript(
-          runtime,
-          requireExistingFile: requireExistingFile,
-        )) {
-          return runtime.toString().trim();
+    for (final manifestFile in manifestFiles) {
+      if (!manifestFile.existsSync()) continue;
+      try {
+        final decoded = jsonDecode(manifestFile.readAsStringSync());
+        if (decoded is! Map) continue;
+
+        if (decoded['mode'] == 'shared-runtime') {
+          final runtime = decoded['runtime'];
+          if (_isUsableManifestScript(
+            runtime,
+            requireExistingFile: requireExistingFile,
+          )) {
+            return runtime.toString().trim();
+          }
         }
-      }
 
-      final pages = decoded['pages'];
-      if (pages is Map) {
-        final script = pages[component];
-        if (_isUsableManifestScript(
-          script,
-          requireExistingFile: requireExistingFile,
-        )) {
-          return script.toString().trim();
+        final pages = decoded['pages'];
+        if (pages is Map) {
+          final script = pages[component];
+          if (_isUsableManifestScript(
+            script,
+            requireExistingFile: requireExistingFile,
+          )) {
+            return script.toString().trim();
+          }
         }
-      }
 
-      if (includeFallback) {
-        final fallback = decoded['fallback'];
-        if (_isUsableManifestScript(
-          fallback,
-          requireExistingFile: requireExistingFile,
-        )) {
-          return fallback.toString().trim();
+        if (includeFallback) {
+          final fallback = decoded['fallback'];
+          if (_isUsableManifestScript(
+            fallback,
+            requireExistingFile: requireExistingFile,
+          )) {
+            return fallback.toString().trim();
+          }
         }
+      } catch (e) {
+        Log.debug('[Flint] Failed to read Flint UI manifest: $e');
       }
-    } catch (e) {
-      Log.debug('[Flint] Failed to read Flint UI manifest: $e');
     }
 
     return null;
@@ -913,6 +941,29 @@ $hotReloadScript
   String? _resolveIconUrl(String? explicitUrl, {bool preferPng = false}) {
     if (explicitUrl != null && explicitUrl.trim().isNotEmpty) {
       return explicitUrl;
+    }
+
+    final activeFlavor = FlintEnv.flavor;
+    if (activeFlavor != 'default' && activeFlavor.isNotEmpty) {
+      final flavorCandidates = preferPng
+          ? [
+              'favicon-$activeFlavor.png',
+              'favicon.$activeFlavor.png',
+              'favicon-farm.png',
+              '$activeFlavor-favicon.png',
+            ]
+          : [
+              'favicon-$activeFlavor.ico',
+              'favicon-$activeFlavor.png',
+              'favicon-farm.ico',
+              'favicon-farm.png',
+              'favicon.$activeFlavor.ico',
+            ];
+      for (final candidate in flavorCandidates) {
+        if (File(p.join('public', candidate)).existsSync()) {
+          return '/$candidate';
+        }
+      }
     }
 
     final candidates = preferPng

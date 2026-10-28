@@ -168,6 +168,72 @@ class FlintEnv {
     _ensureLoaded();
   }
 
+  static String? _currentFlavor;
+
+  /// Returns the current active build/runtime flavor (e.g. 'stokash', 'FarmsBenefit').
+  ///
+  /// Priority:
+  /// 1. Explicitly set via [setFlavor]
+  /// 2. Compile-time environment variable `--define=FLAVOR=...`
+  /// 3. Environment variable `APP_FLAVOR` or `FLAVOR`
+  /// 4. Value in loaded `.env` file (`APP_FLAVOR` or `FLAVOR`)
+  /// 5. Defaults to `'default'`
+  static String get flavor {
+    if (_currentFlavor != null && _currentFlavor!.isNotEmpty) {
+      return _currentFlavor!;
+    }
+    const compileTimeFlavor = String.fromEnvironment('FLAVOR');
+    if (compileTimeFlavor.isNotEmpty) {
+      return compileTimeFlavor.toLowerCase();
+    }
+    final envFlavor =
+        Platform.environment['APP_FLAVOR'] ?? Platform.environment['FLAVOR'];
+    if (envFlavor != null && envFlavor.trim().isNotEmpty) {
+      return envFlavor.trim().toLowerCase();
+    }
+    _ensureLoaded();
+    final fileFlavor =
+        _envFromFile['APP_FLAVOR'] ?? _envFromFile['FLAVOR'] ?? 'default';
+    return fileFlavor.trim().toLowerCase();
+  }
+
+  /// Sets the active flavor. If a corresponding `.env.<flavor>` file exists,
+  /// FlintEnv will automatically switch its environment source to it.
+  static void setFlavor(String flavorName) {
+    _currentFlavor = flavorName.trim().toLowerCase();
+    final candidatePath = '.env.$_currentFlavor';
+    if (File(candidatePath).existsSync()) {
+      _envFilePathOverride = candidatePath;
+    }
+    reload();
+  }
+
+  /// Resolves and sets flavor from command-line arguments (`--flavor=<name>` or `--flavor <name>`).
+  ///
+  /// Returns the resolved flavor name if found, or null otherwise.
+  static String? resolveFlavorFromArgs(List<String> args) {
+    for (var i = 0; i < args.length; i++) {
+      final arg = args[i];
+      if (arg.startsWith('--flavor=')) {
+        final resolved = arg.substring('--flavor='.length).trim();
+        if (resolved.isNotEmpty) {
+          setFlavor(resolved);
+          return resolved;
+        }
+      } else if (arg == '--flavor' && i + 1 < args.length) {
+        final resolved = args[++i].trim();
+        if (resolved.isNotEmpty) {
+          setFlavor(resolved);
+          return resolved;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Checks if the current flavor matches [name] (case-insensitive).
+  static bool isFlavor(String name) => flavor == name.trim().toLowerCase();
+
   static void setEnvFilePath(String? path) {
     _envFilePathOverride = path;
     _isLoaded = false;
@@ -177,13 +243,53 @@ class FlintEnv {
   /// Ensures the `.env` file is loaded into memory.
   ///
   /// This is called automatically on first access of any getter.
+  /// Ensures the `.env` file is loaded into memory with layered flavor support.
+  ///
+  /// Layering priority:
+  /// 1. Base `.env` file (if present) provides application defaults
+  /// 2. Active flavor file `.env.<flavor>` (or explicit override) overlays on top
+  ///
+  /// This is called automatically on first access of any getter.
   static void _ensureLoaded() {
     if (!_isLoaded) {
-      final file = File(_envFilePathOverride ?? '.env');
-      if (file.existsSync()) {
-        final lines = file.readAsLinesSync();
+      _envFromFile.clear();
+
+      // 1. Load base .env if available
+      final baseFile = File('.env');
+      if (baseFile.existsSync()) {
+        final lines = baseFile.readAsLinesSync();
         _envFromFile.addAll(_parseLines(lines));
       }
+
+      // 2. Resolve flavor file overlay
+      String? overlayPath = _envFilePathOverride;
+      if (overlayPath == null) {
+        const compileTimeFlavor = String.fromEnvironment('FLAVOR');
+        final detectedFlavor =
+            (_currentFlavor != null && _currentFlavor!.isNotEmpty)
+                ? _currentFlavor!
+                : (compileTimeFlavor.isNotEmpty
+                    ? compileTimeFlavor
+                    : (Platform.environment['APP_FLAVOR'] ??
+                        Platform.environment['FLAVOR']));
+
+        if (detectedFlavor != null && detectedFlavor.trim().isNotEmpty) {
+          final candidate = '.env.${detectedFlavor.trim().toLowerCase()}';
+          if (File(candidate).existsSync()) {
+            overlayPath = candidate;
+          }
+        }
+      }
+
+      // Overlay flavor-specific configuration
+      if (overlayPath != null && overlayPath != '.env') {
+        final overlayFile = File(overlayPath);
+        if (overlayFile.existsSync()) {
+          final lines = overlayFile.readAsLinesSync();
+          _envFromFile.addAll(_parseLines(lines));
+        }
+      }
+
       _isLoaded = true;
     }
   }
@@ -195,7 +301,7 @@ class FlintEnv {
   /// - Values surrounded by quotes (`'` or `"`) will have quotes removed.
   static Map<String, String> _parseLines(List<String> lines) {
     final result = <String, String>{};
-    final regex = RegExp(r'^([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$');
+    final regex = RegExp(r'^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$');
 
     for (var line in lines) {
       line = line.trim();
@@ -203,23 +309,22 @@ class FlintEnv {
       // Ignore full-line comments
       if (line.isEmpty || line.startsWith('#')) continue;
 
-      // Remove inline comments (# ...)
-      final commentIndex = line.indexOf('#');
-      if (commentIndex != -1) {
-        line = line.substring(0, commentIndex).trim();
-      }
-
-      if (line.isEmpty) continue;
-
       final match = regex.firstMatch(line);
       if (match != null) {
         final key = match.group(1)!;
-        var value = match.group(2)!;
+        var value = match.group(2)!.trim();
 
-        // Remove surrounding quotes
-        if ((value.startsWith('"') && value.endsWith('"')) ||
-            (value.startsWith("'") && value.endsWith("'"))) {
+        // Remove surrounding quotes if paired
+        if (value.length >= 2 &&
+            ((value.startsWith('"') && value.endsWith('"')) ||
+                (value.startsWith("'") && value.endsWith("'")))) {
           value = value.substring(1, value.length - 1);
+        } else {
+          // If unquoted, strip trailing comment (# ...)
+          final commentIndex = value.indexOf('#');
+          if (commentIndex != -1) {
+            value = value.substring(0, commentIndex).trim();
+          }
         }
 
         result[key] = value;
