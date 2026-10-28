@@ -13,6 +13,7 @@ class BuildCommand extends FlintCommand {
   Future<void> execute(List<String> args) async {
     String? targetPlatform;
     String? entryPointArg;
+    String? flavorArg;
     const buildDir = 'build';
 
     for (var i = 0; i < args.length; i++) {
@@ -22,6 +23,10 @@ class BuildCommand extends FlintCommand {
       } else if (args[i] == '--entry' && i + 1 < args.length) {
         entryPointArg = args[i + 1];
         i++;
+      } else if (args[i].startsWith('--flavor=')) {
+        flavorArg = args[i].substring('--flavor='.length);
+      } else if (args[i] == '--flavor' && i + 1 < args.length) {
+        flavorArg = args[++i];
       } else if (args[i] == '--linux') {
         targetPlatform = 'linux';
       } else if (args[i] == '--windows') {
@@ -89,7 +94,7 @@ class BuildCommand extends FlintCommand {
       Log.debug('Compiling $entryPoint for ${target.toUpperCase()}...');
       final result = await Process.run(
         'dart',
-        ['compile', 'exe', entryPoint, '--target-os', target, '-o', exePath],
+        ['compile', 'exe', entryPoint, if (flavorArg != null) '--define=FLAVOR=$flavorArg', '--target-os', target, '-o', exePath],
         runInShell: true,
       );
 

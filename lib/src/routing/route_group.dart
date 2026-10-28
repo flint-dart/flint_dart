@@ -73,6 +73,12 @@ abstract class RouteGroup {
   /// Defaults to an empty string, meaning no prefix is applied.
   String get prefix => '';
 
+  /// Optional flavor constraint for this route group.
+  ///
+  /// When set (e.g. `'farmbenefit'`), this group's routes will only be
+  /// registered if the active application flavor matches.
+  String? get flavor => null;
+
   /// Optional tag name for this route group.
   ///
   /// This is intended for tooling and documentation purposes

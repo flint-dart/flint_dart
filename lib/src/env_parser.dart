@@ -221,33 +221,53 @@ class FlintEnv {
   /// Ensures the `.env` file is loaded into memory.
   ///
   /// This is called automatically on first access of any getter.
+  /// Ensures the `.env` file is loaded into memory with layered flavor support.
+  ///
+  /// Layering priority:
+  /// 1. Base `.env` file (if present) provides application defaults
+  /// 2. Active flavor file `.env.<flavor>` (or explicit override) overlays on top
+  ///
+  /// This is called automatically on first access of any getter.
   static void _ensureLoaded() {
     if (!_isLoaded) {
-      String resolvedPath = _envFilePathOverride ?? '.env';
+      _envFromFile.clear();
 
-      // Auto-detect .env.<flavor> if no explicit override was set
-      if (_envFilePathOverride == null) {
+      // 1. Load base .env if available
+      final baseFile = File('.env');
+      if (baseFile.existsSync()) {
+        final lines = baseFile.readAsLinesSync();
+        _envFromFile.addAll(_parseLines(lines));
+      }
+
+      // 2. Resolve flavor file overlay
+      String? overlayPath = _envFilePathOverride;
+      if (overlayPath == null) {
         const compileTimeFlavor = String.fromEnvironment('FLAVOR');
-        final detectedFlavor = (_currentFlavor != null && _currentFlavor!.isNotEmpty)
-            ? _currentFlavor!
-            : (compileTimeFlavor.isNotEmpty
-                ? compileTimeFlavor
-                : (Platform.environment['APP_FLAVOR'] ??
-                    Platform.environment['FLAVOR']));
+        final detectedFlavor =
+            (_currentFlavor != null && _currentFlavor!.isNotEmpty)
+                ? _currentFlavor!
+                : (compileTimeFlavor.isNotEmpty
+                    ? compileTimeFlavor
+                    : (Platform.environment['APP_FLAVOR'] ??
+                        Platform.environment['FLAVOR']));
 
         if (detectedFlavor != null && detectedFlavor.trim().isNotEmpty) {
           final candidate = '.env.${detectedFlavor.trim().toLowerCase()}';
           if (File(candidate).existsSync()) {
-            resolvedPath = candidate;
+            overlayPath = candidate;
           }
         }
       }
 
-      final file = File(resolvedPath);
-      if (file.existsSync()) {
-        final lines = file.readAsLinesSync();
-        _envFromFile.addAll(_parseLines(lines));
+      // Overlay flavor-specific configuration
+      if (overlayPath != null && overlayPath != '.env') {
+        final overlayFile = File(overlayPath);
+        if (overlayFile.existsSync()) {
+          final lines = overlayFile.readAsLinesSync();
+          _envFromFile.addAll(_parseLines(lines));
+        }
       }
+
       _isLoaded = true;
     }
   }

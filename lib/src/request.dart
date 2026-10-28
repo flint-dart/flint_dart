@@ -123,6 +123,38 @@ class Request {
 
   /// Constructs a [Request] with the raw [HttpRequest] and optional route [params].
   Request(this.raw, {Map<String, String>? params}) : params = params ?? {};
+  String? _flavorOverride;
+
+  /// Sets or overrides the active application flavor for this request.
+  void setFlavor(String flavor) {
+    _flavorOverride = flavor.trim().toLowerCase();
+  }
+
+  /// The active application flavor for this request (e.g. 'stokash', 'farmbenefit').
+  ///
+  /// Resolution priority:
+  /// 1. Explicitly set via [setFlavor]
+  /// 2. Header `X-Flint-Flavor`
+  /// 3. Query parameter `_flavor`
+  /// 4. Global environment flavor ([FlintEnv.flavor])
+  String get flavor {
+    if (_flavorOverride != null && _flavorOverride!.isNotEmpty) {
+      return _flavorOverride!;
+    }
+    final headerFlavor = raw.headers.value('x-flint-flavor');
+    if (headerFlavor != null && headerFlavor.trim().isNotEmpty) {
+      return headerFlavor.trim().toLowerCase();
+    }
+    final qFlavor = query['_flavor'];
+    if (qFlavor != null && qFlavor.trim().isNotEmpty) {
+      return qFlavor.trim().toLowerCase();
+    }
+    return FlintEnv.flavor;
+  }
+
+  /// Whether this request matches [name] flavor (case-insensitive).
+  bool isFlavor(String name) => flavor == name.trim().toLowerCase();
+
 
   // ==================== BASIC REQUEST PROPERTIES ====================
 

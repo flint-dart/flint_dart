@@ -1101,10 +1101,28 @@ class Flint {
   /// - Child groups inherit the parent group's prefix and middleware.
   /// - Supports deep nesting of route groups for modular API design.
   /// - Recommended for organizing large applications with multiple logical route sections.
+  /// The active application flavor.
+  String get flavor => FlintEnv.flavor;
+
+  /// Whether the active application flavor matches [name] (case-insensitive).
+  bool isFlavor(String name) => FlintEnv.isFlavor(name);
+
+  /// Registers routes that are only active when running under the specified [flavorName].
+  void forFlavor(String flavorName, void Function(Flint app) callback) {
+    if (FlintEnv.isFlavor(flavorName)) {
+      callback(this);
+    }
+  }
+
   void routes(
     RouteGroup group, {
     List<RouteGroup> children = const [],
   }) {
+    // Skip registration if group is scoped to another flavor
+    if (group.flavor != null && !FlintEnv.isFlavor(group.flavor!)) {
+      return;
+    }
+
     // Normalize prefix: empty string or "/" is treated the same
     String cleanPrefix = group.prefix.isEmpty ? '/' : group.prefix;
 

@@ -738,11 +738,19 @@ void main() {
   }
 
   static String? _detectRegistryName(String source) {
-    final match = RegExp(
-      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry|FlintComponentRegistry)\s*\(',
+    final matches = RegExp(
+      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry(?:\.flavored)?|FlavoredPageRegistry|FlintComponentRegistry)\s*\(',
       multiLine: true,
-    ).firstMatch(source);
-    return match?.group(1);
+    ).allMatches(source);
+    if (matches.isEmpty) return null;
+    // Prefer appRegistry, componentRegistry, or registry if found
+    for (final match in matches) {
+      final name = match.group(1);
+      if (name == 'appRegistry' || name == 'componentRegistry' || name == 'registry') {
+        return name;
+      }
+    }
+    return matches.first.group(1);
   }
 
   static Map<String, FlintWebUiPageTarget> _detectRegistryPageTargets(

@@ -385,6 +385,7 @@ class Response {
     String? serverHtml,
     bool? serverRender,
     int? status,
+    String? flavor,
   }) {
     try {
       final normalizedProps = _normalizePageProps(props);
@@ -399,7 +400,9 @@ class Response {
       final isBuildingPageBundle = scriptResolution.isBuilding;
       final resolvedScript = scriptResolution.script;
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
-      final currentFlavor = FlintEnv.flavor;
+      final currentFlavor = (flavor != null && flavor.trim().isNotEmpty)
+          ? flavor.trim().toLowerCase()
+          : (request?.flavor ?? FlintEnv.flavor);
       final safeFlavor = _escapeHtmlAttribute(currentFlavor);
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
@@ -527,6 +530,7 @@ $hotReloadScript
     String? serverHtml,
     bool? serverRender,
     int? status,
+    String? flavor,
   }) =>
       flintPage(
         component,
@@ -540,6 +544,7 @@ $hotReloadScript
         serverHtml: serverHtml,
         serverRender: serverRender,
         status: status,
+        flavor: flavor,
       );
 
   /// Renders a strongly-typed [FlintPageRoute] with compile-time verified [props].
@@ -555,6 +560,7 @@ $hotReloadScript
     String? serverHtml,
     bool? serverRender,
     int? status,
+    String? flavor,
   }) =>
       flintPage(
         route.name,
