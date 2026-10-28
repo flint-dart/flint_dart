@@ -1235,7 +1235,9 @@ class Flint {
         'run',
         'flint_dart:hot_reload',
         rootPath,
-        '--port=$port'
+        '--port=$port',
+        if (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+          '--flavor=${FlintEnv.flavor}',
       ],
       environment: {'FLINT_HOT': '1', 'APP_FLAVOR': FlintEnv.flavor, 'FLAVOR': FlintEnv.flavor},
       mode: ProcessStartMode.inheritStdio,

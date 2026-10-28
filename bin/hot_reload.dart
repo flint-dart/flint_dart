@@ -134,9 +134,11 @@ Future<bool> startServer() async {
 
   _logVerbose('[HOT-RELOAD] Starting server...');
   int? announcedPort;
-  final currentFlavor = Platform.environment['APP_FLAVOR'] ??
-      Platform.environment['FLAVOR'] ??
-      '';
+  final currentFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+      ? FlintEnv.flavor
+      : (Platform.environment['APP_FLAVOR'] ??
+          Platform.environment['FLAVOR'] ??
+          '');
 
   server = await Process.start(
     'dart',
