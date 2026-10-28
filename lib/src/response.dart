@@ -399,6 +399,8 @@ class Response {
       final isBuildingPageBundle = scriptResolution.isBuilding;
       final resolvedScript = scriptResolution.script;
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
+      final currentFlavor = FlintEnv.flavor;
+      final safeFlavor = _escapeHtmlAttribute(currentFlavor);
       final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
       final safeRootId = _escapeHtmlAttribute(rootId);
       final renderedHtml = serverHtml ??
@@ -438,10 +440,11 @@ class Response {
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta name="flint-flavor" content="$safeFlavor">
 $headTags
   </head>
   <body>
-    <main id="$safeRootId" data-flint-page="$encodedPage">$renderedHtml</main>
+    <main id="$safeRootId" data-flint-page="$encodedPage" data-flint-flavor="$safeFlavor">$renderedHtml</main>
 $pageScriptTag
 $buildOverlayScript
 $serviceWorkerScript
