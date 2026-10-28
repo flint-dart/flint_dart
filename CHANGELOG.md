@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.3] - 2026-10-28
+
+### Added & Improved
+- **Native Multi-Flavor Application Support**:
+  - Added enterprise-grade native multi-flavor architecture across Flint Dart (`Flint(flavor: ...)`, `Flint(args: args)`, and `FlintEnv.flavor`).
+  - Added automatic environment resolution for `.env.<flavor>` with seamless fallback to base `.env`.
+  - Added CLI flag support: `--flavor=<name>` forwarded seamlessly through `flint run`, `hot_reload`, and server commands.
+  - Added `FlavoredPageRegistry` and multi-flavor Web UI bundling with flavor-aware manifest resolution and favicon auto-detection.
+- **Resilient Migrations & Safe Column Handling**:
+  - Added protection against accidental column dropping during migrations unless explicitly enabled via `FLINT_MIGRATION_DROP_COLUMNS=true`.
+- **Environment Parser Enhancements**:
+  - Fixed `.env` parsing when values contain quotes with internal `#` hash symbols.
+
 ## [1.5.2] - 2026-10-27
 
 ### Fixed & Improved
