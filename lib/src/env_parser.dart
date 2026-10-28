@@ -168,6 +168,50 @@ class FlintEnv {
     _ensureLoaded();
   }
 
+  static String? _currentFlavor;
+
+  /// Returns the current active build/runtime flavor (e.g. 'stokash', 'farmbenefit').
+  ///
+  /// Priority:
+  /// 1. Explicitly set via [setFlavor]
+  /// 2. Compile-time environment variable `--define=FLAVOR=...`
+  /// 3. Environment variable `APP_FLAVOR` or `FLAVOR`
+  /// 4. Value in loaded `.env` file (`APP_FLAVOR` or `FLAVOR`)
+  /// 5. Defaults to `'default'`
+  static String get flavor {
+    if (_currentFlavor != null && _currentFlavor!.isNotEmpty) {
+      return _currentFlavor!;
+    }
+    const compileTimeFlavor = String.fromEnvironment('FLAVOR');
+    if (compileTimeFlavor.isNotEmpty) {
+      return compileTimeFlavor.toLowerCase();
+    }
+    final envFlavor = Platform.environment['APP_FLAVOR'] ??
+        Platform.environment['FLAVOR'];
+    if (envFlavor != null && envFlavor.trim().isNotEmpty) {
+      return envFlavor.trim().toLowerCase();
+    }
+    _ensureLoaded();
+    final fileFlavor =
+        _envFromFile['APP_FLAVOR'] ?? _envFromFile['FLAVOR'] ?? 'default';
+    return fileFlavor.trim().toLowerCase();
+  }
+
+  /// Sets the active flavor. If a corresponding `.env.<flavor>` file exists,
+  /// FlintEnv will automatically switch its environment source to it.
+  static void setFlavor(String flavorName) {
+    _currentFlavor = flavorName.trim().toLowerCase();
+    final candidatePath = '.env.$_currentFlavor';
+    if (File(candidatePath).existsSync()) {
+      _envFilePathOverride = candidatePath;
+    }
+    reload();
+  }
+
+  /// Checks if the current flavor matches [name] (case-insensitive).
+  static bool isFlavor(String name) =>
+      flavor == name.trim().toLowerCase();
+
   static void setEnvFilePath(String? path) {
     _envFilePathOverride = path;
     _isLoaded = false;
@@ -179,7 +223,27 @@ class FlintEnv {
   /// This is called automatically on first access of any getter.
   static void _ensureLoaded() {
     if (!_isLoaded) {
-      final file = File(_envFilePathOverride ?? '.env');
+      String resolvedPath = _envFilePathOverride ?? '.env';
+
+      // Auto-detect .env.<flavor> if no explicit override was set
+      if (_envFilePathOverride == null) {
+        const compileTimeFlavor = String.fromEnvironment('FLAVOR');
+        final detectedFlavor = (_currentFlavor != null && _currentFlavor!.isNotEmpty)
+            ? _currentFlavor!
+            : (compileTimeFlavor.isNotEmpty
+                ? compileTimeFlavor
+                : (Platform.environment['APP_FLAVOR'] ??
+                    Platform.environment['FLAVOR']));
+
+        if (detectedFlavor != null && detectedFlavor.trim().isNotEmpty) {
+          final candidate = '.env.${detectedFlavor.trim().toLowerCase()}';
+          if (File(candidate).existsSync()) {
+            resolvedPath = candidate;
+          }
+        }
+      }
+
+      final file = File(resolvedPath);
       if (file.existsSync()) {
         final lines = file.readAsLinesSync();
         _envFromFile.addAll(_parseLines(lines));

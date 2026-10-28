@@ -275,9 +275,13 @@ class Flint {
       this.withDefaultMiddleware = true,
       this.enableSwaggerDocs = false,
       this.enableMailPreview,
-      this.mailRegistry})
+      this.mailRegistry,
+      String? flavor})
       : _flintPageServerRenderer = flintPageServerRenderer,
         _serverRenderFlintPages = serverRenderFlintPages {
+    if (flavor != null && flavor.trim().isNotEmpty) {
+      FlintEnv.setFlavor(flavor);
+    }
     this.cacheDriver = _resolveCacheDriver(cacheDriver, autoConnectRedis);
     this.cacheDirectory = _resolveCacheDirectory(cacheDirectory);
     this.cacheMemoryMaxSize =
