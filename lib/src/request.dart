@@ -130,7 +130,7 @@ class Request {
     _flavorOverride = flavor.trim().toLowerCase();
   }
 
-  /// The active application flavor for this request (e.g. 'stokash', 'farmbenefit').
+  /// The active application flavor for this request (e.g. 'stokash', 'FarmsBenefit').
   ///
   /// Resolution priority:
   /// 1. Explicitly set via [setFlavor]
@@ -154,7 +154,6 @@ class Request {
 
   /// Whether this request matches [name] flavor (case-insensitive).
   bool isFlavor(String name) => flavor == name.trim().toLowerCase();
-
 
   // ==================== BASIC REQUEST PROPERTIES ====================
 

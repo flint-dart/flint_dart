@@ -75,7 +75,7 @@ abstract class RouteGroup {
 
   /// Optional flavor constraint for this route group.
   ///
-  /// When set (e.g. `'farmbenefit'`), this group's routes will only be
+  /// When set (e.g. `'FarmsBenefit'`), this group's routes will only be
   /// registered if the active application flavor matches.
   String? get flavor => null;
 

@@ -170,7 +170,7 @@ class FlintEnv {
 
   static String? _currentFlavor;
 
-  /// Returns the current active build/runtime flavor (e.g. 'stokash', 'farmbenefit').
+  /// Returns the current active build/runtime flavor (e.g. 'stokash', 'FarmsBenefit').
   ///
   /// Priority:
   /// 1. Explicitly set via [setFlavor]
@@ -186,8 +186,8 @@ class FlintEnv {
     if (compileTimeFlavor.isNotEmpty) {
       return compileTimeFlavor.toLowerCase();
     }
-    final envFlavor = Platform.environment['APP_FLAVOR'] ??
-        Platform.environment['FLAVOR'];
+    final envFlavor =
+        Platform.environment['APP_FLAVOR'] ?? Platform.environment['FLAVOR'];
     if (envFlavor != null && envFlavor.trim().isNotEmpty) {
       return envFlavor.trim().toLowerCase();
     }
@@ -232,8 +232,7 @@ class FlintEnv {
   }
 
   /// Checks if the current flavor matches [name] (case-insensitive).
-  static bool isFlavor(String name) =>
-      flavor == name.trim().toLowerCase();
+  static bool isFlavor(String name) => flavor == name.trim().toLowerCase();
 
   static void setEnvFilePath(String? path) {
     _envFilePathOverride = path;
@@ -318,7 +317,7 @@ class FlintEnv {
         // Remove surrounding quotes if paired
         if (value.length >= 2 &&
             ((value.startsWith('"') && value.endsWith('"')) ||
-             (value.startsWith("'") && value.endsWith("'")))) {
+                (value.startsWith("'") && value.endsWith("'")))) {
           value = value.substring(1, value.length - 1);
         } else {
           // If unquoted, strip trailing comment (# ...)

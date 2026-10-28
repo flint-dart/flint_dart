@@ -118,8 +118,7 @@ class FlintComponentRegistry extends PageRegistry {
   }
 }
 
-
-/// A multi-flavor page registry that maps flavors (e.g. 'stokash', 'farmbenefit')
+/// A multi-flavor page registry that maps flavors (e.g. 'stokash', 'FarmsBenefit')
 /// to their respective [PageRegistry] instances, with automatic fallback to default flavor.
 class FlavoredPageRegistry extends PageRegistry {
   final Map<String, PageRegistry> _flavorRegistries = {};
