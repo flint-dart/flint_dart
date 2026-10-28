@@ -924,6 +924,29 @@ $hotReloadScript
       return explicitUrl;
     }
 
+    final activeFlavor = FlintEnv.flavor;
+    if (activeFlavor != 'default' && activeFlavor.isNotEmpty) {
+      final flavorCandidates = preferPng
+          ? [
+              'favicon-$activeFlavor.png',
+              'favicon.$activeFlavor.png',
+              'favicon-farm.png',
+              '$activeFlavor-favicon.png',
+            ]
+          : [
+              'favicon-$activeFlavor.ico',
+              'favicon-$activeFlavor.png',
+              'favicon-farm.ico',
+              'favicon-farm.png',
+              'favicon.$activeFlavor.ico',
+            ];
+      for (final candidate in flavorCandidates) {
+        if (File(p.join('public', candidate)).existsSync()) {
+          return '/$candidate';
+        }
+      }
+    }
+
     final candidates = preferPng
         ? const ['favicon.png', 'apple-touch-icon.png', 'favicon.ico']
         : const ['favicon.ico', 'favicon.png', 'favicon.svg'];
