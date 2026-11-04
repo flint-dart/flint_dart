@@ -5,6 +5,8 @@ All notable changes to this project are documented in this file.
 ## [1.5.3] - 2026-10-28
 
 ### Added & Improved
+- **Built-in 6,000+ HugeIcons in `Icons` (`package:flint_dart/ui.dart`)**:
+  - Upgraded `Icons` in `package:flint_dart/ui.dart` to include all 6,046+ HugeIcons stroke-rounded icons as tree-shakeable `const IconData` definitions, plus all standard Flint UI icon aliases (`Icons.moreVertical`, `Icons.stop`, `Icons.play`, `Icons.refresh`, `Icons.pause`, `Icons.power`, `Icons.externalLink`, etc.).
 - **Native Multi-Flavor Application Support**:
   - Added enterprise-grade native multi-flavor architecture across Flint Dart (`Flint(flavor: ...)`, `Flint(args: args)`, and `FlintEnv.flavor`).
   - Added automatic environment resolution for `.env.<flavor>` with seamless fallback to base `.env`.
