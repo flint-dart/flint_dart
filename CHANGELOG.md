@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.5] - 2026-11-05
+
+### Added & Improved
+- **Direct Mail Instance Connection (`Mail().connect(...)`)**:
+  - Added `mail.connect(...)` to bind an individual `Mail` instance directly to a specified SMTP provider, host, port, credentials, and sender address on demand before sending.
+  - Bypasses global static `Mail.setup(...)` and strictly disables automatic fallback/reconfiguration from `.env` (`_retryAfterReconfigure()`), guaranteeing that multi-tenant and multi-mailbox applications never send emails from the fallback environment credentials when an explicit account is specified.
+- **Custom SMTP TLS & Certificate Verification Resilience**:
+  - Added `allowInsecure: true` and `ignoreBadCertificate: true` support to `SmtpFactory.create` and `Mail.connect(...)`, preventing custom mail servers (e.g. self-signed or private SMTP domains) from failing SSL/TLS handshakes.
+
 ## [1.5.4] - 2026-11-04
 
 ### Added & Improved
