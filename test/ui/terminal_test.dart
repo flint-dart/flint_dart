@@ -15,8 +15,16 @@ void main() {
     final texts = _texts(root);
 
     expect(toolbar.tag, 'div');
-    expect(texts,
-        containsAll(['Application terminal', 'Reconnect', 'Clear', 'Copy']));
+    expect(
+      texts,
+      containsAll([
+        'Application terminal',
+        'Reconnect',
+        'Clear',
+        'Copy',
+        'Paste',
+      ]),
+    );
     expect(viewport.props['role'], 'application');
     expect(viewport.props['aria-label'],
         'Application terminal interactive terminal');
@@ -45,6 +53,10 @@ void main() {
         calls.add('copy');
         return true;
       },
+      paste: ([data]) async {
+        calls.add('paste:${data ?? 'clipboard'}');
+        return true;
+      },
     );
 
     controller
@@ -56,6 +68,8 @@ void main() {
       ..disconnect();
     expect(controller.send('ls\n'), true);
     expect(await controller.copySelection(), true);
+    expect(await controller.paste('pwd\n'), true);
+    expect(await controller.paste(), true);
     controller.updateConnectionState(owner, TerminalConnectionState.connected);
 
     expect(controller.isAttached, true);
@@ -70,7 +84,9 @@ void main() {
         'write:local',
         'disconnect',
         'send:ls\n',
-        'copy'
+        'copy',
+        'paste:pwd\n',
+        'paste:clipboard',
       ],
     );
 

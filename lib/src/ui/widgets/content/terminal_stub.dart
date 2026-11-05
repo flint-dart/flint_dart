@@ -76,6 +76,7 @@ class TerminalController {
   void Function(String data)? _write;
   bool Function(String data)? _send;
   Future<bool> Function()? _copySelection;
+  Future<bool> Function([String? text])? _paste;
   TerminalConnectionState _connectionState = TerminalConnectionState.idle;
 
   /// Whether this controller is currently attached to a browser terminal.
@@ -109,6 +110,10 @@ class TerminalController {
   Future<bool> copySelection() =>
       _copySelection?.call() ?? Future<bool>.value(false);
 
+  /// Pastes text into the terminal, or reads from the system clipboard if [text] is omitted.
+  Future<bool> paste([String? text]) =>
+      _paste?.call(text) ?? Future<bool>.value(false);
+
   /// Binds browser behavior to this controller.
   ///
   /// This is called by [Terminal] during its mount lifecycle. Application code
@@ -123,6 +128,7 @@ class TerminalController {
     required void Function(String data) write,
     required bool Function(String data) send,
     required Future<bool> Function() copySelection,
+    required Future<bool> Function([String? text]) paste,
   }) {
     _owner = owner;
     _connect = connect;
@@ -133,6 +139,7 @@ class TerminalController {
     _write = write;
     _send = send;
     _copySelection = copySelection;
+    _paste = paste;
   }
 
   /// Removes browser behavior when the owning terminal unmounts.
@@ -147,6 +154,7 @@ class TerminalController {
     _write = null;
     _send = null;
     _copySelection = null;
+    _paste = null;
     _connectionState = TerminalConnectionState.closed;
   }
 
@@ -361,6 +369,11 @@ class Terminal extends StatefulComponent {
                     variant: ButtonVariant.outline,
                     size: ComponentSize.sm,
                     child: 'Copy',
+                  ),
+                  Button(
+                    variant: ButtonVariant.outline,
+                    size: ComponentSize.sm,
+                    child: 'Paste',
                   ),
                 ],
               ),
