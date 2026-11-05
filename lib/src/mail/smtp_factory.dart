@@ -8,6 +8,8 @@ class SmtpFactory {
     required String username,
     required String password,
     String encryption = 'tls',
+    bool allowInsecure = true,
+    bool ignoreBadCertificate = true,
   }) {
     switch (provider) {
       case MailProvider.gmail:
@@ -17,7 +19,8 @@ class SmtpFactory {
           username: username,
           password: password,
           ssl: false,
-          allowInsecure: false,
+          allowInsecure: allowInsecure,
+          ignoreBadCertificate: ignoreBadCertificate,
         );
 
       case MailProvider.outlook:
@@ -27,6 +30,8 @@ class SmtpFactory {
           username: username,
           password: password,
           ssl: false,
+          allowInsecure: allowInsecure,
+          ignoreBadCertificate: ignoreBadCertificate,
         );
 
       case MailProvider.yahoo:
@@ -36,6 +41,8 @@ class SmtpFactory {
           username: username,
           password: password,
           ssl: true,
+          allowInsecure: allowInsecure,
+          ignoreBadCertificate: ignoreBadCertificate,
         );
 
       case MailProvider.custom:
@@ -45,6 +52,8 @@ class SmtpFactory {
           username: username,
           password: password,
           ssl: encryption == 'ssl',
+          allowInsecure: allowInsecure,
+          ignoreBadCertificate: ignoreBadCertificate,
         );
     }
   }
