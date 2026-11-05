@@ -135,7 +135,13 @@ class Terminal extends StatefulComponent {
   web.WebSocket? _socket;
   web.ResizeObserver? _resizeObserver;
   web.MutationObserver? _themeObserver;
+  JSFunction? _pasteListener;
+  JSFunction? _copyListener;
+  JSFunction? _contextMenuListener;
+  Timer? _statusResetTimer;
   Timer? _reconnectTimer;
+  int _lastPasteTime = 0;
+  String _lastPastedText = '';
   bool _mounted = false;
   bool _requiresRemount = false;
   bool _requiresReconnect = false;
@@ -244,6 +250,13 @@ class Terminal extends StatefulComponent {
       write: write,
       send: send,
       copySelection: copySelection,
+      paste: ([String? text]) async {
+        if (text != null && text.isNotEmpty) {
+          paste(text);
+          return true;
+        }
+        return pasteFromClipboard();
+      },
     );
     controller?.updateConnectionState(this, _connectionState);
   }
@@ -277,10 +290,16 @@ class Terminal extends StatefulComponent {
         }.jsify(),
       ]);
       _callTerminal('open', [mount]);
+      _callTerminal('attachCustomKeyEventHandler', [
+        ((web.KeyboardEvent event) {
+          return _handleCustomKeyEvent(event).toJS;
+        }).toJS,
+      ]);
       final subscription = _callTerminal('onData', [
         ((JSString value) => send(value.toDart)).toJS,
       ]);
       if (subscription is JSObject) _dataSubscription = subscription;
+      _attachDomListeners(mount);
 
       _resizeObserver = web.ResizeObserver(
         ((JSArray<web.ResizeObserverEntry> _, web.ResizeObserver __) {
@@ -416,15 +435,154 @@ class Terminal extends StatefulComponent {
 
   /// Copies selected terminal text to the browser clipboard.
   Future<bool> copySelection() async {
-    final selected = _callTerminal('getSelection');
-    if (selected is! JSString || selected.toDart.isEmpty) return false;
+    final text = _selectedText();
+    if (text.isEmpty) {
+      _flashStatus('Select text first', '#eab308');
+      return false;
+    }
     try {
-      await web.window.navigator.clipboard.writeText(selected.toDart).toDart;
+      await web.window.navigator.clipboard.writeText(text).toDart;
+      _flashStatus('Copied!', '#16a34a');
       focus();
       return true;
     } catch (error) {
       onError?.call(error);
       return false;
+    }
+  }
+
+  /// Pastes text directly into the terminal.
+  void paste(String text) {
+    if (text.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (text == _lastPastedText && now - _lastPasteTime < 300) {
+      return;
+    }
+    _lastPasteTime = now;
+    _lastPastedText = text;
+
+    final normalized = text.replaceAll('\r\n', '\r').replaceAll('\n', '\r');
+    final result = _callTerminal('paste', [normalized.toJS]);
+    if (result == null) {
+      send(normalized);
+    }
+  }
+
+  /// Reads from the browser clipboard and pastes into the terminal.
+  Future<bool> pasteFromClipboard() async {
+    try {
+      final jsText = await web.window.navigator.clipboard.readText().toDart;
+      final text = jsText.toDart;
+      if (text.isNotEmpty) {
+        paste(text);
+        _flashStatus('Pasted!', '#16a34a');
+        focus();
+        return true;
+      }
+      _flashStatus('Clipboard empty', '#eab308');
+      return false;
+    } catch (_) {
+      try {
+        final input = web.window.prompt('Paste text to send to terminal:');
+        if (input != null && input.isNotEmpty) {
+          paste(input);
+          _flashStatus('Pasted!', '#16a34a');
+          focus();
+          return true;
+        }
+      } catch (error) {
+        onError?.call(error);
+      }
+      return false;
+    }
+  }
+
+  bool _hasSelection() {
+    final hasSel = _callTerminal('hasSelection');
+    if (hasSel is JSBoolean) return hasSel.toDart;
+    return _selectedText().isNotEmpty;
+  }
+
+  String _selectedText() {
+    final selected = _callTerminal('getSelection');
+    if (selected is JSString) return selected.toDart;
+    return '';
+  }
+
+  bool _handleCustomKeyEvent(web.KeyboardEvent event) {
+    if (event.type != 'keydown') return true;
+
+    final isCtrlOrCmd = event.ctrlKey || event.metaKey;
+    final isShift = event.shiftKey;
+    final key = event.key.toLowerCase();
+
+    // Copy: Ctrl+C / Cmd+C when text is selected, or Ctrl+Shift+C
+    if (isCtrlOrCmd && key == 'c' && (_hasSelection() || isShift)) {
+      unawaited(copySelection());
+      return false; // Prevent xterm from sending \x03
+    }
+
+    // Paste: Ctrl+V / Cmd+V or Ctrl+Shift+V
+    if (isCtrlOrCmd && key == 'v') {
+      unawaited(pasteFromClipboard());
+      return false;
+    }
+
+    return true;
+  }
+
+  void _attachDomListeners(web.HTMLElement mount) {
+    final pasteFn = ((web.ClipboardEvent event) {
+      final clipboardData = event.clipboardData;
+      if (clipboardData != null) {
+        final text = clipboardData.getData('text/plain');
+        if (text.isNotEmpty) {
+          event.preventDefault();
+          paste(text);
+          focus();
+        }
+      }
+    }).toJS;
+    _pasteListener = pasteFn;
+    mount.addEventListener('paste', pasteFn);
+
+    final copyFn = ((web.ClipboardEvent event) {
+      final selection = _selectedText();
+      if (selection.isNotEmpty) {
+        final clipboardData = event.clipboardData;
+        if (clipboardData != null) {
+          clipboardData.setData('text/plain', selection);
+          event.preventDefault();
+          _flashStatus('Copied!', '#16a34a');
+        }
+      }
+    }).toJS;
+    _copyListener = copyFn;
+    mount.addEventListener('copy', copyFn);
+
+    final contextMenuFn = ((web.MouseEvent event) {
+      if (_hasSelection()) {
+        event.preventDefault();
+        unawaited(copySelection());
+      }
+    }).toJS;
+    _contextMenuListener = contextMenuFn;
+    mount.addEventListener('contextmenu', contextMenuFn);
+  }
+
+  void _flashStatus(String message, String color) {
+    final element = web.document.getElementById('$_instanceId-status');
+    if (element is web.HTMLElement) {
+      element
+        ..textContent = message
+        ..style.color = color;
+      _statusResetTimer?.cancel();
+      _statusResetTimer = Timer(const Duration(milliseconds: 1800), () {
+        if (!_mounted) return;
+        element
+          ..textContent = _stateLabel(_connectionState)
+          ..style.color = _stateColor(_connectionState);
+      });
     }
   }
 
@@ -498,11 +656,28 @@ class Terminal extends StatefulComponent {
     _generation++;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+    _statusResetTimer?.cancel();
+    _statusResetTimer = null;
     _closeSocket();
     _resizeObserver?.disconnect();
     _resizeObserver = null;
     _themeObserver?.disconnect();
     _themeObserver = null;
+    final mount = web.document.getElementById('$_instanceId-mount');
+    if (mount is web.HTMLElement) {
+      if (_pasteListener != null) {
+        mount.removeEventListener('paste', _pasteListener!);
+      }
+      if (_copyListener != null) {
+        mount.removeEventListener('copy', _copyListener!);
+      }
+      if (_contextMenuListener != null) {
+        mount.removeEventListener('contextmenu', _contextMenuListener!);
+      }
+    }
+    _pasteListener = null;
+    _copyListener = null;
+    _contextMenuListener = null;
     _disposeJsObject(_dataSubscription);
     _dataSubscription = null;
     _callTerminal('dispose');
@@ -769,6 +944,12 @@ class Terminal extends StatefulComponent {
                     size: ComponentSize.sm,
                     onPressed: (_) => unawaited(copySelection()),
                     child: 'Copy',
+                  ),
+                  Button(
+                    variant: ButtonVariant.outline,
+                    size: ComponentSize.sm,
+                    onPressed: (_) => unawaited(pasteFromClipboard()),
+                    child: 'Paste',
                   ),
                 ],
               ),

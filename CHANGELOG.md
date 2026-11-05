@@ -10,6 +10,11 @@ All notable changes to this project are documented in this file.
   - Bypasses global static `Mail.setup(...)` and strictly disables automatic fallback/reconfiguration from `.env` (`_retryAfterReconfigure()`), guaranteeing that multi-tenant and multi-mailbox applications never send emails from the fallback environment credentials when an explicit account is specified.
 - **Custom SMTP TLS & Certificate Verification Resilience**:
   - Added `allowInsecure: true` and `ignoreBadCertificate: true` support to `SmtpFactory.create` and `Mail.connect(...)`, preventing custom mail servers (e.g. self-signed or private SMTP domains) from failing SSL/TLS handshakes.
+- **Interactive Terminal Clipboard Integration (Copy & Paste)**:
+  - Added dedicated **Paste** button to `Terminal` toolbar with clipboard read and secure prompt fallback.
+  - Added `paste([String? text])` and `pasteFromClipboard()` to `Terminal` and `TerminalController`.
+  - Added custom key event handling (`attachCustomKeyEventHandler`) supporting `Ctrl+C` / `Cmd+C` / `Ctrl+Shift+C` copying when text is selected (preventing destructive SIGINT `\x03`), and `Ctrl+V` / `Cmd+V` / `Ctrl+Shift+V` pasting.
+  - Added DOM `paste` and `copy` event listeners on the terminal viewport.
 
 ## [1.5.4] - 2026-11-04
 
