@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.6] - 2026-11-06
+
+### Fixed & Improved
+- **MySQL 8+ `caching_sha2_password` Support (`allowPublicKeyRetrieval`)**:
+  - Added `allowPublicKeyRetrieval: true` by default to `MySqlConnectionWrapper.connect(...)` and `MySQLConnection.createConnection(...)`.
+  - Fixes `MySQLClientException: Auth plugin caching_sha2_password requires TLS, a pinned serverPublicKey, or allowPublicKeyRetrieval: true` when connecting to MySQL 8+ instances over standard TCP without TLS.
+  - Exposed `allowPublicKeyRetrieval` across `DB.connectNamed(...)`, `DB.connect(...)`, and `DB.autoConnect(...)` with configurable `.env` flag `DB_ALLOW_PUBLIC_KEY_RETRIEVAL`.
+
 ## [1.5.5] - 2026-11-06
 
 ### Added & Improved
