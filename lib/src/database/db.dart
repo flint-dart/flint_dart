@@ -59,6 +59,7 @@ class DB {
     String? username,
     String? password,
     bool? isSecure,
+    bool? allowPublicKeyRetrieval,
     DBDriver? driver,
   }) async {
     final existing = _connections[name];
@@ -91,6 +92,8 @@ class DB {
         user: username ?? FlintEnv.get('DB_USER', 'root'),
         password: password ?? FlintEnv.get('DB_PASSWORD', ''),
         isSecure: isSecure ?? FlintEnv.getBool('DB_SECURE', false),
+        allowPublicKeyRetrieval: allowPublicKeyRetrieval ??
+            FlintEnv.getBool('DB_ALLOW_PUBLIC_KEY_RETRIEVAL', true),
       );
       wrapper = mysql;
     }
@@ -191,6 +194,8 @@ class DB {
         user: FlintEnv.get('DB_USER', 'root'),
         isSecure: FlintEnv.getBool("DB_SECURE", false),
         password: FlintEnv.get('DB_PASSWORD', ''),
+        allowPublicKeyRetrieval:
+            FlintEnv.getBool('DB_ALLOW_PUBLIC_KEY_RETRIEVAL', true),
       );
     }
     _isConnected = true;
@@ -204,6 +209,7 @@ class DB {
     String? username,
     String? password,
     bool? isSecure,
+    bool? allowPublicKeyRetrieval,
   }) async {
     _isConnected = false;
 
@@ -229,6 +235,8 @@ class DB {
         user: username ?? FlintEnv.get('DB_USER', 'root'),
         password: password ?? FlintEnv.get('DB_PASSWORD', ''),
         isSecure: isSecure ?? FlintEnv.getBool('DB_SECURE', false),
+        allowPublicKeyRetrieval: allowPublicKeyRetrieval ??
+            FlintEnv.getBool('DB_ALLOW_PUBLIC_KEY_RETRIEVAL', true),
       );
     }
 

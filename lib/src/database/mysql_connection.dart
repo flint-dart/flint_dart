@@ -23,6 +23,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   String? _user;
   String? _password;
   bool _isSecure = false;
+  bool _allowPublicKeyRetrieval = true;
   int _timeoutSeconds = 30;
   int _keepAliveSeconds = 120;
 
@@ -33,6 +34,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     required String user,
     required String password,
     bool isSecure = false,
+    bool allowPublicKeyRetrieval = true,
     int timeoutSeconds = 30,
     int keepAliveSeconds = 120,
   }) async {
@@ -42,6 +44,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     _user = user;
     _password = password;
     _isSecure = isSecure;
+    _allowPublicKeyRetrieval = allowPublicKeyRetrieval;
     _timeoutSeconds = timeoutSeconds;
     _keepAliveSeconds = keepAliveSeconds;
 
@@ -361,6 +364,7 @@ class MySqlConnectionWrapper implements DBWrapper {
       userName: _user!,
       password: _password!,
       secure: _isSecure,
+      allowPublicKeyRetrieval: _allowPublicKeyRetrieval,
     );
 
     await _conn!.connect(timeoutMs: _timeoutSeconds * 1000);
