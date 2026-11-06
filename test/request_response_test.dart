@@ -542,7 +542,7 @@ void main() {
       expect(
         body,
         contains(
-          '<main id="app" data-flint-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{}}"><section><h1>Ready now</h1></section></main>',
+          '<main id="app" data-flint-page="{&quot;component&quot;:&quot;Dashboard&quot;,&quot;props&quot;:{}}" data-flint-flavor="default"><section><h1>Ready now</h1></section></main>',
         ),
       );
       expect(body, contains('<script defer src="/main.dart.js"></script>'));
