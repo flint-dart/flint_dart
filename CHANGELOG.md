@@ -2,9 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
-## [1.5.5] - 2026-11-05
+## [1.5.5] - 2026-11-06
 
 ### Added & Improved
+- **Multi-Database Connection Pooling & Tenant Registry (`DB.connectNamed(...)`)**:
+  - Added `DB.connectNamed(name, ...)` and `DB.connection(name)` to register, cache, and pool active database connections by name or tenant identifier.
+  - Automatically reuses established connections across requests without destroying or recreating TCP sockets and TLS handshakes on every HTTP cycle.
+  - Added `DB.closeNamed(name)` and `DB.closeAll()` for clean connection lifecycle management and graceful shutdowns.
+- **Asynchronous Zone Database Scoping (`DB.scope(...)`)**:
+  - Added `DB.scope(connection, () => action())` powered by Dart `Zone` execution context (`#flint_active_db`).
+  - Seamlessly routes all static database helpers (`DB.query`, `DB.execute`, `DB.instance`, `DB.driver`, `DB.tableExists`, `DB.columnExists`, `DB.transaction`), `QueryBuilder`, and Flint `Model` operations to the scoped database connection without mutating global state.
+  - Enables multiple concurrent requests targeting different tenant databases to execute in parallel without sequential queue bottlenecks or connection stomping.
+- **Passive Database Auto-Connect Resilience (`autoConnectDb: false`)**:
+  - When `autoConnectDb: false` is configured on `Flint()`, requests using a scoped connection (`DB.scope`) execute seamlessly without throwing eager `Database is not connected` exceptions.
+- **First-Class Context Database Property (`ctx.db`)**:
+  - Added `ctx.db` getter to `Context`, allowing middleware, controllers, and services to directly access the request's scoped database wrapper (with fallback to default active connection), alongside `ctx.ai` and `ctx.cache`.
+- **Database Wrapper Driver & ID Helpers**:
+  - Added `driver` and `getLastInsertId(...)` to `DBWrapper`, `MySqlConnectionWrapper`, and `PgConnectionWrapper`.
 - **Direct Mail Instance Connection (`Mail().connect(...)`)**:
   - Added `mail.connect(...)` to bind an individual `Mail` instance directly to a specified SMTP provider, host, port, credentials, and sender address on demand before sending.
   - Bypasses global static `Mail.setup(...)` and strictly disables automatic fallback/reconfiguration from `.env` (`_retryAfterReconfigure()`), guaranteeing that multi-tenant and multi-mailbox applications never send emails from the fallback environment credentials when an explicit account is specified.

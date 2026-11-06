@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/database/db_driver.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:postgres/postgres.dart';
 
@@ -57,9 +58,22 @@ class PgConnectionWrapper implements DBWrapper {
   }
 
   @override
+  DBDriver get driver => DBDriver.postgres;
+
+  @override
   bool get isConnected => _connected && _connection != null;
 
   String? get lastError => _lastError;
+
+  @override
+  Future<dynamic> getLastInsertId(String tableName, String primaryKey) async {
+    final result = await query("SELECT lastval() as id");
+    if (result.isEmpty) return null;
+    final id = result.first['id'];
+    if (id is BigInt) return id.toInt();
+    if (id is String) return int.tryParse(id) ?? id;
+    return id;
+  }
 
   @override
   Future<List<Map<String, dynamic>>> query(

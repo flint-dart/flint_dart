@@ -1,5 +1,6 @@
 export 'src/database/db.dart';
 export 'src/database/db_driver.dart';
+export 'src/database/db_wrapper.dart';
 export 'src/database/db_executor.dart';
 export 'src/database/default_db_executor.dart';
 export 'src/database/seeder.dart';

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/src/database/db_transaction.dart';
 import 'package:flint_dart/src/database/db_driver.dart';
@@ -23,6 +24,8 @@ export 'db_driver.dart';
 /// final lastId = await DB.getLastInsertId("users", "id");
 /// ```
 class DB {
+  static const Symbol _zoneKey = #flint_active_db;
+
   static DBDriver? _driver;
   static MySqlConnectionWrapper? _mysql;
   static PgConnectionWrapper? _pg;
@@ -30,16 +33,117 @@ class DB {
   static bool _isConnecting = false;
   static bool _lazyAutoConnectEnabled = true;
 
+  /// Named connection pool cache for multi-tenant and multi-database support.
+  static final Map<String, DBWrapper> _connections = {};
+
+  /// Returns the database connection scoped to the current asynchronous Zone (if any).
+  static DBWrapper? get scopedConnection =>
+      Zone.current[_zoneKey] as DBWrapper?;
+
   /// Enable/disable implicit lazy auto-connect on first DB usage.
   ///
   /// When disabled, callers must establish a connection explicitly via
-  /// [connect] before calling query/execute helpers.
+  /// [connect] or use a scoped connection before calling query/execute helpers.
   static void setLazyAutoConnect(bool enabled) {
     _lazyAutoConnectEnabled = enabled;
   }
 
+  /// Connect to a named database (e.g. for a tenant) and cache the connection.
+  ///
+  /// If an active connection with [name] is already open, it is reused.
+  static Future<DBWrapper> connectNamed(
+    String name, {
+    required String database,
+    String? host,
+    int? port,
+    String? username,
+    String? password,
+    bool? isSecure,
+    DBDriver? driver,
+  }) async {
+    final existing = _connections[name];
+    if (existing != null && existing.isConnected) {
+      return existing;
+    }
+
+    final effectiveDriver = driver ??
+        (FlintEnv.get('DB_CONNECTION', 'mysql') == 'postgres'
+            ? DBDriver.postgres
+            : DBDriver.mysql);
+
+    final DBWrapper wrapper;
+    if (effectiveDriver == DBDriver.postgres) {
+      final pg = PgConnectionWrapper();
+      await pg.connect(
+        host: host ?? FlintEnv.get('DB_HOST', 'localhost'),
+        port: port ?? FlintEnv.getInt('DB_PORT', 5432),
+        database: database,
+        username: username ?? FlintEnv.get('DB_USER', 'postgres'),
+        password: password ?? FlintEnv.get('DB_PASSWORD', ''),
+      );
+      wrapper = pg;
+    } else {
+      final mysql = MySqlConnectionWrapper();
+      await mysql.connect(
+        host: host ?? FlintEnv.get('DB_HOST', 'localhost'),
+        port: port ?? FlintEnv.getInt('DB_PORT', 3306),
+        db: database,
+        user: username ?? FlintEnv.get('DB_USER', 'root'),
+        password: password ?? FlintEnv.get('DB_PASSWORD', ''),
+        isSecure: isSecure ?? FlintEnv.getBool('DB_SECURE', false),
+      );
+      wrapper = mysql;
+    }
+
+    _connections[name] = wrapper;
+    return wrapper;
+  }
+
+  /// Retrieve a named connection from the registry, or the currently scoped/active connection.
+  static DBWrapper? connection([String? name]) {
+    if (name == null || name.isEmpty || name == 'default') {
+      return scopedConnection ?? (isConnected ? instance : null);
+    }
+    return _connections[name];
+  }
+
+  /// Run an action within the scope of a specific database connection.
+  ///
+  /// Any query, model method, or transaction executed within [action] will
+  /// automatically route to [connection] without mutating global state.
+  static Future<T> scope<T>(DBWrapper connection, FutureOr<T> Function() action) {
+    return runZoned(
+      () async => await action(),
+      zoneValues: {_zoneKey: connection},
+    );
+  }
+
+  /// Close a specific named connection from the registry.
+  static Future<void> closeNamed(String name) async {
+    final conn = _connections.remove(name);
+    if (conn != null) {
+      await conn.close();
+    }
+  }
+
+  /// Close all named connections and the default connection.
+  static Future<void> closeAll() async {
+    for (final conn in _connections.values) {
+      await conn.close();
+    }
+    _connections.clear();
+    await close();
+  }
+
   /// Ensure the database is connected before running any command.
   static Future<void> _ensureConnected() async {
+    if (scopedConnection != null) {
+      if (!scopedConnection!.isConnected) {
+        throw Exception("Scoped database connection is closed or not connected.");
+      }
+      return;
+    }
+
     if (isConnected) return;
     _isConnected = false;
     if (!_lazyAutoConnectEnabled) {
@@ -163,11 +267,16 @@ class DB {
   }
 
   /// Returns whether the database is currently connected.
-  static bool get isConnected =>
-      _isConnected && (_mysql?.isConnected == true || _pg?.isConnected == true);
+  static bool get isConnected {
+    final scoped = scopedConnection;
+    if (scoped != null) return scoped.isConnected;
+    return _isConnected && (_mysql?.isConnected == true || _pg?.isConnected == true);
+  }
 
   /// Current driver in use.
   static DBDriver get driver {
+    final scoped = scopedConnection;
+    if (scoped != null) return scoped.driver;
     _ensureConnected();
     if (_driver == null) {
       throw Exception("Database not initialized.");
@@ -176,6 +285,10 @@ class DB {
   }
 
   static MySqlConnectionWrapper get mysql {
+    final scoped = scopedConnection;
+    if (scoped is MySqlConnectionWrapper && scoped.isConnected) {
+      return scoped;
+    }
     _ensureConnected();
     if (_mysql == null || !_mysql!.isConnected) {
       throw Exception("MySQL not connected or connection lost.");
@@ -184,6 +297,10 @@ class DB {
   }
 
   static PgConnectionWrapper get pg {
+    final scoped = scopedConnection;
+    if (scoped is PgConnectionWrapper && scoped.isConnected) {
+      return scoped;
+    }
     if (_pg == null || !_pg!.isConnected) {
       throw Exception("PostgreSQL not connected or connection lost.");
     }
@@ -192,6 +309,8 @@ class DB {
 
   /// Returns the active connection (MySQL or PostgreSQL).
   static DBWrapper get instance {
+    final scoped = scopedConnection;
+    if (scoped != null) return scoped;
     _ensureConnected();
     if (_driver == null) {
       throw Exception("Database not initialized.");
@@ -206,7 +325,7 @@ class DB {
     Map<String, dynamic>? namedParams,
   }) {
     _ensureConnected();
-    if (_driver == DBDriver.mysql) {
+    if (driver == DBDriver.mysql) {
       return _normalizeMySQL(sql, positionalParams, namedParams);
     } else {
       return _normalizePostgreSQL(sql, positionalParams, namedParams);
@@ -316,7 +435,7 @@ class DB {
   ) async {
     await _ensureConnected();
 
-    if (_driver == DBDriver.postgres) {
+    if (driver == DBDriver.postgres) {
       final result = await query("SELECT lastval() as id");
       return _convertDatabaseId(result.first['id']);
     } else {
@@ -379,7 +498,7 @@ class DB {
       final String sql;
       final Map<String, dynamic> params = {'table': tableName};
 
-      if (_driver == DBDriver.postgres) {
+      if (driver == DBDriver.postgres) {
         sql = '''
         SELECT COUNT(*) > 0 AS exists
         FROM information_schema.tables
@@ -397,8 +516,8 @@ class DB {
 
       final result = await query(
         sql,
-        positionalParams: _driver == DBDriver.mysql ? [tableName] : null,
-        namedParams: _driver == DBDriver.postgres ? params : null,
+        positionalParams: driver == DBDriver.mysql ? [tableName] : null,
+        namedParams: driver == DBDriver.postgres ? params : null,
       );
 
       final exists = result.first['exists'] ?? result.first['exists_flag'];
@@ -417,7 +536,7 @@ class DB {
 
   /// Build a LIMIT/OFFSET clause.
   static String buildLimitClause(int limit, [int? offset]) {
-    if (_driver == DBDriver.postgres) {
+    if (driver == DBDriver.postgres) {
       return offset != null ? 'LIMIT $limit OFFSET $offset' : 'LIMIT $limit';
     } else {
       return offset != null ? 'LIMIT $offset, $limit' : 'LIMIT $limit';
@@ -494,7 +613,7 @@ class DB {
     if (value is String && looksLikeDateTime(value)) {
       try {
         final dt = DateTime.parse(value);
-        return _driver == DBDriver.mysql
+        return driver == DBDriver.mysql
             ? toMySqlDateTime(dt)
             : dt.toIso8601String();
       } catch (_) {
@@ -506,7 +625,7 @@ class DB {
     if (value is Enum) return value.name;
 
     // Bool (MySQL expects 0/1, Postgres accepts bool directly)
-    if (_driver == DBDriver.mysql && value is bool) {
+    if (driver == DBDriver.mysql && value is bool) {
       return value ? 1 : 0;
     }
 
