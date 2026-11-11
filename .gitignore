@@ -7,3 +7,9 @@
 pubspec.lock
 /logs/
 /example/logs/
+
+.env
+.env.*
+!.env.example
+!.env-example
+

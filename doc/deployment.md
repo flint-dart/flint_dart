@@ -18,32 +18,32 @@ Before changing deployment behavior, inspect:
 - `lib/config/table_registry.dart` before migrating production schemas.
 - `lib/config/jobs_registry.dart` and `bin/worker.dart` before deploying queue
   workers.
-- `lib/config/ai.dart`, `lib/ai/`, and `docs/ai.md` before deploying AI
+- `lib/config/ai.dart`, `lib/ai/`, and [AI Runtime](/fullstack/guides/ai) before deploying AI
   providers, AI worker jobs, tool policy, or AI persistence tables.
 - `public/` for static files, uploads, generated Flint UI bundles, CSS, and
   `flint-sw.js`.
 - `.env`, `.env.example`, hosting secrets, or deployment environment settings.
 - `docker/`, `Dockerfile`, `docker-compose.yml`, or platform deployment files
   when present.
-- `docs/build-and-rendering.md` before changing `flint build`, `flint web`,
+- [Build And Rendering](/fullstack/guides/build-and-rendering) before changing `flint build`, `flint web`,
   generated bundles, or SSR.
-- `docs/models-and-database.md` before migrations.
-- `docs/jobs-and-workers.md` before worker process changes.
-- `docs/ai.md` before deploying AI providers, `flintAiTables`, production tool
+- [Models And Database](/fullstack/guides/models-and-database) before migrations.
+- [Jobs And Workers](/fullstack/guides/jobs-and-workers) before worker process changes.
+- [AI Runtime](/fullstack/guides/ai) before deploying AI providers, `flintAiTables`, production tool
   policy, run/thread memory, or artifacts.
-- `docs/logging.md` before changing production log levels, file logs, request
+- [Logging](/fullstack/guides/logging) before changing production log levels, file logs, request
   logs, job logs, or error logs.
-- `docs/testing.md` before changing deploy test commands, CI checks, or tests
+- [Testing](/fullstack/guides/testing) before changing deploy test commands, CI checks, or tests
   for routes, controllers, middleware, validators, storage, jobs, seeders, or
   UI components.
-- `docs/storage.md` before deploying uploads or public files.
+- [Storage](/fullstack/guides/storage) before deploying uploads or public files.
 
 ## Deployment Checklist
 
 For a normal production deploy:
 
 1. Set production environment variables in the hosting platform or server.
-2. Run tests and analysis; read `docs/testing.md` when adding or changing app
+2. Run tests and analysis; read [Testing](/fullstack/guides/testing) when adding or changing app
    tests.
 3. Build Flint UI assets with `flint web --build-only` or through
    `flint build`.
@@ -96,8 +96,8 @@ the provider, and make the same `REDIS_URL` available to HTTP and jobs worker
 processes that use `CACHE_DRIVER=redis`. Flint connects before the process
 starts serving work and fails startup if the required Redis connection cannot
 be established. Memory is the default when `CACHE_DRIVER` is omitted. See
-`docs/cache.md` for file settings, URL encoding, prefixes, TTLs, context access,
-manual connection, and shutdown behavior.
+[Caching](/fullstack/guides/cache) for file settings, URL encoding, prefixes,
+TTLs, context access, manual connection, and shutdown behavior.
 
 Applications that do not use a URL may call `await app.connectRedis(...)` with
 host, port, TLS, username, password, and database settings before startup. Keep
@@ -235,7 +235,7 @@ dart run flint_dart:flint migrate --create-db --no-interaction
 
 Production migration rules:
 
-- Read `docs/models-and-database.md` before changing model `Table` definitions.
+- Read [Models And Database](/fullstack/guides/models-and-database) before changing model `Table` definitions.
 - Confirm `lib/config/table_registry.dart` registers every table needed by the
   app.
 - Avoid `--force` and `--drop` in production unless you intentionally want a
@@ -245,7 +245,7 @@ Production migration rules:
 - Include Flint job tables when queue jobs are used. `Flint(...)` includes job
   tables in migrations by default through `includeJobTablesInMigrations: true`.
 - Include `...flintAiTables` when the app needs durable AI runs, traces,
-  artifacts, or thread messages. Read `docs/ai.md` before changing AI
+  artifacts, or thread messages. Read [AI Runtime](/fullstack/guides/ai) before changing AI
   persistence.
 - Back up the production database before risky schema changes.
 
@@ -273,12 +273,18 @@ PORT=3000 FLINT_HOT=0 dart run lib/main.dart
 For a production executable, use `flint build`:
 
 ```bash
-dart run flint_dart:flint build --linux
+# Build Linux AOT executable and push directly to Dokploy/VPS deploy branch
+flint build --linux --push
 ```
 
-This creates output under `build/`, compiles the server entrypoint with
-`dart compile exe`, copies resources, precompresses public assets, writes
-`start.sh`, and writes a Dockerfile when a Linux executable exists.
+This creates an optimized output under `build/`:
+- Compiles the server entrypoint with `dart compile exe --target-os linux`.
+- Packages page-by-page Web UI bundles and manifests (`compilePageBundles`).
+- Copies mail templates, static assets, Swagger spec (`swagger.json`), and framework Swagger UI assets (`public/swagger-ui`).
+- Precompresses public assets with Gzip and Brotli.
+- Writes a POSIX-compliant `start.sh` with flavor-manifest switching.
+- Writes a slim `Dockerfile` using `FROM debian:bookworm-slim`.
+- Automatically force-pushes `build/` to the `build` branch on all configured remotes (`--push`), keeping `main` clean while allowing Dokploy to pull and build in seconds without RAM spikes.
 
 Run the built output:
 
@@ -399,7 +405,7 @@ Worker deployment rules:
   process too when jobs execute AI runs.
 - Keep `QueueJob` definitions registered in `lib/config/jobs_registry.dart`.
 - Restart workers on deploy so they load new job code.
-- Read `docs/jobs-and-workers.md` before changing job types, retry settings,
+- Read [Jobs And Workers](/fullstack/guides/jobs-and-workers) before changing job types, retry settings,
   queue names, or schedules.
 
 ## Production Order
@@ -419,7 +425,7 @@ A practical deploy order:
 10. Verify AI provider credentials, `AI_ALLOWED_*` policy values, and AI table
     migrations if the app uses AI.
 11. Check HTTP server logs, worker logs, request logs, and error logs. Read
-    `docs/logging.md` if the app needs log-level or file-log changes.
+    [Logging](/fullstack/guides/logging) if the app needs log-level or file-log changes.
 
 ## Common Mistakes
 

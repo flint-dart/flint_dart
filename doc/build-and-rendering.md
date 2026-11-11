@@ -637,7 +637,7 @@ Platform resolution:
 
 Use `flint web --build-only` when you only need browser assets. Use
 `flint build` when you need the production server executable and copied static
-assets. Read `docs/deployment.md` before wiring the built output into Docker,
+assets. Read [Deployment](/fullstack/guides/deployment) before wiring the built output into Docker,
 process managers, migrations, static file hosting, or jobs workers.
 
 ## Development Flow
@@ -663,6 +663,62 @@ For production:
 ```bash
 dart run flint_dart:flint build --linux
 ```
+
+## Production Cross-Compilation And Deploy Branches (`flint build`)
+
+`flint build` is the complete end-to-end production packaging command for Flint Dart. It compiles both frontend browser bundles and the backend server into an ultra-lean, self-contained native Linux runtime that runs inside `debian:bookworm-slim` with zero Dart SDK or JIT overhead on the host VPS.
+
+### Commands
+
+```bash
+# Build native Linux binary + default page-by-page Web UI bundles
+flint build --linux
+
+# Build for Windows locally
+flint build --windows
+
+# Build both Linux and Windows binaries
+flint build --both
+
+# Build and automatically force-push the build/ artifact to the "build" branch on all git remotes
+flint build --linux --push
+
+# Push to a custom branch
+flint build --linux --push-branch release
+
+# Skip re-compiling frontend assets if valid prebuilt page bundles already exist
+flint build --linux --skip-web --push
+
+# Force a full clean recompile of all page bundles
+flint build --linux --rebuild-web --push
+
+# Specify a custom entrypoint or flavor
+flint build --linux --entry bin/server.dart --flavor=production --push
+```
+
+### What `flint build` Automates
+
+1. **Page-by-Page Web UI Compilation (`compilePageBundles`)**:
+   - Compiles each page registered in `PageRegistry` into its own isolated, hashed JS chunk under `public/assets/js/flint-ui/pages/<page>.<hash>.dart.js`.
+   - Generates/updates `public/assets/js/flint-ui/manifest.json` and syncs flavor manifests (`manifest-<flavor>.json`).
+   - If page bundles already exist in `public/assets/js/flint-ui/pages/`, `flint build` reuses them instantly (unless `--rebuild-web` is passed).
+   - If the project doesn't define page targets, it cleanly compiles the single fallback bundle and writes a valid `manifest.json`.
+2. **Resource Packaging**:
+   - Copies mail templates (`.flint.html`), static assets, and OpenAPI/Swagger specs (`docs/swagger.json` -> `build/public/swagger.json`).
+   - Bundles the framework's interactive Swagger UI assets into `build/public/swagger-ui`.
+   - Excludes secret `.env` files, `.git/`, test folders, source maps, `.deps`, and large installer downloads (`.apk`, `.exe`).
+   - Automatically removes any copied `.gitignore` so git never ignores compiled UI assets inside `build/`.
+3. **Asset Precompression**:
+   - Pre-compresses static files with Gzip (`.gz`) and Brotli (`.br`) for instant static asset serving.
+4. **Native Linux Cross-Compilation**:
+   - Uses `dart compile exe --target-os linux` to build an AOT binary directly from Windows, macOS, or Linux.
+5. **Slim Container & Startup Scripts**:
+   - Generates `build/start.sh` (with LF line endings) that activates the active flavor manifest before launch.
+   - Generates `build/Dockerfile` based on `debian:bookworm-slim` with `FLINT_SWAGGER_UI_DIR=/app/public/swagger-ui` configured.
+   - Also mirrors any custom flavor Dockerfiles (e.g. `Dockerfile.farmsbenefit` -> `build/Dockerfile.farmsbenefit`).
+6. **Deploy Branch Git Push (`--push`)**:
+   - Initializes a fresh git repository inside `build/`, force-adds all artifacts (`git add -A --force .`), and pushes directly to the `build` branch on your remote(s).
+   - Keeps your `main` branch completely clean of compiled binaries and lets Dokploy / CapRover / Docker pull and boot the container in seconds.
 
 ## Metadata And Styles
 
