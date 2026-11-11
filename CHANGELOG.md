@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.7] - 2026-11-11
+
+### Added & Improved
+- **Cross-Platform Production Compilation & Push (`flint build --linux --push`)**:
+  - Added support for compiling Linux AOT production binaries directly from developer machines (Windows, macOS, Linux) without compiling on memory-constrained VPS instances.
+  - Added `--push` flag to commit and push the isolated production build directly to the `build` branch on git remote (or custom branch via `--push-branch`).
+  - Added `--skip-web` and `--rebuild-web` flags to control client-side bundle compilation.
+  - Automatic `debian:bookworm-slim` minimal Dockerfile generation for high-performance containerized deployments.
+  - Generates cross-platform `start.sh` entrypoint scripts and sets proper execution permissions.
+  - Cleans temporary and local `.gitignore` rules inside `build/` before staging with `git add -A --force .`, ensuring compiled assets (`public/assets/js/flint-ui/`, `public/assets/css/flint-ui/`, etc.) are never skipped.
+- **Page-by-Page Web UI Compilation by Default**:
+  - Defaulted `WebUIBuilder` compilation to `compilePageBundles()`, splitting web UI code into lazy-loaded, route-level bundles (`manifest.json` and `pages/*.dart.js`).
+  - Added smart bundle caching: reuses existing pre-built page bundles when source files are unmodified, drastically cutting down rebuild times.
+  - Guaranteed automatic `manifest.json` generation for single-bundle applications via `_writeSingleBundleManifest()`, preventing runtime manifest 404s.
+- **Automatic Swagger UI Asset Bundling & Resolution**:
+  - Automatically copies Swagger UI assets and `swagger.json` specs into `build/public/swagger-ui` and `build/docs`.
+  - Added `public/swagger-ui` to `Flint._resolveSwaggerUiDir()` candidates and set `ENV FLINT_SWAGGER_UI_DIR=/app/public/swagger-ui` in generated Dockerfiles.
+- **Optimized Asset Precompression & Caching**:
+  - Cached Gzip availability and optimized Brotli detection to accelerate static asset precompression during builds.
+
 ## [1.5.6] - 2026-11-06
 
 ### Fixed & Improved

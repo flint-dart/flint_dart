@@ -464,7 +464,9 @@ class Flint {
 
     // Prefer project-local UI assets first (dev/build output).
     candidates.add(path.join(Directory.current.path, 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'public', 'swagger-ui'));
     candidates.add(path.join(Directory.current.path, 'build', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'build', 'public', 'swagger-ui'));
     candidates.add(path.join(Directory.current.path, '..', 'swagger-ui'));
     candidates
         .add(path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'));

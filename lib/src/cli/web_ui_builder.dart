@@ -213,6 +213,7 @@ class FlintWebUiBuilder {
     if (build.cssOut != null) {
       await _compressAssetIfUseful(File(build.cssOut!));
     }
+    _writeSingleBundleManifest(build, hashedJsOut);
     _writeServiceWorker(build);
     await _compressAssetIfUseful(
       File(path.join(build.webDir.path, 'flint-sw.js')),
@@ -294,20 +295,24 @@ class FlintWebUiBuilder {
     }
 
     final manifestPages = <String, String>{};
-
-    final pageEntries = await Future.wait([
-      for (final entry in requestedPages.entries)
-        _compileOnePage(
-          component: entry.key,
-          slug: entry.value,
-          config: config,
-          build: build,
-          generatedDir: generatedDir,
-          pagesOutDir: pagesOutDir,
-          compress: !isPartialBuild,
-        ),
-    ]);
-    manifestPages.addEntries(pageEntries);
+    final entriesList = requestedPages.entries.toList();
+    const concurrency = 4;
+    for (var i = 0; i < entriesList.length; i += concurrency) {
+      final batch = entriesList.skip(i).take(concurrency);
+      final batchResults = await Future.wait([
+        for (final entry in batch)
+          _compileOnePage(
+            component: entry.key,
+            slug: entry.value,
+            config: config,
+            build: build,
+            generatedDir: generatedDir,
+            pagesOutDir: pagesOutDir,
+            compress: !isPartialBuild,
+          ),
+      ]);
+      manifestPages.addEntries(batchResults);
+    }
 
     _writePageBundlesManifest(
       build,
@@ -323,6 +328,25 @@ class FlintWebUiBuilder {
     if (!isPartialBuild) {
       await _compressAssetIfUseful(
         File(path.join(build.webDir.path, 'flint-sw.js')),
+      );
+    }
+  }
+
+  static void _writeSingleBundleManifest(
+    FlintWebUiBuild build,
+    String hashedJsOut,
+  ) {
+    final manifestFile =
+        File(path.join(path.dirname(build.jsOut), 'manifest.json'));
+    if (!manifestFile.existsSync()) {
+      final scriptUrl = _assetUrlFor(build.webDir, hashedJsOut);
+      final manifest = {
+        'mode': 'single-bundle',
+        'fallback': scriptUrl,
+        'pages': {},
+      };
+      manifestFile.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(manifest),
       );
     }
   }
@@ -1349,10 +1373,13 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     if (!_shouldPrecompress(file.path)) return;
     if (Platform.environment['FLINT_HOT'] == '1') return;
 
-    final bytes = file.readAsBytesSync();
     final gzipFile = File('${file.path}.gz');
-    gzipFile.writeAsBytesSync(gzip.encode(bytes));
-    _logVerbose('Compressed Flint asset: ${gzipFile.path}');
+    if (!gzipFile.existsSync() ||
+        file.lastModifiedSync().isAfter(gzipFile.lastModifiedSync())) {
+      final bytes = file.readAsBytesSync();
+      gzipFile.writeAsBytesSync(gzip.encode(bytes));
+      _logVerbose('Compressed Flint asset: ${gzipFile.path}');
+    }
 
     final brotli = await _resolveBrotliBinary();
     if (brotli == null) return;
@@ -1383,14 +1410,24 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
         lower.endsWith('.deps');
   }
 
+  static bool _brotliChecked = false;
+  static String? _cachedBrotliBinary;
+
   static Future<String?> _resolveBrotliBinary() async {
+    if (_brotliChecked) return _cachedBrotliBinary;
+    _brotliChecked = true;
+
     final explicit = Platform.environment['FLINT_BROTLI_BIN'];
     if (explicit != null && explicit.trim().isNotEmpty) {
-      return explicit.trim();
+      _cachedBrotliBinary = explicit.trim();
+      return _cachedBrotliBinary;
     }
 
     for (final candidate in ['brotli', 'brotli.exe']) {
-      if (await _commandExists(candidate)) return candidate;
+      if (await _commandExists(candidate)) {
+        _cachedBrotliBinary = candidate;
+        return _cachedBrotliBinary;
+      }
     }
 
     return null;
