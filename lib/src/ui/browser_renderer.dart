@@ -49,6 +49,14 @@ class FlintRoot {
         host.childNodes.length > 0 ? host.childNodes.item(0) : null;
     if (firstChild != null) {
       host.replaceChild(nextDom, firstChild);
+      while (host.childNodes.length > 1) {
+        final last = host.childNodes.item(host.childNodes.length - 1);
+        if (last != null) {
+          host.removeChild(last);
+        } else {
+          break;
+        }
+      }
     } else {
       host.appendChild(nextDom);
     }
