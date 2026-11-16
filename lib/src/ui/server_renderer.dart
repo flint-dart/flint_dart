@@ -46,7 +46,7 @@ class FlintServerRenderer {
     if (!includeScopedStyles || context.scopedStyles.isEmpty) return html;
 
     final css = context.scopedStyles.join('\n');
-    return '<style data-flint-ssr-style>${_escapeHtmlText(css)}</style>$html';
+    return '<div id="flint-ssr-root" style="display: contents;"><style data-flint-ssr-style>${_escapeHtmlText(css)}</style>$html</div>';
   }
 
   FlintNode _normalize(Object? value) {
