@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.8] - 2026-11-16
+
+### Fixed & Improved
+- **SSR Hydration Single Root & DOM De-duplication**:
+  - Fixed an issue where enabling Server-Side Rendering (`serverRenderFlintPages: true`) with scoped styles emitted multiple top-level nodes into `<main id="app">`, causing browser hydration (`FlintRoot._paint()`) to replace only the first child (`<style>`) and leave the server-rendered DOM untouched, resulting in duplicated page content on screen.
+  - Wrapped server-rendered scoped styles and component markup in a transparent `<div id="flint-ssr-root" style="display: contents;">` container inside `FlintServerRenderer.render(...)` so the host element always contains exactly one top-level child element.
+  - Updated `FlintRoot._paint()` in `browser_renderer.dart` to automatically clean up and remove all sibling nodes from the host container during hydration.
+- **Fullstack Matrix Contrast in Light Mode**:
+  - Fixed low-contrast white-on-white text in the Fullstack comparison matrix card by replacing hardcoded `Colors.white` with theme-adaptive `ThemeToken.color('text')` and `#059669` high-contrast category labels.
+
 ## [1.5.7] - 2026-11-11
 
 ### Added & Improved
