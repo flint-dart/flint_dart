@@ -43,7 +43,7 @@ class BuildCommand extends FlintCommand {
         forceRebuildWeb = true;
       } else if (args[i] == '--skip-web' || args[i] == '--no-web') {
         skipWeb = true;
-      } else if (args[i] == '--push') {
+      } else if (args[i] == '--push' || args[i] == '-push') {
         pushToBranch = true;
       } else if (args[i].startsWith('--push-branch=')) {
         pushToBranch = true;
@@ -51,7 +51,7 @@ class BuildCommand extends FlintCommand {
       } else if (args[i] == '--push-branch' && i + 1 < args.length) {
         pushToBranch = true;
         buildBranch = args[++i].trim();
-      } else if (args[i] == '--linux') {
+      } else if (args[i] == '--linux' || args[i] == '-linux') {
         targetPlatform = 'linux';
       } else if (args[i] == '--windows') {
         targetPlatform = 'windows';
