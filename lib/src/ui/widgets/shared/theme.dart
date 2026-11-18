@@ -294,6 +294,7 @@ DartStyle cardComponentStyle({
     padding: EdgeInsets.all(
       ThemeToken.space('cardPadding', fallback: '16px').toCss(),
     ),
+    color: ThemeToken.color('text', fallback: '#0f172a').toCss(),
     transition: StyleTransition.colors(milliseconds: 120),
   );
 
@@ -458,7 +459,7 @@ DartStyle navItemComponentStyle({
     background: Colors.transparent,
     color: selected
         ? toneText(tone)
-        : ThemeToken.color('navText', fallback: '#475467').toCss(),
+        : ThemeToken.color('muted', fallback: '#475467').toCss(),
     fontWeight: selected ? 700 : 600,
     textDecoration: TextDecorationStyle.none,
     cursor: disabled ? Cursor.notAllowed : Cursor.pointer,

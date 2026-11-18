@@ -34,7 +34,10 @@ class Pagination extends FlintElement {
             FlintElement(
               'span',
               props: const {
-                'style': {'font-size': '13px', 'color': '#667085'},
+                'style': {
+                  'font-size': '13px',
+                  'color': 'var(--color-muted, #667085)',
+                },
               },
               children: normalizeChildren(
                 _summary(page: page, pageSize: pageSize, total: total),

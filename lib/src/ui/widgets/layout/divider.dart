@@ -7,7 +7,7 @@ class Divider extends FlintElement {
   /// Creates a divider with separator semantics.
   Divider({
     bool vertical = false,
-    String color = '#e4e7ec',
+    String color = 'var(--color-surfaceBorder, #e4e7ec)',
     Object thickness = 1,
     Object? length,
     String? className,

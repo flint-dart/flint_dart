@@ -46,7 +46,7 @@ class StatCard extends FlintElement {
                   props: const {
                     'style': {
                       'font-size': '13px',
-                      'color': '#667085',
+                      'color': 'var(--color-muted, #667085)',
                       'font-weight': 600,
                     },
                   },
@@ -58,7 +58,11 @@ class StatCard extends FlintElement {
             FlintElement(
               'strong',
               props: const {
-                'style': {'font-size': '28px', 'line-height': 1.1},
+                'style': {
+                  'font-size': '28px',
+                  'line-height': 1.1,
+                  'color': 'var(--color-text, inherit)',
+                },
               },
               children: normalizeChildren(value, const []),
             ),

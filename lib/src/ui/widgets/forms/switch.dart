@@ -118,7 +118,7 @@ const switchRowStyle = {
   'gap': '10px',
   'font-size': '14px',
   'font-weight': 600,
-  'color': '#344054',
+  'color': 'var(--color-text, #344054)',
   'cursor': 'pointer',
   'user-select': 'none',
 };
@@ -152,14 +152,14 @@ const _trackBaseStyle = {
 /// Track style for enabled switches.
 const switchTrackOnStyle = {
   ..._trackBaseStyle,
-  'background': '#111827',
+  'background': 'var(--color-primarySolid, #111827)',
   'box-shadow': '0 8px 18px -12px rgba(17, 24, 39, 0.75)',
 };
 
 /// Track style for disabled/off switches.
 const switchTrackOffStyle = {
   ..._trackBaseStyle,
-  'background': '#e5e7eb',
+  'background': 'var(--color-surfaceMuted, #e5e7eb)',
   'box-shadow': 'inset 0 0 0 1px rgba(15, 23, 42, 0.08)',
 };
 

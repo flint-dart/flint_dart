@@ -55,7 +55,7 @@ class Breadcrumbs extends FlintElement {
                       'li',
                       props: const {
                         'aria-hidden': 'true',
-                        'style': {'color': '#98a2b3'},
+                        'style': {'color': 'var(--color-muted, #98a2b3)'},
                       },
                       children: normalizeChildren(separator, const []),
                     ),
@@ -76,7 +76,10 @@ class Breadcrumbs extends FlintElement {
             'span',
             props: const {
               'aria-current': 'page',
-              'style': {'color': '#344054', 'font-weight': 600},
+              'style': {
+                'color': 'var(--color-text, #344054)',
+                'font-weight': 600,
+              },
             },
             children: normalizeChildren(item.label, const []),
           )
@@ -86,7 +89,7 @@ class Breadcrumbs extends FlintElement {
             props: {
               'href': item.href,
               'style': const {
-                'color': '#175cd3',
+                'color': 'var(--color-primaryText, #175cd3)',
                 'text-decoration': 'none',
                 'font-weight': 600,
               },

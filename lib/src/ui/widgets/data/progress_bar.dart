@@ -39,7 +39,7 @@ class ProgressBar extends FlintElement {
                 'style': {
                   'height': '8px',
                   'border-radius': '999px',
-                  'background': '#eaecf0',
+                  'background': 'var(--color-surfaceMuted, #eaecf0)',
                   'overflow': 'hidden',
                 },
               },

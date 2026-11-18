@@ -27,7 +27,7 @@ class Toast extends FlintElement {
               'border': '1px solid ${toneBorder(tone)}',
               'border-radius': '8px',
               'padding': '12px',
-              'background': '#ffffff',
+              'background': 'var(--color-surface, #ffffff)',
               'color': toneText(tone),
               'box-shadow': '0 12px 24px rgba(16, 24, 40, 0.14)',
             },

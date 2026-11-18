@@ -55,7 +55,8 @@ class Drawer extends StatelessComponent {
           'z-index': 1000,
           'width': '380px',
           'max-width': '100%',
-          'background': '#ffffff',
+          'background': 'var(--color-surface, #ffffff)',
+          'color': 'var(--color-text, #0f172a)',
           'box-shadow': '0 20px 40px rgba(16, 24, 40, 0.18)',
           'display': 'grid',
           'grid-template-rows': 'auto minmax(0, 1fr)',
@@ -69,8 +70,11 @@ class Drawer extends StatelessComponent {
             'header',
             props: const {
               'style': {
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'space-between',
                 'padding': '16px',
-                'border-bottom': '1px solid #e4e7ec',
+                'border-bottom': '1px solid var(--color-surfaceBorder, #e4e7ec)',
               },
             },
             children: [
@@ -82,6 +86,14 @@ class Drawer extends StatelessComponent {
                     'type': 'button',
                     'aria-label': 'Close',
                     'onClick': onClose,
+                    'style': {
+                      'border': '1px solid var(--color-surfaceBorder, #e4e7ec)',
+                      'background': 'var(--color-surfaceMuted, #f8fafc)',
+                      'color': 'var(--color-text, #0f172a)',
+                      'border-radius': '6px',
+                      'cursor': 'pointer',
+                      'padding': '2px 8px',
+                    },
                   },
                   children: const [FlintText('x')],
                 ),

@@ -49,7 +49,7 @@ class Tabs extends FlintElement {
               'display': 'flex',
               'align-items': 'center',
               'gap': '4px',
-              'border-bottom': '1px solid #e4e7ec',
+              'border-bottom': '1px solid var(--color-surfaceBorder, #e4e7ec)',
             },
             dartStyle: dartStyle,
             style: style,
