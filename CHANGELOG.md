@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.11] - 2026-11-18
+
+### Fixed & Improved
+- **Comprehensive Theme Consistency Across Widgets, Charts, Viewers & Tools**:
+  - **Data Visualization (`LineChart` & `BarChart`)**: Replaced hardcoded gridlines with `var(--color-surfaceBorder, rgba(148, 163, 184, 0.2))`, making gridlines and axes visible across both light and dark themes. Axis typography, bar value labels, and point markers now dynamically resolve `var(--color-muted)`, `var(--color-text)`, and `var(--color-surface)`.
+  - **Forms & Editors (`RichTextEditor`, `DatePicker`, `TextField`)**:
+    - Replaced all hardcoded CSS colors in `RichTextEditor` toolbar, active/hover states, dividers, blockquotes, code pre blocks, and placeholders with theme tokens (`inputSurface`, `inputBorder`, `surfaceMuted`, `surfaceBorder`, `inputText`, `disabledText`).
+    - Standardized `DatePicker` error states to resolve `var(--color-dangerBorder)` and `var(--color-dangerSoft)`.
+    - Standardized dynamic `TextField` validation border and error message to resolve `var(--color-dangerBorder)` and `var(--color-dangerText)`.
+  - **Layout & Surfaces (`EmptyState`, `PageHeader`, `PageLayouts`, `Slider`)**:
+    - Converted `EmptyState` container, dashed border, heading, and description to `var(--color-surface)`, `var(--color-surfaceBorder)`, `var(--color-text)`, and `var(--color-muted)`.
+    - Harmonized `PageHeader` and `PageLayouts` subtitle text with `var(--color-muted)`.
+    - Updated `Slider` default background to resolve `ThemeToken.color('surface')`.
+  - **Document Viewers & Tools (`DocToolbar`, `DocxViewer`, `PdfViewer`, `Terminal`)**:
+    - Harmonized document toolbar background, outline toggle, page stepper pill, search box, and match counter with theme tokens.
+    - Updated Table of Contents drawer, loading indicator, and error containers in `DocxViewer` and `PdfViewer` to resolve `infoSoft`, `infoBorder`, `dangerSoft`, `dangerBorder`, `surface`, and `surfaceBorder`.
+    - Updated `Terminal` connection status dots and clipboard flash indicators to resolve semantic solid tokens (`successSolid`, `warningSolid`, `dangerSolid`, `infoSolid`).
+  - **Theme Tokens & Inverse Aliases (`stylesheet.dart`)**:
+    - Added automatic generation of `color.surfaceInverse`, `color.textInverse`, `color.tooltipBackground`, and `color.tooltipText` in `FlintTheme.allTokens`.
+    - Updated `Tooltip` to resolve `var(--color-tooltipBackground)` and `var(--color-tooltipText)` with inverse surface/text defaults.
+    - Added `@media (prefers-color-scheme: dark)` styling to local dev mail previews (`mail_preview.dart`).
+  - **Regression Test Suite**: Added 23 comprehensive theme consistency regression tests in `test/ui/theme_consistency_test.dart`.
+
 ## [1.5.10] - 2026-11-18
 
 ### Fixed & Improved
