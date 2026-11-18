@@ -44,6 +44,7 @@ class PageHeader extends FlintElement {
                       'margin': 0,
                       'font-size': '28px',
                       'line-height': 1.2,
+                      'color': 'var(--color-text, inherit)',
                     },
                   },
                   children: normalizeChildren(title, const []),
@@ -52,7 +53,10 @@ class PageHeader extends FlintElement {
                   FlintElement(
                     'p',
                     props: const {
-                      'style': {'margin': 0, 'color': '#667085'},
+                      'style': {
+                        'margin': 0,
+                        'color': 'var(--color-muted, #667085)'
+                      },
                     },
                     children: normalizeChildren(description, const []),
                   ),

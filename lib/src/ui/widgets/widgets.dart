@@ -56,6 +56,7 @@ export 'layout/panel.dart';
 export 'layout/responsive_grid.dart';
 export 'layout/safe_area.dart';
 export 'layout/section.dart';
+export 'layout/sidebar.dart';
 export 'layout/slider.dart';
 export 'layout/spacer.dart';
 export 'layout/stack.dart';

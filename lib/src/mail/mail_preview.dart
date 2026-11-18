@@ -26,7 +26,8 @@ class MailPreviewRegistry {
 
   /// Registers a [ViewMailable] instance for `/mail/preview/:name`.
   static void register(ViewMailable mailable, {String? name}) {
-    final primarySlug = normalizeSlug(name ?? mailable.previewName ?? mailable.view);
+    final primarySlug =
+        normalizeSlug(name ?? mailable.previewName ?? mailable.view);
     if (primarySlug.isNotEmpty) {
       _registered[primarySlug] = mailable;
       final reversed = _reverseTwoPartSlug(primarySlug);
@@ -175,6 +176,11 @@ class MailPreviewRegistry {
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; padding: 40px 20px; margin: 0; }
     .card { max-width: 640px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 32px; }
     code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #020617; color: #f8fafc; }
+      .card { background: #0f172a; border-color: rgba(148, 163, 184, 0.24); }
+      code { background: #1e293b; color: #cbd5e1; }
+    }
   </style>
 </head>
 <body>
@@ -196,7 +202,9 @@ class MailPreviewRegistry {
           : '';
       final keysList = e.previewData.keys.isEmpty
           ? '<em>No previewData variables</em>'
-          : e.previewData.keys.map((k) => '<code>${_escapeHtml(k)}</code>').join(' ');
+          : e.previewData.keys
+              .map((k) => '<code>${_escapeHtml(k)}</code>')
+              .join(' ');
       return '''
       <li class="item">
         <div class="item-main">
@@ -233,6 +241,17 @@ class MailPreviewRegistry {
     code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #334155; }
     .btn { background: #0f172a; color: #fff; text-decoration: none; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 6px; white-space: nowrap; }
     .btn:hover { background: #1e293b; }
+    @media (prefers-color-scheme: dark) {
+      body { background: #020617; color: #f8fafc; }
+      .header p { color: #94a3b8; }
+      .item { background: #0f172a; border-color: rgba(148, 163, 184, 0.24); }
+      .item-title { color: #38bdf8; }
+      .badge { background: rgba(56, 189, 248, 0.16); color: #7dd3fc; }
+      .item-meta, .item-vars { color: #94a3b8; }
+      code { background: #1e293b; color: #cbd5e1; }
+      .btn { background: #38bdf8; color: #020617; }
+      .btn:hover { background: #7dd3fc; }
+    }
   </style>
 </head>
 <body>
@@ -291,8 +310,7 @@ class MailPreviewRegistry {
     }
     for (final entry in _registered.entries) {
       final mailable = entry.value;
-      final primarySlug =
-          normalizeSlug(mailable.previewName ?? mailable.view);
+      final primarySlug = normalizeSlug(mailable.previewName ?? mailable.view);
       uniqueBySlug.putIfAbsent(
         primarySlug,
         () => _DiscoveredMailEntry(
@@ -595,26 +613,23 @@ class MailPreviewRegistry {
   }
 
   static List<String> _splitTopLevelCommaEntries(String body) {
-    final cleanedLines = body
-        .split('\n')
-        .map((line) {
-          var inQuote = '';
-          for (var i = 0; i < line.length - 1; i++) {
-            final c = line[i];
-            if ((c == "'" || c == '"') && (i == 0 || line[i - 1] != '\\')) {
-              if (inQuote.isEmpty) {
-                inQuote = c;
-              } else if (inQuote == c) {
-                inQuote = '';
-              }
-            }
-            if (inQuote.isEmpty && line[i] == '/' && line[i + 1] == '/') {
-              return line.substring(0, i);
-            }
+    final cleanedLines = body.split('\n').map((line) {
+      var inQuote = '';
+      for (var i = 0; i < line.length - 1; i++) {
+        final c = line[i];
+        if ((c == "'" || c == '"') && (i == 0 || line[i - 1] != '\\')) {
+          if (inQuote.isEmpty) {
+            inQuote = c;
+          } else if (inQuote == c) {
+            inQuote = '';
           }
-          return line;
-        })
-        .join('\n');
+        }
+        if (inQuote.isEmpty && line[i] == '/' && line[i + 1] == '/') {
+          return line.substring(0, i);
+        }
+      }
+      return line;
+    }).join('\n');
 
     final parts = <String>[];
     var start = 0;
@@ -794,8 +809,8 @@ class MailPreviewRegistry {
       'recipientEmail': 'preview@example.com',
     };
 
-    final varMatches = RegExp(r'\{\{\s*([a-zA-Z_][\w.]*)\s*\}\}')
-        .allMatches(templateContent);
+    final varMatches =
+        RegExp(r'\{\{\s*([a-zA-Z_][\w.]*)\s*\}\}').allMatches(templateContent);
 
     for (final match in varMatches) {
       final key = match.group(1);
@@ -902,4 +917,3 @@ class _DynamicPreviewMail extends ViewMailable {
   List<String> get to =>
       [payload['recipientEmail']?.toString() ?? 'preview@example.com'];
 }
-

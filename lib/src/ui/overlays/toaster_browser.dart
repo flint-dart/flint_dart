@@ -18,9 +18,9 @@ class ToastService {
       message: message,
       duration: duration,
       placement: placement,
-      background: '#0f172a',
-      border: 'rgba(125, 211, 252, 0.36)',
-      accent: '#7dd3fc',
+      background: 'var(--color-surface, #0f172a)',
+      border: 'var(--color-infoBorder, rgba(125, 211, 252, 0.36))',
+      accent: 'var(--color-infoSolid, #7dd3fc)',
     );
   }
 
@@ -35,9 +35,9 @@ class ToastService {
       message: message,
       duration: duration,
       placement: placement,
-      background: '#052e22',
-      border: 'rgba(52, 211, 153, 0.38)',
-      accent: '#a7f3d0',
+      background: 'var(--color-surface, #052e22)',
+      border: 'var(--color-successBorder, rgba(52, 211, 153, 0.38))',
+      accent: 'var(--color-successSolid, #a7f3d0)',
     );
   }
 
@@ -52,9 +52,9 @@ class ToastService {
       message: message,
       duration: duration,
       placement: placement,
-      background: '#422006',
-      border: 'rgba(251, 191, 36, 0.4)',
-      accent: '#fbbf24',
+      background: 'var(--color-surface, #422006)',
+      border: 'var(--color-warningBorder, rgba(251, 191, 36, 0.4))',
+      accent: 'var(--color-warningSolid, #fbbf24)',
     );
   }
 
@@ -69,9 +69,9 @@ class ToastService {
       message: message,
       duration: duration,
       placement: placement,
-      background: '#450a0a',
-      border: 'rgba(248, 113, 113, 0.42)',
-      accent: '#fca5a5',
+      background: 'var(--color-surface, #450a0a)',
+      border: 'var(--color-dangerBorder, rgba(248, 113, 113, 0.42))',
+      accent: 'var(--color-dangerSolid, #fca5a5)',
     );
   }
 
@@ -95,7 +95,7 @@ class ToastService {
       ..borderRadius = '12px'
       ..border = '1px solid $border'
       ..background = background
-      ..color = '#f8fafc'
+      ..color = 'var(--color-text, #f8fafc)'
       ..boxShadow = '0 20px 50px rgba(0, 0, 0, 0.32)'
       ..pointerEvents = 'auto'
       ..transform = 'translateY(-8px) scale(0.96)'
@@ -118,7 +118,7 @@ class ToastService {
         ..margin = '0'
         ..fontSize = '12px'
         ..lineHeight = '1.5'
-        ..color = '#cbd5e1';
+        ..color = 'var(--color-muted, #cbd5e1)';
       item.appendChild(messageEl);
     }
 

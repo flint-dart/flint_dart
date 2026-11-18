@@ -268,8 +268,8 @@ class DatePicker extends FlintElement {
   ) {
     if (hasError) {
       return {
-        'border-color': '#fda29b',
-        'box-shadow': '0 0 0 4px #fee4e2',
+        'border-color': 'var(--color-dangerBorder, #fda29b)',
+        'box-shadow': '0 0 0 4px var(--color-dangerSoft, #fee4e2)',
       };
     }
 

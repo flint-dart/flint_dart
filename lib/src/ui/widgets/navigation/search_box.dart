@@ -43,7 +43,7 @@ class SearchBox extends FlintElement {
                   'style': {
                     'font-size': '14px',
                     'font-weight': 600,
-                    'color': '#344054',
+                    'color': 'var(--color-text, #344054)',
                   },
                 },
                 children: normalizeChildren(label, const []),
@@ -64,10 +64,12 @@ class SearchBox extends FlintElement {
                 defaultStyle: const {
                   'min-height': '38px',
                   'min-width': '220px',
-                  'border': '1px solid #d0d5dd',
+                  'border': '1px solid var(--color-inputBorder, #d0d5dd)',
                   'border-radius': '8px',
                   'padding': '0 10px',
                   'font': 'inherit',
+                  'background': 'var(--color-inputSurface, #ffffff)',
+                  'color': 'var(--color-inputText, #101828)',
                 },
               ),
             ),

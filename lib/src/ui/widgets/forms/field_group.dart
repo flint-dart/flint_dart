@@ -35,7 +35,11 @@ class FieldGroup extends FlintElement {
                     FlintElement(
                       'h3',
                       props: const {
-                        'style': {'margin': 0, 'font-size': '16px'},
+                        'style': {
+                          'margin': 0,
+                          'font-size': '16px',
+                          'color': 'var(--color-text, inherit)',
+                        },
                       },
                       children: normalizeChildren(title, const []),
                     ),
@@ -43,7 +47,10 @@ class FieldGroup extends FlintElement {
                     FlintElement(
                       'p',
                       props: const {
-                        'style': {'margin': 0, 'color': '#667085'},
+                        'style': {
+                          'margin': 0,
+                          'color': 'var(--color-muted, #667085)',
+                        },
                       },
                       children: normalizeChildren(description, const []),
                     ),

@@ -27,8 +27,9 @@ class Topbar extends FlintElement {
               'gap': '16px',
               'min-height': '64px',
               'padding': '0 24px',
-              'border-bottom': '1px solid #e4e7ec',
-              'background': '#ffffff',
+              'border-bottom': '1px solid var(--color-surfaceBorder, #e4e7ec)',
+              'background': 'var(--color-surface, #ffffff)',
+              'color': 'var(--color-text, #0f172a)',
             },
             dartStyle: dartStyle,
             style: style,
@@ -71,7 +72,7 @@ class Topbar extends FlintElement {
                           props: const {
                             'style': {
                               'margin': 0,
-                              'color': '#667085',
+                              'color': 'var(--color-muted, #667085)',
                               'font-size': '13px',
                             },
                           },

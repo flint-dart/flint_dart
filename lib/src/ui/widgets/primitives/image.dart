@@ -79,7 +79,7 @@ class Figure extends FlintElement {
                 props: mergeComponentProps(
                   captionProps,
                   defaultStyle: const {
-                    'color': '#667085',
+                    'color': 'var(--color-muted, #667085)',
                     'font-size': '14px',
                     'line-height': '1.5',
                   },

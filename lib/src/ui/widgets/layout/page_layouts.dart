@@ -220,10 +220,10 @@ class DocsShell extends FlintElement {
             dartStyle: DartStyle(
               minHeight: '100vh',
               background: ThemeToken.color(
-                'docsBackground',
+                'page',
                 fallback: '#ffffff',
               ).toCss(),
-              color: ThemeToken.color('docsText', fallback: '#101828').toCss(),
+              color: ThemeToken.color('text', fallback: '#101828').toCss(),
             ).merge(dartStyle),
             style: style,
           ),
@@ -343,7 +343,7 @@ class _ShellHeading extends FlintElement {
                 props: const {
                   'style': {
                     'margin': 0,
-                    'color': '#667085',
+                    'color': 'var(--color-muted, #667085)',
                     'line-height': 1.6
                   },
                 },

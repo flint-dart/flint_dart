@@ -25,9 +25,10 @@ class EmptyState extends FlintElement {
               'gap': '10px',
               'padding': '32px 20px',
               'text-align': 'center',
-              'border': '1px dashed #d0d5dd',
+              'border': '1px dashed var(--color-surfaceBorder, #d0d5dd)',
               'border-radius': '8px',
-              'background': '#ffffff',
+              'background': 'var(--color-surface, #ffffff)',
+              'color': 'var(--color-text, #101828)',
             },
             dartStyle: dartStyle,
             style: style,
@@ -37,7 +38,11 @@ class EmptyState extends FlintElement {
             FlintElement(
               'h2',
               props: const {
-                'style': {'margin': 0, 'font-size': '18px'},
+                'style': {
+                  'margin': 0,
+                  'font-size': '18px',
+                  'color': 'var(--color-text, inherit)',
+                },
               },
               children: normalizeChildren(title, const []),
             ),
@@ -45,7 +50,10 @@ class EmptyState extends FlintElement {
               FlintElement(
                 'p',
                 props: const {
-                  'style': {'margin': 0, 'color': '#667085'},
+                  'style': {
+                    'margin': 0,
+                    'color': 'var(--color-muted, #667085)'
+                  },
                 },
                 children: normalizeChildren(message, const []),
               ),

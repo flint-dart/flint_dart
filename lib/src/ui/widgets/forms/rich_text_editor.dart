@@ -659,22 +659,22 @@ class RichTextEditor extends StatefulComponent {
     .flint-rich-text-editor-container {
       display: flex;
       flex-direction: column;
-      border: 1px solid #d0d5dd;
+      border: 1px solid var(--color-inputBorder, #d0d5dd);
       border-radius: 8px;
-      background: #ffffff;
+      background: var(--color-inputSurface, var(--color-surface, #ffffff));
       overflow: hidden;
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .flint-rich-text-editor-container:focus-within {
-      border-color: #0b6f69;
-      box-shadow: 0 0 0 3px rgba(11, 111, 105, 0.2);
+      border-color: var(--color-primarySolid, #0b6f69);
+      box-shadow: 0 0 0 3px var(--color-primaryFocus, rgba(11, 111, 105, 0.2));
     }
     .flint-rich-text-editor-container.invalid {
-      border-color: #d92d20;
-      box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.2);
+      border-color: var(--color-dangerBorder, #d92d20);
+      box-shadow: 0 0 0 3px var(--color-dangerFocus, rgba(217, 45, 32, 0.2));
     }
     .flint-rich-text-editor-container.disabled {
-      background: #f3f4f6;
+      background: var(--color-surfaceMuted, #f3f4f6);
       cursor: not-allowed;
     }
     .flint-rich-text-editor-toolbar {
@@ -683,8 +683,8 @@ class RichTextEditor extends StatefulComponent {
       align-items: center;
       gap: 6px;
       padding: 6px 10px;
-      background: #f9fafb;
-      border-bottom: 1px solid #e4e7ec;
+      background: var(--color-surfaceMuted, #f9fafb);
+      border-bottom: 1px solid var(--color-surfaceBorder, #e4e7ec);
       user-select: none;
     }
     .flint-rich-text-editor-btn {
@@ -696,24 +696,24 @@ class RichTextEditor extends StatefulComponent {
       border: 1px solid transparent;
       border-radius: 4px;
       background: transparent;
-      color: #475569;
+      color: var(--color-muted, #475569);
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       transition: all 0.1s ease;
     }
     .flint-rich-text-editor-btn:hover {
-      background: #f1f5f9;
-      color: #0f172a;
+      background: var(--color-surface, #f1f5f9);
+      color: var(--color-text, #0f172a);
     }
     .flint-rich-text-editor-btn:active {
-      background: #e2e8f0;
-      color: #0f172a;
+      background: var(--color-surfaceBorder, #e2e8f0);
+      color: var(--color-text, #0f172a);
     }
     .flint-rich-text-editor-btn-divider {
       width: 1px;
       height: 18px;
-      background: #cbd5e1;
+      background: var(--color-surfaceBorder, #cbd5e1);
       margin: 0 4px;
     }
     .flint-rich-text-editor-content {
@@ -723,11 +723,11 @@ class RichTextEditor extends StatefulComponent {
       font-family: inherit;
       font-size: 14px;
       line-height: 1.6;
-      color: #101828;
+      color: var(--color-inputText, var(--color-text, #101828));
     }
     .flint-rich-text-editor-content[contenteditable="true"]:empty::before {
       content: attr(placeholder);
-      color: #9ca3af;
+      color: var(--color-disabledText, #9ca3af);
       pointer-events: none;
       display: block;
     }
@@ -735,14 +735,15 @@ class RichTextEditor extends StatefulComponent {
       margin: 0 0 1em 0;
     }
     .flint-rich-text-editor-content blockquote {
-      border-left: 4px solid #cbd5e1;
+      border-left: 4px solid var(--color-surfaceBorder, #cbd5e1);
       padding-left: 12px;
       margin: 0 0 1em 0;
-      color: #475569;
+      color: var(--color-muted, #475569);
       font-style: italic;
     }
     .flint-rich-text-editor-content pre {
-      background: #f1f5f9;
+      background: var(--color-surfaceMuted, #f1f5f9);
+      color: var(--color-text, inherit);
       padding: 8px 12px;
       border-radius: 6px;
       font-family: monospace;

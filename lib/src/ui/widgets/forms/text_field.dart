@@ -120,7 +120,7 @@ class TextField extends FlintElement {
           currentDescribedBy.isEmpty ? errorId : '$currentDescribedBy $errorId',
         );
       }
-      input.style.borderColor = '#d92d20';
+      input.style.borderColor = 'var(--color-dangerBorder, #d92d20)';
     } else {
       input.removeAttribute('aria-invalid');
       final currentDescribedBy = input.getAttribute('aria-describedby') ?? '';
@@ -154,7 +154,7 @@ class TextField extends FlintElement {
           newError.textContent = errorMsg;
           newError.setAttribute(
             'style',
-            'margin: 0; font-size: 13px; line-height: 1.45; color: #b42318;',
+            'margin: 0; font-size: 13px; line-height: 1.45; color: var(--color-dangerText, #b42318);',
           );
           newError.className = 'flint-field-error';
           container.appendChild(newError);
@@ -444,13 +444,16 @@ class TextField extends FlintElement {
                   display: Display.inlineFlex,
                   alignItems: AlignItems.center,
                   justifyContent: JustifyContent.center,
-                  color: ThemeToken.color('mutedText', fallback: '#667085').toCss(),
+                  color: ThemeToken.color('muted', fallback: '#667085').toCss(),
                   fontSize: 14,
                   zIndex: 2,
                 ).merge(prefixDartStyle),
               ),
               children: [
-                if (prefix is FlintNode) prefix else FlintText(prefix.toString()),
+                if (prefix is FlintNode)
+                  prefix
+                else
+                  FlintText(prefix.toString()),
               ],
             ),
           inputElement,
@@ -460,7 +463,8 @@ class TextField extends FlintElement {
               props: mergeComponentProps(
                 {
                   'class': 'flint-input-suffix',
-                  if (effectiveOnSuffixTap != null) 'onClick': effectiveOnSuffixTap,
+                  if (effectiveOnSuffixTap != null)
+                    'onClick': effectiveOnSuffixTap,
                   'style': {
                     'user-select': 'none',
                   },
@@ -472,7 +476,7 @@ class TextField extends FlintElement {
                   alignItems: AlignItems.center,
                   justifyContent: JustifyContent.center,
                   cursor: effectiveOnSuffixTap != null ? Cursor.pointer : null,
-                  color: ThemeToken.color('mutedText', fallback: '#667085').toCss(),
+                  color: ThemeToken.color('muted', fallback: '#667085').toCss(),
                   fontSize: 14,
                   zIndex: 2,
                 ).merge(suffixDartStyle),

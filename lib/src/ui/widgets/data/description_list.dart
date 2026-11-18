@@ -42,14 +42,20 @@ class DescriptionList extends FlintElement {
               FlintElement(
                 'dt',
                 props: const {
-                  'style': {'color': '#667085', 'font-weight': 600},
+                  'style': {
+                    'color': 'var(--color-muted, #667085)',
+                    'font-weight': 600,
+                  },
                 },
                 children: normalizeChildren(item.label, const []),
               ),
               FlintElement(
                 'dd',
                 props: const {
-                  'style': {'margin': 0, 'color': '#101828'},
+                  'style': {
+                    'margin': 0,
+                    'color': 'var(--color-text, #101828)',
+                  },
                 },
                 children: normalizeChildren(item.value, const []),
               ),

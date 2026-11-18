@@ -54,7 +54,8 @@ class PdfViewer extends StatefulComponent {
   FlintNode? loadingWidget;
 
   late final String _instanceId = 'flint-pdf-viewer-${_nextId++}';
-  late final DocViewerController _effectiveController = controller ?? DocViewerController();
+  late final DocViewerController _effectiveController =
+      controller ?? DocViewerController();
 
   @override
   void updateFrom(covariant PdfViewer next) {
@@ -88,7 +89,8 @@ class PdfViewer extends StatefulComponent {
       if (page >= 1 && page <= pages.length) {
         final target = pages.item(page - 1);
         if (target != null && target is web.HTMLElement) {
-          (target as JSObject).callMethod('scrollIntoView'.toJS, {'behavior': 'smooth', 'block': 'start'}.jsify());
+          (target as JSObject).callMethod('scrollIntoView'.toJS,
+              {'behavior': 'smooth', 'block': 'start'}.jsify());
         }
       }
     };
@@ -200,9 +202,15 @@ class PdfViewer extends StatefulComponent {
     final errorEl = web.document.getElementById('$_instanceId-error');
     final fallbackEl = web.document.getElementById('$_instanceId-fallback');
 
-    if (loadingEl != null) (loadingEl as web.HTMLElement).style.display = 'flex';
-    if (errorEl != null) (errorEl as web.HTMLElement).style.display = 'none';
-    if (fallbackEl != null) (fallbackEl as web.HTMLElement).style.display = 'none';
+    if (loadingEl != null) {
+      (loadingEl as web.HTMLElement).style.display = 'flex';
+    }
+    if (errorEl != null) {
+      (errorEl as web.HTMLElement).style.display = 'none';
+    }
+    if (fallbackEl != null) {
+      (fallbackEl as web.HTMLElement).style.display = 'none';
+    }
 
     _ensurePdfJsLoaded(() {
       _executePdfRender(mount);
@@ -231,13 +239,16 @@ class PdfViewer extends StatefulComponent {
       }).toJS;
       s.onerror = ((web.Event e) {
         if (url.contains('cdnjs')) {
-          loadScript('https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js', next);
+          loadScript(
+              'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js', next);
         }
       }).toJS;
       web.document.head?.appendChild(s);
     }
 
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js', onReady);
+    loadScript(
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
+        onReady);
   }
 
   void _executePdfRender(web.Element mount) {
@@ -247,18 +258,24 @@ class PdfViewer extends StatefulComponent {
 
     final win = web.window as JSObject;
     if (!win.hasProperty('pdfjsLib'.toJS).toDart) {
-      Future.delayed(const Duration(milliseconds: 100), () => _executePdfRender(mount));
+      Future.delayed(
+          const Duration(milliseconds: 100), () => _executePdfRender(mount));
       return;
     }
     final pdfjsProp = win.getProperty('pdfjsLib'.toJS);
     if (pdfjsProp.isUndefinedOrNull) {
-      Future.delayed(const Duration(milliseconds: 100), () => _executePdfRender(mount));
+      Future.delayed(
+          const Duration(milliseconds: 100), () => _executePdfRender(mount));
       return;
     }
 
     final pdfjs = pdfjsProp as JSObject;
-    final globalWorkerOptions = pdfjs.getProperty('GlobalWorkerOptions'.toJS) as JSObject;
-    globalWorkerOptions.setProperty('workerSrc'.toJS, 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'.toJS);
+    final globalWorkerOptions =
+        pdfjs.getProperty('GlobalWorkerOptions'.toJS) as JSObject;
+    globalWorkerOptions.setProperty(
+        'workerSrc'.toJS,
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+            .toJS);
 
     final getDocument = pdfjs.getProperty('getDocument'.toJS) as JSFunction;
     final loadingTask = getDocument.callAsFunction(pdfjs, src.toJS) as JSObject;
@@ -266,43 +283,58 @@ class PdfViewer extends StatefulComponent {
 
     promise.toDart.then((pdfDocObj) {
       final pdfDoc = pdfDocObj as JSObject;
-      final numPages = (pdfDoc.getProperty('numPages'.toJS) as JSNumber).toDartInt;
+      final numPages =
+          (pdfDoc.getProperty('numPages'.toJS) as JSNumber).toDartInt;
 
-      _effectiveController.updateDocumentMeta(currentPage: 1, totalPages: numPages);
+      _effectiveController.updateDocumentMeta(
+          currentPage: 1, totalPages: numPages);
 
       mount.innerHTML = ''.toJS;
 
       for (int pageNum = 1; pageNum <= numPages; pageNum++) {
         final getPage = pdfDoc.getProperty('getPage'.toJS) as JSFunction;
-        final pagePromise = getPage.callAsFunction(pdfDoc, pageNum.toJS) as JSPromise;
+        final pagePromise =
+            getPage.callAsFunction(pdfDoc, pageNum.toJS) as JSPromise;
 
         pagePromise.toDart.then((pageObj) {
           final page = pageObj as JSObject;
-          final getViewport = page.getProperty('getViewport'.toJS) as JSFunction;
-          final viewport = getViewport.callAsFunction(page, {'scale': 1.8}.jsify()) as JSObject;
+          final getViewport =
+              page.getProperty('getViewport'.toJS) as JSFunction;
+          final viewport = getViewport.callAsFunction(
+              page, {'scale': 1.8}.jsify()) as JSObject;
 
-          final width = (viewport.getProperty('width'.toJS) as JSNumber).toDartDouble;
-          final height = (viewport.getProperty('height'.toJS) as JSNumber).toDartDouble;
+          final width =
+              (viewport.getProperty('width'.toJS) as JSNumber).toDartDouble;
+          final height =
+              (viewport.getProperty('height'.toJS) as JSNumber).toDartDouble;
 
-          final pageCard = web.document.createElement('div') as web.HTMLDivElement;
+          final pageCard =
+              web.document.createElement('div') as web.HTMLDivElement;
           pageCard.className = 'flint-pdf-page-card';
 
-          final canvas = web.document.createElement('canvas') as web.HTMLCanvasElement;
+          final canvas =
+              web.document.createElement('canvas') as web.HTMLCanvasElement;
           canvas.width = width.round();
           canvas.height = height.round();
 
-          final getContext = (canvas as JSObject).getProperty('getContext'.toJS) as JSFunction;
+          final getContext =
+              (canvas as JSObject).getProperty('getContext'.toJS) as JSFunction;
           final ctx = getContext.callAsFunction(canvas as JSObject, '2d'.toJS);
 
           final render = page.getProperty('render'.toJS) as JSFunction;
-          render.callAsFunction(page, {
-            'canvasContext': ctx,
-            'viewport': viewport,
-          }.jsify());
+          render.callAsFunction(
+              page,
+              {
+                'canvasContext': ctx,
+                'viewport': viewport,
+              }.jsify());
 
-          final footer = web.document.createElement('div') as web.HTMLDivElement;
+          final footer =
+              web.document.createElement('div') as web.HTMLDivElement;
           footer.className = 'flint-pdf-page-footer';
-          footer.innerHTML = '<span>EULOGIA TECHNOLOGIES VAULT</span><span>PAGE $pageNum OF $numPages</span>'.toJS;
+          footer.innerHTML =
+              '<span>EULOGIA TECHNOLOGIES VAULT</span><span>PAGE $pageNum OF $numPages</span>'
+                  .toJS;
 
           pageCard.appendChild(canvas);
           pageCard.appendChild(footer);
@@ -310,13 +342,20 @@ class PdfViewer extends StatefulComponent {
         });
       }
 
-      if (loadingEl != null) (loadingEl as web.HTMLElement).style.display = 'none';
-      if (errorEl != null) (errorEl as web.HTMLElement).style.display = 'none';
+      if (loadingEl != null) {
+        (loadingEl as web.HTMLElement).style.display = 'none';
+      }
+      if (errorEl != null) {
+        (errorEl as web.HTMLElement).style.display = 'none';
+      }
 
       // Apply initial reading mode
-      _effectiveController.onSetReadingMode?.call(_effectiveController.readingMode);
+      _effectiveController.onSetReadingMode
+          ?.call(_effectiveController.readingMode);
     }).catchError((err) {
-      if (loadingEl != null) (loadingEl as web.HTMLElement).style.display = 'none';
+      if (loadingEl != null) {
+        (loadingEl as web.HTMLElement).style.display = 'none';
+      }
       if (fallbackEl != null) {
         (fallbackEl as web.HTMLElement).style.display = 'block';
       } else if (errorEl != null) {
@@ -329,7 +368,8 @@ class PdfViewer extends StatefulComponent {
 
   @override
   View build() {
-    final pdfFallbackUrl = src.contains('#') ? src : '$src#toolbar=0&navpanes=0&scrollbar=0';
+    final pdfFallbackUrl =
+        src.contains('#') ? src : '$src#toolbar=0&navpanes=0&scrollbar=0';
 
     return Container(
       className: className,
@@ -355,18 +395,22 @@ class PdfViewer extends StatefulComponent {
             padding: const EdgeInsets.all(24),
             margin: const EdgeInsets.only(bottom: 20),
             radius: 8,
-            background: const Color.rgba(56, 189, 248, 0.1),
-            border: Border.all(color: const Color.rgba(56, 189, 248, 0.25)),
+            background: ThemeToken.color('infoSoft',
+                fallback: const Color.rgba(56, 189, 248, 0.1)),
+            border: Border.all(
+                color: ThemeToken.color('infoBorder',
+                    fallback: const Color.rgba(56, 189, 248, 0.25))),
             display: Display.flex,
             alignItems: AlignItems.center,
             justifyContent: JustifyContent.center,
             gap: 10,
-            color: const Color('#38bdf8'),
+            color: ThemeToken.color('infoText', fallback: '#38bdf8'),
             fontWeight: 700,
             fontSize: 14,
           ),
           children: [
-            loadingWidget ?? Text.span('⚡ Rendering High-Fidelity PDF Canvas Studio...'),
+            loadingWidget ??
+                Text.span('⚡ Rendering High-Fidelity PDF Canvas Studio...'),
           ],
         ),
 
@@ -381,7 +425,9 @@ class PdfViewer extends StatefulComponent {
             height: const SizeValue('80vh'),
             radius: 8,
             overflow: 'hidden',
-            border: Border.all(color: const Color.rgba(255, 255, 255, 0.12)),
+            border: Border.all(
+                color: ThemeToken.color('surfaceBorder',
+                    fallback: const Color.rgba(255, 255, 255, 0.12))),
           ),
           children: [
             Iframe(
@@ -391,7 +437,7 @@ class PdfViewer extends StatefulComponent {
                 'width': '100%',
                 'height': '100%',
                 'border': 'none',
-                'background': '#0a0d12',
+                'background': 'var(--color-surface, #0a0d12)',
               },
             ),
           ],
@@ -407,9 +453,12 @@ class PdfViewer extends StatefulComponent {
             padding: const EdgeInsets.all(20),
             margin: const EdgeInsets.only(bottom: 20),
             radius: 8,
-            background: const Color.rgba(239, 68, 68, 0.1),
-            border: Border.all(color: const Color.rgba(239, 68, 68, 0.3)),
-            color: const Color('#ef4444'),
+            background: ThemeToken.color('dangerSoft',
+                fallback: const Color.rgba(239, 68, 68, 0.1)),
+            border: Border.all(
+                color: ThemeToken.color('dangerBorder',
+                    fallback: const Color.rgba(239, 68, 68, 0.3))),
+            color: ThemeToken.color('dangerText', fallback: '#ef4444'),
           ),
         ),
 

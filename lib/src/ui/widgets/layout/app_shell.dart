@@ -24,8 +24,8 @@ class AppShell extends FlintElement {
               'display': 'grid',
               'grid-template-columns': '280px minmax(0, 1fr)',
               'min-height': '100vh',
-              'background': '#f8fafc',
-              'color': '#101828',
+              'background': 'var(--color-page, #f8fafc)',
+              'color': 'var(--color-pageText, var(--color-text, #101828))',
             },
             dartStyle: dartStyle,
             style: style,
@@ -36,8 +36,9 @@ class AppShell extends FlintElement {
                 'aside',
                 props: const {
                   'style': {
-                    'border-right': '1px solid #e4e7ec',
-                    'background': '#ffffff',
+                    'border-right':
+                        '1px solid var(--color-surfaceBorder, #e4e7ec)',
+                    'background': 'var(--color-surface, #ffffff)',
                   },
                 },
                 children: [
@@ -47,8 +48,10 @@ class AppShell extends FlintElement {
                       props: const {
                         'style': {
                           'padding': '20px',
-                          'border-bottom': '1px solid #e4e7ec',
+                          'border-bottom':
+                              '1px solid var(--color-surfaceBorder, #e4e7ec)',
                           'font-weight': 700,
+                          'color': 'var(--color-text, inherit)',
                         },
                       },
                       children: normalizeChildren(brand, const []),

@@ -79,13 +79,19 @@ class Timeline extends FlintElement {
                     children: [
                       FlintElement(
                         'strong',
+                        props: const {
+                          'style': {'color': 'var(--color-text, inherit)'},
+                        },
                         children: normalizeChildren(item.title, const []),
                       ),
                       if (item.description != null)
                         FlintElement(
                           'p',
                           props: const {
-                            'style': {'margin': 0, 'color': '#667085'},
+                            'style': {
+                              'margin': 0,
+                              'color': 'var(--color-muted, #667085)',
+                            },
                           },
                           children: normalizeChildren(
                             item.description,
@@ -96,7 +102,10 @@ class Timeline extends FlintElement {
                         FlintElement(
                           'time',
                           props: const {
-                            'style': {'font-size': '12px', 'color': '#98a2b3'},
+                            'style': {
+                              'font-size': '12px',
+                              'color': 'var(--color-muted, #98a2b3)',
+                            },
                           },
                           children: normalizeChildren(item.time, const []),
                         ),

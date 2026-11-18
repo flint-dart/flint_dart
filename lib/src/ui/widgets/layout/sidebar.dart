@@ -138,8 +138,11 @@ class Sidebar extends FlintElement {
           'border-radius': '8px',
           'padding': collapsed ? '0 10px' : '0 12px',
           'text-decoration': 'none',
-          'color': active ? '#1849a9' : '#344054',
-          'background': active ? '#eff4ff' : 'transparent',
+          'color': active
+              ? 'var(--color-primaryText, #1849a9)'
+              : 'var(--color-text, #344054)',
+          'background':
+              active ? 'var(--color-primarySoft, #eff4ff)' : 'transparent',
           'font-weight': active ? 700 : 500,
         },
         variantStyle: active ? activeItemStyle : const {},

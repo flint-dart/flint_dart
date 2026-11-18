@@ -37,7 +37,7 @@ class Skeleton extends FlintElement {
                         ? (shape == 'circle' ? '40px' : '12px')
                         : cssValue(height),
                     'border-radius': shape == 'circle' ? '999px' : '6px',
-                    'background': '#eaecf0',
+                    'background': 'var(--color-surfaceMuted, #eaecf0)',
                   },
                 },
               ),

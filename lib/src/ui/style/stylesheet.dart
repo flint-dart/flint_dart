@@ -174,6 +174,28 @@ class FlintTheme {
       aliases['flint-color.text'] = colors['text'];
       aliases['flint-color.ink'] = colors['text'];
     }
+    if (colors.containsKey('muted')) {
+      if (!explicitTokens.containsKey('color.mutedText')) {
+        aliases['color.mutedText'] = colors['muted'];
+      }
+      if (!explicitTokens.containsKey('color.navText')) {
+        aliases['color.navText'] = colors['muted'];
+      }
+    }
+    if (colors.containsKey('text') &&
+        !explicitTokens.containsKey('color.docsText')) {
+      aliases['color.docsText'] = colors['text'];
+    }
+    if (colors.containsKey('text') &&
+        !explicitTokens.containsKey('color.surfaceInverse')) {
+      aliases['color.surfaceInverse'] = colors['text'];
+      aliases['color.tooltipBackground'] = colors['text'];
+    }
+    if (colors.containsKey('surface') &&
+        !explicitTokens.containsKey('color.textInverse')) {
+      aliases['color.textInverse'] = colors['surface'];
+      aliases['color.tooltipText'] = colors['surface'];
+    }
 
     return ThemeTokens({
       ...explicitTokens,
@@ -208,6 +230,7 @@ class FlintThemes {
       'primaryFocus': Color.rgba(37, 99, 235, 0.28),
       'infoSolid': Color('#0284c7'),
       'infoSoft': Color('#eff8ff'),
+      'infoSoftHover': Color('#e0f2fe'),
       'infoText': Color('#0369a1'),
       'infoBorder': Color('#b9e6fe'),
       'infoFocus': Color.rgba(2, 132, 199, 0.28),
@@ -263,6 +286,7 @@ class FlintThemes {
       'primaryFocus': Color.rgba(96, 165, 250, 0.34),
       'infoSolid': Color('#38bdf8'),
       'infoSoft': Color.rgba(14, 165, 233, 0.16),
+      'infoSoftHover': Color.rgba(14, 165, 233, 0.24),
       'infoText': Color('#bae6fd'),
       'infoBorder': Color.rgba(56, 189, 248, 0.38),
       'infoFocus': Color.rgba(56, 189, 248, 0.34),

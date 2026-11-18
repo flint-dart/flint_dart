@@ -132,7 +132,7 @@ class Slider extends StatefulComponent {
         height: height,
         overflow: Overflow.hidden,
         radius: '24px',
-        background: '#0f172a',
+        background: ThemeToken.color('surface', fallback: '#0f172a'),
       ).merge(_dartStyle),
       children: [
         // Slides Stack Container with crossfade animation
