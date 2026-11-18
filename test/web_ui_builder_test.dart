@@ -157,6 +157,46 @@ final componentRegistry = PageRegistry({
           'StaffDashboardPage');
     });
 
+    test('discovers themeProvider and preserves it in page bundle entrypoint',
+        () {
+      File('pubspec.yaml').writeAsStringSync('name: demo_app\n');
+      final uiDir = Directory(path.join('lib', 'ui'))
+        ..createSync(recursive: true);
+      Directory('public').createSync();
+
+      File(path.join(uiDir.path, 'main.dart')).writeAsStringSync('''
+import 'package:flint_dart/ui.dart';
+import 'page_registry.dart';
+
+void main() => createFlintApp(
+  '#app',
+  registry: componentRegistry,
+  themeProvider: const FlintThemeProvider(),
+);
+''');
+      File(path.join(uiDir.path, 'page_registry.dart')).writeAsStringSync('''
+import 'package:flint_dart/ui.dart';
+import 'pages/bug_page.dart';
+
+final componentRegistry = PageRegistry({'BugPage': (props) => BugPage(props)});
+''');
+      Directory(path.join(uiDir.path, 'pages')).createSync(recursive: true);
+      File(path.join(uiDir.path, 'pages', 'bug_page.dart')).writeAsStringSync(
+        'class BugPage { BugPage(Map<String, dynamic> props); }',
+      );
+
+      final build = FlintWebUiBuilder.resolve();
+      final config = FlintWebUiBuilder.discoverPageBundleConfig(build!);
+
+      expect(config, isNotNull);
+      expect(config!.themeProviderExpr, 'const FlintThemeProvider()');
+
+      final entrypoint =
+          FlintWebUiBuilder.pageEntrypointSource('BugPage', config);
+      expect(
+          entrypoint, contains('themeProvider: const FlintThemeProvider(),'));
+    });
+
     test('compile writes hashed app bundle filenames', () async {
       final uiDir = Directory(path.join('lib', 'ui'))
         ..createSync(recursive: true);

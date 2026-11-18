@@ -134,12 +134,25 @@ Future<bool> startServer() async {
 
   _logVerbose('[HOT-RELOAD] Starting server...');
   int? announcedPort;
+  final currentFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+      ? FlintEnv.flavor
+      : (Platform.environment['APP_FLAVOR'] ??
+          Platform.environment['FLAVOR'] ??
+          '');
+
   server = await Process.start(
     'dart',
-    ['run', 'lib/main.dart', _serverPort.toString()],
+    [
+      'run',
+      'lib/main.dart',
+      if (currentFlavor.isNotEmpty) '--flavor=$currentFlavor',
+      _serverPort.toString(),
+    ],
     environment: {
       'FLINT_HOT': '1',
       'PORT': _serverPort.toString(),
+      if (currentFlavor.isNotEmpty) 'APP_FLAVOR': currentFlavor,
+      if (currentFlavor.isNotEmpty) 'FLAVOR': currentFlavor,
     },
   );
 
@@ -472,16 +485,74 @@ Future<String?> _compileChangedUiSource(String filePath) async {
   if (config == null || config.pageTargets.isEmpty) return null;
 
   final changedImport = _packageImportForSource(filePath);
-  if (changedImport == null) return null;
+  final stem = p.basenameWithoutExtension(filePath).toLowerCase();
+  final affectedPages = <String>{};
 
+  // 1. Exact match on target import or filename stem
   for (final entry in config.pageTargets.entries) {
-    if (entry.value.importUri != changedImport) continue;
+    final targetUri = entry.value.importUri.toLowerCase();
+    final matchesImport = changedImport != null && entry.value.importUri == changedImport;
+    final matchesStem = targetUri.contains('/$stem.dart') || targetUri.endsWith('/$stem');
 
-    _logVerbose(
-      '[HOT-RELOAD] Rebuilding Flint UI page bundle only: ${entry.key}',
+    if (matchesImport || matchesStem) {
+      affectedPages.add(entry.key);
+    }
+  }
+
+  // 2. Section / Component naming prefix heuristic:
+  // e.g. login_section.dart -> matches login_page.dart -> "Login"
+  if (affectedPages.isEmpty) {
+    final cleanStem = stem.replaceAll(
+      RegExp(r'_(section|form|component|modal|view|card|item|table|header|footer|hero)$'),
+      '',
     );
-    await FlintWebUiBuilder.compilePageBundles(build, onlyPage: entry.key);
-    return entry.key;
+    if (cleanStem != stem) {
+      for (final entry in config.pageTargets.entries) {
+        final targetUri = entry.value.importUri.toLowerCase();
+        if (targetUri.contains('/${cleanStem}_page.dart') ||
+            targetUri.contains('/$cleanStem.dart') ||
+            targetUri.endsWith('/$cleanStem')) {
+          affectedPages.add(entry.key);
+        }
+      }
+    }
+  }
+
+  // 3. Inspect page files to find ALL pages importing the changed file
+  if (affectedPages.isEmpty) {
+    final fileBase = p.basename(filePath);
+    final libRoot = p.absolute('lib');
+    for (final entry in config.pageTargets.entries) {
+      final targetUri = entry.value.importUri;
+      String? pagePath;
+      if (targetUri.startsWith('package:')) {
+        final parts = targetUri.substring('package:'.length).split('/');
+        if (parts.length > 1) {
+          pagePath = p.joinAll([libRoot, ...parts.skip(1)]);
+        }
+      }
+      if (pagePath != null) {
+        final pageFile = File(pagePath);
+        if (pageFile.existsSync()) {
+          try {
+            final content = pageFile.readAsStringSync();
+            if (content.contains(fileBase) ||
+                content.contains(stem) ||
+                (changedImport != null && content.contains(changedImport))) {
+              affectedPages.add(entry.key);
+            }
+          } catch (_) {}
+        }
+      }
+    }
+  }
+
+  if (affectedPages.isNotEmpty) {
+    Log.info(
+      '[HOT-RELOAD] Incremental rebuild for page bundle(s): ${affectedPages.join(", ")}',
+    );
+    await FlintWebUiBuilder.compilePageBundles(build, onlyPages: affectedPages);
+    return affectedPages.first;
   }
 
   return null;
@@ -534,12 +605,17 @@ Future<void> main(List<String> args) async {
       abbr: 'p',
       defaultsTo: FlintEnv.getInt('PORT', 3001).toString(),
     )
+    ..addOption('flavor')
     ..addFlag('help', abbr: 'h', negatable: false);
 
   final results = parser.parse(args);
   if (results['help'] == true) {
-    Log.debug('Usage: dart run flint_dart:hot_reload [--port <port>]');
+    Log.debug('Usage: dart run flint_dart:hot_reload [--port <port>] [--flavor <flavor>]');
     return;
+  }
+  final flavorOpt = results['flavor'] as String?;
+  if (flavorOpt != null && flavorOpt.isNotEmpty) {
+    FlintEnv.setFlavor(flavorOpt);
   }
   _serverPort = int.tryParse(results['port']) ?? 3000;
   _webBuild = FlintWebUiBuilder.resolve();
@@ -562,7 +638,8 @@ Future<void> main(List<String> args) async {
       !_initialUiBuildDisabled &&
       await _isServerListening(_serverPort)) {
     try {
-      await FlintWebUiBuilder.compile(_webBuild!);
+      Log.info('[HOT-RELOAD] Building Flint Web UI...');
+      await FlintWebUiBuilder.compileDefault(_webBuild!);
       await _triggerBrowserReload(
         _serverPort,
         sourceName: 'flint_ui:initial',

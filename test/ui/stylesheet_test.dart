@@ -60,5 +60,30 @@ void main() {
       expect(sheet.cssText, contains('@media (max-width: 760px)'));
       expect(sheet.cssText, contains('display: none;'));
     });
+
+    test('FlintThemes includes semantic tone tokens and generates aliases', () {
+      final lightVars = FlintThemes.light.cssVariables;
+      final darkVars = FlintThemes.dark.cssVariables;
+
+      expect(lightVars.containsKey('--color-infoSoft'), true);
+      expect(lightVars.containsKey('--color-infoSolid'), true);
+      expect(lightVars.containsKey('--color-successSoft'), true);
+      expect(lightVars.containsKey('--color-warningSoft'), true);
+      expect(lightVars.containsKey('--color-dangerSoft'), true);
+
+      expect(darkVars.containsKey('--color-infoSoft'), true);
+      expect(darkVars.containsKey('--color-infoSolid'), true);
+      expect(darkVars.containsKey('--color-successSoft'), true);
+      expect(darkVars.containsKey('--color-warningSoft'), true);
+      expect(darkVars.containsKey('--color-dangerSoft'), true);
+
+      // Verify backwards-compatible flint-color aliases
+      expect(darkVars.containsKey('--flint-color-surface'), true);
+      expect(darkVars.containsKey('--flint-color-panel'), true);
+      expect(darkVars.containsKey('--flint-color-surfaceBorder'), true);
+      expect(darkVars.containsKey('--flint-color-line'), true);
+      expect(darkVars.containsKey('--flint-color-text'), true);
+      expect(darkVars.containsKey('--flint-color-ink'), true);
+    });
   });
 }

@@ -25,7 +25,7 @@ void main() {
       expect(button.children.last, isA<Text>());
     });
 
-    test('renders scoped variant interaction states', () {
+    test('does not add hover style if developer does not specify it', () {
       final button = Button(
         child: 'Save',
         variant: ButtonVariant.outline,
@@ -37,13 +37,28 @@ void main() {
         button.props['style'],
         containsPair('color', 'var(--color-primaryText, #1849a9)'),
       );
+      expect(button.props['_flintStyleCss'], isNot(contains(':hover')));
+      expect(button.props['_flintStyleCss'], contains(':focus-visible'));
+      expect(button.props['_flintStyleCss'], contains(':active'));
+    });
+
+    test('applies hover style when developer explicitly specifies it', () {
+      final button = Button(
+        child: 'Save',
+        dartStyle: const DartStyle(
+          hover: DartStyle(background: '#047857', color: '#ffffff'),
+        ),
+      );
+
       expect(button.props['_flintStyleCss'], contains(':hover'));
       expect(
         button.props['_flintStyleCss'],
-        contains('background: var(--color-primarySoft, #eff4ff) !important'),
+        contains('background: #047857 !important'),
       );
-      expect(button.props['_flintStyleCss'], contains(':focus-visible'));
-      expect(button.props['_flintStyleCss'], contains(':active'));
+      expect(
+        button.props['_flintStyleCss'],
+        contains('color: #ffffff !important'),
+      );
     });
 
     test('keeps explicit styles as the final override', () {
@@ -55,6 +70,21 @@ void main() {
 
       expect(button.props['style'], containsPair('background', '#000'));
       expect(button.props['style'], containsPair('padding', '2px'));
+    });
+
+    test('supports label and onClick aliases alongside child and onPressed',
+        () {
+      var clicked = false;
+      final button = Button(
+        label: 'Submit',
+        onClick: (_) => clicked = true,
+      );
+
+      expect((button.children.single as FlintText).value, 'Submit');
+      final clickFn = button.props['onClick'] as void Function(Object)?;
+      expect(clickFn, isNotNull);
+      clickFn!(Object());
+      expect(clicked, isTrue);
     });
   });
 
@@ -133,9 +163,9 @@ void main() {
       expect(Icons.all.map((icon) => icon.name), contains('code'));
       expect(Icons.all.map((icon) => icon.name), contains('gitBranch'));
       expect(Icons.all.map((icon) => icon.name), contains('server'));
-      expect(Icons.all.map((icon) => icon.name), contains('settings'));
-      expect(Icons.all.map((icon) => icon.name), contains('route'));
-      expect(Icons.all.map((icon) => icon.name), contains('shoppingCart'));
+      expect(Icons.all.map((icon) => icon.name), contains('settings01'));
+      expect(Icons.all.map((icon) => icon.name), contains('route01'));
+      expect(Icons.all.map((icon) => icon.name), contains('shoppingCart01'));
       expect(Icons.all.map((icon) => icon.name), contains('sparkles'));
     });
 
@@ -218,7 +248,7 @@ void main() {
         containsPair('background', 'var(--color-primarySolid, #155eef)'),
       );
       expect(link.props['style'], containsPair('min-height', '46px'));
-      expect(link.props['_flintStyleCss'], contains(':hover'));
+      expect(link.props['_flintStyleCss'], isNot(contains(':hover')));
     });
   });
 
@@ -1100,7 +1130,7 @@ void main() {
         containsPair('background', 'var(--color-primarySoft, #eff4ff)'),
       );
       expect(next.props['style'], containsPair('min-width', '34px'));
-      expect(next.props['_flintStyleCss'], contains(':hover'));
+      expect(next.props['_flintStyleCss'], isNot(contains(':hover')));
     });
   });
 

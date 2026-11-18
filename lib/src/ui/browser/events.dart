@@ -55,6 +55,11 @@ class FlintEvent {
     return null;
   }
 
+  static Object? currentTarget(Object? event) {
+    if (event is web.Event) return event.currentTarget;
+    return null;
+  }
+
   static String value(Object? event) {
     final target = FlintEvent.target(event);
     if (target is web.HTMLInputElement) return target.value;

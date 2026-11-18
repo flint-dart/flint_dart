@@ -87,14 +87,45 @@ class FormErrors {
       };
 }
 
-/// Resolves an explicit field error before falling back to [errors].
+/// Used to configure the auto validation of form fields and inputs.
+enum AutovalidateMode {
+  /// No auto validation will occur during rendering.
+  disabled,
+
+  /// Used to auto-validate continuously (both on render and on every interaction).
+  always,
+
+  /// Used to auto-validate after user interaction (on blur or subsequent edits).
+  onUserInteraction,
+}
+
+/// Signature for validating a form field value.
+typedef FormFieldValidator<T> = String? Function(T? value);
+
+/// Resolves an explicit field error before falling back to [errors] or [validator].
 String? resolveFieldError({
   required String? name,
   String? error,
   FormErrors? errors,
+  String? Function(String? value)? validator,
+  String? value,
+  AutovalidateMode autovalidateMode = AutovalidateMode.disabled,
 }) {
   if (error != null && error.isNotEmpty) return error;
-  return errors?.field(name);
+  final formError = errors?.field(name);
+  if (formError != null && formError.isNotEmpty) return formError;
+  if (validator != null) {
+    if (autovalidateMode == AutovalidateMode.always ||
+        (autovalidateMode == AutovalidateMode.onUserInteraction &&
+            value != null &&
+            value.isNotEmpty)) {
+      final validationError = validator(value);
+      if (validationError != null && validationError.isNotEmpty) {
+        return validationError;
+      }
+    }
+  }
+  return null;
 }
 
 Map _extractErrorMap(Map value) {

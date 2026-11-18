@@ -125,7 +125,7 @@ const fieldWrapperStyle = {
 const fieldLabelStyle = {
   'font-size': '14px',
   'font-weight': 600,
-  'color': '#344054',
+  'color': 'var(--color-text, #344054)',
 };
 
 /// Default help text style used by field components.
@@ -133,7 +133,7 @@ const fieldHelpStyle = {
   'margin': 0,
   'font-size': '13px',
   'line-height': 1.45,
-  'color': '#667085',
+  'color': 'var(--color-muted, #667085)',
 };
 
 /// Default validation error style used by field components.
@@ -141,19 +141,19 @@ const fieldErrorStyle = {
   'margin': 0,
   'font-size': '13px',
   'line-height': 1.45,
-  'color': '#b42318',
+  'color': 'var(--color-dangerText, #b42318)',
 };
 
 /// Default input style used by simple field components.
 const inputBaseStyle = {
   'width': '100%',
   'min-height': '40px',
-  'border': '1px solid #d0d5dd',
+  'border': '1px solid var(--color-inputBorder, #d0d5dd)',
   'border-radius': '8px',
   'padding': '8px 10px',
   'font': 'inherit',
-  'color': '#101828',
-  'background': '#ffffff',
+  'color': 'var(--color-inputText, #101828)',
+  'background': 'var(--color-inputSurface, #ffffff)',
 };
 
 /// Default inline row style for checkbox, switch, and radio choices.
@@ -162,7 +162,7 @@ const choiceRowStyle = {
   'align-items': 'center',
   'gap': '8px',
   'font-size': '14px',
-  'color': '#344054',
+  'color': 'var(--color-text, #344054)',
 };
 
 String _safeId(String value) {

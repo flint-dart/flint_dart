@@ -144,13 +144,40 @@ class FlintTheme {
 
   /// All theme token groups flattened into one token collection.
   ThemeTokens get allTokens {
-    return ThemeTokens({
+    final explicitTokens = {
       for (final entry in colors.entries) 'color.${entry.key}': entry.value,
       for (final entry in spacing.entries) 'space.${entry.key}': entry.value,
       for (final entry in radii.entries) 'radius.${entry.key}': entry.value,
       for (final entry in shadows.entries) 'shadow.${entry.key}': entry.value,
       for (final entry in fonts.entries) 'font.${entry.key}': entry.value,
       ...tokens.values,
+    };
+
+    final aliases = <String, Object?>{};
+    if (colors.containsKey('surface') &&
+        !explicitTokens.containsKey('flint-color.surface')) {
+      aliases['flint-color.surface'] = colors['surface'];
+      aliases['flint-color.panel'] = colors['surface'];
+    }
+    if (colors.containsKey('surfaceMuted') &&
+        !explicitTokens.containsKey('flint-color.surfaceMuted')) {
+      aliases['flint-color.surfaceMuted'] = colors['surfaceMuted'];
+      aliases['flint-color.panelMuted'] = colors['surfaceMuted'];
+    }
+    if (colors.containsKey('surfaceBorder') &&
+        !explicitTokens.containsKey('flint-color.surfaceBorder')) {
+      aliases['flint-color.surfaceBorder'] = colors['surfaceBorder'];
+      aliases['flint-color.line'] = colors['surfaceBorder'];
+    }
+    if (colors.containsKey('text') &&
+        !explicitTokens.containsKey('flint-color.text')) {
+      aliases['flint-color.text'] = colors['text'];
+      aliases['flint-color.ink'] = colors['text'];
+    }
+
+    return ThemeTokens({
+      ...explicitTokens,
+      ...aliases,
     });
   }
 
@@ -179,6 +206,26 @@ class FlintThemes {
       'primaryText': Color('#1d4ed8'),
       'primaryBorder': Color('#bfdbfe'),
       'primaryFocus': Color.rgba(37, 99, 235, 0.28),
+      'infoSolid': Color('#0284c7'),
+      'infoSoft': Color('#eff8ff'),
+      'infoText': Color('#0369a1'),
+      'infoBorder': Color('#b9e6fe'),
+      'infoFocus': Color.rgba(2, 132, 199, 0.28),
+      'successSolid': Color('#16a34a'),
+      'successSoft': Color('#f0fdf4'),
+      'successText': Color('#15803d'),
+      'successBorder': Color('#bbf7d0'),
+      'successFocus': Color.rgba(22, 163, 74, 0.28),
+      'warningSolid': Color('#d97706'),
+      'warningSoft': Color('#fffbeb'),
+      'warningText': Color('#b45309'),
+      'warningBorder': Color('#fde68a'),
+      'warningFocus': Color.rgba(217, 119, 6, 0.28),
+      'dangerSolid': Color('#dc2626'),
+      'dangerSoft': Color('#fef2f2'),
+      'dangerText': Color('#b91c1c'),
+      'dangerBorder': Color('#fecaca'),
+      'dangerFocus': Color.rgba(220, 38, 38, 0.28),
       'inputSurface': Color('#ffffff'),
       'inputBorder': Color('#cbd5e1'),
       'inputText': Color('#0f172a'),
@@ -214,6 +261,26 @@ class FlintThemes {
       'primaryText': Color('#bfdbfe'),
       'primaryBorder': Color.rgba(96, 165, 250, 0.38),
       'primaryFocus': Color.rgba(96, 165, 250, 0.34),
+      'infoSolid': Color('#38bdf8'),
+      'infoSoft': Color.rgba(14, 165, 233, 0.16),
+      'infoText': Color('#bae6fd'),
+      'infoBorder': Color.rgba(56, 189, 248, 0.38),
+      'infoFocus': Color.rgba(56, 189, 248, 0.34),
+      'successSolid': Color('#4ade80'),
+      'successSoft': Color.rgba(34, 197, 94, 0.16),
+      'successText': Color('#bbf7d0'),
+      'successBorder': Color.rgba(74, 222, 128, 0.38),
+      'successFocus': Color.rgba(74, 222, 128, 0.34),
+      'warningSolid': Color('#fbbf24'),
+      'warningSoft': Color.rgba(245, 158, 11, 0.16),
+      'warningText': Color('#fde68a'),
+      'warningBorder': Color.rgba(251, 191, 36, 0.38),
+      'warningFocus': Color.rgba(251, 191, 36, 0.34),
+      'dangerSolid': Color('#f87171'),
+      'dangerSoft': Color.rgba(239, 68, 68, 0.16),
+      'dangerText': Color('#fecaca'),
+      'dangerBorder': Color.rgba(248, 113, 113, 0.38),
+      'dangerFocus': Color.rgba(248, 113, 113, 0.34),
       'inputSurface': Color('#020617'),
       'inputBorder': Color.rgba(148, 163, 184, 0.34),
       'inputText': Color('#f8fafc'),
@@ -321,6 +388,10 @@ class StyleRule {
         invalid = const {};
 }
 
+// Expando cache for StyleSheet.cssText — allows memoization while keeping the
+// const constructor intact. Each StyleSheet instance is computed at most once.
+final _stylesheetCssTextCache = Expando<String>();
+
 /// Named stylesheet that compiles class-based style rules to CSS text.
 class StyleSheet {
   /// Stylesheet namespace used in generated class names.
@@ -342,7 +413,10 @@ class StyleSheet {
   }
 
   /// Compiled CSS text for this stylesheet.
-  String get cssText {
+  /// The result is memoized per instance — computed at most once.
+  String get cssText => _stylesheetCssTextCache[this] ??= _compileCssText();
+
+  String _compileCssText() {
     final chunks = <String>[];
 
     for (final entry in rules.entries) {

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flint_ai/flint_ai.dart';
 import 'cache/cache_manager.dart';
+import 'database/db.dart';
+import 'database/db_wrapper.dart';
 import 'request.dart';
 import 'response.dart';
 import 'websocket/websocket.dart';
@@ -124,5 +126,13 @@ class Context {
       throw StateError('CacheStore is not attached to this context.');
     }
     return service;
+  }
+
+  /// The database connection scoped to this context (e.g. for multi-tenancy),
+  /// or the active/default database connection.
+  DBWrapper get db {
+    final scoped = read<DBWrapper>();
+    if (scoped != null) return scoped;
+    return DB.instance;
   }
 }

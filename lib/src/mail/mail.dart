@@ -24,7 +24,47 @@ class Mail {
   String? _html;
   String? _text;
 
+  // ---- Instance SMTP connection (bypasses static .env fallback) ----
+  SmtpServer? _instanceServer;
+  String? _instanceFromAddress;
+  String? _instanceFromName;
+  bool _useInstanceServer = false;
+
   Mail();
+
+  /// Connects this Mail instance directly to a specific SMTP server before sending.
+  /// Bypasses global static configuration and strictly disables silent fallback to .env.
+  Mail connect({
+    required MailProvider provider,
+    required String host,
+    required int port,
+    required String username,
+    required String password,
+    required String fromAddress,
+    String? fromName,
+    String? replyTo,
+    bool useSSL = false,
+    bool useTLS = true,
+    bool allowInsecure = true,
+    bool ignoreBadCertificate = true,
+  }) {
+    _instanceServer = SmtpFactory.create(
+      provider: provider,
+      host: host,
+      port: port,
+      username: username,
+      password: password,
+      encryption: useSSL ? 'ssl' : 'tls',
+      allowInsecure: allowInsecure,
+      ignoreBadCertificate: ignoreBadCertificate,
+    );
+    _instanceFromAddress = fromAddress;
+    _instanceFromName = fromName ?? fromAddress;
+    if (replyTo != null) _replyTo = replyTo;
+    _useInstanceServer = true;
+    Log.debug('Mail connected instance for $_instanceFromName <$_instanceFromAddress>@$host');
+    return this;
+  }
 
   // ---- Setup once ----
   static void setup({
@@ -151,14 +191,21 @@ class Mail {
       throw Exception('Message has no content.');
     }
 
-    if (_fromAddress == null || _fromAddress!.isEmpty) {
-      throw Exception('From address not set. Call Mail.setup() first.');
+    final fromAddr = _useInstanceServer ? _instanceFromAddress : _fromAddress;
+    final fromName = _useInstanceServer ? _instanceFromName : _fromName;
+
+    if (fromAddr == null || fromAddr.isEmpty) {
+      throw Exception(
+        _useInstanceServer
+            ? 'From address not set. Call Mail.connect() first.'
+            : 'From address not set. Call Mail.setup() first.',
+      );
     }
 
-    Log.debug('Building message from $_fromName <$_fromAddress> to $_to');
+    Log.debug('Building message from $fromName <$fromAddr> to $_to');
 
     final msg = Message()
-      ..from = Address(_fromAddress!, _fromName ?? 'Flint Dart')
+      ..from = Address(fromAddr, fromName ?? 'Flint Dart')
       ..recipients.addAll(_to)
       ..ccRecipients.addAll(_cc)
       ..bccRecipients.addAll(_bcc)
@@ -200,19 +247,28 @@ class Mail {
 
   // ---- Send immediately ----
   Future<void> sendMail() async {
-    _ensureConfigured();
+    if (!_useInstanceServer) {
+      _ensureConfigured();
+    }
 
-    if (_server == null) {
-      throw Exception('Mail not configured. Call Mail.setup() first.');
+    final activeServer = _useInstanceServer ? _instanceServer : _server;
+    if (activeServer == null) {
+      throw Exception(
+        _useInstanceServer
+            ? 'Mail not connected. Call Mail.connect() first.'
+            : 'Mail not configured. Call Mail.setup() first.',
+      );
     }
 
     try {
       final msg = _buildMessage();
-      await send(msg, _server!);
+      await send(msg, activeServer);
       Log.debug('Mail sent to: ${_to.join(', ')}');
     } on MailerException catch (e) {
-      final recovered = await _retryAfterReconfigure();
-      if (recovered) return;
+      if (!_useInstanceServer) {
+        final recovered = await _retryAfterReconfigure();
+        if (recovered) return;
+      }
 
       Log.debug('MailerException: $e');
       if (e.problems.isNotEmpty) {
@@ -222,8 +278,10 @@ class Mail {
       }
       rethrow;
     } on SocketException catch (e) {
-      final recovered = await _retryAfterReconfigure();
-      if (recovered) return;
+      if (!_useInstanceServer) {
+        final recovered = await _retryAfterReconfigure();
+        if (recovered) return;
+      }
 
       Log.debug('SocketException while sending mail: $e');
       rethrow;
@@ -235,15 +293,25 @@ class Mail {
 
   // ---- Send asynchronously (background isolate) ----
   Future<void> queue() async {
-    _ensureConfigured();
-
-    if (_server == null) {
-      throw Exception('Mail not configured. Call Mail.setup() first.');
+    if (!_useInstanceServer) {
+      _ensureConfigured();
     }
 
+    final activeServer = _useInstanceServer ? _instanceServer : _server;
+    if (activeServer == null) {
+      throw Exception(
+        _useInstanceServer
+            ? 'Mail not connected. Call Mail.connect() first.'
+            : 'Mail not configured. Call Mail.setup() first.',
+      );
+    }
+
+    final fromAddr = _useInstanceServer ? _instanceFromAddress : _fromAddress;
+    final fromName = _useInstanceServer ? _instanceFromName : _fromName;
+
     final mailData = {
-      'fromAddress': _fromAddress,
-      'fromName': _fromName,
+      'fromAddress': fromAddr,
+      'fromName': fromName,
       'replyTo': _replyTo ?? _defaultReplyTo,
       'to': _to,
       'cc': _cc,
@@ -254,11 +322,13 @@ class Mail {
     };
 
     final serverData = {
-      'host': _server!.host,
-      'port': _server!.port,
-      'username': _server!.username,
-      'password': _server!.password,
-      'ssl': _server!.ssl,
+      'host': activeServer.host,
+      'port': activeServer.port,
+      'username': activeServer.username,
+      'password': activeServer.password,
+      'ssl': activeServer.ssl,
+      'allowInsecure': activeServer.allowInsecure,
+      'ignoreBadCertificate': activeServer.ignoreBadCertificate,
     };
 
     await Isolate.spawn(_sendInBackground, {
@@ -294,7 +364,9 @@ class Mail {
       port: serverData['port'],
       username: serverData['username'],
       password: serverData['password'],
-      ssl: serverData['ssl'],
+      ssl: serverData['ssl'] ?? false,
+      allowInsecure: serverData['allowInsecure'] ?? true,
+      ignoreBadCertificate: serverData['ignoreBadCertificate'] ?? true,
     );
 
     try {

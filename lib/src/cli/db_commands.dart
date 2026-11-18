@@ -441,19 +441,22 @@ Future<void> _alterTableAddMissingColumns(
     }
   }
 
-  for (final existingName in existingColumns.keys) {
-    final existsInDesired =
-        desiredColumns.any((column) => column.name == existingName);
-    if (existsInDesired || protectedColumns.contains(existingName)) continue;
-    final dropSql = 'ALTER TABLE $q$tableName$q DROP COLUMN $q$existingName$q';
-    await _executeMigrationSql(
-      tableName: tableName,
-      operation: 'drop column `$existingName`',
-      sql: dropSql,
-      hint:
-          'If this column should remain, re-add it to your table schema class before rerunning migration.',
-    );
-    Log.info('   - Dropped column `$existingName` from $tableName');
+  final allowDrop = FlintEnv.getBool('FLINT_MIGRATION_DROP_COLUMNS', false);
+  if (allowDrop) {
+    for (final existingName in existingColumns.keys) {
+      final existsInDesired =
+          desiredColumns.any((column) => column.name == existingName);
+      if (existsInDesired || protectedColumns.contains(existingName)) continue;
+      final dropSql = 'ALTER TABLE $q$tableName$q DROP COLUMN $q$existingName$q';
+      await _executeMigrationSql(
+        tableName: tableName,
+        operation: 'drop column `$existingName`',
+        sql: dropSql,
+        hint:
+            'If this column should remain, re-add it to your table schema class before rerunning migration.',
+      );
+      Log.info('   - Dropped column `$existingName` from $tableName');
+    }
   }
 
   await _syncDeclaredIndexes(tableName, desiredColumns, declaredIndexes);

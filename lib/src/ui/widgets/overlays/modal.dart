@@ -2,6 +2,8 @@ import '../../component.dart';
 import '../../component_props.dart';
 import '../../node.dart';
 import '../../style.dart';
+import '../../browser/events_stub.dart'
+    if (dart.library.js_interop) '../../browser/events.dart';
 
 /// Modal dialog overlay with optional header, close action, and footer actions.
 class Modal extends StatelessComponent {
@@ -28,6 +30,7 @@ class Modal extends StatelessComponent {
   final Object? actions;
   final String size;
   final String? className;
+  @override
   final Map<String, Object?> props;
   final Map<String, Object?> style;
   final DartStyle? dartStyle;
@@ -49,7 +52,12 @@ class Modal extends StatelessComponent {
           'role': 'dialog',
           'aria-modal': 'true',
           if (title != null) 'aria-label': title,
-          if (onClose != null && closeOnBackdrop) 'onClick': onClose,
+          if (onClose != null && closeOnBackdrop)
+            'onClick': (event) {
+              if (FlintEvent.target(event) == FlintEvent.currentTarget(event)) {
+                onClose!(event);
+              }
+            },
         },
         className: className,
         defaultStyle: const {
@@ -61,6 +69,7 @@ class Modal extends StatelessComponent {
           'padding': '20px',
           'background': 'rgba(2, 6, 23, 0.62)',
           'backdrop-filter': 'blur(8px)',
+          'overflow-y': 'auto',
         },
         dartStyle: dartStyle,
         style: style,
@@ -73,13 +82,16 @@ class Modal extends StatelessComponent {
             'style': {
               'width': '100%',
               'max-width': _modalWidth(size),
+              'max-height': 'calc(100vh - 40px)',
+              'display': 'flex',
+              'flex-direction': 'column',
               'border-radius': '8px',
               'border':
-                  '1px solid var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec))',
+                  '1px solid var(--color-surfaceBorder, var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec)))',
               'background':
-                  'var(--flint-color-panel, var(--flint-color-surface, #ffffff))',
+                  'var(--color-surface, var(--flint-color-panel, var(--flint-color-surface, #ffffff)))',
               'color':
-                  'var(--flint-color-ink, var(--flint-color-text, #0f172a))',
+                  'var(--color-text, var(--flint-color-ink, var(--flint-color-text, #0f172a)))',
               'box-shadow': '0 24px 56px rgba(0, 0, 0, 0.28)',
               'overflow': 'hidden',
             },
@@ -95,8 +107,9 @@ class Modal extends StatelessComponent {
                     'justify-content': 'space-between',
                     'gap': '12px',
                     'padding': '16px',
+                    'flex-shrink': '0',
                     'border-bottom':
-                        '1px solid var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec))',
+                        '1px solid var(--color-surfaceBorder, var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec)))',
                   },
                 },
                 children: [
@@ -113,11 +126,11 @@ class Modal extends StatelessComponent {
                           'height': '32px',
                           'border-radius': '8px',
                           'border':
-                              '1px solid var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec))',
+                              '1px solid var(--color-surfaceBorder, var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec)))',
                           'background':
-                              'var(--flint-color-panelMuted, var(--flint-color-surfaceMuted, #f8fafc))',
+                              'var(--color-surfaceMuted, var(--flint-color-panelMuted, var(--flint-color-surfaceMuted, #f8fafc)))',
                           'color':
-                              'var(--flint-color-ink, var(--flint-color-text, #0f172a))',
+                              'var(--color-text, var(--flint-color-ink, var(--flint-color-text, #0f172a)))',
                           'cursor': 'pointer',
                         },
                       },
@@ -128,7 +141,12 @@ class Modal extends StatelessComponent {
             FlintElement(
               'div',
               props: const {
-                'style': {'padding': '16px'},
+                'style': {
+                  'padding': '16px',
+                  'overflow-y': 'auto',
+                  'flex': '1 1 auto',
+                  'min-height': '0',
+                },
               },
               children: normalizeChildren(child, children),
             ),
@@ -141,8 +159,9 @@ class Modal extends StatelessComponent {
                     'justify-content': 'flex-end',
                     'gap': '8px',
                     'padding': '16px',
+                    'flex-shrink': '0',
                     'border-top':
-                        '1px solid var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec))',
+                        '1px solid var(--color-surfaceBorder, var(--flint-color-line, var(--flint-color-surfaceBorder, #e4e7ec)))',
                   },
                 },
                 children: [toFlintNode(actions)],
@@ -164,9 +183,5 @@ String _modalWidth(String size) {
 }
 
 void _stopPropagation(Object event) {
-  try {
-    (event as dynamic).stopPropagation();
-  } catch (_) {
-    // Non-browser renderers do not expose DOM event helpers.
-  }
+  FlintEvent.stopPropagation(event);
 }

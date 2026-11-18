@@ -40,10 +40,31 @@ class RunServerCommand extends FlintCommand {
     return port;
   }
 
+  static String? resolveFlavor(List<String> args) {
+    for (var i = 0; i < args.length; i++) {
+      final arg = args[i];
+      if (arg.startsWith('--flavor=')) {
+        return arg.substring('--flavor='.length).trim();
+      } else if (arg == '--flavor' && i + 1 < args.length) {
+        return args[++i].trim();
+      }
+    }
+    return Platform.environment['APP_FLAVOR'] ??
+        Platform.environment['FLAVOR'];
+  }
+
   @override
   Future<void> execute(List<String> args) async {
     var buildWeb = true;
     final port = resolvePort(args);
+    final flavor = resolveFlavor(args);
+    if (flavor != null && flavor.isNotEmpty) {
+      FlintEnv.setFlavor(flavor);
+    }
+    final effectiveFlavor = FlintEnv.flavor;
+    final flavorArg = (effectiveFlavor != 'default' && effectiveFlavor.isNotEmpty)
+        ? '--flavor=$effectiveFlavor'
+        : null;
 
     for (final arg in args) {
       if (arg == '--no-web-build') {
@@ -71,19 +92,32 @@ class RunServerCommand extends FlintCommand {
       'flint_dart:hot_reload',
       'lib',
       '--port=$port',
+      if (flavorArg != null) flavorArg,
     ];
+
+    final envMap = <String, String>{
+      if (flavorArg != null) ...{
+        'APP_FLAVOR': effectiveFlavor,
+        'FLAVOR': effectiveFlavor,
+      },
+    };
 
     final child = hotReloadDisabled
         ? await Process.start(
             'dart',
-            ['run', 'lib/main.dart', port.toString()],
-            environment: {'FLINT_HOT': '0'},
+            [
+              'run',
+              'lib/main.dart',
+              if (flavorArg != null) flavorArg,
+              port.toString(),
+            ],
+            environment: {'FLINT_HOT': '0', ...envMap},
             mode: ProcessStartMode.inheritStdio,
           )
         : await Process.start(
             'dart',
             hotReloadArgs,
-            environment: {'FLINT_HOT': '1'},
+            environment: {'FLINT_HOT': '1', ...envMap},
             mode: ProcessStartMode.inheritStdio,
             runInShell: true,
           );

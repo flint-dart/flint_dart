@@ -2,6 +2,7 @@
 import 'dart:async';
 
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/database/db_driver.dart';
 import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:mysql_dart/mysql_dart.dart';
 
@@ -22,6 +23,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   String? _user;
   String? _password;
   bool _isSecure = false;
+  bool _allowPublicKeyRetrieval = true;
   int _timeoutSeconds = 30;
   int _keepAliveSeconds = 120;
 
@@ -32,6 +34,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     required String user,
     required String password,
     bool isSecure = false,
+    bool allowPublicKeyRetrieval = true,
     int timeoutSeconds = 30,
     int keepAliveSeconds = 120,
   }) async {
@@ -41,6 +44,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     _user = user;
     _password = password;
     _isSecure = isSecure;
+    _allowPublicKeyRetrieval = allowPublicKeyRetrieval;
     _timeoutSeconds = timeoutSeconds;
     _keepAliveSeconds = keepAliveSeconds;
 
@@ -60,9 +64,22 @@ class MySqlConnectionWrapper implements DBWrapper {
   }
 
   @override
+  DBDriver get driver => DBDriver.mysql;
+
+  @override
   bool get isConnected => _connected && (_conn?.connected ?? false);
 
   String? get lastError => _lastError;
+
+  @override
+  Future<dynamic> getLastInsertId(String tableName, String primaryKey) async {
+    final result = await query("SELECT LAST_INSERT_ID() as id");
+    if (result.isEmpty) return null;
+    final id = result.first['id'];
+    if (id is BigInt) return id.toInt();
+    if (id is String) return int.tryParse(id) ?? id;
+    return id;
+  }
 
   @override
   Future<List<Map<String, dynamic>>> query(
@@ -347,6 +364,7 @@ class MySqlConnectionWrapper implements DBWrapper {
       userName: _user!,
       password: _password!,
       secure: _isSecure,
+      allowPublicKeyRetrieval: _allowPublicKeyRetrieval,
     );
 
     await _conn!.connect(timeoutMs: _timeoutSeconds * 1000);

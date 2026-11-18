@@ -132,6 +132,7 @@ class TextArea extends FlintElement {
             if (placeholder != null) 'placeholder': placeholder,
             if (onChanged != null) 'onInput': onChanged,
           },
+          defaultStyle: const {'outline': 'none'},
           dartStyle: inputComponentStyle(
             variant: variant,
             size: size,

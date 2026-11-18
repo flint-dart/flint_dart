@@ -188,7 +188,7 @@ class CodeEditor extends FlintElement {
               ),
             )
             .merge(editorDartStyle),
-        style: {'tab-size': 2, ...editorStyle},
+        style: {'tab-size': 2, 'outline': 'none', ...editorStyle},
       ),
     );
 

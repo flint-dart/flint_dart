@@ -70,6 +70,10 @@ void createFlintApp(
   String selector, {
   Map<String, FlintPageBuilder>? pages,
   PageRegistry? registry,
+  Map<String, PageRegistry>? flavors,
+  Map<String, Object>? flavorDesigns,
+  String? defaultFlavor,
+  bool fallbackToDefault = true,
   FlintAsyncPageBuilder? resolvePage,
   List<FlintPageMiddleware> middlewares = const [],
   List<Object> stylesheets = const [],

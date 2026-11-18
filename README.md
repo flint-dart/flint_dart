@@ -2,6 +2,13 @@
 
 <div align="center">
 
+<img src="https://flintdart.dev/logo-icon.png" alt="Flint Dart Logo" width="120" height="120" />
+
+# Flint Dart
+
+**Precision of a Dart. Ignition of Flint.**  
+The First Official Full-Stack, Declarative, SEO-First Dart Web Framework.
+
 [![Pub Version](https://img.shields.io/pub/v/flint_dart.svg?style=flat-square&logo=dart)](https://pub.dev/packages/flint_dart)
 [![GitHub Stars](https://img.shields.io/github/stars/flint-dart/flint_dart?style=flat-square&logo=github)](https://github.com/flint-dart/flint_dart)
 [![Documentation](https://img.shields.io/badge/docs-flintdart.dev-blue.svg?style=flat-square)](https://flintdart.dev)
@@ -28,6 +35,17 @@ Flint Dart empowers developers to build entire end-to-end web applications with 
 * 🤖 **AI Runtime & Agent Workflows**: Built-in multi-provider LLM engine (OpenAI, Gemini, Anthropic) with autonomous tool calling and memory.
 
 > **💡 Zero JavaScript or CSS build tools required.** Write your backend logic, database queries, and browser UI in a single language with unified type safety!
+
+---
+
+## 🎯 The Philosophy: Dart's Precision, Flint's Spark
+
+The Flint Dart identity represents the fusion of two core engineering ideals:
+
+* **🎯 The Precision of a Dart**: A dart has a singular purpose: fly directly to the target with zero drift. In software, that means **type safety, null safety, and architectural predictability**. Models, schemas, request validators, and UI components all speak the exact same language—no guessing, no runtime type drift, and no mismatch between client and server.
+* **⚡ The Ignition of Flint**: Flint is the stone that strikes sparks and ignites fire. Where a dart brings trajectory, Flint brings **ignition and velocity**: sub-millisecond response times, lightning-fast Ahead-Of-Time (AOT) native compilation directly to machine code, and rapid developer iteration with zero context switching.
+
+> **Flint + Dart**: The precision to hit your target cleanly, powered by the spark that gets you there faster.
 
 ---
 
@@ -100,15 +118,15 @@ class HomePage extends FlintComponent {
             Row(
               children: [
                 Button(
-                  label: 'Get Started',
+                  child: 'Get Started',
                   variant: ButtonVariant.solid,
-                  onClick: () => window.alert('Welcome to Flint!'),
+                  onPressed: (_) => window.alert('Welcome to Flint!'),
                 ),
                 Spacer(width: 12),
-                Button(
-                  label: 'Documentation',
-                  variant: ButtonVariant.outline,
+                Link(
                   href: 'https://flintdart.dev',
+                  child: 'Documentation',
+                  variant: ButtonVariant.outline,
                 ),
               ],
             ),

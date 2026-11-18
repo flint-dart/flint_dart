@@ -226,6 +226,8 @@ class Flint {
   ///   This is useful for very minimal or fully customized setups.
   final bool withDefaultMiddleware;
   final bool enableSwaggerDocs;
+  final bool? enableMailPreview;
+  final MailRegistry? mailRegistry;
   final bool autoConnectMail;
   final bool? autoMigrate;
   final bool autoMigrateDefault;
@@ -271,9 +273,19 @@ class Flint {
       this.autoRegisterJobs = true,
       this.includeJobTablesInMigrations = true,
       this.withDefaultMiddleware = true,
-      this.enableSwaggerDocs = false})
+      this.enableSwaggerDocs = false,
+      this.enableMailPreview,
+      this.mailRegistry,
+      String? flavor,
+      List<String>? args})
       : _flintPageServerRenderer = flintPageServerRenderer,
         _serverRenderFlintPages = serverRenderFlintPages {
+    if (args != null && args.isNotEmpty) {
+      FlintEnv.resolveFlavorFromArgs(args);
+    }
+    if (flavor != null && flavor.trim().isNotEmpty) {
+      FlintEnv.setFlavor(flavor);
+    }
     this.cacheDriver = _resolveCacheDriver(cacheDriver, autoConnectRedis);
     this.cacheDirectory = _resolveCacheDirectory(cacheDirectory);
     this.cacheMemoryMaxSize =
@@ -297,6 +309,7 @@ class Flint {
     if (autoRegisterJobs) {
       jobsRegistry?.registerJobs();
     }
+    mailRegistry?.registerMailables();
     Response.flintPageServerRenderer = flintPageServerRenderer;
     Response.flintPageServerRenderingEnabled = serverRenderFlintPages;
 
@@ -313,7 +326,37 @@ class Flint {
 
     if (viewPath != null) {
       Flint.viewPath = viewPath;
+      FlintViewPathLookup.customViewPath = viewPath;
     }
+
+    if ( _shouldEnableMailPreview(enableMailPreview)) {
+      _registerMailPreviewRoutes();
+    }
+  }
+
+  static bool _shouldEnableMailPreview(bool? explicitValue) {
+    if (explicitValue != null) return explicitValue;
+    final env = FlintEnv.get('APP_ENV', FlintEnv.get('FLINT_ENV', 'development'))
+        .trim()
+        .toLowerCase();
+    if (env == 'production' || env == 'prod') {
+      return false;
+    }
+    return FlintEnv.getBool('FLINT_MAIL_PREVIEW', true);
+  }
+
+  /// Registers a [ViewMailable] for live browser preview at `/mail/preview/:name`.
+  void previewMail(ViewMailable mailable, {String? name}) {
+    MailPreviewRegistry.register(mailable, name: name);
+  }
+
+  void _registerMailPreviewRoutes() {
+    get('/mail/preview', (req, res) {
+      return MailPreviewRegistry.handleIndex(req, res, rootPath: rootPath);
+    });
+    get('/mail/preview/:name', (req, res) {
+      return MailPreviewRegistry.handlePreview(req, res, rootPath: rootPath);
+    });
   }
 
   static CacheDriver _resolveCacheDriver(
@@ -421,7 +464,9 @@ class Flint {
 
     // Prefer project-local UI assets first (dev/build output).
     candidates.add(path.join(Directory.current.path, 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'public', 'swagger-ui'));
     candidates.add(path.join(Directory.current.path, 'build', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'build', 'public', 'swagger-ui'));
     candidates.add(path.join(Directory.current.path, '..', 'swagger-ui'));
     candidates
         .add(path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'));
@@ -1062,10 +1107,28 @@ class Flint {
   /// - Child groups inherit the parent group's prefix and middleware.
   /// - Supports deep nesting of route groups for modular API design.
   /// - Recommended for organizing large applications with multiple logical route sections.
+  /// The active application flavor.
+  String get flavor => FlintEnv.flavor;
+
+  /// Whether the active application flavor matches [name] (case-insensitive).
+  bool isFlavor(String name) => FlintEnv.isFlavor(name);
+
+  /// Registers routes that are only active when running under the specified [flavorName].
+  void forFlavor(String flavorName, void Function(Flint app) callback) {
+    if (FlintEnv.isFlavor(flavorName)) {
+      callback(this);
+    }
+  }
+
   void routes(
     RouteGroup group, {
     List<RouteGroup> children = const [],
   }) {
+    // Skip registration if group is scoped to another flavor
+    if (group.flavor != null && !FlintEnv.isFlavor(group.flavor!)) {
+      return;
+    }
+
     // Normalize prefix: empty string or "/" is treated the same
     String cleanPrefix = group.prefix.isEmpty ? '/' : group.prefix;
 
@@ -1178,9 +1241,11 @@ class Flint {
         'run',
         'flint_dart:hot_reload',
         rootPath,
-        '--port=$port'
+        '--port=$port',
+        if (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+          '--flavor=${FlintEnv.flavor}',
       ],
-      environment: {'FLINT_HOT': '1'},
+      environment: {'FLINT_HOT': '1', 'APP_FLAVOR': FlintEnv.flavor, 'FLAVOR': FlintEnv.flavor},
       mode: ProcessStartMode.inheritStdio,
       runInShell: true,
     );

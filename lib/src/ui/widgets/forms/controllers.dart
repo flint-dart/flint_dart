@@ -5,14 +5,20 @@ typedef FlintVoidCallback = void Function();
 
 /// Mutable text value with listener notifications for controlled inputs.
 class TextEditingController {
-  /// Creates a text editing controller with optional initial [text].
-  TextEditingController({String text = ''}) : _text = text;
+  /// Creates a text editing controller with optional initial [text] and [validator].
+  TextEditingController({String text = '', this.validator}) : _text = text;
 
   String _text;
   final List<FlintVoidCallback> _listeners = [];
 
+  /// Optional validator callback for this controller.
+  String? Function(String? value)? validator;
+
   /// Current text value.
   String get text => _text;
+
+  /// Validates the current [text] and returns an error message if invalid, or null if valid.
+  String? validate() => validator?.call(_text);
 
   set text(String value) {
     if (_text == value) return;
@@ -64,6 +70,12 @@ class FormController {
   final Map<String, Object?> _data;
   final Map<String, TextEditingController> _controllers = {};
   final List<FlintVoidCallback> _listeners = [];
+  final Map<String, String? Function(String? value)> _validators = {};
+
+  /// Registers a validator for [key].
+  void registerValidator(String key, String? Function(String? value) validator) {
+    _validators[key] = validator;
+  }
 
   /// Current validation errors keyed by field name.
   FormErrors errors = const FormErrors();
@@ -87,8 +99,8 @@ class FormController {
   String string(String key) => _data[key]?.toString() ?? '';
 
   /// Returns a text controller synchronized with the field named [key].
-  TextEditingController controller(String key) {
-    return _controllers.putIfAbsent(key, () {
+  TextEditingController controller(String key, {String? Function(String? value)? validator}) {
+    final ctrl = _controllers.putIfAbsent(key, () {
       final controller = TextEditingController(text: string(key));
       controller.addListener(() {
         _data[key] = controller.text;
@@ -96,6 +108,44 @@ class FormController {
       });
       return controller;
     });
+    if (validator != null) {
+      ctrl.validator = validator;
+      _validators[key] = validator;
+    }
+    return ctrl;
+  }
+
+  /// Runs all registered validators and returns whether all fields are valid.
+  bool validate([Map<String, String? Function(String? value)>? additionalValidators]) {
+    final allValidators = <String, String? Function(String? value)>{
+      ..._validators,
+      for (final entry in _controllers.entries)
+        if (entry.value.validator != null) entry.key: entry.value.validator!,
+      if (additionalValidators != null) ...additionalValidators,
+    };
+    if (allValidators.isEmpty) return true;
+
+    final newErrors = <String, List<String>>{};
+    for (final entry in allValidators.entries) {
+      final key = entry.key;
+      final val = string(key);
+      final msg = entry.value(val);
+      if (msg != null && msg.isNotEmpty) {
+        newErrors[key] = [msg];
+      }
+    }
+
+    if (newErrors.isNotEmpty) {
+      errors = FormErrors(newErrors);
+      _notifyListeners();
+      return false;
+    }
+
+    if (errors.isNotEmpty) {
+      errors = const FormErrors();
+      _notifyListeners();
+    }
+    return true;
   }
 
   /// Updates one field value and notifies listeners.
@@ -150,7 +200,12 @@ class FormController {
     void Function(Object error)? onError,
     void Function(FormErrors errors)? onValidationError,
     bool resetOnSuccess = false,
+    bool validateForm = true,
   }) async {
+    if (validateForm && !validate()) {
+      onValidationError?.call(errors);
+      return null;
+    }
     processing = true;
     wasSuccessful = false;
     recentlySuccessful = false;

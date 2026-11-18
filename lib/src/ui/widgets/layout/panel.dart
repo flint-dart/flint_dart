@@ -24,10 +24,11 @@ class Panel extends FlintElement {
             defaultStyle: const {
               'display': 'grid',
               'gap': '14px',
-              'border': '1px solid #e4e7ec',
+              'border': '1px solid var(--color-surfaceBorder, #e4e7ec)',
               'border-radius': '8px',
               'padding': '16px',
-              'background': '#ffffff',
+              'background': 'var(--color-surface, #ffffff)',
+              'color': 'var(--color-text, #0f172a)',
             },
             dartStyle: dartStyle,
             style: style,
