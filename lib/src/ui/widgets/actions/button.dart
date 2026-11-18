@@ -21,7 +21,7 @@ class Button extends FlintElement {
     bool loading = false,
     bool disabled = false,
     void Function(Object event)? onPressed,
-    void Function(Object event)? onClick,
+    Function? onClick,
   }) : super(
           'button',
           props: mergeComponentProps(
@@ -33,7 +33,7 @@ class Button extends FlintElement {
               if ((onPressed != null || onClick != null) &&
                   !disabled &&
                   !loading)
-                'onClick': onPressed ?? onClick,
+                'onClick': onPressed ?? _normalizeClickHandler(onClick),
             },
             className: className,
             dartStyle: buttonComponentStyle(
@@ -50,4 +50,16 @@ class Button extends FlintElement {
             ...normalizeChildren(child ?? label, children),
           ],
         );
+}
+
+void Function(Object event)? _normalizeClickHandler(Function? handler) {
+  if (handler == null) return null;
+  if (handler is void Function(Object)) return handler;
+  return (event) {
+    if (handler is void Function()) {
+      handler();
+    } else {
+      (handler as dynamic)(event);
+    }
+  };
 }

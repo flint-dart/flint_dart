@@ -147,6 +147,16 @@ class FlintWebUiBuilder {
     final publicDir = Directory('public');
     if (publicDir.existsSync()) return publicDir;
 
+    if (normalizedEntry == appUiEntry ||
+        normalizedEntry.endsWith(path.normalize(path.join(
+          '${path.separator}lib',
+          'ui',
+          'main.dart',
+        )))) {
+      publicDir.createSync(recursive: true);
+      return publicDir;
+    }
+
     return entryDir;
   }
 
@@ -280,7 +290,9 @@ class FlintWebUiBuilder {
     )..createSync(recursive: true);
     if (!isPartialBuild && pagesOutDir.existsSync()) {
       for (final entity in pagesOutDir.listSync()) {
-        if (entity is File) _deleteFileIfExists(entity);
+        if (entity is File && !entity.path.endsWith('.dart')) {
+          _deleteFileIfExists(entity);
+        }
       }
     }
     final generatedDir = Directory(path.join(
