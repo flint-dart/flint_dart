@@ -275,9 +275,12 @@ class DatePicker extends FlintElement {
 
     switch (variant) {
       case InputVariant.outline:
-        return {'border': '1px solid #d0d5dd'};
+        return {'border': '1px solid var(--color-inputBorder, #d0d5dd)'};
       case InputVariant.soft:
-        return {'border': '1px solid transparent', 'background': '#f9fafb'};
+        return {
+          'border': '1px solid transparent',
+          'background': 'var(--color-surfaceMuted, #f9fafb)',
+        };
       case InputVariant.ghost:
         return {'border': 'none', 'background': 'transparent'};
     }
@@ -403,8 +406,8 @@ class DateRangePicker extends FlintElement {
             'display': 'flex',
             'flex-direction': 'column',
             'gap': '10px',
-            'background': '#f8fafc',
-            'border': '1px solid #e2e8f0',
+            'background': 'var(--color-surfaceMuted, #f8fafc)',
+            'border': '1px solid var(--color-surfaceBorder, #e2e8f0)',
             'border-radius': '10px',
             'padding': '12px',
           },
@@ -439,7 +442,7 @@ class DateRangePicker extends FlintElement {
                 'span',
                 props: {
                   'style': {
-                    'color': '#64748b',
+                    'color': 'var(--color-muted, #64748b)',
                     'font-weight': 600,
                     'font-size': '14px',
                   },
@@ -470,7 +473,7 @@ class DateRangePicker extends FlintElement {
                   'display': 'flex',
                   'flex-wrap': 'wrap',
                   'gap': '6px',
-                  'border-top': '1px solid #e2e8f0',
+                  'border-top': '1px solid var(--color-surfaceBorder, #e2e8f0)',
                   'padding-top': '8px',
                 },
               },

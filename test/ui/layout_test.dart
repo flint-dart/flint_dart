@@ -65,6 +65,14 @@ void main() {
         final panel = Panel(title: 'Plan', child: Text('Starter'));
         expect(panel.tag, 'section');
         expect(panel.props['style'], containsPair('border-radius', '8px'));
+        expect(
+          panel.props['style'],
+          containsPair('background', 'var(--color-surface, #ffffff)'),
+        );
+        expect(
+          panel.props['style'],
+          containsPair('color', 'var(--color-text, #0f172a)'),
+        );
 
         final stat = StatCard(
           label: 'Active users',
