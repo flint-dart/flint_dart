@@ -1,7 +1,10 @@
+import '../../browser/events_stub.dart'
+    if (dart.library.js_interop) '../../browser/events.dart';
 import '../../component_props.dart';
 import '../../node.dart';
 import '../../style.dart';
 import '../shared/theme.dart';
+import 'controllers.dart';
 import 'field_helpers.dart';
 import 'validation.dart';
 
@@ -30,6 +33,7 @@ class Select extends FlintElement {
   Select({
     String? label,
     String? name,
+    TextEditingController? controller,
     Object? value,
     String? placeholder,
     List<SelectOption> options = const [],
@@ -61,7 +65,7 @@ class Select extends FlintElement {
           children: _children(
             label: label,
             name: name,
-            value: value,
+            value: controller != null ? controller.text : value,
             placeholder: placeholder,
             options: options,
             required: required,
@@ -75,9 +79,22 @@ class Select extends FlintElement {
             selectStyle: selectStyle,
             labelDartStyle: labelDartStyle,
             selectDartStyle: selectDartStyle,
-            onChanged: onChanged,
+            onChanged: _createChangeHandler(controller, onChanged),
           ),
         );
+
+  static void Function(Object event)? _createChangeHandler(
+    TextEditingController? controller,
+    void Function(Object event)? onChanged,
+  ) {
+    if (controller == null && onChanged == null) return null;
+    return (event) {
+      if (controller != null) {
+        controller.text = FlintEvent.value(event);
+      }
+      onChanged?.call(event);
+    };
+  }
 
   static List<FlintNode> _children({
     required String? label,

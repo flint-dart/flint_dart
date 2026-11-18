@@ -24,10 +24,35 @@ void main() {
 
       final tableNode = table.children.single as FlintElement;
       expect(tableNode.tag, 'table');
+      expect(
+        table.props['style'],
+        containsPair('background', 'var(--color-surface, #ffffff)'),
+      );
+      expect(
+        table.props['style'],
+        containsPair('color', 'var(--color-text, #0f172a)'),
+      );
+
+      final thead = tableNode.children.first as FlintElement;
+      final th =
+          (thead.children.first as FlintElement).children.first as FlintElement;
+      expect(
+        th.props['style'],
+        containsPair('background', 'var(--color-surfaceMuted, #f9fafb)'),
+      );
+      expect(
+        th.props['style'],
+        containsPair('color', 'var(--color-muted, #475467)'),
+      );
+
       final tbody = tableNode.children.last as FlintElement;
       final row = tbody.children.single as FlintElement;
       expect(row.props['data-row-key'], '1');
       expect(row.props['aria-selected'], 'true');
+      expect(
+        row.props['style'],
+        containsPair('background', 'var(--color-primarySoft, #eff4ff)'),
+      );
       expect(row.children, hasLength(3));
     });
 

@@ -142,6 +142,35 @@ void main() {
       expect(component.value, 'pro');
       expect(updatedSelect.value, 'pro');
     });
+
+    test('cleans up extra SSR sibling nodes on hydration', () async {
+      final host = web.document.createElement('div');
+      web.document.body?.appendChild(host);
+      addTearDown(() => host.remove());
+
+      // Simulate SSR having rendered multiple children into the host:
+      // Child 0: a <style> tag
+      final ssrStyle = web.document.createElement('style');
+      ssrStyle.textContent = '.flint-ssr { color: red; }';
+      host.appendChild(ssrStyle);
+
+      // Child 1: the server-rendered HTML markup
+      final ssrMarkup = web.document.createElement('div');
+      ssrMarkup.textContent = 'SSR Content';
+      host.appendChild(ssrMarkup);
+
+      expect(host.childNodes.length, 2);
+
+      // Client mounts and hydrates
+      final root = createRootForElement(host);
+      root.render(div(children: ['Client Content']));
+      await _flushRender();
+
+      // Host must only contain the freshly rendered client DOM, NOT the leftover SSR nodes
+      expect(host.childNodes.length, 1);
+      expect(host.textContent, 'Client Content');
+      expect(host.textContent, isNot(contains('SSR Content')));
+    });
   });
 }
 

@@ -2,6 +2,129 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.10] - 2026-11-18
+
+### Fixed & Improved
+- **Flint UI Theme, Modal Overflow & Page Bundle Entrypoints ([#95](https://github.com/flint-dart/flint_dart/issues/95))**:
+  - Resolves all 6 issues reported in GitHub issue [#95](https://github.com/flint-dart/flint_dart/issues/95) (*"Flint UI: dark theme inconsistencies, tall modal overflow, and themeProvider lost in generated page bundles"*).
+  - **Modal CSS Variable Namespace**: Fixed Modal to resolve standard theme tokens (`var(--color-surface, ...)`, `var(--color-text, ...)`, `var(--color-surfaceBorder, ...)`, `var(--color-surfaceMuted, ...)`). Additionally, `FlintTheme.allTokens` now emits backward-compatible `--flint-color-*` aliases so existing consumer stylesheets remain unaffected.
+  - **Dark Theme Component Defaults**: Replaced hardcoded light colors across `Panel`, `Table` (container, headers, and rows), `DatePicker`, and `field_helpers.dart` (`fieldLabelStyle`, `fieldHelpStyle`, `fieldErrorStyle`, `inputBaseStyle`, `choiceRowStyle`) with theme tokens (`var(--color-surface)`, `var(--color-text)`, `var(--color-muted)`, etc.).
+  - **Semantic Tone Tokens (`Tone.info`)**: Added complete semantic tone palettes (`info*`, `success*`, `warning*`, and `danger*` for solid, soft, text, border, and focus states) to both `FlintThemes.light` and `FlintThemes.dark`. `Tone.info` alerts and badges now properly display translucent dark-mode styling instead of falling back to light mode.
+  - **Tall Modal Viewport Overflow & Scroll Containment**: Constrained the dialog `<section>` to `max-height: calc(100vh - 40px)` in a flex column, pinned header and action buttons (`flex-shrink: 0`), and added `overflow-y: auto` to both the backdrop overlay and inner modal body container. Tall modals now scroll cleanly without overflowing the viewport, eliminating the need for application-level `maxHeight: '58vh'` workarounds.
+  - **`themeProvider` in Page Bundles**: Updated `FlintWebUiBuilder` to detect `themeProvider:` passed to `createFlintApp()` in entrypoints and forward it into generated page bundles (`.dart_tool/flint_ui/page_bundles/...`) and shared runtime entrypoints. Dark theme CSS variables now survive page bundle compilation as expected.
+  - **README Quickstart & Button Ergonomics**: Updated README quickstart examples to use `Button(child: ..., onPressed: ...)` and `Link(...)`. Enhanced `Button` constructor to support `label:` and `onClick:` aliases (supporting both zero-argument `void Function()` and 1-argument `void Function(Object)` handlers).
+- **CLI Web UI Build Source Safety**:
+  - Added strict `.dart` extension protection during page bundle asset cleanup and ensured the `public/` directory is automatically created when missing so build output never pollutes or deletes `lib/ui/pages`.
+
+## [1.5.9] - 2026-11-18
+
+### Fixed & Improved
+- **Production Build Artifact Isolation (`flint build`)**:
+  - Automatically skips `.gitignore` and `.dockerignore` files recursively when copying project files into the `build/` directory.
+  - Ensures deployment containers and prebuilt build artifacts retain all necessary assets (such as precompiled Web UI bundles, `start.sh`, and Linux AOT executables) without being unintentionally excluded by repository-level ignore patterns.
+
+## [1.5.8] - 2026-11-16
+
+### Fixed & Improved
+- **SSR Hydration Single Root & DOM De-duplication**:
+  - Fixed an issue where enabling Server-Side Rendering (`serverRenderFlintPages: true`) with scoped styles emitted multiple top-level nodes into `<main id="app">`, causing browser hydration (`FlintRoot._paint()`) to replace only the first child (`<style>`) and leave the server-rendered DOM untouched, resulting in duplicated page content on screen.
+  - Wrapped server-rendered scoped styles and component markup in a transparent `<div id="flint-ssr-root" style="display: contents;">` container inside `FlintServerRenderer.render(...)` so the host element always contains exactly one top-level child element.
+  - Updated `FlintRoot._paint()` in `browser_renderer.dart` to automatically clean up and remove all sibling nodes from the host container during hydration.
+
+## [1.5.7] - 2026-11-11
+
+### Added & Improved
+- **Cross-Platform Production Compilation & Push (`flint build --linux --push`)**:
+  - Added support for compiling Linux AOT production binaries directly from developer machines (Windows, macOS, Linux) without compiling on memory-constrained VPS instances.
+  - Added `--push` flag to commit and push the isolated production build directly to the `build` branch on git remote (or custom branch via `--push-branch`).
+  - Added `--skip-web` and `--rebuild-web` flags to control client-side bundle compilation.
+  - Automatic `debian:bookworm-slim` minimal Dockerfile generation for high-performance containerized deployments.
+  - Generates cross-platform `start.sh` entrypoint scripts and sets proper execution permissions.
+  - Cleans temporary and local `.gitignore` rules inside `build/` before staging with `git add -A --force .`, ensuring compiled assets (`public/assets/js/flint-ui/`, `public/assets/css/flint-ui/`, etc.) are never skipped.
+- **Page-by-Page Web UI Compilation by Default**:
+  - Defaulted `WebUIBuilder` compilation to `compilePageBundles()`, splitting web UI code into lazy-loaded, route-level bundles (`manifest.json` and `pages/*.dart.js`).
+  - Added smart bundle caching: reuses existing pre-built page bundles when source files are unmodified, drastically cutting down rebuild times.
+  - Guaranteed automatic `manifest.json` generation for single-bundle applications via `_writeSingleBundleManifest()`, preventing runtime manifest 404s.
+- **Automatic Swagger UI Asset Bundling & Resolution**:
+  - Automatically copies Swagger UI assets and `swagger.json` specs into `build/public/swagger-ui` and `build/docs`.
+  - Added `public/swagger-ui` to `Flint._resolveSwaggerUiDir()` candidates and set `ENV FLINT_SWAGGER_UI_DIR=/app/public/swagger-ui` in generated Dockerfiles.
+- **Optimized Asset Precompression & Caching**:
+  - Cached Gzip availability and optimized Brotli detection to accelerate static asset precompression during builds.
+
+## [1.5.6] - 2026-11-06
+
+### Fixed & Improved
+- **MySQL 8+ `caching_sha2_password` Support (`allowPublicKeyRetrieval`)**:
+  - Added `allowPublicKeyRetrieval: true` by default to `MySqlConnectionWrapper.connect(...)` and `MySQLConnection.createConnection(...)`.
+  - Fixes `MySQLClientException: Auth plugin caching_sha2_password requires TLS, a pinned serverPublicKey, or allowPublicKeyRetrieval: true` when connecting to MySQL 8+ instances over standard TCP without TLS.
+  - Exposed `allowPublicKeyRetrieval` across `DB.connectNamed(...)`, `DB.connect(...)`, and `DB.autoConnect(...)` with configurable `.env` flag `DB_ALLOW_PUBLIC_KEY_RETRIEVAL`.
+
+## [1.5.5] - 2026-11-06
+
+### Added & Improved
+- **Multi-Database Connection Pooling & Tenant Registry (`DB.connectNamed(...)`)**:
+  - Added `DB.connectNamed(name, ...)` and `DB.connection(name)` to register, cache, and pool active database connections by name or tenant identifier.
+  - Automatically reuses established connections across requests without destroying or recreating TCP sockets and TLS handshakes on every HTTP cycle.
+  - Added `DB.closeNamed(name)` and `DB.closeAll()` for clean connection lifecycle management and graceful shutdowns.
+- **Asynchronous Zone Database Scoping (`DB.scope(...)`)**:
+  - Added `DB.scope(connection, () => action())` powered by Dart `Zone` execution context (`#flint_active_db`).
+  - Seamlessly routes all static database helpers (`DB.query`, `DB.execute`, `DB.instance`, `DB.driver`, `DB.tableExists`, `DB.columnExists`, `DB.transaction`), `QueryBuilder`, and Flint `Model` operations to the scoped database connection without mutating global state.
+  - Enables multiple concurrent requests targeting different tenant databases to execute in parallel without sequential queue bottlenecks or connection stomping.
+- **Passive Database Auto-Connect Resilience (`autoConnectDb: false`)**:
+  - When `autoConnectDb: false` is configured on `Flint()`, requests using a scoped connection (`DB.scope`) execute seamlessly without throwing eager `Database is not connected` exceptions.
+- **First-Class Context Database Property (`ctx.db`)**:
+  - Added `ctx.db` getter to `Context`, allowing middleware, controllers, and services to directly access the request's scoped database wrapper (with fallback to default active connection), alongside `ctx.ai` and `ctx.cache`.
+- **Database Wrapper Driver & ID Helpers**:
+  - Added `driver` and `getLastInsertId(...)` to `DBWrapper`, `MySqlConnectionWrapper`, and `PgConnectionWrapper`.
+- **Direct Mail Instance Connection (`Mail().connect(...)`)**:
+  - Added `mail.connect(...)` to bind an individual `Mail` instance directly to a specified SMTP provider, host, port, credentials, and sender address on demand before sending.
+  - Bypasses global static `Mail.setup(...)` and strictly disables automatic fallback/reconfiguration from `.env` (`_retryAfterReconfigure()`), guaranteeing that multi-tenant and multi-mailbox applications never send emails from the fallback environment credentials when an explicit account is specified.
+- **Custom SMTP TLS & Certificate Verification Resilience**:
+  - Added `allowInsecure: true` and `ignoreBadCertificate: true` support to `SmtpFactory.create` and `Mail.connect(...)`, preventing custom mail servers (e.g. self-signed or private SMTP domains) from failing SSL/TLS handshakes.
+- **Interactive Terminal Clipboard Integration (Copy & Paste)**:
+  - Added dedicated **Paste** button to `Terminal` toolbar with clipboard read and secure prompt fallback.
+  - Added `paste([String? text])` and `pasteFromClipboard()` to `Terminal` and `TerminalController`.
+  - Added custom key event handling (`attachCustomKeyEventHandler`) supporting `Ctrl+C` / `Cmd+C` / `Ctrl+Shift+C` copying when text is selected (preventing destructive SIGINT `\x03`), and `Ctrl+V` / `Cmd+V` / `Ctrl+Shift+V` pasting.
+  - Added DOM `paste` and `copy` event listeners on the terminal viewport.
+
+## [1.5.4] - 2026-11-04
+
+### Added & Improved
+- **Built-in 6,000+ HugeIcons in `Icons` (`package:flint_dart/ui.dart`)**:
+  - Upgraded `Icons` in `package:flint_dart/ui.dart` to include all 6,046+ HugeIcons stroke-rounded icons as tree-shakeable `const IconData` definitions, plus all standard Flint UI icon aliases (`Icons.moreVertical`, `Icons.stop`, `Icons.play`, `Icons.refresh`, `Icons.pause`, `Icons.power`, `Icons.externalLink`, etc.).
+
+## [1.5.3] - 2026-10-28
+
+### Added & Improved
+- **Native Multi-Flavor Application Support**:
+  - Added enterprise-grade native multi-flavor architecture across Flint Dart (`Flint(flavor: ...)`, `Flint(args: args)`, and `FlintEnv.flavor`).
+  - Added automatic environment resolution for `.env.<flavor>` with seamless fallback to base `.env`.
+  - Added CLI flag support: `--flavor=<name>` forwarded seamlessly through `flint run`, `hot_reload`, and server commands.
+  - Added `FlavoredPageRegistry` and multi-flavor Web UI bundling with flavor-aware manifest resolution and favicon auto-detection.
+- **Resilient Migrations & Safe Column Handling**:
+  - Added protection against accidental column dropping during migrations unless explicitly enabled via `FLINT_MIGRATION_DROP_COLUMNS=true`.
+- **Environment Parser Enhancements**:
+  - Fixed `.env` parsing when values contain quotes with internal `#` hash symbols.
+
+## [1.5.2] - 2026-10-27
+
+### Fixed & Improved
+- **Button Hover Ergonomics & Developer Style Precedence**:
+  - Completely eliminated unwanted automatic blue hover styles injected onto `Button`, `IconButton`, and `Link` at the framework level.
+  - Previously, `buttonComponentStyle` injected a default `hover: buttonHoverStyle(variant, tone)` (`#004eeb !important`), causing buttons with custom backgrounds (e.g. green, black, white, or brand themes) to flash or switch to bright blue on hover and blocking external CSS `:hover` rules.
+  - The framework no longer applies any default `:hover` pseudo-class styles unless explicitly specified by the developer.
+  - Enhanced `DartStyle.merge` to recursively merge state styles (`hover`, `focus`, `focusVisible`, `active`, `disabled`, etc.), ensuring developer-specified hover styles (`dartStyle: DartStyle(hover: DartStyle(...))`) merge cleanly and work directly with their custom styling.
+
+## [1.5.1+2] - 2026-10-27
+
+### Added
+- **Default Generic Typed Props on `StatefulComponent<TProps>` & `StatelessComponent<TProps>`**:
+  - Upgraded `StatefulComponent<TProps>` and `StatelessComponent<TProps>` to support optional strongly-typed `TProps` generics natively (`class MyPage extends StatefulComponent<MyPageProps>` and `class MyView extends StatelessComponent<MyViewProps>`), eliminating the need to import or extend separate `TypedStatefulComponent` / `TypedStatelessComponent` classes.
+  - Added optional positional `[TProps? props]` constructor parameter and `TProps get props` / `set props(covariant TProps value)` on `StatefulComponent<TProps>` (plus `TProps get props` on `StatelessComponent<TProps>`), automatically syncing `_props` across `updateFrom(...)` when component instances are preserved.
+  - Fully backwards-compatible with unparameterized components (`class Counter extends StatefulComponent` and `class Header extends StatelessComponent`), where `TProps` defaults to `dynamic` and no constructor arguments are required.
+  - Kept `TypedStatefulComponent<TProps>` and `TypedStatelessComponent<TProps>` as zero-cost `typedef` aliases to `StatefulComponent<TProps>` and `StatelessComponent<TProps>` so existing codebases continue to compile without changes.
+  - Updated `flint --make-page <Name>` CLI generator to scaffold `class <Name>Page extends StatefulComponent<<Name>PageProps>` by default.
+
 ## [1.5.1+1] - 2026-10-27
 
 ### Added

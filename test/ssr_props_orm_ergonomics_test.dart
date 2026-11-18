@@ -48,6 +48,27 @@ class _SafeSsrPage extends TypedStatefulComponent<_GreetingProps> {
   }
 }
 
+class _DirectTypedStateful extends StatefulComponent<_GreetingProps> {
+  _DirectTypedStateful(super.props);
+
+  late String label;
+
+  @override
+  void initProps() {
+    label = 'Stateful:${props.name}:${props.count}';
+  }
+
+  @override
+  View build() => span(children: [text(label)]);
+}
+
+class _DirectTypedStateless extends StatelessComponent<_GreetingProps> {
+  _DirectTypedStateless(super.props);
+
+  @override
+  View build() => span(children: [text('Stateless:${props.name}:${props.count}')]);
+}
+
 class _BrokenLateDidMountComponent extends StatefulComponent {
   late String uninitializedInSsr;
 
@@ -160,6 +181,29 @@ void main() {
         const _GreetingProps(name: 'Margaret', count: 99),
       );
       expect(htmlFromRoute, equals('<div>Hello, Margaret (99)</div>'));
+
+      final stateful = _DirectTypedStateful(
+        const _GreetingProps(name: 'Katherine', count: 11),
+      );
+      expect(
+        renderer.render(stateful),
+        equals('<span>Stateful:Katherine:11</span>'),
+      );
+
+      final nextStateful = _DirectTypedStateful(
+        const _GreetingProps(name: 'Hamilton', count: 22),
+      );
+      stateful.updateFrom(nextStateful);
+      expect(stateful.props.name, equals('Hamilton'));
+      expect(stateful.props.count, equals(22));
+
+      final stateless = _DirectTypedStateless(
+        const _GreetingProps(name: 'Turing', count: 77),
+      );
+      expect(
+        renderer.render(stateless),
+        equals('<span>Stateless:Turing:77</span>'),
+      );
     });
   });
 

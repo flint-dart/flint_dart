@@ -107,7 +107,14 @@ class Auth {
       throw AuthException(message: 'Invalid email or password');
     }
 
-    final hashedPassword = user[_config.passwordColumn] as String;
+    final rawHashed = user[_config.passwordColumn] ??
+        user['password'] ??
+        user['password_hash'];
+    final hashedPassword = rawHashed?.toString();
+    if (hashedPassword == null || hashedPassword.isEmpty) {
+      _registerLoginFailure(email, throttleKey: throttleKey);
+      throw AuthException(message: 'Invalid email or password');
+    }
     final isMatch = Hashing().verify(password, hashedPassword);
 
     if (!isMatch) {

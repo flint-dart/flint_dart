@@ -15,6 +15,23 @@ void main() {
         expect(modalElement.props['role'], 'dialog');
         expect(modalElement.props.containsKey('hidden'), false);
         expect(modalElement.props['aria-modal'], 'true');
+        expect(modalElement.props['style'], containsPair('overflow-y', 'auto'));
+
+        final section = modalElement.children.first as FlintElement;
+        expect(section.tag, 'section');
+        final sectionStyle = section.props['style'] as Map<String, Object?>;
+        expect(sectionStyle['background'], contains('var(--color-surface'));
+        expect(sectionStyle['color'], contains('var(--color-text'));
+        expect(sectionStyle['max-height'], 'calc(100vh - 40px)');
+        expect(sectionStyle['display'], 'flex');
+        expect(sectionStyle['flex-direction'], 'column');
+
+        final body = section.children.firstWhere(
+          (node) => node is FlintElement && node.tag == 'div',
+        ) as FlintElement;
+        final bodyStyle = body.props['style'] as Map<String, Object?>;
+        expect(bodyStyle['overflow-y'], 'auto');
+        expect(bodyStyle['flex'], '1 1 auto');
 
         final closedDrawer = Drawer(open: false, title: 'Details');
         final closedDrawerFragment = closedDrawer.build() as FlintFragment;

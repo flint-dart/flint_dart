@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/src/cli/commands.dart';
 import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:mime/mime.dart';
@@ -18,6 +18,7 @@ class WebUiCommand extends FlintCommand {
     String? outArg;
     String? pagesConfigArg;
     String? pageArg;
+    String? flavorArg;
     var pageBundles = true;
     var sharedRuntime = false;
     var watchMode = false;
@@ -43,6 +44,10 @@ class WebUiCommand extends FlintCommand {
           exit(1);
         }
         port = parsed;
+      } else if (arg.startsWith('--flavor=')) {
+        flavorArg = arg.substring('--flavor='.length);
+      } else if (arg == '--flavor' && i + 1 < args.length) {
+        flavorArg = args[++i];
       } else if (arg == '--build-only') {
         buildOnly = true;
       } else if (arg == '--page-bundles') {
@@ -77,6 +82,10 @@ class WebUiCommand extends FlintCommand {
         _printHelp();
         exit(1);
       }
+    }
+
+    if (flavorArg != null && flavorArg.trim().isNotEmpty) {
+      FlintEnv.setFlavor(flavorArg);
     }
 
     final build = FlintWebUiBuilder.resolve(

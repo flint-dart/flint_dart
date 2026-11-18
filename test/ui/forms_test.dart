@@ -26,11 +26,23 @@ void main() {
 
       expect(label.tag, 'label');
       expect(label.props['for'], 'flint-field-email');
+      expect(
+        label.props['style'],
+        containsPair('color', 'var(--color-text, #344054)'),
+      );
       expect(input.tag, 'input');
       expect(input.props['id'], 'flint-field-email');
       expect(input.props['name'], 'email');
       expect(input.props['type'], 'email');
       expect(input.props['value'], 'ada@example.com');
+      expect(
+        input.props['style'],
+        containsPair('background', 'var(--color-inputSurface, #ffffff)'),
+      );
+      expect(
+        input.props['style'],
+        containsPair('color', 'var(--color-inputText, #101828)'),
+      );
       expect(input.props['required'], true);
       expect(input.props['aria-invalid'], 'true');
       expect(
@@ -581,7 +593,8 @@ void main() {
       final invalidField = TextField(
         name: 'password',
         value: '123',
-        validator: (v) => (v != null && v.length < 8) ? 'Must be at least 8 chars' : null,
+        validator: (v) =>
+            (v != null && v.length < 8) ? 'Must be at least 8 chars' : null,
         autovalidateMode: AutovalidateMode.always,
       );
 
@@ -597,7 +610,8 @@ void main() {
       final validField = TextField(
         name: 'password',
         value: 'valid-secret-123',
-        validator: (v) => (v != null && v.length < 8) ? 'Must be at least 8 chars' : null,
+        validator: (v) =>
+            (v != null && v.length < 8) ? 'Must be at least 8 chars' : null,
         autovalidateMode: AutovalidateMode.always,
       );
       expect(validField.children.length, 1);
@@ -605,10 +619,16 @@ void main() {
       expect(validInput.props['aria-invalid'], isNull);
     });
 
-    test('FormController validate() and submit() run validators and handle failures', () async {
+    test(
+        'FormController validate() and submit() run validators and handle failures',
+        () async {
       final form = useForm({'username': '', 'password': '123'});
-      form.controller('username', validator: (v) => (v == null || v.isEmpty) ? 'Username required' : null);
-      form.controller('password', validator: (v) => (v != null && v.length < 6) ? 'Password too short' : null);
+      form.controller('username',
+          validator: (v) =>
+              (v == null || v.isEmpty) ? 'Username required' : null);
+      form.controller('password',
+          validator: (v) =>
+              (v != null && v.length < 6) ? 'Password too short' : null);
 
       expect(form.validate(), false);
       expect(form.error('username'), 'Username required');

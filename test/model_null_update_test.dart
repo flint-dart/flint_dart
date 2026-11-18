@@ -1,5 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/src/database/db_wrapper.dart';
 import 'package:flint_dart/src/database/mysql_connection.dart';
 import 'package:flint_dart/src/database/pg_connection.dart';
 import 'package:test/test.dart';

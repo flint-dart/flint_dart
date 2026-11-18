@@ -134,12 +134,25 @@ Future<bool> startServer() async {
 
   _logVerbose('[HOT-RELOAD] Starting server...');
   int? announcedPort;
+  final currentFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+      ? FlintEnv.flavor
+      : (Platform.environment['APP_FLAVOR'] ??
+          Platform.environment['FLAVOR'] ??
+          '');
+
   server = await Process.start(
     'dart',
-    ['run', 'lib/main.dart', _serverPort.toString()],
+    [
+      'run',
+      'lib/main.dart',
+      if (currentFlavor.isNotEmpty) '--flavor=$currentFlavor',
+      _serverPort.toString(),
+    ],
     environment: {
       'FLINT_HOT': '1',
       'PORT': _serverPort.toString(),
+      if (currentFlavor.isNotEmpty) 'APP_FLAVOR': currentFlavor,
+      if (currentFlavor.isNotEmpty) 'FLAVOR': currentFlavor,
     },
   );
 
@@ -592,12 +605,17 @@ Future<void> main(List<String> args) async {
       abbr: 'p',
       defaultsTo: FlintEnv.getInt('PORT', 3001).toString(),
     )
+    ..addOption('flavor')
     ..addFlag('help', abbr: 'h', negatable: false);
 
   final results = parser.parse(args);
   if (results['help'] == true) {
-    Log.debug('Usage: dart run flint_dart:hot_reload [--port <port>]');
+    Log.debug('Usage: dart run flint_dart:hot_reload [--port <port>] [--flavor <flavor>]');
     return;
+  }
+  final flavorOpt = results['flavor'] as String?;
+  if (flavorOpt != null && flavorOpt.isNotEmpty) {
+    FlintEnv.setFlavor(flavorOpt);
   }
   _serverPort = int.tryParse(results['port']) ?? 3000;
   _webBuild = FlintWebUiBuilder.resolve();

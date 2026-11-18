@@ -132,7 +132,6 @@ DartStyle buttonComponentStyle({
         disabled || loading
             ? const DartStyle(opacity: 0.55, cursor: Cursor.notAllowed)
             : DartStyle(
-                hover: buttonHoverStyle(variant, tone),
                 active: DartStyle(transform: StyleTransform.scale(0.98)),
                 focus: DartStyle(
                   outline: 'none',

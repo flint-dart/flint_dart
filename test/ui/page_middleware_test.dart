@@ -10,6 +10,7 @@ import 'package:universal_web/web.dart' as web;
 class _MiddlewareTestPage extends StatefulComponent {
   _MiddlewareTestPage(this.props);
 
+  @override
   final Map<String, dynamic> props;
 
   @override

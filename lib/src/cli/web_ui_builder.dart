@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as path;
 
@@ -38,6 +39,8 @@ class FlintWebUiPageBundleConfig {
   final String registryName;
   final String? rootDesignImport;
   final String? rootDesignName;
+  final String? themeProviderImport;
+  final String? themeProviderExpr;
   final Map<String, String> pages;
   final Map<String, FlintWebUiPageTarget> pageTargets;
 
@@ -48,6 +51,8 @@ class FlintWebUiPageBundleConfig {
     this.pageTargets = const {},
     this.rootDesignImport,
     this.rootDesignName,
+    this.themeProviderImport,
+    this.themeProviderExpr,
   });
 }
 
@@ -68,6 +73,16 @@ class _DetectedRootDesign {
   _DetectedRootDesign({
     required this.name,
     required this.importUri,
+  });
+}
+
+class _DetectedThemeProvider {
+  final String expr;
+  final String? importUri;
+
+  _DetectedThemeProvider({
+    required this.expr,
+    this.importUri,
   });
 }
 
@@ -131,6 +146,16 @@ class FlintWebUiBuilder {
 
     final publicDir = Directory('public');
     if (publicDir.existsSync()) return publicDir;
+
+    if (normalizedEntry == appUiEntry ||
+        normalizedEntry.endsWith(path.normalize(path.join(
+          '${path.separator}lib',
+          'ui',
+          'main.dart',
+        )))) {
+      publicDir.createSync(recursive: true);
+      return publicDir;
+    }
 
     return entryDir;
   }
@@ -212,6 +237,7 @@ class FlintWebUiBuilder {
     if (build.cssOut != null) {
       await _compressAssetIfUseful(File(build.cssOut!));
     }
+    _writeSingleBundleManifest(build, hashedJsOut);
     _writeServiceWorker(build);
     await _compressAssetIfUseful(
       File(path.join(build.webDir.path, 'flint-sw.js')),
@@ -252,18 +278,31 @@ class FlintWebUiBuilder {
 
     await _compileRootDesignCss(build);
 
-    final pagesOutDir = Directory(path.join(path.dirname(build.jsOut), 'pages'))
-      ..createSync(recursive: true);
+    final effectiveFlavor =
+        (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+            ? FlintEnv.flavor.toLowerCase().trim()
+            : null;
+
+    final pagesOutDir = Directory(
+      effectiveFlavor != null
+          ? path.join(path.dirname(build.jsOut), 'pages', effectiveFlavor)
+          : path.join(path.dirname(build.jsOut), 'pages'),
+    )..createSync(recursive: true);
     if (!isPartialBuild && pagesOutDir.existsSync()) {
       for (final entity in pagesOutDir.listSync()) {
-        if (entity is File) _deleteFileIfExists(entity);
+        if (entity is File && !entity.path.endsWith('.dart')) {
+          _deleteFileIfExists(entity);
+        }
       }
     }
-    final generatedDir =
-        Directory(path.join('.dart_tool', 'flint_ui', 'page_bundles'))
-          ..createSync(recursive: true);
+    final generatedDir = Directory(path.join(
+        '.dart_tool', 'flint_ui', 'page_bundles', effectiveFlavor ?? 'default'))
+      ..createSync(recursive: true);
+    final manifestFileName = effectiveFlavor != null
+        ? 'manifest-$effectiveFlavor.json'
+        : 'manifest.json';
     final manifestFile =
-        File(path.join(path.dirname(build.jsOut), 'manifest.json'));
+        File(path.join(path.dirname(build.jsOut), manifestFileName));
     final existingPages = <String, String>{};
     if (manifestFile.existsSync()) {
       try {
@@ -283,20 +322,24 @@ class FlintWebUiBuilder {
     }
 
     final manifestPages = <String, String>{};
-
-    final pageEntries = await Future.wait([
-      for (final entry in requestedPages.entries)
-        _compileOnePage(
-          component: entry.key,
-          slug: entry.value,
-          config: config,
-          build: build,
-          generatedDir: generatedDir,
-          pagesOutDir: pagesOutDir,
-          compress: !isPartialBuild,
-        ),
-    ]);
-    manifestPages.addEntries(pageEntries);
+    final entriesList = requestedPages.entries.toList();
+    const concurrency = 4;
+    for (var i = 0; i < entriesList.length; i += concurrency) {
+      final batch = entriesList.skip(i).take(concurrency);
+      final batchResults = await Future.wait([
+        for (final entry in batch)
+          _compileOnePage(
+            component: entry.key,
+            slug: entry.value,
+            config: config,
+            build: build,
+            generatedDir: generatedDir,
+            pagesOutDir: pagesOutDir,
+            compress: !isPartialBuild,
+          ),
+      ]);
+      manifestPages.addEntries(batchResults);
+    }
 
     _writePageBundlesManifest(
       build,
@@ -312,6 +355,25 @@ class FlintWebUiBuilder {
     if (!isPartialBuild) {
       await _compressAssetIfUseful(
         File(path.join(build.webDir.path, 'flint-sw.js')),
+      );
+    }
+  }
+
+  static void _writeSingleBundleManifest(
+    FlintWebUiBuild build,
+    String hashedJsOut,
+  ) {
+    final manifestFile =
+        File(path.join(path.dirname(build.jsOut), 'manifest.json'));
+    if (!manifestFile.existsSync()) {
+      final scriptUrl = _assetUrlFor(build.webDir, hashedJsOut);
+      final manifest = {
+        'mode': 'single-bundle',
+        'fallback': scriptUrl,
+        'pages': {},
+      };
+      manifestFile.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(manifest),
       );
     }
   }
@@ -669,12 +731,16 @@ void main() {
         values['registry_import'] ?? _defaultRegistryImport(packageName);
     final rootDesignImport = values['root_design_import'];
     final rootDesignName = values['root_design'];
+    final themeProviderImport = values['theme_provider_import'];
+    final themeProviderExpr = values['theme_provider'];
 
     return FlintWebUiPageBundleConfig(
       registryImport: registryImport,
       registryName: values['registry'] ?? 'componentRegistry',
       rootDesignImport: rootDesignImport,
       rootDesignName: rootDesignName,
+      themeProviderImport: themeProviderImport,
+      themeProviderExpr: themeProviderExpr,
       pages: pages.map((key, value) => MapEntry(key, _safeSlug(value))),
     );
   }
@@ -695,8 +761,11 @@ void main() {
     if (pageTargets.isEmpty) return null;
 
     final mainFile = File(path.join('lib', 'ui', 'main.dart'));
-    final rootDesign = mainFile.existsSync()
-        ? _detectRootDesign(mainFile.readAsStringSync(), mainFile)
+    final mainSource = mainFile.existsSync() ? mainFile.readAsStringSync() : '';
+    final rootDesign =
+        mainFile.existsSync() ? _detectRootDesign(mainSource, mainFile) : null;
+    final themeProvider = mainFile.existsSync()
+        ? _detectThemeProvider(mainSource, mainFile)
         : null;
 
     return FlintWebUiPageBundleConfig(
@@ -707,6 +776,8 @@ void main() {
       registryName: _detectRegistryName(registrySource) ?? 'componentRegistry',
       rootDesignImport: rootDesign?.importUri,
       rootDesignName: rootDesign?.name,
+      themeProviderImport: themeProvider?.importUri,
+      themeProviderExpr: themeProvider?.expr,
       pages: {
         for (final page in pageTargets.keys) page: _safeSlug(page),
       },
@@ -738,55 +809,160 @@ void main() {
   }
 
   static String? _detectRegistryName(String source) {
-    final match = RegExp(
-      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry|FlintComponentRegistry)\s*\(',
+    final matches = RegExp(
+      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry(?:\.flavored)?|FlavoredPageRegistry|FlintComponentRegistry)\s*\(',
       multiLine: true,
-    ).firstMatch(source);
-    return match?.group(1);
+    ).allMatches(source);
+    if (matches.isEmpty) return null;
+    // Prefer appRegistry, componentRegistry, or registry if found
+    for (final match in matches) {
+      final name = match.group(1);
+      if (name == 'appRegistry' ||
+          name == 'componentRegistry' ||
+          name == 'registry') {
+        return name;
+      }
+    }
+    return matches.first.group(1);
   }
 
   static Map<String, FlintWebUiPageTarget> _detectRegistryPageTargets(
     String source,
     File registryFile,
-    String packageName,
-  ) {
-    final registryStart =
-        RegExp(r'(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{')
-            .firstMatch(source);
-    if (registryStart == null) return const {};
+    String packageName, {
+    String? flavor,
+  }) {
+    final effectiveFlavor =
+        (flavor != null && flavor.isNotEmpty && flavor != 'default')
+            ? flavor.toLowerCase().trim()
+            : FlintEnv.flavor.toLowerCase().trim();
 
-    final start = registryStart.end;
-    var depth = 1;
-    var index = start;
-    while (index < source.length && depth > 0) {
-      final char = source[index];
-      if (char == '{') depth++;
-      if (char == '}') depth--;
-      index++;
-    }
-    if (depth != 0) return const {};
-
-    final body = source.substring(start, index - 1);
     final imports = _detectImports(source, registryFile, packageName);
-    final targets = <String, FlintWebUiPageTarget>{};
-    final pattern = RegExp(
-      r'''['"]([^'"]+)['"]\s*:\s*\([^)]*\)\s*=>\s*([A-Za-z_]\w*)\s*\(''',
+
+    // 1. Find all named PageRegistry blocks: final <name> = PageRegistry({ ... });
+    final namedRegistries = <String, Map<String, FlintWebUiPageTarget>>{};
+    final regPattern = RegExp(
+      r'(?:final|const|var)\s+([A-Za-z_]\w*)\s*=\s*(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{',
     );
 
-    for (final match in pattern.allMatches(body)) {
-      final name = match.group(1)?.trim();
-      final className = match.group(2)?.trim();
-      if (name == null || name.isEmpty || className == null) continue;
-
-      final importUri = imports[className];
-      if (importUri == null) continue;
-      targets[name] = FlintWebUiPageTarget(
-        importUri: importUri,
-        className: className,
+    for (final regMatch in regPattern.allMatches(source)) {
+      final regVarName = regMatch.group(1)!;
+      final start = regMatch.end;
+      var depth = 1;
+      var index = start;
+      while (index < source.length && depth > 0) {
+        final char = source[index];
+        if (char == '{') depth++;
+        if (char == '}') depth--;
+        index++;
+      }
+      if (depth != 0) continue;
+      final body = source.substring(start, index - 1);
+      final targets = <String, FlintWebUiPageTarget>{};
+      final pattern = RegExp(
+        r'''['"]([^'"]+)['"]\s*:\s*\([^)]*\)\s*=>\s*([A-Za-z_]\w*)\s*\(''',
       );
+      for (final match in pattern.allMatches(body)) {
+        final name = match.group(1)?.trim();
+        final className = match.group(2)?.trim();
+        if (name == null || name.isEmpty || className == null) continue;
+        final importUri = imports[className];
+        if (importUri == null) continue;
+        targets[name] = FlintWebUiPageTarget(
+          importUri: importUri,
+          className: className,
+        );
+      }
+      namedRegistries[regVarName] = targets;
     }
 
-    return targets;
+    if (namedRegistries.isEmpty) {
+      final registryStart =
+          RegExp(r'(?:PageRegistry|FlintComponentRegistry)\s*\(\s*\{')
+              .firstMatch(source);
+      if (registryStart != null) {
+        final start = registryStart.end;
+        var depth = 1;
+        var index = start;
+        while (index < source.length && depth > 0) {
+          final char = source[index];
+          if (char == '{') depth++;
+          if (char == '}') depth--;
+          index++;
+        }
+        if (depth == 0) {
+          final body = source.substring(start, index - 1);
+          final targets = <String, FlintWebUiPageTarget>{};
+          final pattern = RegExp(
+            r'''['"]([^'"]+)['"]\s*:\s*\([^)]*\)\s*=>\s*([A-Za-z_]\w*)\s*\(''',
+          );
+          for (final match in pattern.allMatches(body)) {
+            final name = match.group(1)?.trim();
+            final className = match.group(2)?.trim();
+            if (name == null || name.isEmpty || className == null) continue;
+            final importUri = imports[className];
+            if (importUri == null) continue;
+            targets[name] = FlintWebUiPageTarget(
+              importUri: importUri,
+              className: className,
+            );
+          }
+          return targets;
+        }
+      }
+      return const {};
+    }
+
+    // 2. Parse PageRegistry.flavored mappings: 'farmsbenefit': farmsBenefitRegistry
+    final flavorToRegistry = <String, String>{};
+    final flavoredMatch = RegExp(
+      r'(?:PageRegistry\.flavored|FlavoredPageRegistry)\s*\(\s*\{([^}]+)\}',
+    ).firstMatch(source);
+    if (flavoredMatch != null) {
+      final body = flavoredMatch.group(1)!;
+      for (final m in RegExp(r'''['"]([^'"]+)['"]\s*:\s*([A-Za-z_]\w*)''')
+          .allMatches(body)) {
+        flavorToRegistry[m.group(1)!.toLowerCase().trim()] = m.group(2)!.trim();
+      }
+    }
+
+    // 3. Resolve which registry to use for effectiveFlavor
+    String? chosenRegistryName;
+    if (effectiveFlavor.isNotEmpty && effectiveFlavor != 'default') {
+      chosenRegistryName = flavorToRegistry[effectiveFlavor];
+      if (chosenRegistryName == null) {
+        final cleanFlavor =
+            effectiveFlavor.replaceAll(RegExp(r'[^a-z0-9]'), '');
+        for (final regName in namedRegistries.keys) {
+          final cleanRegName =
+              regName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+          if (cleanRegName.contains(cleanFlavor) ||
+              cleanFlavor.contains(cleanRegName)) {
+            chosenRegistryName = regName;
+            break;
+          }
+        }
+      }
+    }
+
+    final defaultRegistryName = flavorToRegistry['default'] ??
+        flavorToRegistry['stokash'] ??
+        namedRegistries.keys.first;
+
+    final defaultTargets =
+        namedRegistries[defaultRegistryName] ?? namedRegistries.values.first;
+
+    if (chosenRegistryName == null ||
+        chosenRegistryName == defaultRegistryName) {
+      return defaultTargets;
+    }
+
+    final flavorTargets = namedRegistries[chosenRegistryName] ?? const {};
+
+    return {
+      ...defaultTargets,
+      ...flavorTargets,
+    };
   }
 
   static Map<String, String> _detectImports(
@@ -799,11 +975,17 @@ void main() {
     for (final importMatch
         in RegExp(r'''import\s+['"]([^'"]+)['"]\s*;''').allMatches(source)) {
       final importUri = importMatch.group(1);
-      if (importUri == null || importUri.startsWith('package:')) continue;
+      if (importUri == null) continue;
 
-      final importedFile =
-          File(path.normalize(path.join(fromFile.parent.path, importUri)));
-      if (!importedFile.existsSync()) continue;
+      File? importedFile;
+      if (importUri.startsWith('package:$packageName/')) {
+        final subPath = importUri.substring('package:$packageName/'.length);
+        importedFile = File(path.normalize(path.join('lib', subPath)));
+      } else if (!importUri.startsWith('package:')) {
+        importedFile =
+            File(path.normalize(path.join(fromFile.parent.path, importUri)));
+      }
+      if (importedFile == null || !importedFile.existsSync()) continue;
 
       final importedSource = importedFile.readAsStringSync();
       for (final classMatch
@@ -817,34 +999,149 @@ void main() {
     return imports;
   }
 
-  static _DetectedRootDesign? _detectRootDesign(String source, File mainFile) {
-    final nameMatch =
-        RegExp(r'rootDesign\s*:\s*([A-Za-z_]\w*)').firstMatch(source);
-    final name = nameMatch?.group(1);
+  static _DetectedRootDesign? _detectRootDesign(
+    String source,
+    File mainFile, {
+    String? flavor,
+  }) {
+    final effectiveFlavor =
+        (flavor != null && flavor.isNotEmpty && flavor != 'default')
+            ? flavor.toLowerCase().trim()
+            : FlintEnv.flavor.toLowerCase().trim();
+
+    String? name;
+    final flavorDesignsMatch =
+        RegExp(r'flavorDesigns\s*:\s*\{([^}]+)\}').firstMatch(source);
+    if (flavorDesignsMatch != null) {
+      final body = flavorDesignsMatch.group(1)!;
+      final map = <String, String>{};
+      for (final m in RegExp(r'''['"]([^'"]+)['"]\s*:\s*([A-Za-z_]\w*)''')
+          .allMatches(body)) {
+        map[m.group(1)!.toLowerCase().trim()] = m.group(2)!.trim();
+      }
+      name = map[effectiveFlavor] ?? map['stokash'] ?? map['default'];
+    }
+    name ??=
+        RegExp(r'rootDesign\s*:\s*([A-Za-z_]\w*)').firstMatch(source)?.group(1);
     if (name == null || name.isEmpty) return null;
 
+    final packageName = _readPackageName();
     for (final importMatch
         in RegExp(r'''import\s+['"]([^'"]+)['"]\s*;''').allMatches(source)) {
       final importUri = importMatch.group(1);
-      if (importUri == null || importUri.startsWith('package:')) continue;
+      if (importUri == null) continue;
 
-      final importedFile =
-          File(path.normalize(path.join(mainFile.parent.path, importUri)));
-      if (!importedFile.existsSync()) continue;
+      File? importedFile;
+      if (importUri.startsWith('package:$packageName/')) {
+        final subPath = importUri.substring('package:$packageName/'.length);
+        importedFile = File(path.normalize(path.join('lib', subPath)));
+      } else if (!importUri.startsWith('package:')) {
+        importedFile =
+            File(path.normalize(path.join(mainFile.parent.path, importUri)));
+      }
+      if (importedFile == null || !importedFile.existsSync()) continue;
       if (!RegExp('\\b${RegExp.escape(name)}\\b')
           .hasMatch(importedFile.readAsStringSync())) {
         continue;
       }
 
-      final packageName = _readPackageName();
       return _DetectedRootDesign(
         name: name,
         importUri: _packageImportFor(packageName, importedFile.path),
       );
     }
 
+    if (RegExp('\\b${RegExp.escape(name)}\\b').hasMatch(source)) {
+      return _DetectedRootDesign(
+        name: name,
+        importUri: _packageImportFor(packageName, mainFile.path),
+      );
+    }
+
     return null;
   }
+
+  static _DetectedThemeProvider? _detectThemeProvider(
+    String source,
+    File mainFile,
+  ) {
+    final match = RegExp(r'themeProvider\s*:\s*([^\r\n,]+|\b[^\r\n]+)')
+        .firstMatch(source);
+    if (match == null) return null;
+
+    final raw = match.group(1)?.trim();
+    if (raw == null || raw.isEmpty) return null;
+
+    var expr = raw;
+    if (expr.endsWith(',')) {
+      expr = expr.substring(0, expr.length - 1).trim();
+    }
+    if (expr.endsWith(';')) {
+      expr = expr.substring(0, expr.length - 1).trim();
+    }
+
+    var openCount = 0;
+    for (var i = 0; i < expr.length; i++) {
+      if (expr[i] == '(') openCount++;
+      if (expr[i] == ')') {
+        if (openCount > 0) {
+          openCount--;
+        } else {
+          expr = expr.substring(0, i).trim();
+          break;
+        }
+      }
+    }
+    if (expr.isEmpty) return null;
+
+    if (expr.contains('FlintThemeProvider')) {
+      return _DetectedThemeProvider(expr: expr);
+    }
+
+    final identifierMatch = RegExp(r'^[A-Za-z_]\w*$').firstMatch(expr);
+    if (identifierMatch != null) {
+      final name = identifierMatch.group(0)!;
+      final packageName = _readPackageName();
+
+      for (final importMatch
+          in RegExp(r'''import\s+['"]([^'"]+)['"]\s*;''').allMatches(source)) {
+        final importUri = importMatch.group(1);
+        if (importUri == null) continue;
+
+        File? importedFile;
+        if (importUri.startsWith('package:$packageName/')) {
+          final subPath = importUri.substring('package:$packageName/'.length);
+          importedFile = File(path.normalize(path.join('lib', subPath)));
+        } else if (!importUri.startsWith('package:')) {
+          importedFile =
+              File(path.normalize(path.join(mainFile.parent.path, importUri)));
+        }
+        if (importedFile == null || !importedFile.existsSync()) continue;
+        if (RegExp('\\b${RegExp.escape(name)}\\b')
+            .hasMatch(importedFile.readAsStringSync())) {
+          return _DetectedThemeProvider(
+            expr: name,
+            importUri: _packageImportFor(packageName, importedFile.path),
+          );
+        }
+      }
+
+      if (RegExp('\\b${RegExp.escape(name)}\\b').hasMatch(source)) {
+        return _DetectedThemeProvider(
+          expr: name,
+          importUri: _packageImportFor(packageName, mainFile.path),
+        );
+      }
+    }
+
+    return _DetectedThemeProvider(expr: expr);
+  }
+
+  static String pageEntrypointSource(
+    String component,
+    FlintWebUiPageBundleConfig config,
+  ) =>
+      _pageEntrypointSource(component, config);
 
   static String _pageEntrypointSource(
     String component,
@@ -852,19 +1149,26 @@ void main() {
   ) {
     final rootImport = config.rootDesignImport;
     final rootDesignName = config.rootDesignName;
+    final themeImport = config.themeProviderImport;
+    final themeProviderExpr = config.themeProviderExpr;
     final target = config.pageTargets[component];
+
+    final themeImportLine = (themeImport != null &&
+            themeImport != rootImport &&
+            (target == null || themeImport != target.importUri))
+        ? "import '$themeImport';\n"
+        : '';
 
     if (target != null) {
       return '''
 import 'package:flint_dart/ui.dart';
 import '${target.importUri}';
-${rootImport == null ? '' : "import '$rootImport';"}
-
+${rootImport == null ? '' : "import '$rootImport';\n"}$themeImportLine
 void main() {
   createFlintApp(
     '#app',
     pages: {'$component': (props) => ${target.className}(props)},
-${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
+${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}${themeProviderExpr == null ? '' : '    themeProvider: $themeProviderExpr,\n'}  );
 }
 ''';
     }
@@ -872,8 +1176,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     return '''
 import 'package:flint_dart/ui.dart';
 import '${config.registryImport}';
-${rootImport == null ? '' : "import '$rootImport';"}
-
+${rootImport == null ? '' : "import '$rootImport';\n"}$themeImportLine
 void main() {
   final pageBuilder = ${config.registryName}['$component'];
   if (pageBuilder == null) {
@@ -883,7 +1186,7 @@ void main() {
   createFlintApp(
     '#app',
     pages: {'$component': pageBuilder},
-${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
+${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}${themeProviderExpr == null ? '' : '    themeProvider: $themeProviderExpr,\n'}  );
 }
 ''';
   }
@@ -899,6 +1202,10 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     if (config.rootDesignImport != null) {
       imports.writeln("import '${config.rootDesignImport}';");
     }
+    if (config.themeProviderImport != null &&
+        config.themeProviderImport != config.rootDesignImport) {
+      imports.writeln("import '${config.themeProviderImport}';");
+    }
 
     for (var i = 0; i < sortedPages.length; i++) {
       final component = sortedPages[i];
@@ -913,6 +1220,7 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     }
 
     final rootDesignName = config.rootDesignName;
+    final themeProviderExpr = config.themeProviderExpr;
 
     return '''
 ${imports.toString()}
@@ -927,7 +1235,7 @@ void main() {
   createFlintApp(
     '#app',
     resolvePage: resolveFlintPage,
-${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
+${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}${themeProviderExpr == null ? '' : '    themeProvider: $themeProviderExpr,\n'}  );
 }
 ''';
   }
@@ -1212,10 +1520,13 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
     if (!_shouldPrecompress(file.path)) return;
     if (Platform.environment['FLINT_HOT'] == '1') return;
 
-    final bytes = file.readAsBytesSync();
     final gzipFile = File('${file.path}.gz');
-    gzipFile.writeAsBytesSync(gzip.encode(bytes));
-    _logVerbose('Compressed Flint asset: ${gzipFile.path}');
+    if (!gzipFile.existsSync() ||
+        file.lastModifiedSync().isAfter(gzipFile.lastModifiedSync())) {
+      final bytes = file.readAsBytesSync();
+      gzipFile.writeAsBytesSync(gzip.encode(bytes));
+      _logVerbose('Compressed Flint asset: ${gzipFile.path}');
+    }
 
     final brotli = await _resolveBrotliBinary();
     if (brotli == null) return;
@@ -1246,14 +1557,24 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}  );
         lower.endsWith('.deps');
   }
 
+  static bool _brotliChecked = false;
+  static String? _cachedBrotliBinary;
+
   static Future<String?> _resolveBrotliBinary() async {
+    if (_brotliChecked) return _cachedBrotliBinary;
+    _brotliChecked = true;
+
     final explicit = Platform.environment['FLINT_BROTLI_BIN'];
     if (explicit != null && explicit.trim().isNotEmpty) {
-      return explicit.trim();
+      _cachedBrotliBinary = explicit.trim();
+      return _cachedBrotliBinary;
     }
 
     for (final candidate in ['brotli', 'brotli.exe']) {
-      if (await _commandExists(candidate)) return candidate;
+      if (await _commandExists(candidate)) {
+        _cachedBrotliBinary = candidate;
+        return _cachedBrotliBinary;
+      }
     }
 
     return null;

@@ -102,6 +102,10 @@ void createFlintApp(
   String selector, {
   Map<String, FlintPageBuilder>? pages,
   PageRegistry? registry,
+  Map<String, PageRegistry>? flavors,
+  Map<String, RootDesign>? flavorDesigns,
+  String? defaultFlavor,
+  bool fallbackToDefault = true,
   FlintAsyncPageBuilder? resolvePage,
   List<FlintPageMiddleware> middlewares = const [],
   List<StyleSheet> stylesheets = const [],
@@ -115,6 +119,35 @@ void createFlintApp(
 
   if (host == null) {
     throw StateError('No element found for selector "$selector".');
+  }
+
+  final detectedFlavor = host.getAttribute('data-flint-flavor') ??
+      web.document
+          .querySelector('meta[name="flint-flavor"]')
+          ?.getAttribute('content') ??
+      const String.fromEnvironment('FLAVOR');
+
+  final activeFlavor = (detectedFlavor.isNotEmpty)
+      ? detectedFlavor.toLowerCase().trim()
+      : (defaultFlavor?.toLowerCase().trim() ?? 'default');
+
+  if (flavors != null && flavors.isNotEmpty) {
+    registry = FlavoredPageRegistry(
+      flavors,
+      defaultFlavor: defaultFlavor ?? 'default',
+      activeFlavor: activeFlavor,
+      fallbackToDefault: fallbackToDefault,
+    );
+  } else if (registry is FlavoredPageRegistry) {
+    registry.setActiveFlavor(activeFlavor);
+  }
+
+  if (flavorDesigns != null && flavorDesigns.isNotEmpty) {
+    final matchingDesign = flavorDesigns[activeFlavor] ??
+        flavorDesigns[defaultFlavor?.toLowerCase().trim() ?? 'default'];
+    if (matchingDesign != null) {
+      rootDesign = matchingDesign;
+    }
   }
 
   final initialThemeMode = _initialAppThemeMode(

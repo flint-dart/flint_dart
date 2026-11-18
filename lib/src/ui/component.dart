@@ -134,42 +134,43 @@ abstract interface class FlintProps {
 
 /// Base class for components that own local state or lifecycle resources.
 ///
-/// Use this for pages, controllers, sockets, subscriptions, text editing
-/// controllers, and other local state. A stateful component keeps its fields
-/// when it calls [setState] itself. When its parent rebuilds, Flint creates a
-/// fresh child instance by default so constructor values cannot go stale.
-abstract class StatefulComponent extends FlintComponent {}
+/// Supports optional strongly-typed [TProps] by default (`StatefulComponent<MyProps>`),
+/// while remaining usable without type arguments (`StatefulComponent`).
+abstract class StatefulComponent<TProps> extends FlintComponent {
+  /// Creates a stateful component with optional strongly-typed [props].
+  StatefulComponent([TProps? props]) : _props = props;
 
-/// Base class for stateful components or pages that receive strongly-typed
-/// [props] of type [TProps].
-abstract class TypedStatefulComponent<TProps> extends StatefulComponent {
-  /// Creates a typed stateful component with [props].
-  TypedStatefulComponent(this.props);
+  TProps? _props;
 
   /// Strongly-typed props passed to this component.
-  TProps props;
+  TProps get props => _props as TProps;
+  set props(covariant TProps value) => _props = value;
 
   @override
-  void updateFrom(covariant TypedStatefulComponent<TProps> next) {
-    props = next.props;
+  void updateFrom(covariant StatefulComponent<TProps> next) {
+    _props = next._props;
   }
 }
 
+/// Backwards-compatible alias for [StatefulComponent] with explicit [TProps].
+typedef TypedStatefulComponent<TProps> = StatefulComponent<TProps>;
+
 /// Base class for components that only render constructor-provided values.
 ///
-/// Flint replaces stateless component instances during parent rerenders, so
-/// final fields naturally receive the newest values.
-abstract class StatelessComponent extends FlintComponent {}
+/// Supports optional strongly-typed [TProps] by default (`StatelessComponent<MyProps>`),
+/// while remaining usable without type arguments (`StatelessComponent`).
+abstract class StatelessComponent<TProps> extends FlintComponent {
+  /// Creates a stateless component with optional strongly-typed [props].
+  StatelessComponent([TProps? props]) : _props = props;
 
-/// Base class for stateless components or pages that receive strongly-typed
-/// [props] of type [TProps].
-abstract class TypedStatelessComponent<TProps> extends StatelessComponent {
-  /// Creates a typed stateless component with [props].
-  TypedStatelessComponent(this.props);
+  final TProps? _props;
 
   /// Strongly-typed props passed to this component.
-  final TProps props;
+  TProps get props => _props as TProps;
 }
+
+/// Backwards-compatible alias for [StatelessComponent] with explicit [TProps].
+typedef TypedStatelessComponent<TProps> = StatelessComponent<TProps>;
 
 /// Component wrapper for a function that returns renderable output.
 class FunctionalComponent extends StatelessComponent {
