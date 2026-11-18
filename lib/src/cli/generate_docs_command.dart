@@ -8,7 +8,7 @@ import 'package:flint_dart/src/swagger_gen/swagger_generator.dart';
 /// 📖 Flint Swagger Docs Generator
 class GenerateDocsCommand extends FlintCommand {
   GenerateDocsCommand()
-      : super('docs:generate', 'Generate Swagger docs from routes');
+      : super('--docs-generate', 'Generate Swagger docs from routes');
 
   @override
   Future<void> execute(List<String> args) async {

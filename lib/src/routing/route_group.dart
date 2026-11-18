@@ -16,7 +16,7 @@ import '../../flint_dart.dart';
 ///
 ///   app.routes(AuthRoutes());
 ///
-///   app.listen(3000);
+///   app.listen(port: 3000);
 /// }
 /// ```
 ///
@@ -72,6 +72,12 @@ abstract class RouteGroup {
   ///
   /// Defaults to an empty string, meaning no prefix is applied.
   String get prefix => '';
+
+  /// Optional flavor constraint for this route group.
+  ///
+  /// When set (e.g. `'FarmsBenefit'`), this group's routes will only be
+  /// registered if the active application flavor matches.
+  String? get flavor => null;
 
   /// Optional tag name for this route group.
   ///

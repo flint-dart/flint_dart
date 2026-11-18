@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:isolate';
+
 import 'package:flint_dart/logs.dart';
+import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/mail/smtp_factory.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
@@ -10,15 +13,58 @@ class Mail {
   static SmtpServer? _server;
   static String? _fromAddress;
   static String? _fromName;
+  static String? _defaultReplyTo;
+  static bool _autoConfigAttempted = false;
 
   final List<String> _to = [];
   final List<String> _cc = [];
   final List<String> _bcc = [];
+  String? _replyTo;
   String? _subject;
   String? _html;
   String? _text;
 
+  // ---- Instance SMTP connection (bypasses static .env fallback) ----
+  SmtpServer? _instanceServer;
+  String? _instanceFromAddress;
+  String? _instanceFromName;
+  bool _useInstanceServer = false;
+
   Mail();
+
+  /// Connects this Mail instance directly to a specific SMTP server before sending.
+  /// Bypasses global static configuration and strictly disables silent fallback to .env.
+  Mail connect({
+    required MailProvider provider,
+    required String host,
+    required int port,
+    required String username,
+    required String password,
+    required String fromAddress,
+    String? fromName,
+    String? replyTo,
+    bool useSSL = false,
+    bool useTLS = true,
+    bool allowInsecure = true,
+    bool ignoreBadCertificate = true,
+  }) {
+    _instanceServer = SmtpFactory.create(
+      provider: provider,
+      host: host,
+      port: port,
+      username: username,
+      password: password,
+      encryption: useSSL ? 'ssl' : 'tls',
+      allowInsecure: allowInsecure,
+      ignoreBadCertificate: ignoreBadCertificate,
+    );
+    _instanceFromAddress = fromAddress;
+    _instanceFromName = fromName ?? fromAddress;
+    if (replyTo != null) _replyTo = replyTo;
+    _useInstanceServer = true;
+    Log.debug('Mail connected instance for $_instanceFromName <$_instanceFromAddress>@$host');
+    return this;
+  }
 
   // ---- Setup once ----
   static void setup({
@@ -29,6 +75,7 @@ class Mail {
     required String password,
     required String fromAddress,
     String fromName = 'Flint Dart',
+    String? replyTo,
     bool useSSL = false,
     bool useTLS = true,
   }) {
@@ -38,12 +85,49 @@ class Mail {
       port: port,
       username: username,
       password: password,
-      encryption: useSSL ? "ssl" : "tls",
+      encryption: useSSL ? 'ssl' : 'tls',
     );
 
     _fromAddress = fromAddress;
     _fromName = fromName;
-    Log.debug('📧 Mail server configured for $_fromName <$_fromAddress>@$host');
+    _defaultReplyTo = replyTo;
+    _autoConfigAttempted = true;
+    Log.debug('Mail server configured for $_fromName <$_fromAddress>@$host');
+  }
+
+  static void _ensureConfigured({bool forceReload = false}) {
+    if (!forceReload && _server != null) return;
+    if (!forceReload && _autoConfigAttempted) return;
+
+    _autoConfigAttempted = true;
+
+    final providerStr = FlintEnv.get('MAIL_PROVIDER', 'custom').toLowerCase();
+    final provider = MailProvider.values.firstWhere(
+      (p) => p.name == providerStr,
+      orElse: () => MailProvider.custom,
+    );
+
+    final host = FlintEnv.get('MAIL_HOST', 'localhost');
+    final port = FlintEnv.getInt('MAIL_PORT', 25);
+    final username = FlintEnv.get('MAIL_USERNAME', '');
+    final password = FlintEnv.get('MAIL_PASSWORD', '');
+    final encryption = FlintEnv.get('MAIL_ENCRYPTION', 'tls').toLowerCase();
+    final fromAddress = FlintEnv.get('MAIL_FROM_ADDRESS', 'noreply@localhost');
+    final fromName = FlintEnv.get('MAIL_FROM_NAME', 'Flint Dart');
+    final replyTo = FlintEnv.get('MAIL_REPLY_TO', '');
+
+    setup(
+      provider: provider,
+      host: host,
+      port: port,
+      username: username,
+      password: password,
+      fromAddress: fromAddress,
+      fromName: fromName,
+      replyTo: replyTo.isNotEmpty ? replyTo : null,
+      useSSL: encryption == 'ssl',
+      useTLS: encryption == 'tls',
+    );
   }
 
   // ---- Chainable API ----
@@ -92,6 +176,11 @@ class Mail {
     return this;
   }
 
+  Mail replyTo(String email) {
+    _replyTo = email;
+    return this;
+  }
+
   // ---- Message builder ----
   Message _buildMessage() {
     if (_to.isEmpty && _cc.isEmpty && _bcc.isEmpty) {
@@ -102,18 +191,30 @@ class Mail {
       throw Exception('Message has no content.');
     }
 
-    if (_fromAddress == null || _fromAddress!.isEmpty) {
-      throw Exception('From address not set. Call Mail.setup() first.');
+    final fromAddr = _useInstanceServer ? _instanceFromAddress : _fromAddress;
+    final fromName = _useInstanceServer ? _instanceFromName : _fromName;
+
+    if (fromAddr == null || fromAddr.isEmpty) {
+      throw Exception(
+        _useInstanceServer
+            ? 'From address not set. Call Mail.connect() first.'
+            : 'From address not set. Call Mail.setup() first.',
+      );
     }
 
-    Log.debug('📧 Building message from $_fromName <$_fromAddress> to $_to');
+    Log.debug('Building message from $fromName <$fromAddr> to $_to');
 
     final msg = Message()
-      ..from = Address(_fromAddress!, _fromName ?? 'Flint Dart')
+      ..from = Address(fromAddr, fromName ?? 'Flint Dart')
       ..recipients.addAll(_to)
       ..ccRecipients.addAll(_cc)
       ..bccRecipients.addAll(_bcc)
       ..subject = _subject ?? '';
+
+    final replyAddress = _replyTo ?? _defaultReplyTo;
+    if (replyAddress != null && replyAddress.isNotEmpty) {
+      msg.headers['Reply-To'] = replyAddress;
+    }
 
     if (_html != null && _text == null) {
       final plain = _html!
@@ -130,39 +231,88 @@ class Mail {
     return msg;
   }
 
+  Future<bool> _retryAfterReconfigure() async {
+    try {
+      _ensureConfigured(forceReload: true);
+      if (_server == null) return false;
+
+      final retryMsg = _buildMessage();
+      await send(retryMsg, _server!);
+      Log.debug('Mail sent after automatic mail reconfiguration');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ---- Send immediately ----
   Future<void> sendMail() async {
-    if (_server == null) {
-      throw Exception('Mail not configured. Call Mail.setup() first.');
+    if (!_useInstanceServer) {
+      _ensureConfigured();
+    }
+
+    final activeServer = _useInstanceServer ? _instanceServer : _server;
+    if (activeServer == null) {
+      throw Exception(
+        _useInstanceServer
+            ? 'Mail not connected. Call Mail.connect() first.'
+            : 'Mail not configured. Call Mail.setup() first.',
+      );
     }
 
     try {
       final msg = _buildMessage();
-      await send(msg, _server!);
-      Log.debug('✅ Mail sent to: ${_to.join(", ")}');
+      await send(msg, activeServer);
+      Log.debug('Mail sent to: ${_to.join(', ')}');
     } on MailerException catch (e) {
-      Log.debug('❌ MailerException: $e');
+      if (!_useInstanceServer) {
+        final recovered = await _retryAfterReconfigure();
+        if (recovered) return;
+      }
+
+      Log.debug('MailerException: $e');
       if (e.problems.isNotEmpty) {
         for (final problem in e.problems) {
           Log.debug('  - ${problem.code}: ${problem.msg}');
         }
       }
       rethrow;
+    } on SocketException catch (e) {
+      if (!_useInstanceServer) {
+        final recovered = await _retryAfterReconfigure();
+        if (recovered) return;
+      }
+
+      Log.debug('SocketException while sending mail: $e');
+      rethrow;
     } catch (e) {
-      Log.debug('❌ Failed to send mail: $e');
+      Log.debug('Failed to send mail: $e');
       rethrow;
     }
   }
 
   // ---- Send asynchronously (background isolate) ----
   Future<void> queue() async {
-    if (_server == null) {
-      throw Exception('Mail not configured. Call Mail.setup() first.');
+    if (!_useInstanceServer) {
+      _ensureConfigured();
     }
 
+    final activeServer = _useInstanceServer ? _instanceServer : _server;
+    if (activeServer == null) {
+      throw Exception(
+        _useInstanceServer
+            ? 'Mail not connected. Call Mail.connect() first.'
+            : 'Mail not configured. Call Mail.setup() first.',
+      );
+    }
+
+    final fromAddr = _useInstanceServer ? _instanceFromAddress : _fromAddress;
+    final fromName = _useInstanceServer ? _instanceFromName : _fromName;
+
     final mailData = {
-      'fromAddress': _fromAddress,
-      'fromName': _fromName,
+      'fromAddress': fromAddr,
+      'fromName': fromName,
+      'replyTo': _replyTo ?? _defaultReplyTo,
       'to': _to,
       'cc': _cc,
       'bcc': _bcc,
@@ -172,11 +322,13 @@ class Mail {
     };
 
     final serverData = {
-      'host': _server!.host,
-      'port': _server!.port,
-      'username': _server!.username,
-      'password': _server!.password,
-      'ssl': _server!.ssl,
+      'host': activeServer.host,
+      'port': activeServer.port,
+      'username': activeServer.username,
+      'password': activeServer.password,
+      'ssl': activeServer.ssl,
+      'allowInsecure': activeServer.allowInsecure,
+      'ignoreBadCertificate': activeServer.ignoreBadCertificate,
     };
 
     await Isolate.spawn(_sendInBackground, {
@@ -202,19 +354,26 @@ class Mail {
       ..text = msgData['text']
       ..html = msgData['html'];
 
+    final replyAddress = msgData['replyTo']?.toString();
+    if (replyAddress != null && replyAddress.isNotEmpty) {
+      msg.headers['Reply-To'] = replyAddress;
+    }
+
     final server = SmtpServer(
       serverData['host'],
       port: serverData['port'],
       username: serverData['username'],
       password: serverData['password'],
-      ssl: serverData['ssl'],
+      ssl: serverData['ssl'] ?? false,
+      allowInsecure: serverData['allowInsecure'] ?? true,
+      ignoreBadCertificate: serverData['ignoreBadCertificate'] ?? true,
     );
 
     try {
       await send(msg, server);
-      Log.debug('📬 [Queued] Mail sent to: ${msg.recipients.join(", ")}');
+      Log.debug('Queued mail sent to: ${msg.recipients.join(', ')}');
     } catch (e) {
-      Log.debug('⚠️ [Queued] Failed to send mail: $e');
+      Log.debug('Queued mail failed: $e');
     }
   }
 }

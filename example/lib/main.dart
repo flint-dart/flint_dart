@@ -1,77 +1,208 @@
 // import 'dart:convert';
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/logs.dart';
-import 'package:sample/src/middlewares/auth_middleware.dart';
-import 'package:sample/src/routes/auth_routes.dart';
-import 'package:sample/src/routes/post_routes.dart';
-import 'package:sample/src/routes/user_routes.dart';
-import 'package:sample/src/views/welcome.dart';
+import 'package:sample/middlewares/auth_middleware.dart';
+import 'package:sample/routes/ai_routes.dart';
+import 'package:sample/routes/auth_routes.dart';
+import 'package:sample/routes/post_routes.dart';
+import 'package:sample/routes/user_routes.dart';
 
-void main() {
+void main(List<String> args) {
   final app = Flint(
     withDefaultMiddleware: true,
     enableSwaggerDocs: true,
-    autoConnectDb: true,
+    autoConnectDb: false,
     viewPath: 'lib/views',
   );
 
   app.use(LoggerMiddleware());
+  app.static('/web', 'flint_ui/web');
 
-  app.get('/', (req, res) async {
-    return res.render(Welcome());
+  app.routes(AiRoutes());
+
+  app.get('/', (Request req, Response res) async {
+    return res.page(
+      'Welcome',
+      title: 'Welcome to Flint Dart',
+      props: {
+        'version': '1.0.4',
+        'tagline': 'Build backend routes and browser UI with Dart.',
+        'features': [
+          {
+            'title': 'Dart UI',
+            'body': 'Write frontend pages with Flutter-style Flint widgets.',
+          },
+          {
+            'title': 'Backend Bridge',
+            'body': 'Return page names and props from normal Flint routes.',
+          },
+          {
+            'title': 'One Toolchain',
+            'body': 'Compile UI into web assets and serve them from Flint.',
+          },
+        ],
+      },
+    );
   });
-  app.mount("/post", postRoute);
-// In your preview server routes
-  // app.get('/preview/email/:type', (req, res) async {
-  //   final type = req.params['type'];
 
-  //   Mailable mail;
+  app.get('/counter', (Request req, Response res) async {
+    return res.page(
+      'Counter',
+      title: 'Flint Dart Counter',
+      props: {
+        'title': 'Build a Flint UI page',
+        'intro':
+            'Use backend routes to choose pages, then render Dart UI components in the browser.',
+        'steps': [
+          {
+            'label': 'Create UI source',
+            'body': 'Place Dart frontend code in flint_ui/main.dart.',
+            'code': 'class HomePage extends FlintComponent { ... }',
+          },
+          {
+            'label': 'Register pages',
+            'body': 'Map backend page names to Dart components.',
+            'code':
+                'createFlintApp("#app", pages: {"Home": (p) => HomePage(p)});',
+          },
+          {
+            'label': 'Return a page',
+            'body': 'Send the page name and props from any Flint route.',
+            'code': 'return res.page("Home", props: {"name": "Ada"});',
+          },
+          {
+            'label': 'Compile assets',
+            'body': 'Compile flint_ui/main.dart into web/main.dart.js.',
+            'code': 'flint web --build-only',
+          },
+        ],
+      },
+    );
+  });
 
-  //   switch (type) {
-  //     case 'welcome':
-  //       mail = WelcomeMail(
-  //         recipientName: 'Preview User',
-  //         recipientEmail: 'preview@example.com',
-  //         verificationUrl: 'https://example.com/verify/preview',
-  //         loginUrl: 'https://example.com/login',
-  //       );
-  //       break;
+  app.get('/guide', (Request req, Response res) async {
+    return res.page(
+      'Guide',
+      title: 'Flint Dart Guide',
+      props: {
+        'title': 'Build a Flint UI page',
+        'intro':
+            'Use backend routes to choose pages, then render Dart UI components in the browser.',
+        'steps': [
+          {
+            'label': 'Create UI source',
+            'body': 'Place Dart frontend code in flint_ui/main.dart.',
+            'code': 'class HomePage extends FlintComponent { ... }',
+          },
+          {
+            'label': 'Register pages',
+            'body': 'Map backend page names to Dart components.',
+            'code':
+                'createFlintApp("#app", pages: {"Home": (p) => HomePage(p)});',
+          },
+          {
+            'label': 'Return a page',
+            'body': 'Send the page name and props from any Flint route.',
+            'code': 'return res.page("Home", props: {"name": "Ada"});',
+          },
+          {
+            'label': 'Compile assets',
+            'body': 'Compile flint_ui/main.dart into web/main.dart.js.',
+            'code': 'flint web --build-only',
+          },
+        ],
+      },
+    );
+  });
 
-  //     case 'password-reset':
-  //       mail = PasswordResetMail(
-  //         recipientName: 'Preview User',
-  //         recipientEmail: 'preview@example.com',
-  //         resetUrl: 'https://example.com/reset/preview',
-  //       );
-  //       break;
+  app.get('/login-ui', (Request req, Response res) async {
+    return res.page(
+      'Login',
+      title: 'Flint Login UI',
+      props: {
+        'title': 'Welcome back',
+        'subtitle':
+            'A Tailwind-powered Flint UI page compiled without npm in the app.',
+      },
+    );
+  });
+  app.routes(PostRoutes());
+  app.get('/preview/email', (Request req, Response res) async {
+    final templates = _discoverEmailTemplates();
+    if (templates.isEmpty) {
+      return res.status(404).json({
+        'message': 'No email templates found.',
+        'hint': 'Create templates in lib/mail/views/*.flint.html'
+      });
+    }
 
-  //     case 'order-confirmation':
-  //       mail = OrderConfirmationMail(
-  //         recipientName: 'Preview User',
-  //         recipientEmail: 'preview@example.com',
-  //         orderNumber: 'PREVIEW-123',
-  //         orderDate: DateTime.now(),
-  //         orderTotal: 99.99,
-  //         items: [
-  //           OrderItem(name: 'Preview Product', quantity: 1, price: 99.99),
-  //         ],
-  //       );
-  //       break;
+    final links = templates.keys
+        .map((name) => '<li><a href="/preview/email/$name">$name</a></li>')
+        .join('\n');
 
-  //     default:
-  //       return res.status(404).json({'error': 'Template not found'});
-  //   }
+    final html = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Preview</title>
+</head>
+<body>
+  <h2>Available Email Templates</h2>
+  <p>Open any link to preview the rendered email template.</p>
+  <ul>
+    $links
+  </ul>
+</body>
+</html>
+''';
 
-  //   return res.renderEmail(mail);
-  // });
-  app.get('/login', (req, res) async {
+    return res.send(html, contentType: 'text/html');
+  });
+
+  app.get('/preview/email/:name', (Request req, Response res) async {
+    final name = req.params['name'];
+    if (name == null || name.trim().isEmpty) {
+      return res.status(400).json({'message': 'Missing template name.'});
+    }
+
+    final templates = _discoverEmailTemplates();
+    final templatePath = templates[name];
+    if (templatePath == null) {
+      return res.status(404).json({
+        'message': 'Template "$name" not found.',
+        'available': templates.keys.toList(),
+      });
+    }
+
+    final previewData = <String, dynamic>{
+      'subject': 'Preview: $name',
+      'recipientName': req.queryParam('recipientName') ?? 'Preview User',
+      'recipientEmail':
+          req.queryParam('recipientEmail') ?? 'preview@example.com',
+      'appName': 'Flint Example',
+      'currentYear': DateTime.now().year,
+      'preview': true,
+    };
+
+    final mailable = _EmailTemplatePreviewMail(
+      subjectLine: 'Preview: $name',
+      templateViewPath: templatePath,
+      payload: previewData,
+    );
+
+    return res.renderEmail(mailable);
+  });
+
+  app.get('/login', (Request req, Response res) async {
     return res.oAuthRedirect("google", callback: "/api/auth/google/callback");
   });
-  app.mount("/users", registerUserRoutes);
+  app.routes(UserRoutes());
 
-  app.get('/profile', (req, res) async {
+  app.get('/profile', (Request req, Response res) async {
     return res.json({'msg': 'This is a protected route'});
   }).useMiddleware(AuthMiddleware());
 
@@ -79,7 +210,7 @@ void main() {
   final Map<String, String> userNames = {};
   final Map<String, Set<String>> userRooms = {};
 
-  app.websocket('/chat', (socket, params) {
+  app.websocket('/chat', (Request req, FlintWebSocket socket) {
     Log.debug('👋 Client connected: ${socket.id}');
 
     // Assign a random username
@@ -250,8 +381,9 @@ void main() {
     });
   });
 
-  app.mount("/auth", authRoutes);
-  app.listen(3001, hotReload: true);
+  app.routes(AuthRoutes());
+  final portArg = args.isNotEmpty ? int.tryParse(args.first) : null;
+  app.listen(port: portArg, hotReload: true);
 }
 
 // Handle JSON messages from Flutter app
@@ -306,4 +438,65 @@ void _broadcastMessage(
   socket.emitToRoom(room, 'new_message', messageData);
 
   Log.debug('📤 Broadcast message from $userName to room $room: $message');
+}
+
+Map<String, String> _discoverEmailTemplates() {
+  final roots = <String>[
+    'lib/mail/views',
+    'example/lib/mail/views',
+  ];
+
+  final templates = <String, String>{};
+
+  for (final root in roots) {
+    final dir = Directory(root);
+    if (!dir.existsSync()) continue;
+
+    for (final entry in dir.listSync(recursive: true)) {
+      if (entry is! File) continue;
+
+      final path = entry.path.replaceAll('\\', '/');
+      final isEmailTemplate =
+          path.endsWith('.flint.html') || path.endsWith('.html');
+      if (!isEmailTemplate) continue;
+
+      final fileName = path.split('/').last;
+      var name = fileName;
+      if (name.endsWith('.flint.html')) {
+        name = name.substring(0, name.length - '.flint.html'.length);
+      } else if (name.endsWith('.html')) {
+        name = name.substring(0, name.length - '.html'.length);
+      }
+
+      templates.putIfAbsent(name, () => entry.path);
+    }
+  }
+
+  final sortedKeys = templates.keys.toList()..sort();
+  return {for (final key in sortedKeys) key: templates[key]!};
+}
+
+class _EmailTemplatePreviewMail extends ViewMailable {
+  final String subjectLine;
+  final String templateViewPath;
+  final Map<String, dynamic> payload;
+
+  _EmailTemplatePreviewMail({
+    required this.subjectLine,
+    required this.templateViewPath,
+    required this.payload,
+  });
+
+  @override
+  String get subject => subjectLine;
+
+  @override
+  String get view => templateViewPath;
+
+  @override
+  Map<String, dynamic> get data => payload;
+
+  @override
+  List<String> get to =>
+      [payload['recipientEmail'] as String? ?? 'preview@example.com'];
 }

@@ -1,258 +1,244 @@
-Perfect! Here’s a **fully updated README.md** for Flint Dart with a polished **contributors section** added at the end. I’ve also cleaned up minor formatting issues so it’s consistent and professional.
-<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-0-orange.svg?style=flat-square)](#contributors-)
-<!-- ALL-CONTRIBUTORS-BADGE:END -->
+# Flint Dart ⚡
+
+<div align="center">
+
+<img src="https://flintdart.dev/logo-icon.png" alt="Flint Dart Logo" width="120" height="120" />
+
+# Flint Dart
+
+**Precision of a Dart. Ignition of Flint.**  
+The First Official Full-Stack, Declarative, SEO-First Dart Web Framework.
+
+[![Pub Version](https://img.shields.io/pub/v/flint_dart.svg?style=flat-square&logo=dart)](https://pub.dev/packages/flint_dart)
+[![GitHub Stars](https://img.shields.io/github/stars/flint-dart/flint_dart?style=flat-square&logo=github)](https://github.com/flint-dart/flint_dart)
+[![Documentation](https://img.shields.io/badge/docs-flintdart.dev-blue.svg?style=flat-square)](https://flintdart.dev)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+
+**The First Official Full-Stack, Declarative, SEO-First Dart Web Framework.**
+
+[Website](https://flintdart.dev) • [Pub.dev](https://pub.dev/packages/flint_dart) • [GitHub](https://github.com/flint-dart/flint_dart) • [Documentation](https://flintdart.dev)
+
+</div>
 
 ---
 
-# Flint Dart 🔥
+## 🌟 What is Flint Dart?
 
-### 🚀 **Flint Dart**
+**Flint Dart** is not just a backend server — it is the **first unified full-stack web framework for Dart**. 
 
-**Flint Dart** is a high-performance, expressive, and extensible server-side framework built entirely with Dart.
-Designed for developers who demand speed and simplicity, it delivers everything you need to build RESTful APIs, authentication systems, and scalable backend services — all with clean, modern syntax and hot-reload precision.
+Flint Dart empowers developers to build entire end-to-end web applications with **100% pure Dart**:
+* 🎨 **Declarative Web UI (Flint UI natively built-in)**: Flutter-like widget syntax compiling directly to browser DOM.
+* 🔍 **First-Class SEO & Server-Side Rendering (SSR)**: Instant HTML generation, meta tags, and OpenGraph crawlers with client-side hydration.
+* ⚡ **High-Performance Backend**: Ultra-fast RESTful HTTP routing, RFC 10008 `QUERY` support, controllers, and middleware pipelines.
+* 🗄️ **Active Record ORM & Secure DB API**: Fluent PostgreSQL & MySQL ORM, auto-migrations, and Row-Level Security (`FlintDbPolicy`).
+* 🔌 **Real-Time WebSockets**: Low-latency event streaming with Socket.IO-style rooms, namespaces, and auto-serialization.
+* 🤖 **AI Runtime & Agent Workflows**: Built-in multi-provider LLM engine (OpenAI, Gemini, Anthropic) with autonomous tool calling and memory.
 
-> ⚡ **Build fast. Scale effortlessly.**
-> Flint Dart gives you the freedom to create powerful applications without the limits of rigid frameworks.
-
-Developed and maintained by **[Eulogia Technologies](https://flintdart.eulogia.net)**.
-
----
-
-## 📚 Table of Contents
-
-| Topic                                                                        | Description                                     |
-| ---------------------------------------------------------------------------- | ----------------------------------------------- |
-| [🚀 Getting Started](https://www.flintdart.eulogia.net/docs/getting-started) | Set up Flint in your project                    |
-| [🛣️ Routing](https://www.flintdart.eulogia.net/docs/routing)                | Define routes for your Flint Dart app           |
-| [🛡 Middleware](https://www.flintdart.eulogia.net/docs/middleware)           | Protect and modify requests with middleware     |
-| [🗄 ORM & Models](https://www.flintdart.eulogia.net/docs/orm)                | Work with databases using Flint Dart ORM        |
-| [💾 Database & Migrations](https://www.flintdart.eulogia.net/docs/database)  | Manage your database schema and migrations      |
-| [🔑 Authentication](https://www.flintdart.eulogia.net/docs/auth)             | Built-in authentication and Google Auth support |
-| [✅ Validation](https://www.flintdart.eulogia.net/docs/validation)            | Validate input like Laravel                     |
-| [♻️ Hot Reload](https://www.flintdart.eulogia.net/docs/hot-reload)           | Instant feedback while developing               |
-| [💾 Storage](https://www.flintdart.eulogia.net/docs/storage)                 | Storage Flint Dart to production                |
-| [🚢 Deployment](https://www.flintdart.eulogia.net/docs/deployment)           | Deploy Flint Dart to production                 |
-| [📖 API Docs](https://www.flintdart.eulogia.net/docs/swagger-docs)           | Best-in-class API documentation with Swagger UI |
+> **💡 Zero JavaScript or CSS build tools required.** Write your backend logic, database queries, and browser UI in a single language with unified type safety!
 
 ---
 
-## ✨ Features
+## 🎯 The Philosophy: Dart's Precision, Flint's Spark
 
-* 🧱 Simple and intuitive routing
-* 🛡️ Middleware support
-* 🔐 Built-in JWT authentication
-* 🔒 Secure password hashing
-* ♻️ Hot reload support for rapid development
-* 🧪 Modular structure for scalable projects
-* 💡 Clean API design inspired by Flutter's widget philosophy
-* ORM for MySQL/Postgres
-* CLI for migrations, models, etc.
-* Swagger docs
+The Flint Dart identity represents the fusion of two core engineering ideals:
+
+* **🎯 The Precision of a Dart**: A dart has a singular purpose: fly directly to the target with zero drift. In software, that means **type safety, null safety, and architectural predictability**. Models, schemas, request validators, and UI components all speak the exact same language—no guessing, no runtime type drift, and no mismatch between client and server.
+* **⚡ The Ignition of Flint**: Flint is the stone that strikes sparks and ignites fire. Where a dart brings trajectory, Flint brings **ignition and velocity**: sub-millisecond response times, lightning-fast Ahead-Of-Time (AOT) native compilation directly to machine code, and rapid developer iteration with zero context switching.
+
+> **Flint + Dart**: The precision to hit your target cleanly, powered by the spark that gets you there faster.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Key Pillars
 
-### 1. Install as a Global Package
+| Pillar | Description | Key Import |
+| :--- | :--- | :--- |
+| **Server & HTTP** | REST routing, route groups, controllers, CORS, and auth middleware. | `import 'package:flint_dart/flint_dart.dart';` |
+| **Flint Web UI** | Declarative components, styles, reactive state signals, and DOM hydration. | `import 'package:flint_dart/ui.dart';` |
+| **Database & ORM** | Active Record models, migrations, seeders, and secure DB API endpoints. | `import 'package:flint_dart/db.dart';` |
+| **WebSockets** | Real-time channels, room broadcasting, and structured event emitters. | `import 'package:flint_dart/flint_dart.dart';` |
+| **AI Runtime** | Multi-model agent orchestration, tool calling, and persistent thread memory. | `import 'package:flint_dart/flint_dart.dart';` |
+| **Mailer Engine** | SMTP client with `.flint.html` email template rendering. | `import 'package:flint_dart/mail.dart';` |
+
+---
+
+## 📦 Installation
+
+### 1) Global CLI Toolchain
+Install the `flint` CLI globally to create and run fullstack apps:
 
 ```bash
 dart pub global activate flint_dart
 ```
 
+### 2) Create a New Project
 ```bash
-flint create new_app   # Create a new Flint project
-flint run              # Run the project
+flint create my_fullstack_app
+cd my_fullstack_app
+flint run
 ```
 
-### 2. Add as a Project Dependency
-
+### 3) Add to an Existing Project
 ```bash
 dart pub add flint_dart
 ```
 
-```dart
-import 'package:flint_dart/flint_dart.dart';
-
-void main() {
-  final app = Flint();
-
-  app.get('/', (req, res) async {
-    return res.send('Welcome to Flint Dart!');
-  });
-
-  app.listen(3000);
-}
-```
-
-### 3. Run with Hot Reload
-
-```dart
-app.get('/hello', (req, res) async {
-  return res.json({'message': 'Hello, world!'});
-});
-```
-
 ---
 
-## Middleware
+## 💡 Quickstarts
+
+### 1. Declarative Web UI with SSR & SEO (`package:flint_dart/ui.dart`)
+
+Flint UI is **natively built-in**. Build Flutter-like components with reactive state, modern design tokens, and built-in SEO metadata:
 
 ```dart
-import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/ui.dart';
 
-class AuthMiddleware extends Middleware {
+class HomePage extends FlintComponent {
+  HomePage(super.props);
+
   @override
-  Handler handle(Handler next) {
-    return (Request req, Response res) async {
-      final token = req.bearerToken;
-      if (token == null || token != "expected_token") {
-        return res.status(401).send("Unauthorized");
-      }
-      return await next(req, res);
-    };
+  FlintNode build() {
+    return AppShell(
+      topbar: Topbar(title: 'Flint Fullstack App'),
+      child: Container(
+        padding: Spacing.all(24),
+        child: Column(
+          children: [
+            // Built-in SEO head configuration
+            Head(
+              title: 'Welcome to Flint Dart',
+              meta: [
+                Meta(name: 'description', content: 'The first fullstack declarative Dart web framework.'),
+                Meta(property: 'og:title', content: 'Flint Dart Fullstack Web'),
+              ],
+            ),
+            Text('Build Fullstack Apps in 100% Pure Dart', style: TextStyle(size: 28, weight: '700')),
+            Spacer(height: 16),
+            Row(
+              children: [
+                Button(
+                  child: 'Get Started',
+                  variant: ButtonVariant.solid,
+                  onPressed: (_) => window.alert('Welcome to Flint!'),
+                ),
+                Spacer(width: 12),
+                Link(
+                  href: 'https://flintdart.dev',
+                  child: 'Documentation',
+                  variant: ButtonVariant.outline,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 ```
 
-```dart
-app.put('/:id', AuthMiddleware().handle(controller.update));
-```
-
----
-
-## JWT Authentication
+### 2. Fullstack Backend Server (`package:flint_dart/flint_dart.dart`)
 
 ```dart
-final token = JwtUtil.generateToken({'userId': 123});
-final payload = JwtUtil.verifyToken(token);
-```
+import 'package:flint_dart/flint_dart.dart';
+import 'package:flint_dart/db.dart';
 
----
+void main() async {
+  final app = Flint();
 
-## Password Hashing
+  // Middleware
+  app.use(CorsMiddleware());
+  app.use(LoggerMiddleware());
 
-```dart
-final hash = Hashing.hashPassword('mySecret');
-final isValid = Hashing.verifyPassword('mySecret', hash);
-```
-
----
-
-## 🧩 WebSocket System
-
-### 🔁 Socket.IO–like API
-
-```dart
-app.ws('/chat', (socket, params) {
-  socket.on('message', (data) {
-    Log.debug('💬 ${socket.id} says: $data');
-    socket.broadcastToRoom('chat', {'event': 'message', 'data': data});
+  // REST API Route
+  app.get('/api/users', (Context ctx) async {
+    final users = await User().all();
+    return ctx.res?.json(users.map((u) => u.toMap()).toList());
   });
+
+  // Server-Side Rendered (SSR) Web UI Route
+  app.get('/', (Context ctx) async {
+    final users = await User().limit(5).get();
+    return ctx.res?.flintPage(
+      'HomePage',
+      title: 'Flint Dashboard',
+      props: {'users': users.map((u) => u.toMap()).toList()},
+    );
+  });
+
+  // Real-Time WebSocket Channel
+  app.websocket('/ws/chat', (Context ctx) {
+    ctx.socket?.on('message', (data) {
+      ctx.socket?.broadcast('message', data);
+    });
+  });
+
+  // Start Server
+  await app.listen(port: 3000);
+}
+```
+
+### 3. Active Record Database ORM & Migrations (`package:flint_dart/db.dart`)
+
+```dart
+import 'package:flint_dart/db.dart';
+
+class User extends Model<User> {
+  User() : super(User.new);
+
+  String get name => getAttribute('name');
+  String get email => getAttribute('email');
+
+  @override
+  Table get table => Table(
+        name: 'users',
+        columns: [
+          Column(name: 'name', type: ColumnType.string, length: 255),
+          Column(name: 'email', type: ColumnType.string, length: 255),
+          Column(name: 'role', type: ColumnType.string, defaultValue: 'user'),
+        ],
+      );
+}
+
+// Fluent Database Queries:
+final user = await User().find(1);
+final activeUsers = await User()
+    .where('role', 'admin')
+    .orderBy('created_at', desc: true)
+    .limit(10)
+    .get();
+
+// Safe Mutators:
+await User().create({
+  'name': 'Ada Lovelace',
+  'email': 'ada@example.com',
+  'role': 'admin',
 });
 ```
 
-Client-side:
+---
 
-```dart
-final ws = FlintWebSocketClient("wss://api.example.com/chat");
-ws.on('message', (data) => Log.debug("📩 $data"));
-ws.emit('message', {'text': 'Hello World'});
-```
+## 🛠️ Complete Flint Ecosystem
+
+The Flint ecosystem is designed as a unified suite:
+
+* ⚡ **[`flint_dart`](https://pub.dev/packages/flint_dart)**: The flagship Fullstack Web Framework (Server, SSR, Web UI, and Database ORM).
+* 📱 **[`flint_client`](https://github.com/flint-dart/flint-client)**: Standalone HTTP, WebSocket, & Database Client SDK for Flutter Mobile (iOS/Android), Desktop, and Web.
+* 🤖 **[`flint_hardware`](https://github.com/flint-dart/flint-hardware)**: Embedded Systems, Robotics State Machines, and Multi-MCU code generators for ESP32, Raspberry Pi Pico, and STM32.
+* 🧠 **[`flint_ai`](https://github.com/flint-dart/flint_ai)**: Multi-provider AI agents, LLM tool callers, and autonomous workflow engines.
 
 ---
 
-## 💬 Core Features
+## 📚 Documentation & Community
 
-* **`.emit(event, data)`** → Send named events easily
-* **`.on(event, callback)`** → Listen for specific events
-* **`.onMessage()`** and **`.onJsonMessage()`** remain supported for backward compatibility
-* **`.join(room)`** and **`.leave(room)`** for group messaging
-* **`.broadcast()`** and **`.broadcastToRoom()`** for real-time updates
-* Auto Reconnect on the client when connection drops
-* JWT Support using the same middleware chain as HTTP routes
-* Auth Middleware now works for WebSockets too
+* **Official Website & Guides**: [flintdart.dev](https://flintdart.dev)
+* **Pub.dev Package**: [pub.dev/packages/flint_dart](https://pub.dev/packages/flint_dart)
+* **GitHub Repository**: [github.com/flint-dart/flint_dart](https://github.com/flint-dart/flint_dart)
+* **Issue Tracker**: [github.com/flint-dart/flint_dart/issues](https://github.com/flint-dart/flint_dart/issues)
 
 ---
 
-## 📁 Project Structure
+## 📄 License
 
-```bash
-lib/
-├── main.dart
-├── src/
-│   ├── app.dart
-│   ├── router.dart
-│   ├── request.dart
-│   ├── response.dart
-│   ├── middleware.dart
-│   └── security/
-│       ├── jwt_util.dart
-│       └── hashing.dart
-```
-
----
-
-## 📮 Contact & Support
-
-🌐 Website: [flintdart.eulogia.net](https://flintdart.eulogia.net)
-📧 Email: [eulogiatechnologies@gmail.com](mailto:eulogiatechnologies@gmail.com)
-🐙 GitHub: [github.com/eulogiatechnologies/flint_dart](https://github.com/eulogiatechnologies/flint_dart)
-
----
-
-## 🛠 Contributing
-
-We welcome contributions! To get started:
-
-```bash
-git clone https://github.com/eulogiatechnologies/flint_dart.git
-cd flint_dart
-dart pub get
-```
-
-Then feel free to submit issues or pull requests.
-
----
-
-## 👥 Contributors
-
-<a href="https://github.com/flint-dart/flint_dart/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=flint-dart/flint_dart" />
-</a>
-
-Made with ❤️ by the Flint Dart community.
-
-
-## Contributors ✨
-
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/Dee-08">
-        <img src="https://github.com/Dee-08.png" width="100;" alt="Daniel DAVID"/><br />
-        <sub><b>Daniel DAVID</b></sub>
-      </a><br />
-      <sub>🖥️📖</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/EulogiaTechnologies">
-        <img src="https://github.com/EulogiaTechnologies.png" width="100;" alt="Eulogia Technologies"/><br />
-        <sub><b>Eulogia Technologies</b></sub>
-      </a><br />
-      <sub>⚙️🖥️</sub>
-    </td>
-    <td align="center">
-      <a href="https://github.com/Hybiekay">
-        <img src="https://github.com/Hybiekay.png" width="100;" alt="Samuel Adeoye"/><br />
-        <sub><b>Samuel Adeoye</b></sub>
-      </a><br />
-      <sub>🖥️📖⚙️</sub>
-    </td>
-  </tr>
-</table>
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+Flint Dart is licensed under the [MIT License](LICENSE).

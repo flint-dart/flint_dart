@@ -1,0 +1,733 @@
+import 'dart:async';
+import 'dart:io' hide HttpException;
+
+import 'package:test/test.dart';
+import 'package:flint_dart/flint_dart.dart';
+
+import 'helpers/fakes.dart';
+
+class RecordingMiddleware extends Middleware {
+  final String name;
+  final List<String> log;
+
+  RecordingMiddleware(this.name, this.log);
+
+  @override
+  Handler handle(Handler next) {
+    return (ctx) async {
+      log.add('before-$name');
+      final result = await next(ctx);
+      log.add('after-$name');
+      return result;
+    };
+  }
+}
+
+class ShortCircuitMiddleware extends Middleware {
+  final int status;
+  final String body;
+
+  ShortCircuitMiddleware({this.status = 401, this.body = 'Unauthorized'});
+
+  @override
+  Handler handle(Handler next) {
+    return (ctx) async {
+      final res = ctx.res;
+      if (res == null) return null;
+      return res.send(body, status: status);
+    };
+  }
+}
+
+void main() {
+  group('StaticFileMiddleware', () {
+    test('serves precompressed Brotli before gzip when accepted', () async {
+      final tempDir =
+          Directory.systemTemp.createTempSync('flint_static_brotli_');
+      try {
+        File('${tempDir.path}/main.dart.js')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('console.log("raw");');
+        File('${tempDir.path}/main.dart.js.gz').writeAsStringSync('gzip-body');
+        File('${tempDir.path}/main.dart.js.br')
+            .writeAsStringSync('brotli-body');
+
+        final headers = FakeHttpHeaders()
+          ..set(HttpHeaders.acceptEncodingHeader, 'gzip, br');
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/main.dart.js'),
+          headers: headers,
+        );
+        final response = Response(raw.response, request: Request(raw));
+        final handler = StaticFileMiddleware(publicFolder: tempDir.path).handle(
+          (_) => throw StateError('static file should be handled'),
+        );
+
+        await handler(Context(req: Request(raw), res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 200);
+        expect(rawResponse.buffer.toString(), 'brotli-body');
+        expect(
+          rawResponse.headers.value(HttpHeaders.contentEncodingHeader),
+          'br',
+        );
+        expect(
+          rawResponse.headers.value(HttpHeaders.varyHeader),
+          'Accept-Encoding',
+        );
+        expect(rawResponse.headers.contentType?.mimeType, 'text/javascript');
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('serves precompressed gzip when Brotli is unavailable', () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_static_gzip_');
+      try {
+        File('${tempDir.path}/main.dart.js')
+          ..createSync(recursive: true)
+          ..writeAsStringSync('console.log("raw");');
+        File('${tempDir.path}/main.dart.js.gz').writeAsStringSync('gzip-body');
+
+        final headers = FakeHttpHeaders()
+          ..set(HttpHeaders.acceptEncodingHeader, 'br;q=0, gzip');
+        final raw = FakeHttpRequest(
+          method: 'GET',
+          uri: Uri.parse('/main.dart.js'),
+          headers: headers,
+        );
+        final response = Response(raw.response, request: Request(raw));
+        final handler = StaticFileMiddleware(publicFolder: tempDir.path).handle(
+          (_) => throw StateError('static file should be handled'),
+        );
+
+        await handler(Context(req: Request(raw), res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.buffer.toString(), 'gzip-body');
+        expect(
+          rawResponse.headers.value(HttpHeaders.contentEncodingHeader),
+          'gzip',
+        );
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+  });
+
+  group('Middleware', () {
+    test('LoggerMiddleware logs sanitized request metadata', () async {
+      final previousEnabled = Log.enabled;
+      final previousMinLevel = Log.minLevel;
+      final previousConsoleLogging = Log.consoleLogging;
+      final previousFileLogging = Log.fileLogging;
+      final previousLogDirectory = Log.logDirectory;
+
+      final logs = <String>[];
+
+      try {
+        await runZoned(
+          () async {
+            Log.debug('configure logger for middleware test');
+            Log.enabled = true;
+            Log.minLevel = LogLevel.debug;
+            Log.consoleLogging = true;
+            Log.fileLogging = false;
+
+            final headers = FakeHttpHeaders()
+              ..set(HttpHeaders.cookieHeader, 'session=secret-cookie')
+              ..set(HttpHeaders.authorizationHeader, 'Bearer secret-token')
+              ..set('x-forwarded-for', '203.0.113.8, 10.0.0.1');
+            final raw = FakeHttpRequest(
+              method: 'GET',
+              uri: Uri.parse('/reports?token=secret-query'),
+              headers: headers,
+            );
+            final request = Request(raw);
+            final response = Response(raw.response);
+            final handler = LoggerMiddleware().handle(
+              (ctx) async => ctx.res?.send('ok', status: 201),
+            );
+
+            await handler(Context(req: request, res: response));
+          },
+          zoneSpecification: ZoneSpecification(
+            print: (_, __, ___, line) {
+              logs.add(line);
+            },
+          ),
+        );
+      } finally {
+        Log.enabled = previousEnabled;
+        Log.minLevel = previousMinLevel;
+        Log.consoleLogging = previousConsoleLogging;
+        Log.fileLogging = previousFileLogging;
+        Log.logDirectory = previousLogDirectory;
+      }
+
+      final output = logs.join('\n');
+      expect(output, contains('[request] GET /reports status=201'));
+      expect(output, contains('ip=203.0.113.8'));
+      expect(output, isNot(contains('secret-cookie')));
+      expect(output, isNot(contains('secret-token')));
+      expect(output, isNot(contains('secret-query')));
+    });
+
+    test('CacheMiddleware applies public cache headers to GET requests',
+        () async {
+      final handler = CacheMiddleware.public(
+        const Duration(minutes: 5),
+        sharedMaxAge: const Duration(minutes: 10),
+      ).handle((ctx) async => ctx.res?.send('ok'));
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/cached'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(
+        rawResponse.headers.value(HttpHeaders.cacheControlHeader),
+        'public, max-age=300, s-maxage=600',
+      );
+      expect(rawResponse.buffer.toString(), 'ok');
+    });
+
+    test('CacheMiddleware applies public cache headers to QUERY requests',
+        () async {
+      final handler = CacheMiddleware.public(
+        const Duration(minutes: 5),
+        sharedMaxAge: const Duration(minutes: 10),
+      ).handle((ctx) async => ctx.res?.send('ok'));
+
+      final raw = FakeHttpRequest(method: 'QUERY', uri: Uri.parse('/cached'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(
+        rawResponse.headers.value(HttpHeaders.cacheControlHeader),
+        'public, max-age=300, s-maxage=600',
+      );
+      expect(rawResponse.buffer.toString(), 'ok');
+    });
+
+    test('CacheMiddleware skips non-cacheable methods', () async {
+      final handler = CacheMiddleware.public(const Duration(minutes: 5)).handle(
+        (ctx) async => ctx.res?.send('created'),
+      );
+
+      final raw = FakeHttpRequest(method: 'POST', uri: Uri.parse('/cached'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(
+        rawResponse.headers.value(HttpHeaders.cacheControlHeader),
+        isNull,
+      );
+    });
+
+    test('ETagMiddleware returns 304 when If-None-Match matches', () async {
+      var called = false;
+      final headers = FakeHttpHeaders()
+        ..set(HttpHeaders.ifNoneMatchHeader, '"landing-products"');
+      final raw = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse('/cached'),
+        headers: headers,
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+      final handler = ETagMiddleware((_) => 'landing-products').handle(
+        (ctx) async {
+          called = true;
+          return ctx.res?.send('fresh');
+        },
+      );
+
+      final result = await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(result, isA<Response>());
+      expect(called, isFalse);
+      expect(rawResponse.statusCode, HttpStatus.notModified);
+      expect(rawResponse.buffer.toString(), isEmpty);
+    });
+
+    test('applies in declared order (outer wraps inner)', () async {
+      final log = <String>[];
+      final router = Router();
+
+      router.add(
+        'GET',
+        '/test',
+        (ctx) async {
+          log.add('handler');
+          ctx.res?.send('ok');
+        },
+        middlewares: [
+          RecordingMiddleware('first', log),
+          RecordingMiddleware('second', log),
+        ],
+      );
+
+      final params = <String, String>{};
+      final handler = router.match('GET', '/test', params);
+      expect(handler, isNotNull);
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler!(Context(req: request, res: response));
+
+      expect(
+        log,
+        [
+          'before-second',
+          'before-first',
+          'handler',
+          'after-first',
+          'after-second',
+        ],
+      );
+    });
+
+    test('can short-circuit without calling next', () async {
+      final router = Router();
+      var handlerCalled = false;
+
+      router.add(
+        'GET',
+        '/secure',
+        (ctx) async {
+          handlerCalled = true;
+          ctx.res?.send('ok');
+        },
+        middlewares: [
+          ShortCircuitMiddleware(),
+        ],
+      );
+
+      final params = <String, String>{};
+      final handler = router.match('GET', '/secure', params);
+      expect(handler, isNotNull);
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/secure'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler!(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 401);
+      expect(rawResponse.buffer.toString(), 'Unauthorized');
+    });
+  });
+
+  group('Context handler returns', () {
+    test('returns primitive value through middleware', () async {
+      final log = <String>[];
+      final handler =
+          RecordingMiddleware('trace', log).handle((ctx) async => 'ok');
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      final result = await handler(Context(req: request, res: response));
+
+      expect(result, 'ok');
+      expect(log, ['before-trace', 'after-trace']);
+    });
+
+    test('returns map value through middleware', () async {
+      final handler = RecordingMiddleware('trace', <String>[])
+          .handle((ctx) async => {'ok': true});
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      final result = await handler(Context(req: request, res: response));
+
+      expect(result, {'ok': true});
+    });
+
+    test('returns Response when handler sends directly', () async {
+      final handler = RecordingMiddleware('trace', <String>[])
+          .handle((ctx) async => ctx.res?.send('done'));
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      final result = await handler(Context(req: request, res: response));
+
+      expect(result, isA<Response>());
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.buffer.toString(), 'done');
+    });
+  });
+
+  group('ExceptionMiddleware', () {
+    test('catches ValidationError from exception library', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw ValidationError(
+          errors: {
+            'email': ['The email field is required.']
+          },
+        );
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 422);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"errors":{"email":["The email field is required."]}}',
+      );
+    });
+
+    test('catches AuthException from awaited async handlers', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        await Future<void>.delayed(Duration.zero);
+        throw AuthException(message: 'User already exists with this email');
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 401);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"error":"Unauthorized","message":"User already exists with this email"}',
+      );
+    });
+
+    test('catches ForbiddenException with 403 status', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw ForbiddenException(message: 'Admin access required');
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 403);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"message":"Admin access required"}',
+      );
+    });
+
+    test('catches framework HttpException with explicit status', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw HttpException(409, 'Course already exists', data: {'id': '42'});
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 409);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"message":"Course already exists","data":{"id":"42"}}',
+      );
+    });
+
+    test('Unauthenticated is exported and handled as 401', () async {
+      final middleware = ExceptionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        throw Unauthenticated();
+      });
+
+      final raw = FakeHttpRequest(method: 'GET', uri: Uri.parse('/test'));
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 401);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"status":false,"error":"Unauthorized","message":"Unauthenticated"}',
+      );
+    });
+  });
+
+  group('AntiSqlInjectionMiddleware', () {
+    test('blocks SQL injection in query parameters', () async {
+      var handlerCalled = false;
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        handlerCalled = true;
+        return ctx.res?.send('ok');
+      });
+
+      final raw = FakeHttpRequest(
+        method: 'GET',
+        uri: Uri.parse("/search?q=' OR 1=1 --"),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 400);
+      expect(rawResponse.buffer.toString(), contains('SQL injection'));
+    });
+
+    test('blocks SQL injection in JSON request body', () async {
+      var handlerCalled = false;
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        handlerCalled = true;
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType('application', 'json');
+      final raw = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('/login'),
+        headers: headers,
+        bodyBytes: utf8Bytes(
+            '{"email":"admin@example.com","password":"x\' OR 1=1 --"}'),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 400);
+    });
+
+    test('blocks SQL injection in QUERY JSON request body', () async {
+      var handlerCalled = false;
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        handlerCalled = true;
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType('application', 'json');
+      final raw = FakeHttpRequest(
+        method: 'QUERY',
+        uri: Uri.parse('/search'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"filter":"x\' OR 1=1 --"}'),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(handlerCalled, isFalse);
+      expect(rawResponse.statusCode, 400);
+    });
+
+    test('allows ordinary text and preserves the body for handlers', () async {
+      final middleware = AntiSqlInjectionMiddleware();
+      final handler = middleware.handle((ctx) async {
+        final body = await ctx.req.body();
+        return ctx.res?.send(body);
+      });
+
+      final headers = FakeHttpHeaders()
+        ..contentType = ContentType('application', 'json');
+      final raw = FakeHttpRequest(
+        method: 'POST',
+        uri: Uri.parse('/tickets'),
+        headers: headers,
+        bodyBytes: utf8Bytes('{"message":"Please help me select a plan"}'),
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 200);
+      expect(
+        rawResponse.buffer.toString(),
+        '{"message":"Please help me select a plan"}',
+      );
+    });
+  });
+
+  group('RichTextUpload', () {
+    test('allows uploading a valid file and sanitizes double extensions',
+        () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_upload_test_');
+      try {
+        final middleware = RichTextUpload(
+          uploadPath: tempDir.path,
+          requireAuth: false,
+        );
+
+        final handler = middleware.handle((ctx) async => ctx.res?.send('next'));
+
+        final headers = FakeHttpHeaders()
+          ..contentType = ContentType('application', 'json');
+
+        // Test normal image
+        final raw = FakeHttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/api/content-media/upload'),
+          headers: headers,
+          bodyBytes: utf8Bytes('{"filename":"test.png","base64":"YmFzZTY0"}'),
+        );
+        final request = Request(raw);
+        final response = Response(raw.response);
+
+        await handler(Context(req: request, res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 200);
+        expect(rawResponse.buffer.toString(),
+            contains('/uploads/content/test.png'));
+
+        final createdFile = File('${tempDir.path}/test.png');
+        expect(createdFile.existsSync(), isTrue);
+        expect(createdFile.readAsStringSync(), 'base64');
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('blocks invalid/malicious file extensions', () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_upload_test_');
+      try {
+        final middleware = RichTextUpload(
+          uploadPath: tempDir.path,
+          requireAuth: false,
+        );
+
+        final handler = middleware.handle((ctx) async => ctx.res?.send('next'));
+
+        final headers = FakeHttpHeaders()
+          ..contentType = ContentType('application', 'json');
+
+        // Test PHP file
+        final raw = FakeHttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/api/content-media/upload'),
+          headers: headers,
+          bodyBytes:
+              utf8Bytes('{"filename":"malicious.php","base64":"YmFzZTY0"}'),
+        );
+        final request = Request(raw);
+        final response = Response(raw.response);
+
+        await handler(Context(req: request, res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 400);
+        expect(rawResponse.buffer.toString(), contains('Forbidden file type'));
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('sanitizes double extensions to prevent bypass', () async {
+      final tempDir = Directory.systemTemp.createTempSync('flint_upload_test_');
+      try {
+        final middleware = RichTextUpload(
+          uploadPath: tempDir.path,
+          requireAuth: false,
+        );
+
+        final handler = middleware.handle((ctx) async => ctx.res?.send('next'));
+
+        final headers = FakeHttpHeaders()
+          ..contentType = ContentType('application', 'json');
+
+        // Test malicious double extension
+        final raw = FakeHttpRequest(
+          method: 'POST',
+          uri: Uri.parse('/api/content-media/upload'),
+          headers: headers,
+          bodyBytes:
+              utf8Bytes('{"filename":"test.php.png","base64":"YmFzZTY0"}'),
+        );
+        final request = Request(raw);
+        final response = Response(raw.response);
+
+        await handler(Context(req: request, res: response));
+
+        final rawResponse = raw.response as FakeHttpResponse;
+        expect(rawResponse.statusCode, 200);
+        expect(rawResponse.buffer.toString(),
+            contains('/uploads/content/test_php.png'));
+
+        final createdFile = File('${tempDir.path}/test_php.png');
+        expect(createdFile.existsSync(), isTrue);
+      } finally {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+  });
+
+  group('CorsMiddleware', () {
+    test('includes QUERY in default allowed methods', () async {
+      final handler = CorsMiddleware().handle((ctx) async {
+        return ctx.res?.send('ok');
+      });
+
+      final headers = FakeHttpHeaders()..set('origin', 'https://example.com');
+      final raw = FakeHttpRequest(
+        method: 'OPTIONS',
+        uri: Uri.parse('/search'),
+        headers: headers,
+      );
+      final request = Request(raw);
+      final response = Response(raw.response);
+
+      await handler(Context(req: request, res: response));
+
+      final rawResponse = raw.response as FakeHttpResponse;
+      expect(rawResponse.statusCode, 204);
+      expect(
+        rawResponse.headers.value('Access-Control-Allow-Methods'),
+        contains('QUERY'),
+      );
+    });
+  });
+}

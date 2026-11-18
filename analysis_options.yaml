@@ -15,12 +15,12 @@ include: package:lints/recommended.yaml
 analyzer:
   errors:
     no_wildcard_variable_uses: ignore
+    invalid_runtime_check_with_js_interop_types: ignore
+    close_sinks: ignore
 
-# Uncomment the following section to specify additional rules.
-
-# linter:
-#   rules:
-#     - camel_case_types
+linter:
+  rules:
+    unawaited_futures: true
 
 # analyzer:
 #   exclude:

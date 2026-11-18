@@ -15,6 +15,20 @@ class FileCacheStore implements CacheStore {
       path.join(cacheDir, '${Uri.encodeComponent(key)}.json');
 
   @override
+  Future<T> remember<T>(
+    String key,
+    Duration ttl,
+    Future<T> Function() loader,
+  ) async {
+    final cached = await get(key);
+    if (cached != null) return cached as T;
+
+    final value = await loader();
+    await set(key, value, ttl: ttl);
+    return value;
+  }
+
+  @override
   Future<void> set(String key, dynamic value, {Duration? ttl}) async {
     final file = File(_filePath(key));
     final data = {
@@ -43,6 +57,26 @@ class FileCacheStore implements CacheStore {
   Future<void> remove(String key) async {
     final file = File(_filePath(key));
     if (await file.exists()) await file.delete();
+  }
+
+  @override
+  Future<void> removeMany(Iterable<String> keys) async {
+    for (final key in keys) {
+      await remove(key);
+    }
+  }
+
+  @override
+  Future<void> removeWhere(bool Function(String key) shouldRemove) async {
+    final dir = Directory(cacheDir);
+    if (!await dir.exists()) return;
+
+    for (final entry in dir.listSync()) {
+      if (entry is! File || !entry.path.endsWith('.json')) continue;
+      final filename = path.basenameWithoutExtension(entry.path);
+      final key = Uri.decodeComponent(filename);
+      if (shouldRemove(key)) await entry.delete();
+    }
   }
 
   @override

@@ -1,16 +1,14 @@
 import 'dart:async';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/helper.dart';
-import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/src/database/db.dart';
 
 /// A simple SQL query builder for MySQL/PostgreSQL in Flint Dart.
 class QueryBuilder {
   final String table;
+  final DbExecutor executor;
 
   final List<String> _selects = [];
-  final List<String> _wheres = [];
-  final List<String> _orWheres = [];
+  final List<_WhereClause> _whereClauses = [];
   final List<String> _orderBys = [];
   final List<String> _groups = [];
   final List<String> _relations = [];
@@ -25,10 +23,11 @@ class QueryBuilder {
   List<String> get withRelations => List.from(_withRelations);
   Map<String, dynamic> get modelContext => Map.from(_modelContext);
   Map<String, List<String>> get withColumns => Map.from(_withColumns);
-  bool get hasWhereClause => _wheres.isNotEmpty;
+  bool get hasWhereClause => _whereClauses.isNotEmpty;
   String compileWhereSql() {
-    if (_wheres.isEmpty) return '';
-    return 'WHERE ${_wheres.join(' AND ')}';
+    final whereBody = _compileWhereBody();
+    if (whereBody.isEmpty) return '';
+    return 'WHERE $whereBody';
   }
 
   Map<String, dynamic> get whereParams => Map.from(_bindings);
@@ -36,12 +35,10 @@ class QueryBuilder {
   int? _offset;
   int _paramIndex = 1;
 
-  QueryBuilder({required this.table});
+  QueryBuilder({required this.table, DbExecutor? executor})
+      : executor = executor ?? const DefaultDbExecutor();
 
-  QueryBuilder withRelation(
-    String name, {
-    List<String>? columns,
-  }) {
+  QueryBuilder withRelation(String name, {List<String>? columns}) {
     if (!_withRelations.contains(name)) {
       _withRelations.add(name);
     }
@@ -51,6 +48,10 @@ class QueryBuilder {
     }
 
     return this;
+  }
+
+  void _addWhere(String connector, String sql) {
+    _whereClauses.add(_WhereClause(connector, sql));
   }
 
   /// Add model context for relation loading
@@ -87,20 +88,24 @@ class QueryBuilder {
   /// [pattern] is the SQL pattern (supports % as wildcard).
   /// [caseSensitive] determines if the match is case-sensitive.
   /// [escape] determines if special characters in the pattern are escaped.
-  QueryBuilder whereLike(String field, String pattern,
-      {bool caseSensitive = false, bool escape = true}) {
+  QueryBuilder whereLike(
+    String field,
+    String pattern, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       final sql = caseSensitive
           ? '$field LIKE :$paramName'
           : '$field ILIKE :$paramName';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     } else {
       final sql =
           caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     }
 
     _bindings[paramName] = processedPattern;
@@ -113,21 +118,25 @@ class QueryBuilder {
   /// [pattern] is the SQL pattern.
   /// [caseSensitive] determines if the match is case-sensitive.
   /// [escape] determines if special characters in the pattern are escaped.
-  QueryBuilder whereNotLike(String field, String pattern,
-      {bool caseSensitive = false, bool escape = true}) {
+  QueryBuilder whereNotLike(
+    String field,
+    String pattern, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       final sql = caseSensitive
           ? '$field NOT LIKE :$paramName'
           : '$field NOT ILIKE :$paramName';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     } else {
       final sql = caseSensitive
           ? '$field NOT LIKE ?'
           : 'LOWER($field) NOT LIKE LOWER(?)';
-      _wheres.add(sql);
+      _addWhere('AND', sql);
     }
 
     _bindings[paramName] = processedPattern;
@@ -137,20 +146,24 @@ class QueryBuilder {
   /// Adds an OR LIKE condition to the query.
   ///
   /// Works similarly to [whereLike] but combines with OR logic.
-  QueryBuilder orWhereLike(String field, String pattern,
-      {bool caseSensitive = false, bool escape = true}) {
+  QueryBuilder orWhereLike(
+    String field,
+    String pattern, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) {
     final paramName = 'p${_paramIndex++}';
     final processedPattern = escape ? _escapeLike(pattern) : pattern;
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
       final sql = caseSensitive
           ? '$field LIKE :$paramName'
           : '$field ILIKE :$paramName';
-      _orWheres.add(sql);
+      _addWhere('OR', sql);
     } else {
       final sql =
           caseSensitive ? '$field LIKE ?' : 'LOWER($field) LIKE LOWER(?)';
-      _orWheres.add(sql);
+      _addWhere('OR', sql);
     }
 
     _bindings[paramName] = processedPattern;
@@ -163,55 +176,91 @@ class QueryBuilder {
   // ------------------------
 
   /// Adds a WHERE condition that checks if [field] contains [value].
-  QueryBuilder whereContains(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      whereLike(field, '%$value%',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder whereContains(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
+      whereLike(
+        field,
+        '%$value%',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
 
   /// Adds a WHERE condition that checks if [field] starts with [value].
-  QueryBuilder whereStartsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
+  QueryBuilder whereStartsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
       whereLike(field, '$value%', caseSensitive: caseSensitive, escape: escape);
 
   /// Adds a WHERE condition that checks if [field] ends with [value].
-  QueryBuilder whereEndsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
+  QueryBuilder whereEndsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
       whereLike(field, '%$value', caseSensitive: caseSensitive, escape: escape);
 
   /// Adds an OR condition that checks if [field] contains [value].
-  QueryBuilder orWhereContains(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      orWhereLike(field, '%$value%',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder orWhereContains(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
+      orWhereLike(
+        field,
+        '%$value%',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
 
   /// Adds an OR condition that checks if [field] starts with [value].
-  QueryBuilder orWhereStartsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      orWhereLike(field, '$value%',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder orWhereStartsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
+      orWhereLike(
+        field,
+        '$value%',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
 
   /// Adds an OR condition that checks if [field] ends with [value].
-  QueryBuilder orWhereEndsWith(String field, String value,
-          {bool caseSensitive = false, bool escape = true}) =>
-      orWhereLike(field, '%$value',
-          caseSensitive: caseSensitive, escape: escape);
+  QueryBuilder orWhereEndsWith(
+    String field,
+    String value, {
+    bool caseSensitive = false,
+    bool escape = true,
+  }) =>
+      orWhereLike(
+        field,
+        '%$value',
+        caseSensitive: caseSensitive,
+        escape: escape,
+      );
   // ------------------------
   // Range / Date Methods
   // ------------------------
 
   /// Adds a WHERE condition that filters [field] between [start] and [end].
-  QueryBuilder whereBetween(
-    String field,
-    dynamic start,
-    dynamic end,
-  ) {
+  QueryBuilder whereBetween(String field, dynamic start, dynamic end) {
     final paramStart = 'p${_paramIndex++}';
     final paramEnd = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
-      _wheres.add('$field BETWEEN :$paramStart AND :$paramEnd');
+    if (executor.driver == DBDriver.postgres) {
+      _addWhere('AND', '$field BETWEEN :$paramStart AND :$paramEnd');
     } else {
-      _wheres.add('$field BETWEEN ? AND ?');
+      _addWhere('AND', '$field BETWEEN ? AND ?');
     }
 
     _bindings[paramStart] = start;
@@ -225,10 +274,10 @@ class QueryBuilder {
     final paramStart = 'p${_paramIndex++}';
     final paramEnd = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
-      _wheres.add('$field NOT BETWEEN :$paramStart AND :$paramEnd');
+    if (executor.driver == DBDriver.postgres) {
+      _addWhere('AND', '$field NOT BETWEEN :$paramStart AND :$paramEnd');
     } else {
-      _wheres.add('$field NOT BETWEEN ? AND ?');
+      _addWhere('AND', '$field NOT BETWEEN ? AND ?');
     }
 
     _bindings[paramStart] = start;
@@ -241,10 +290,10 @@ class QueryBuilder {
   QueryBuilder whereDate(String field, DateTime date) {
     final paramName = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
-      _wheres.add("DATE($field) = DATE(:$paramName)");
+    if (executor.driver == DBDriver.postgres) {
+      _addWhere('AND', "DATE($field) = DATE(:$paramName)");
     } else {
-      _wheres.add("DATE($field) = DATE(?)");
+      _addWhere('AND', "DATE($field) = DATE(?)");
     }
 
     _bindings[paramName] = date.toIso8601String();
@@ -255,10 +304,10 @@ class QueryBuilder {
   QueryBuilder where(String field, String operator, dynamic value) {
     final paramName = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
-      _wheres.add('$field $operator :$paramName');
+    if (executor.driver == DBDriver.postgres) {
+      _addWhere('AND', '$field $operator :$paramName');
     } else {
-      _wheres.add('$field $operator ?');
+      _addWhere('AND', '$field $operator ?');
     }
 
     _bindings[paramName] = value;
@@ -268,34 +317,34 @@ class QueryBuilder {
   /// WHERE IN clause
   QueryBuilder whereIn(String field, List<dynamic> values) {
     if (values.isEmpty) {
-      _wheres.add('1 = 0'); // Always false if no values
+      _addWhere('AND', '1 = 0'); // Always false if no values
       return this;
     }
 
     final paramNames = List.generate(values.length, (i) {
       final paramName = 'p${_paramIndex++}';
       _bindings[paramName] = values[i];
-      return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
+      return executor.driver == DBDriver.postgres ? ':$paramName' : '?';
     }).join(', ');
 
-    _wheres.add('$field IN ($paramNames)');
+    _addWhere('AND', '$field IN ($paramNames)');
     return this;
   }
 
   /// WHERE NOT IN clause
   QueryBuilder whereNotIn(String field, List<dynamic> values) {
     if (values.isEmpty) {
-      _wheres.add('1 = 1'); // Always true if no values
+      _addWhere('AND', '1 = 1'); // Always true if no values
       return this;
     }
 
     final paramNames = List.generate(values.length, (i) {
       final paramName = 'p${_paramIndex++}';
       _bindings[paramName] = values[i];
-      return DB.driver == DBDriver.postgres ? ':$paramName' : '?';
+      return executor.driver == DBDriver.postgres ? ':$paramName' : '?';
     }).join(', ');
 
-    _wheres.add('$field NOT IN ($paramNames)');
+    _addWhere('AND', '$field NOT IN ($paramNames)');
     return this;
   }
 
@@ -303,10 +352,10 @@ class QueryBuilder {
   QueryBuilder orWhere(String field, String operator, dynamic value) {
     final paramName = 'p${_paramIndex++}';
 
-    if (DB.driver == DBDriver.postgres) {
-      _orWheres.add('$field $operator :$paramName');
+    if (executor.driver == DBDriver.postgres) {
+      _addWhere('OR', '$field $operator :$paramName');
     } else {
-      _orWheres.add('$field $operator ?');
+      _addWhere('OR', '$field $operator ?');
     }
 
     _bindings[paramName] = value;
@@ -315,13 +364,13 @@ class QueryBuilder {
 
   /// WHERE NULL clause
   QueryBuilder whereNull(String field) {
-    _wheres.add('$field IS NULL');
+    _addWhere('AND', '$field IS NULL');
     return this;
   }
 
   /// WHERE NOT NULL clause
   QueryBuilder whereNotNull(String field) {
-    _wheres.add('$field IS NOT NULL');
+    _addWhere('AND', '$field IS NOT NULL');
     return this;
   }
 
@@ -352,10 +401,14 @@ class QueryBuilder {
 
   /// JOIN clause
   QueryBuilder join(
-      String table, String first, String operator, String second) {
+    String table,
+    String first,
+    String operator,
+    String second,
+  ) {
     // Simple JOIN implementation - you can extend this for different JOIN types
     _selects.add('$table.*'); // Add joined table columns
-    _wheres.add('$first $operator $second');
+    _addWhere('AND', '$first $operator $second');
     return this;
   }
 
@@ -431,7 +484,7 @@ class QueryBuilder {
     _selects.clear();
     _selects.addAll(originalSelects);
 
-    return result?['avg_value']?.toDouble();
+    return _aggregateDouble(result?['avg_value']);
   }
 
   /// SUM aggregate
@@ -445,30 +498,19 @@ class QueryBuilder {
     _selects.clear();
     _selects.addAll(originalSelects);
 
-    return result?['sum_value']?.toDouble();
+    return _aggregateDouble(result?['sum_value']);
+  }
+
+  double? _aggregateDouble(Object? value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString().trim());
   }
 
   String _buildSelectQuery() {
     final select = _selects.isEmpty ? '*' : _selects.join(', ');
-    var whereClause = '';
-
-    if (_wheres.isNotEmpty || _orWheres.isNotEmpty) {
-      final whereParts = <String>[];
-
-      if (_wheres.isNotEmpty) {
-        whereParts.add(_wheres.join(' AND '));
-      }
-
-      if (_orWheres.isNotEmpty) {
-        if (_wheres.isNotEmpty) {
-          whereParts.add('(${_orWheres.join(' OR ')})');
-        } else {
-          whereParts.add(_orWheres.join(' OR '));
-        }
-      }
-
-      whereClause = ' WHERE ${whereParts.join(' AND ')}';
-    }
+    final whereSql = compileWhereSql();
+    final whereClause = whereSql.isEmpty ? '' : ' $whereSql';
 
     final groupClause =
         _groups.isNotEmpty ? ' GROUP BY ${_groups.join(', ')}' : '';
@@ -482,11 +524,11 @@ class QueryBuilder {
 
   /// Internal query executor
   Future<List<Map<String, dynamic>>> _executeSelect(String sql) async {
-    final result = await DB.query(
+    final result = await executor.query(
       sql,
-      namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
+      namedParams: executor.driver == DBDriver.postgres ? _bindings : null,
       positionalParams:
-          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+          executor.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
 
     // Normalize maps and convert DateTime to ISO string
@@ -528,15 +570,20 @@ class QueryBuilder {
 
   /// Paginate results
   Future<Map<String, dynamic>> paginate(int page, [int perPage = 15]) async {
-    final offset = (page - 1) * perPage;
+    final safePage = page < 1 ? 1 : page;
+    final safePerPage = perPage < 1 ? 15 : perPage;
+    final offset = (safePage - 1) * safePerPage;
     final originalLimit = _limit;
     final originalOffset = _offset;
 
-    _limit = perPage;
+    _limit = safePerPage;
     _offset = offset;
 
     final data = await get();
     final total = await count();
+    final lastPage = total == 0 ? 1 : (total / safePerPage).ceil();
+    final from = total == 0 ? 0 : offset + 1;
+    final to = total == 0 ? 0 : offset + data.length;
 
     // Restore original state
     _limit = originalLimit;
@@ -544,16 +591,25 @@ class QueryBuilder {
 
     return {
       'data': data,
-      'current_page': page,
-      'per_page': perPage,
+      'current_page': safePage,
+      'per_page': safePerPage,
       'total': total,
-      'last_page': (total / perPage).ceil(),
+      'last_page': lastPage,
+      'page': safePage,
+      'perPage': safePerPage,
+      'totalPages': lastPage,
+      'from': from,
+      'to': to,
+      'hasPreviousPage': safePage > 1,
+      'hasNextPage': safePage < lastPage,
     };
   }
 
   /// INSERT
-  Future<void> insert(Map<String, dynamic> data,
-      {String idColumn = 'id'}) async {
+  Future<void> insert(
+    Map<String, dynamic> data, {
+    String idColumn = 'id',
+  }) async {
     _ColumnInfo columnInfo;
 
     if (_columnCache.containsKey(table)) {
@@ -575,17 +631,17 @@ class QueryBuilder {
     }
 
     final fields = data.keys.join(', ');
-    final placeholders = DB.driver == DBDriver.postgres
+    final placeholders = executor.driver == DBDriver.postgres
         ? data.keys.map((k) => ':$k').join(', ')
         : List.generate(data.length, (_) => '?').join(', ');
 
     final sql = 'INSERT INTO $table ($fields) VALUES ($placeholders)';
 
-    await DB.query(
+    await executor.query(
       sql,
-      namedParams: DB.driver == DBDriver.postgres ? data : null,
+      namedParams: executor.driver == DBDriver.postgres ? data : null,
       positionalParams:
-          DB.driver == DBDriver.mysql ? data.values.toList() : null,
+          executor.driver == DBDriver.mysql ? data.values.toList() : null,
     );
 
     return;
@@ -593,65 +649,81 @@ class QueryBuilder {
 
   /// UPDATE
   Future<void> update(Map<String, dynamic> data) async {
-    if (_wheres.isEmpty) {
+    final whereSql = compileWhereSql();
+    if (whereSql.isEmpty) {
       throw Exception('Update requires a where clause.');
     }
 
     final setClauses = <String>[];
-    final bindings = {..._bindings};
 
-    if (DB.driver == DBDriver.postgres) {
+    if (executor.driver == DBDriver.postgres) {
+      final bindings = {..._bindings};
       data.forEach((k, v) {
         setClauses.add('$k = :$k');
         bindings[k] = v;
       });
+
+      final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
+      await executor.query(sql, namedParams: bindings);
     } else {
+      final positionalParams = <dynamic>[];
       data.forEach((k, v) {
         setClauses.add('$k = ?');
-        bindings[k] = v;
+        positionalParams.add(v);
       });
-    }
 
-    final sql =
-        'UPDATE $table SET ${setClauses.join(', ')} WHERE ${_wheres.join(' AND ')}';
-    await DB.query(
-      sql,
-      namedParams: DB.driver == DBDriver.postgres ? bindings : null,
-      positionalParams:
-          DB.driver == DBDriver.mysql ? bindings.values.toList() : null,
-    );
+      positionalParams.addAll(_bindings.values);
+
+      final sql = 'UPDATE $table SET ${setClauses.join(', ')} $whereSql';
+      await executor.query(sql, positionalParams: positionalParams);
+    }
   }
 
   /// DELETE
   Future<void> delete() async {
-    if (_wheres.isEmpty) {
+    final whereSql = compileWhereSql();
+    if (whereSql.isEmpty) {
       throw Exception('Delete requires a where clause.');
     }
 
-    final sql = 'DELETE FROM $table WHERE ${_wheres.join(' AND ')}';
-    await DB.query(
+    final sql = 'DELETE FROM $table $whereSql';
+    await executor.query(
       sql,
-      namedParams: DB.driver == DBDriver.postgres ? _bindings : null,
+      namedParams: executor.driver == DBDriver.postgres ? _bindings : null,
       positionalParams:
-          DB.driver == DBDriver.mysql ? _bindings.values.toList() : null,
+          executor.driver == DBDriver.mysql ? _bindings.values.toList() : null,
     );
+  }
+
+  String _compileWhereBody() {
+    if (_whereClauses.isEmpty) return '';
+
+    final parts = <String>[_whereClauses.first.sql];
+    for (final clause in _whereClauses.skip(1)) {
+      parts.add('${clause.connector} ${clause.sql}');
+    }
+
+    return parts.join(' ');
   }
 
   /// --- Load primary key info from the database ---
   Future<_ColumnInfo> _loadIdColumnInfo(String idColumn) async {
     try {
-      if (DB.driver == DBDriver.mysql) {
-        final result = await DB.query('''
+      if (executor.driver == DBDriver.mysql) {
+        final result = await executor.query(
+          '''
         SELECT DATA_TYPE, EXTRA
         FROM information_schema.columns
         WHERE TABLE_SCHEMA = :db
           AND TABLE_NAME = :table
           AND COLUMN_NAME = :id
-      ''', namedParams: {
-          'db': FlintEnv.get("DB_NAME", ''),
-          'table': table,
-          'id': idColumn,
-        });
+      ''',
+          namedParams: {
+            'db': FlintEnv.get("DB_NAME", ''),
+            'table': table,
+            'id': idColumn,
+          },
+        );
 
         if (result.isNotEmpty) {
           final dt = result.first['DATA_TYPE'];
@@ -667,17 +739,17 @@ class QueryBuilder {
                 !isAuto && (dataType.contains('char') || dataType == 'uuid'),
           );
         }
-      } else if (DB.driver == DBDriver.postgres) {
-        final result = await DB.query('''
+      } else if (executor.driver == DBDriver.postgres) {
+        final result = await executor.query(
+          '''
         SELECT data_type, is_identity
         FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = :table
           AND column_name = :id
-      ''', namedParams: {
-          'table': table,
-          'id': idColumn,
-        });
+      ''',
+          namedParams: {'table': table, 'id': idColumn},
+        );
 
         if (result.isNotEmpty) {
           final dataType = (result.first['data_type'] as String).toLowerCase();
@@ -720,8 +792,7 @@ class QueryBuilder {
     // Create model instances from results
     final models = <Model>[];
     for (final result in mainResults) {
-      final model = factory() as Model;
-      (model as dynamic).fromMap(result);
+      final model = (factory() as dynamic).fromMap(result) as Model;
       models.add(model);
     }
 
@@ -810,4 +881,11 @@ class _ColumnInfo {
   final bool isString;
 
   _ColumnInfo({required this.isAutoIncrement, required this.isString});
+}
+
+class _WhereClause {
+  final String connector;
+  final String sql;
+
+  _WhereClause(this.connector, this.sql);
 }

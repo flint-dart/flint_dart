@@ -22,11 +22,13 @@ class IsolateTaskQueue {
     await _initWorker();
 
     for (final task in tasks) {
-      workerManager.execute(() async => task.performTask()).then((result) {
-        if (onDone != null) onDone(task, result);
-      }).catchError((e) {
-        if (onError != null) onError(task, e);
-      });
+      unawaited(
+        workerManager.execute(() async => task.performTask()).then((result) {
+          if (onDone != null) onDone(task, result);
+        }).catchError((e) {
+          if (onError != null) onError(task, e);
+        }),
+      );
     }
   }
 }

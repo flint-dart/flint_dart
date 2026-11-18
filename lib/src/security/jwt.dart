@@ -9,8 +9,17 @@ class FlintJwt {
     Map<String, dynamic> payload, {
     Duration expiry = const Duration(hours: 1),
   }) {
-    final jwt = JWT(payload);
-    return jwt.sign(SecretKey(secretKey), expiresIn: expiry);
+    final now = DateTime.now();
+
+    final jwtPayload = {
+      ...payload,
+      'iat': now.millisecondsSinceEpoch ~/ 1000,
+      'exp': now.add(expiry).millisecondsSinceEpoch ~/ 1000,
+    };
+
+    final jwt = JWT(jwtPayload);
+
+    return jwt.sign(SecretKey(secretKey));
   }
 
   Map<String, dynamic>? verifyToken(String token) {

@@ -1,9 +1,10 @@
-import 'dart:io';
-import 'base_http_error.dart';
+class HttpException implements Exception {
+  final int status;
+  final String message;
+  final dynamic data;
 
-class HttpResponseErorr extends BaseHttpResponseErorr {
-  HttpResponseErorr({
-    super.message,
-    super.code = HttpStatus.found,
-  });
+  HttpException(this.status, this.message, {this.data});
+
+  @override
+  String toString() => message;
 }

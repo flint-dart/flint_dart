@@ -2,16 +2,47 @@
 class SwaggerGenerator {
   final paths = <String, dynamic>{};
   final servers = <Map<String, dynamic>>[];
+  final websocketPaths = <String, dynamic>{};
+  final queryPaths = <String, dynamic>{};
 
-  void addRoute(
-    String fullPath,
-    String method,
-    Map<String, dynamic> operation,
-    List<String> routeServers,
-  ) {
+  void addRoute(String fullPath, String method, Map<String, dynamic> operation,
+      List<String> routeServers,
+      {bool isWebSocket = false}) {
+    final normalizedMethod = method.toLowerCase();
+
+    if (isWebSocket) {
+      websocketPaths[fullPath] = operation;
+    }
+
     // Initialize path if not exists
     paths.putIfAbsent(fullPath, () => {});
-    paths[fullPath][method] = operation;
+
+    if (normalizedMethod == 'query') {
+      final queryOperation = {
+        ...operation,
+        'x-http-method': 'QUERY',
+        'x-openapi-operation-key-unavailable': true,
+      };
+      final existingOperation =
+          paths[fullPath]['x-flint-query'] as Map<String, dynamic>?;
+      if (existingOperation == null) {
+        paths[fullPath]['x-flint-query'] = queryOperation;
+        queryPaths[fullPath] = queryOperation;
+      } else {
+        final merged = _mergeOperations(existingOperation, queryOperation);
+        paths[fullPath]['x-flint-query'] = merged;
+        queryPaths[fullPath] = merged;
+      }
+    } else {
+      final existingOperation =
+          paths[fullPath][normalizedMethod] as Map<String, dynamic>?;
+      if (existingOperation == null) {
+        paths[fullPath][normalizedMethod] = operation;
+      } else {
+        paths[fullPath][normalizedMethod] =
+            _mergeOperations(existingOperation, operation);
+      }
+    }
 
     // Collect unique servers
     for (var server in routeServers) {
@@ -30,12 +61,24 @@ class SwaggerGenerator {
     List<Map<String, dynamic>>? parameters,
     String? auth,
     required String fullPath,
+    bool isWebSocket = false,
   }) {
+    final normalizedResponses = <String, dynamic>{...responses};
     final operation = <String, dynamic>{
       "summary": summary,
       "tags": tags,
-      "responses": responses,
+      "responses": normalizedResponses,
     };
+
+    if (isWebSocket) {
+      normalizedResponses.putIfAbsent(
+        '101',
+        () => {"description": "Switching Protocols"},
+      );
+      operation['x-websocket'] = true;
+      operation['x-flint-transport'] = 'websocket';
+      operation['x-flint-namespace'] = fullPath;
+    }
 
     // Add requestBody if provided
     if (requestBody != null) {
@@ -74,6 +117,44 @@ class SwaggerGenerator {
     return operation;
   }
 
+  Map<String, dynamic> _mergeOperations(
+    Map<String, dynamic> existing,
+    Map<String, dynamic> incoming,
+  ) {
+    final merged = <String, dynamic>{...existing};
+
+    incoming.forEach((key, value) {
+      if (key == 'responses' &&
+          value is Map<String, dynamic> &&
+          existing[key] is Map<String, dynamic>) {
+        merged[key] = {
+          ...(existing[key] as Map<String, dynamic>),
+          ...value,
+        };
+        return;
+      }
+
+      if (key == 'parameters' &&
+          value is List &&
+          existing[key] is List<Map<String, dynamic>>) {
+        final params = <String, Map<String, dynamic>>{};
+        for (final parameter
+            in (existing[key] as List).cast<Map<String, dynamic>>()) {
+          params['${parameter["in"]}:${parameter["name"]}'] = parameter;
+        }
+        for (final parameter in value.cast<Map<String, dynamic>>()) {
+          params['${parameter["in"]}:${parameter["name"]}'] = parameter;
+        }
+        merged[key] = params.values.toList();
+        return;
+      }
+
+      merged[key] = value;
+    });
+
+    return merged;
+  }
+
   List<Map<String, dynamic>> _extractPathParams(String path) {
     final params = <Map<String, dynamic>>[];
     final exp = RegExp(r'\{(\w+)\}');
@@ -98,6 +179,11 @@ class SwaggerGenerator {
       "info": {"title": "Flint API", "version": "1.0.0"},
       if (servers.isNotEmpty) "servers": servers,
       "paths": paths,
+      if (websocketPaths.isNotEmpty) "x-websockets": websocketPaths,
+      if (queryPaths.isNotEmpty) "x-flint-query-routes": queryPaths,
+      if (queryPaths.isNotEmpty)
+        "x-flint-query-openapi-note":
+            "OpenAPI 3.0 has no standard QUERY operation key. Flint preserves HTTP QUERY operations with x-http-method: QUERY.",
       "components": {
         "securitySchemes": {
           "bearer": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"},

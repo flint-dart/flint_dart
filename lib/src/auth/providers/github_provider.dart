@@ -14,7 +14,7 @@ class GitHubProvider {
     required String redirectBase,
   }) async {
     if (clientId == null || clientSecret == null) {
-      throw AuthException('GitHub OAuth is not configured');
+      throw AuthException(message: 'GitHub OAuth is not configured');
     }
 
     final redirectUri = callbackPath != null
@@ -36,11 +36,31 @@ class GitHubProvider {
     String? email = profile['email'];
     if (email == null || email.isEmpty) {
       final emails = await _fetchUserEmails(accessToken);
-      final primaryEmail = emails.firstWhere(
-        (e) => e['primary'] == true,
-        orElse: () => emails.firstWhere((e) => e['verified'] == true),
-      );
-      email = primaryEmail['email'];
+      Map<String, dynamic>? selected;
+
+      for (final entry in emails) {
+        if (entry is Map<String, dynamic> && entry['primary'] == true) {
+          selected = entry;
+          break;
+        }
+      }
+      selected ??= emails
+          .whereType<Map<String, dynamic>>()
+          .cast<Map<String, dynamic>>()
+          .firstWhere(
+            (e) => e['verified'] == true,
+            orElse: () => <String, dynamic>{},
+          );
+      selected = selected.isNotEmpty
+          ? selected
+          : emails.whereType<Map<String, dynamic>>().isNotEmpty
+              ? emails.whereType<Map<String, dynamic>>().first
+              : null;
+
+      email = selected?['email']?.toString();
+      if (email == null || email.isEmpty) {
+        throw AuthException(message: 'No usable email found for GitHub user');
+      }
     }
 
     return AuthProvider.formatUserData(
@@ -80,14 +100,16 @@ class GitHubProvider {
     client.close();
 
     if (resp.statusCode != 200) {
-      throw AuthException('Failed to exchange GitHub code: ${resp.statusCode}');
+      throw AuthException(
+          message: 'Failed to exchange GitHub code: ${resp.statusCode}');
     }
 
     final tokenData = json.decode(responseBody) as Map<String, dynamic>;
     final accessToken = tokenData['access_token'] as String?;
 
     if (accessToken == null) {
-      throw AuthException('No access token received from GitHub: $tokenData');
+      throw AuthException(
+          message: 'No access token received from GitHub: $tokenData');
     }
 
     return accessToken;
@@ -107,7 +129,8 @@ class GitHubProvider {
     client.close();
 
     if (resp.statusCode != 200) {
-      throw AuthException('Failed to fetch GitHub profile: ${resp.statusCode}');
+      throw AuthException(
+          message: 'Failed to fetch GitHub profile: ${resp.statusCode}');
     }
 
     return json.decode(responseBody) as Map<String, dynamic>;
@@ -126,13 +149,14 @@ class GitHubProvider {
     client.close();
 
     if (resp.statusCode != 200) {
-      throw AuthException('Failed to fetch GitHub emails: ${resp.statusCode}');
+      throw AuthException(
+          message: 'Failed to fetch GitHub emails: ${resp.statusCode}');
     }
 
     final emails = json.decode(responseBody) as List<dynamic>;
 
     if (emails.isEmpty) {
-      throw AuthException('No emails found for GitHub user');
+      throw AuthException(message: 'No emails found for GitHub user');
     }
 
     return emails;

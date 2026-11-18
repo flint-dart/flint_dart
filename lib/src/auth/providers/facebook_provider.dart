@@ -15,7 +15,7 @@ class FacebookProvider extends AuthProvider {
     required String redirectBase,
   }) async {
     if (clientId == null || clientSecret == null) {
-      throw AuthException('Facebook OAuth is not configured');
+      throw AuthException(message: 'Facebook OAuth is not configured');
     }
 
     String finalAccessToken = accessToken ?? '';
@@ -33,11 +33,16 @@ class FacebookProvider extends AuthProvider {
     }
 
     if (finalAccessToken.isEmpty) {
-      throw AuthException('Either accessToken or code must be provided');
+      throw AuthException(
+          message: 'Either accessToken or code must be provided');
     }
 
     // Verify token and get user profile
-    final profile = await _verifyTokenAndGetProfile(finalAccessToken, clientId);
+    final profile = await _verifyTokenAndGetProfile(
+      finalAccessToken,
+      clientId,
+      clientSecret,
+    );
 
     return AuthProvider.formatUserData(
       provider: 'facebook',
@@ -70,14 +75,14 @@ class FacebookProvider extends AuthProvider {
 
     if (resp.statusCode != 200) {
       throw AuthException(
-          'Failed to exchange Facebook code: ${resp.statusCode}');
+          message: 'Failed to exchange Facebook code: ${resp.statusCode}');
     }
 
     final tokenData = json.decode(responseBody) as Map<String, dynamic>;
     final accessToken = tokenData['access_token'] as String?;
 
     if (accessToken == null) {
-      throw AuthException('No access token received from Facebook');
+      throw AuthException(message: 'No access token received from Facebook');
     }
 
     return accessToken;
@@ -86,11 +91,12 @@ class FacebookProvider extends AuthProvider {
   static Future<Map<String, dynamic>> _verifyTokenAndGetProfile(
     String accessToken,
     String clientId,
+    String clientSecret,
   ) async {
     // First verify the token
     final verifyUri = Uri.https('graph.facebook.com', '/debug_token', {
       'input_token': accessToken,
-      'access_token': '$clientId|$clientId',
+      'access_token': '$clientId|$clientSecret',
     });
 
     final client = HttpClient();
@@ -100,14 +106,15 @@ class FacebookProvider extends AuthProvider {
 
     if (resp.statusCode != 200) {
       throw AuthException(
-          'Failed to verify Facebook token: ${resp.statusCode}');
+          message: 'Failed to verify Facebook token: ${resp.statusCode}');
     }
 
     final verifyData = json.decode(responseBody) as Map<String, dynamic>;
     final isValid = verifyData['data']?['is_valid'] == true;
+    final appId = verifyData['data']?['app_id']?.toString();
 
-    if (!isValid) {
-      throw AuthException('Invalid Facebook token');
+    if (!isValid || appId != clientId) {
+      throw AuthException(message: 'Invalid Facebook token');
     }
 
     // Get user profile
@@ -123,7 +130,7 @@ class FacebookProvider extends AuthProvider {
 
     if (resp.statusCode != 200) {
       throw AuthException(
-          'Failed to fetch Facebook profile: ${resp.statusCode}');
+          message: 'Failed to fetch Facebook profile: ${resp.statusCode}');
     }
 
     return json.decode(responseBody) as Map<String, dynamic>;

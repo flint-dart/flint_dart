@@ -12,6 +12,7 @@ class CorsMiddleware extends Middleware {
       'POST',
       'PUT',
       'DELETE',
+      'QUERY',
       'OPTIONS',
       'PATCH'
     ],
@@ -20,9 +21,28 @@ class CorsMiddleware extends Middleware {
 
   @override
   Handler handle(Handler next) {
-    return (Request req, Response res) async {
-      res.raw.headers
-          .add('Access-Control-Allow-Origin', allowedOrigins.join(','));
+    return (ctx) async {
+      final res = ctx.res;
+      if (res == null) {
+        return await next(ctx);
+      }
+
+      final requestOrigin = ctx.req.raw.headers.value('origin');
+      String? allowOrigin;
+
+      if (allowedOrigins.contains('*')) {
+        // CORS requires a single origin value, not a comma-separated list.
+        allowOrigin = requestOrigin ?? '*';
+      } else if (requestOrigin != null &&
+          allowedOrigins.contains(requestOrigin)) {
+        allowOrigin = requestOrigin;
+      }
+
+      if (allowOrigin != null) {
+        res.raw.headers.add('Access-Control-Allow-Origin', allowOrigin);
+        res.raw.headers.add('Vary', 'Origin');
+      }
+
       res.raw.headers
           .add('Access-Control-Allow-Methods', allowedMethods.join(','));
       res.raw.headers
@@ -30,13 +50,13 @@ class CorsMiddleware extends Middleware {
       res.raw.headers.add('Access-Control-Allow-Credentials', 'true');
 
       // Respond to OPTIONS preflight requests immediately
-      if (req.method == 'OPTIONS') {
+      if (ctx.req.method == 'OPTIONS') {
         res.raw.statusCode = 204;
-        await res.raw.close();
-        return res;
+        await res.close();
+        return null;
       }
 
-      return next(req, res);
+      return await next(ctx);
     };
   }
 }

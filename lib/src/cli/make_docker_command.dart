@@ -6,7 +6,7 @@ import 'package:path/path.dart' as path;
 
 class MakeDockerCommand extends FlintCommand {
   MakeDockerCommand()
-      : super('make:docker', 'Creates Docker configuration for the project');
+      : super('--make-docker', 'Creates Docker configuration for the project');
 
   @override
   Future<void> execute(List<String> args) async {
@@ -30,17 +30,16 @@ class MakeDockerCommand extends FlintCommand {
     final nameMatch = RegExp(r'name:\s*(\S+)').firstMatch(pubspec);
     final projectName = nameMatch?.group(1) ?? 'flint_app';
 
+    final port = envVars['PORT'] ?? '3000';
+
     // Create Dockerfile
-    _createDockerfile(outputDir, projectName);
+    _createDockerfile(outputDir, projectName, port);
 
     // Create docker-compose.yml with actual environment values
     _createDockerCompose(outputDir, projectName, envVars);
 
-    // Create nginx configuration
-    _createNginxConfig(outputDir, projectName);
-
     // Create deployment script
-    _createDeployScript(outputDir);
+    _createDeployScript(outputDir, port);
 
     // Create .dockerignore
     _createDockerIgnore(outputDir);
@@ -113,43 +112,31 @@ class MakeDockerCommand extends FlintCommand {
     return envVars;
   }
 
-  void _createDockerfile(String outputDir, String projectName) {
-    final content = '''FROM dart:stable AS builder
+  void _createDockerfile(String outputDir, String projectName, String port) {
+    final content = '''FROM dart:stable
 
 WORKDIR /app
+
+# Install project dependencies.
+# If dependency_overrides contains local path entries, remove that block so
+# docker builds resolve package versions from pub instead of local filesystem.
 COPY pubspec.* ./
+RUN if grep -q "^dependency_overrides:" pubspec.yaml; then \\
+      awk 'BEGIN{skip=0} /^dependency_overrides:/ {skip=1; next} skip && /^[^[:space:]]/ {skip=0} !skip {print}' pubspec.yaml > pubspec.docker.yaml && \\
+      mv pubspec.docker.yaml pubspec.yaml; \\
+    fi
 RUN dart pub get
 
+# Copy app source and refresh lock-resolved dependencies
 COPY . .
 RUN dart pub get --offline
-RUN dart compile exe lib/main.dart -o /app/$projectName
 
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y \\
-    ca-certificates \\
-    curl \\
-    && rm -rf /var/lib/apt/lists/*
+ENV FLINT_HOT=0
+ARG APP_PORT=$port
+ENV PORT=\$APP_PORT
+EXPOSE \$APP_PORT
 
-WORKDIR /app
-COPY --from=builder /app/$projectName /app/
-
-# Copy environment file and other assets
-COPY .env /app/.env
-COPY config/ /app/config/
-COPY views/ /app/views/
-COPY public/ /app/public/
-
-# Create a non-root user
-RUN useradd -m -u 1000 flint && chown -R flint:flint /app
-USER flint
-
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \\\\
-    CMD curl -f http://localhost:3000/health || exit 1
-
-CMD ["/app/$projectName"]
+CMD ["dart", "run", "lib/main.dart"]
 ''';
 
     File(path.join(outputDir, 'Dockerfile')).writeAsStringSync(content);
@@ -157,10 +144,6 @@ CMD ["/app/$projectName"]
 
   void _createDockerCompose(
       String outputDir, String projectName, Map<String, String> envVars) {
-    final dbConnection = envVars['DB_CONNECTION'] ?? 'postgres';
-    final dbName = envVars['DB_NAME'] ?? 'flint';
-    final dbUser = envVars['DB_USER'] ?? 'postgres';
-    final dbPassword = envVars['DB_PASSWORD'] ?? 'password';
     final port = envVars['PORT'] ?? '3000';
 
     final content = '''version: '3.8'
@@ -170,120 +153,22 @@ services:
     build: 
       context: ..
       dockerfile: $outputDir/Dockerfile
+      args:
+        APP_PORT: $port
     ports:
       - "$port:$port"
     env_file:
       - .env
     environment:
-      - DB_HOST=$dbConnection
       - FLINT_HOT=0
       - PORT=$port
-    depends_on:
-      - $dbConnection
-      - redis
     restart: unless-stopped
-    volumes:
-      - uploads:/app/uploads
-
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: $dbName
-      POSTGRES_USER: $dbUser
-      POSTGRES_PASSWORD: $dbPassword
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: unless-stopped
-
-  mysql:
-    image: mysql:8.0
-    environment:
-      MYSQL_DATABASE: $dbName
-      MYSQL_USER: $dbUser
-      MYSQL_PASSWORD: $dbPassword
-      MYSQL_ROOT_PASSWORD: \${DB_ROOT_PASSWORD:-root_password}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./init-mysql.sql:/docker-entrypoint-initdb.d/init.sql
-    restart: unless-stopped
-    command: --default-authentication-plugin=mysql_native_password
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - $projectName
-    restart: unless-stopped
-
-volumes:
-  postgres_data:
-  mysql_data:
-  uploads:
 ''';
 
     File(path.join(outputDir, 'docker-compose.yml')).writeAsStringSync(content);
   }
 
-  void _createNginxConfig(String outputDir, String projectName) {
-    final content = '''events {
-    worker_connections 1024;
-}
-
-http {
-    upstream flint_backend {
-        server $projectName:3000;
-    }
-
-    server {
-        listen 80;
-        server_name localhost;
-
-        location / {
-            proxy_pass http://flint_backend;
-            proxy_set_header Host \$host;
-            proxy_set_header X-Real-IP \$remote_addr;
-            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto \$scheme;
-        }
-
-        # WebSocket support
-        location /ws {
-            proxy_pass http://flint_backend;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade \$http_upgrade;
-            proxy_set_header Connection "upgrade";
-            proxy_set_header Host \$host;
-        }
-
-        # Health check endpoint
-        location /health {
-            proxy_pass http://flint_backend;
-            access_log off;
-        }
-    }
-}
-''';
-
-    File(path.join(outputDir, 'nginx.conf')).writeAsStringSync(content);
-  }
-
-  void _createDeployScript(String outputDir) {
+  void _createDeployScript(String outputDir, String port) {
     final content = '''#!/bin/bash
 
 set -e
@@ -305,6 +190,11 @@ fi
 
 echo -e "\${GREEN}📁 Using your existing .env configuration\${NC}"
 
+APP_PORT=\$(grep -E '^PORT=' .env | tail -n 1 | cut -d '=' -f2- | tr -d '"' | tr -d "'" | tr -d ' ')
+if [ -z "\$APP_PORT" ]; then
+    APP_PORT="$port"
+fi
+
 # Stop existing containers
 echo -e "\${YELLOW}🛑 Stopping existing services...\${NC}"
 docker-compose down
@@ -322,10 +212,7 @@ if docker-compose ps | grep -q "Up"; then
     echo -e "\${GREEN}✅ Deployment successful!\${NC}"
     echo ""
     echo -e "\${GREEN}🌐 Your application is running at:\${NC}"
-    echo -e "   • Frontend: http://localhost"
-    echo -e "   • API: http://localhost:3000"
-    echo -e "   • PostgreSQL: localhost:5432"
-    echo -e "   • Redis: localhost:6379"
+    echo -e "   • API: http://localhost:\$APP_PORT"
     echo ""
     echo -e "\${YELLOW}🔍 View logs: \${NC}docker-compose logs -f"
     echo -e "\${YELLOW}🛑 Stop services: \${NC}docker-compose down"
@@ -346,6 +233,8 @@ fi
   }
 
   void _createDockerIgnore(String outputDir) {
+    final ignoreOutputDir =
+        outputDir == '.' || outputDir == './' ? '' : '$outputDir/\n';
     final content = '''.git
 .gitignore
 README.md
@@ -357,8 +246,7 @@ build/
 .dart_tool/
 .packages
 pubspec.lock
-$outputDir/
-''';
+$ignoreOutputDir''';
 
     File(path.join(outputDir, '.dockerignore')).writeAsStringSync(content);
   }

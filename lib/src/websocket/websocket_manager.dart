@@ -19,7 +19,7 @@ class WebSocketManager {
   void removeClient(String id) {
     final client = _clients.remove(id);
     if (client != null) {
-      for (var room in client.rooms.toList()) {
+      for (final room in client.scopedRooms.toList()) {
         _rooms[room]?.remove(client);
         if (_rooms[room]?.isEmpty ?? false) {
           _rooms.remove(room);
@@ -28,29 +28,94 @@ class WebSocketManager {
     }
   }
 
-  void addToRoom(String room, FlintWebSocket client) {
-    _rooms.putIfAbsent(room, () => {}).add(client);
+  String normalizeNamespace(String namespace) {
+    var normalized = namespace.trim();
+    if (normalized.isEmpty) return '/';
+    if (!normalized.startsWith('/')) {
+      normalized = '/$normalized';
+    }
+
+    normalized = normalized.replaceAll(RegExp(r'/+'), '/');
+    if (normalized.length > 1 && normalized.endsWith('/')) {
+      normalized = normalized.substring(0, normalized.length - 1);
+    }
+
+    return normalized;
   }
 
-  void removeFromRoom(String room, FlintWebSocket client) {
-    _rooms[room]?.remove(client);
-    if (_rooms[room]?.isEmpty ?? false) {
-      _rooms.remove(room);
+  String scopeRoom(String namespace, String room) {
+    return '${normalizeNamespace(namespace)}::$room';
+  }
+
+  Set<FlintWebSocket>? roomClients(String namespace, String room) {
+    return _rooms[scopeRoom(namespace, room)];
+  }
+
+  Iterable<FlintWebSocket> namespaceClients(String namespace) sync* {
+    final normalizedNamespace = normalizeNamespace(namespace);
+    for (final client in _clients.values) {
+      if (client.namespace == normalizedNamespace) {
+        yield client;
+      }
     }
   }
 
-  void emit(String room, String event, dynamic data) {
-    final roomClients = _rooms[room];
+  void addToRoom(String namespace, String room, FlintWebSocket client) {
+    final scopedRoom = scopeRoom(namespace, room);
+    _rooms.putIfAbsent(scopedRoom, () => {}).add(client);
+  }
+
+  void removeFromRoom(String namespace, String room, FlintWebSocket client) {
+    final scopedRoom = scopeRoom(namespace, room);
+    _rooms[scopedRoom]?.remove(client);
+    if (_rooms[scopedRoom]?.isEmpty ?? false) {
+      _rooms.remove(scopedRoom);
+    }
+  }
+
+  void emit(String room, String event, dynamic data, {String namespace = '/'}) {
+    emitToPathRoom(namespace, room, event, data);
+  }
+
+  void emitToRoom(String room, String event, dynamic data,
+      {String namespace = '/'}) {
+    emitToPathRoom(namespace, room, event, data);
+  }
+
+  void emitToPathRoom(
+    String namespace,
+    String room,
+    String event,
+    dynamic data, {
+    String? excludeClientId,
+  }) {
+    final roomClients = this.roomClients(namespace, room);
     if (roomClients == null) return;
 
-    Log.debug('[WS] Emitting to room $room: $event');
+    final normalizedNamespace = normalizeNamespace(namespace);
+    Log.debug('[WS] Emitting to room $room in $normalizedNamespace: $event');
     for (final client in roomClients) {
+      if (excludeClientId != null && client.id == excludeClientId) {
+        continue;
+      }
       client.emit(event, data);
     }
   }
 
-  void emitToRoom(String room, String event, dynamic data) {
-    emit(room, event, data);
+  void emitToNamespace(
+    String namespace,
+    String event,
+    dynamic data, {
+    String? excludeClientId,
+  }) {
+    final normalizedNamespace = normalizeNamespace(namespace);
+    Log.debug('[WS] Emitting to namespace $normalizedNamespace: $event');
+    for (final client in namespaceClients(normalizedNamespace)) {
+      if (excludeClientId != null && client.id == excludeClientId) {
+        continue;
+      }
+      client.emit(event, data);
+    }
   }
 
   void emitToClient(String clientId, String event, dynamic data) {

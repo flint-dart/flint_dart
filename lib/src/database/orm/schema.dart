@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flint_dart/db.dart';
 import 'package:flint_dart/flint_dart.dart';
 
 enum ForeignKeyAction { cascade, restrict, setNull, noAction, setDefault }
@@ -32,7 +31,7 @@ class Table {
     final hasPrimary = columns.any((c) => c.isPrimaryKey);
     if (!hasPrimary) {
       return [
-        Column(
+        const Column(
           name: 'id',
           type: ColumnType.string,
           isPrimaryKey: true,
@@ -74,8 +73,17 @@ class Column {
   /// A list of allowed values (used for ENUM columns).
   final List<String>? options;
 
+  /// Optional database-level comment for the column.
+  final String? comment;
+
+  /// Optional column name to place this column after when adding it to MySQL.
+  final String? after;
+
+  /// Previous column name to rename from during migration.
+  final String? renamedFrom;
+
   /// Creates a new [Column] definition.
-  Column({
+  const Column({
     required this.name,
     required this.type,
     this.isPrimaryKey = false,
@@ -85,6 +93,9 @@ class Column {
     this.length = 255,
     this.defaultValue,
     this.options,
+    this.comment,
+    this.after,
+    this.renamedFrom,
   });
 
   /// Returns a new [Column] with updated values while keeping immutability.
@@ -98,6 +109,9 @@ class Column {
     bool? isUnique,
     dynamic defaultValue,
     List<String>? options,
+    String? comment,
+    String? after,
+    String? renamedFrom,
   }) {
     return Column(
       name: name ?? this.name,
@@ -109,7 +123,82 @@ class Column {
       isUnique: isUnique ?? this.isUnique,
       defaultValue: defaultValue ?? this.defaultValue,
       options: options ?? this.options,
+      comment: comment ?? this.comment,
+      after: after ?? this.after,
+      renamedFrom: renamedFrom ?? this.renamedFrom,
     );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Column &&
+        other.name == name &&
+        other.type == type &&
+        other.length == length &&
+        other.isPrimaryKey == isPrimaryKey &&
+        other.isAutoIncrement == isAutoIncrement &&
+        other.isNullable == isNullable &&
+        other.isUnique == isUnique &&
+        _valuesEqual(other.defaultValue, defaultValue) &&
+        _listEquals(other.options, options) &&
+        other.comment == comment;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        name,
+        type,
+        length,
+        isPrimaryKey,
+        isAutoIncrement,
+        isNullable,
+        isUnique,
+        _valueHash(defaultValue),
+        Object.hashAll(options ?? const <String>[]),
+        comment,
+      );
+
+  static bool _listEquals(List<String>? a, List<String>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null || a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  static bool _valuesEqual(dynamic a, dynamic b) {
+    if (identical(a, b)) return true;
+    if (a is List && b is List) {
+      if (a.length != b.length) return false;
+      for (var i = 0; i < a.length; i++) {
+        if (!_valuesEqual(a[i], b[i])) return false;
+      }
+      return true;
+    }
+    if (a is Map && b is Map) {
+      if (a.length != b.length) return false;
+      for (final key in a.keys) {
+        if (!b.containsKey(key) || !_valuesEqual(a[key], b[key])) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return a == b;
+  }
+
+  static int _valueHash(dynamic value) {
+    if (value is List) {
+      return Object.hashAll(value.map(_valueHash));
+    }
+    if (value is Map) {
+      final entries = value.entries
+          .map((entry) => Object.hash(entry.key, _valueHash(entry.value)));
+      return Object.hashAll(entries);
+    }
+    return value.hashCode;
   }
 }
 
@@ -124,6 +213,12 @@ enum ColumnType {
 
   /// Long text type (e.g., TEXT)
   text,
+
+  /// Long text type for large documents and payloads (e.g., LONGTEXT in MySQL, TEXT in PostgreSQL)
+  longText,
+
+  /// Medium text type (e.g., MEDIUMTEXT in MySQL, TEXT in PostgreSQL)
+  mediumText,
 
   /// Boolean type (e.g., TRUE/FALSE, 1/0)
   boolean,

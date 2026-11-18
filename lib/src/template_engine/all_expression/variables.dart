@@ -186,6 +186,10 @@ class VariablesProcessor implements BaseExpression {
   dynamic _evaluateExpression(String expr, Map<String, dynamic> context) {
     expr = expr.trim();
 
+    // ✅ ADD THIS
+    final nullCoalescing = _evaluateNullCoalescing(expr, context);
+    if (nullCoalescing != null) return nullCoalescing;
+
     // If it's just a simple variable path, fetch it directly
     if (!_containsOperators(expr)) {
       return _fetchValue(expr, context) ?? expr;
@@ -207,6 +211,21 @@ class VariablesProcessor implements BaseExpression {
 
     // Simple operand
     return _evalOperand(expr, context);
+  }
+
+// Null coalescing operator ??
+  dynamic _evaluateNullCoalescing(String expr, Map<String, dynamic> context) {
+    if (!expr.contains('??')) return null;
+
+    final parts = expr.split('??').map((e) => e.trim()).toList();
+    if (parts.length != 2) return null;
+
+    final left = _evaluateExpression(parts[0], context);
+    if (left != null && left.toString().isNotEmpty) {
+      return left;
+    }
+
+    return _evaluateExpression(parts[1], context);
   }
 
   /// Check if expression contains operators

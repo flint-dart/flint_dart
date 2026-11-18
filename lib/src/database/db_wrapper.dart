@@ -1,5 +1,9 @@
 // db_wrapper.dart
+import 'db_driver.dart';
+
 abstract class DBWrapper {
+  DBDriver get driver;
+
   Future<void> beginTransaction();
   Future<void> commit();
   Future<void> rollback();
@@ -14,6 +18,8 @@ abstract class DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   });
+
+  Future<dynamic> getLastInsertId(String tableName, String primaryKey);
 
   Future<void> close();
   bool get isConnected;

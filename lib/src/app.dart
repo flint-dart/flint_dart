@@ -1,40 +1,123 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:flint_dart/ai.dart';
+import 'package:flint_dart/cache.dart';
 import 'package:flint_dart/logs.dart';
 import 'package:flint_dart/mail.dart';
+import 'package:flint_dart/middlewares.dart';
+import 'package:flint_dart/model.dart';
+import 'package:flint_dart/src/controller.dart' as controller_api;
 import 'package:flint_dart/src/database/db.dart';
-import 'package:flint_dart/src/middleware/cookie_session_middleware.dart';
+import 'package:flint_dart/src/database/migrations.dart';
+import 'package:flint_dart/src/database/seeder.dart';
+import 'package:flint_dart/src/database/orm/global_table_registry.dart';
+import 'package:flint_dart/src/env_parser.dart';
+import 'package:flint_dart/src/jobs/flint_job_models.dart';
+import 'package:flint_dart/src/jobs/flint_jobs.dart';
+import 'package:flint_dart/src/jobs/jobs_registry.dart';
 import 'package:flint_dart/src/routing/route_builder.dart';
 import 'package:flint_dart/src/routing/route_group.dart';
+import 'package:flint_dart/schema.dart' as schema;
 
-import 'package:flint_dart/src/websocket/ws_helper.dart';
+import 'context.dart';
 import 'package:flint_dart/src/websocket/ws_manager_instance.dart';
 import 'package:mime/mime.dart';
-import 'middleware/middleware.dart';
 import 'request.dart';
 import 'response.dart';
 import 'routing/router.dart';
 import 'websocket/websocket.dart'; // FlintWebSocket and wsManager
-import 'websocket/ws_router.dart'; // _WsRoute, WsHandler, WsAuthMiddleware typedefs
+import 'websocket/ws_router.dart'; // WsRoute
 import 'package:path/path.dart' as path;
 import 'package:package_config/package_config.dart';
 
-Future<String> _getFlintDartLibPath() async {
-  // Load the package configuration from the sample project
-  final packageConfig = await findPackageConfig(Directory.current);
-  if (packageConfig == null) {
-    throw Exception(
-        'Could not find package configuration in ${Directory.current.path}');
+Future<String?> _getFlintDartLibPath() async {
+  try {
+    final packageConfig = await findPackageConfig(Directory.current);
+    if (packageConfig == null) {
+      return null;
+    }
+
+    final flintPackage = packageConfig['flint_dart'];
+    if (flintPackage == null) {
+      return null;
+    }
+
+    return path.join(
+        flintPackage.root.toFilePath(windows: Platform.isWindows), 'lib');
+  } catch (e) {
+    Log.debug('[FLINT] Swagger package path resolution failed: $e');
+    return null;
+  }
+}
+
+class ControllerRouteBuilder<T extends controller_api.Controller> {
+  final Flint _app;
+  final controller_api.ControllerFactory<T> _factory;
+
+  ControllerRouteBuilder(this._app, this._factory);
+
+  RouteBuilder get(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.get(path, controller_api.controller(_factory, action));
   }
 
-  // Find the flint_dart package
-  final flintPackage = packageConfig['flint_dart'];
-  if (flintPackage == null) {
-    throw Exception('flint_dart package not found in dependencies');
+  RouteBuilder post(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.post(path, controller_api.controller(_factory, action));
   }
 
-  // Return the path to flint_dart's lib folder
-  return path.join(
-      flintPackage.root.toFilePath(windows: Platform.isWindows), 'lib');
+  RouteBuilder put(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.put(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder patch(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.patch(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder query(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.query(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder delete(
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.delete(path, controller_api.controller(_factory, action));
+  }
+
+  RouteBuilder route(
+    String method,
+    String path,
+    controller_api.ControllerCallback<T> action,
+  ) {
+    return _app.route(
+        method, path, controller_api.controller(_factory, action));
+  }
+
+  void websocket(
+    String path,
+    void Function(T controller) action, {
+    List<Middleware> middlewares = const [],
+  }) {
+    _app.websocket(
+      path,
+      controller_api.controllerVoid(_factory, action),
+      middlewares: middlewares,
+    );
+  }
 }
 
 //  void _registerSwaggerDocs() async {
@@ -92,11 +175,12 @@ Future<String> _getFlintDartLibPath() async {
 ///
 /// Provides:
 /// - HTTP route handling (`get`, `post`, `put`, etc.)
-/// - WebSocket routing with optional authentication
+/// - WebSocket routing
 /// - Static file serving
 /// - Middleware support
 /// - Mounting of sub-applications
 /// - Automatic database connection (via `.env`)
+/// - Shared memory, file, or Redis cache access
 /// - Hot reload support during development
 class Flint {
   /// The root path of your Flint project (defaults to `"lib"`).
@@ -111,6 +195,29 @@ class Flint {
   ///   `DB.connect()` before using any database features.
   final bool autoConnectDb;
 
+  /// Whether to use Redis for [cache] when the app starts.
+  ///
+  /// This is a backwards-compatible shortcut for
+  /// `cacheDriver: CacheDriver.redis`. New applications can use
+  /// [cacheDriver] or `CACHE_DRIVER` instead.
+  final bool autoConnectRedis;
+
+  /// The cache backend shared by the application and every request context.
+  ///
+  /// Constructor configuration takes precedence over `CACHE_DRIVER`. When
+  /// neither is set, Flint uses [CacheDriver.memory].
+  late final CacheDriver cacheDriver;
+
+  /// Directory used by [CacheDriver.file].
+  ///
+  /// Falls back to `CACHE_DIRECTORY`, then `<working directory>/cache`.
+  late final String? cacheDirectory;
+
+  /// Maximum number of entries retained by [CacheDriver.memory].
+  ///
+  /// Falls back to `CACHE_MEMORY_MAX_SIZE`, then `100`.
+  late final int cacheMemoryMaxSize;
+
   /// Whether to include Flint’s default middleware stack.
   ///
   /// - If `true` (default), Flint automatically registers useful middleware
@@ -119,6 +226,24 @@ class Flint {
   ///   This is useful for very minimal or fully customized setups.
   final bool withDefaultMiddleware;
   final bool enableSwaggerDocs;
+  final bool? enableMailPreview;
+  final MailRegistry? mailRegistry;
+  final bool autoConnectMail;
+  final bool? autoMigrate;
+  final bool autoMigrateDefault;
+  final bool autoMigrateCreateDatabase;
+  final bool autoMigrateDuringHotReload;
+  final bool autoMigrateVerbose;
+  final TableRegistry? tableRegistry;
+  final SeederRegistry? seederRegistry;
+  final bool autoSeed;
+  final bool closeSeederConnection;
+  final JobsRegistry? jobsRegistry;
+  final bool autoRegisterJobs;
+  final bool includeJobTablesInMigrations;
+  final FlintPageServerRenderer? _flintPageServerRenderer;
+  final bool _serverRenderFlintPages;
+  bool _jobSchedulesRegistered = false;
 
   /// Creates a new Flint application instance.
   ///
@@ -127,89 +252,393 @@ class Flint {
   Flint(
       {this.rootPath = "lib",
       String? viewPath,
+      FlintPageServerRenderer? flintPageServerRenderer,
+      bool serverRenderFlintPages = false,
       this.autoConnectDb = true,
+      this.autoConnectRedis = false,
+      CacheDriver? cacheDriver,
+      String? cacheDirectory,
+      int? cacheMemoryMaxSize,
+      this.autoConnectMail = true,
+      this.autoMigrate,
+      this.autoMigrateDefault = false,
+      this.autoMigrateCreateDatabase = false,
+      this.autoMigrateDuringHotReload = false,
+      this.autoMigrateVerbose = false,
+      this.tableRegistry,
+      this.seederRegistry,
+      this.autoSeed = false,
+      this.closeSeederConnection = false,
+      this.jobsRegistry,
+      this.autoRegisterJobs = true,
+      this.includeJobTablesInMigrations = true,
       this.withDefaultMiddleware = true,
-      this.enableSwaggerDocs = false}) {
-    if (withDefaultMiddleware) {
-      // _middlewares.add(ExceptionMiddleware());
+      this.enableSwaggerDocs = false,
+      this.enableMailPreview,
+      this.mailRegistry,
+      String? flavor,
+      List<String>? args})
+      : _flintPageServerRenderer = flintPageServerRenderer,
+        _serverRenderFlintPages = serverRenderFlintPages {
+    if (args != null && args.isNotEmpty) {
+      FlintEnv.resolveFlavorFromArgs(args);
     }
-    _middlewares.add(CookieSessionMiddleware());
+    if (flavor != null && flavor.trim().isNotEmpty) {
+      FlintEnv.setFlavor(flavor);
+    }
+    this.cacheDriver = _resolveCacheDriver(cacheDriver, autoConnectRedis);
+    this.cacheDirectory = _resolveCacheDirectory(cacheDirectory);
+    this.cacheMemoryMaxSize =
+        cacheMemoryMaxSize ?? FlintEnv.getInt('CACHE_MEMORY_MAX_SIZE', 100);
+    if (this.cacheMemoryMaxSize <= 0) {
+      throw ArgumentError.value(
+        this.cacheMemoryMaxSize,
+        'cacheMemoryMaxSize',
+        'must be greater than zero',
+      );
+    }
+
+    _fallbackCache = switch (this.cacheDriver) {
+      CacheDriver.memory => MemoryCacheStore(maxSize: this.cacheMemoryMaxSize),
+      CacheDriver.file => FileCacheStore(directory: this.cacheDirectory),
+      CacheDriver.redis => null,
+    };
+    _cache = _fallbackCache;
+
+    DB.setLazyAutoConnect(autoConnectDb);
+    if (autoRegisterJobs) {
+      jobsRegistry?.registerJobs();
+    }
+    mailRegistry?.registerMailables();
+    Response.flintPageServerRenderer = flintPageServerRenderer;
+    Response.flintPageServerRenderingEnabled = serverRenderFlintPages;
+
+    if (withDefaultMiddleware) {
+      _middlewares.add(ExceptionMiddleware());
+      _middlewares.add(CookieSessionMiddleware());
+      _middlewares.add(StaticFileMiddleware());
+    } else {
+      _middlewares.add(CookieSessionMiddleware());
+    }
     if (enableSwaggerDocs) {
       _registerSwaggerDocs();
     }
 
     if (viewPath != null) {
       Flint.viewPath = viewPath;
+      FlintViewPathLookup.customViewPath = viewPath;
+    }
+
+    if ( _shouldEnableMailPreview(enableMailPreview)) {
+      _registerMailPreviewRoutes();
     }
   }
 
-  void _registerSwaggerDocs() async {
-    // Resolve flint_dart's lib path
-    final flintLibPath = await _getFlintDartLibPath();
-    final swaggerDir =
-        Directory(path.join(flintLibPath, 'swagger', 'swagger-ui'));
-    Log.debug('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
-
-    // Serve swagger.json from sample project
-    get('/swagger.json', (req, res) async {
-      final file =
-          File(path.join(Directory.current.path, 'docs', 'swagger.json'));
-      Log.debug('[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
-      if (await file.exists()) {
-        Log.debug('[DEBUG] swagger.json found');
-        final bytes = await file.readAsBytes();
-        res.raw.headers.contentType = ContentType.json;
-        await res.raw.addStream(Stream.fromIterable([bytes]));
-        await res.raw.close();
-      } else {
-        Log.debug('[DEBUG] swagger.json not found');
-        res.raw.statusCode = 404;
-        res.raw.write('swagger.json not found');
-        await res.raw.close();
-      }
-      return;
-    });
-
-    // Check if swagger-ui directory exists
-    if (!await swaggerDir.exists()) {
-      Log.debug(
-          '[FLINT] ⚠️ Warning: Static directory not found: ${swaggerDir.absolute.path}');
-      return;
+  static bool _shouldEnableMailPreview(bool? explicitValue) {
+    if (explicitValue != null) return explicitValue;
+    final env = FlintEnv.get('APP_ENV', FlintEnv.get('FLINT_ENV', 'development'))
+        .trim()
+        .toLowerCase();
+    if (env == 'production' || env == 'prod') {
+      return false;
     }
+    return FlintEnv.getBool('FLINT_MAIL_PREVIEW', true);
+  }
 
-    // Serve static Swagger UI files
-    static('/swagger-ui', swaggerDir.path);
+  /// Registers a [ViewMailable] for live browser preview at `/mail/preview/:name`.
+  void previewMail(ViewMailable mailable, {String? name}) {
+    MailPreviewRegistry.register(mailable, name: name);
+  }
 
-    // Serve /docs
-    get('/docs', (req, res) async {
-      final file = File(path.join(swaggerDir.path, 'index.html'));
-      if (await file.exists()) {
-        var content = await file.readAsString();
+  void _registerMailPreviewRoutes() {
+    get('/mail/preview', (req, res) {
+      return MailPreviewRegistry.handleIndex(req, res, rootPath: rootPath);
+    });
+    get('/mail/preview/:name', (req, res) {
+      return MailPreviewRegistry.handlePreview(req, res, rootPath: rootPath);
+    });
+  }
 
-        // Rewrite asset paths so they load correctly
-        content = content.replaceAll('href="./', 'href="/swagger-ui/');
-        content = content.replaceAll('src="./', 'src="/swagger-ui/');
-        // Replace default Petstore spec with /swagger.json
-
-        res.raw.headers.contentType = ContentType.html;
-        res.raw.write(content);
-        return;
-      } else {
-        res.raw.statusCode = 404;
-        res.raw.write('Swagger UI not found');
+  static CacheDriver _resolveCacheDriver(
+    CacheDriver? configured,
+    bool autoConnectRedis,
+  ) {
+    if (configured != null) {
+      if (autoConnectRedis && configured != CacheDriver.redis) {
+        throw ArgumentError(
+          'autoConnectRedis: true conflicts with cacheDriver: '
+          '${configured.name}. Use CacheDriver.redis or disable '
+          'autoConnectRedis.',
+        );
       }
+      return configured;
+    }
+    if (autoConnectRedis) return CacheDriver.redis;
+
+    final fromEnvironment = FlintEnv.get('CACHE_DRIVER').trim();
+    return fromEnvironment.isEmpty
+        ? CacheDriver.memory
+        : CacheDriver.parse(fromEnvironment);
+  }
+
+  static String? _resolveCacheDirectory(String? configured) {
+    final value = configured ?? FlintEnv.get('CACHE_DIRECTORY');
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  void _registerSwaggerDocs() async {
+    // Always register swagger.json so apps can serve API spec even without UI assets.
+    get('/swagger.json', (req, res) async {
+      final candidates = <File>[
+        File(path.join(Directory.current.path, 'docs', 'swagger.json')),
+        File(path.join(Directory.current.path, 'swagger.json')),
+      ];
+
+      for (final file in candidates) {
+        Log.debug(
+            '[DEBUG] Checking for swagger.json at: ${file.absolute.path}');
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          res.raw.headers.contentType = ContentType.json;
+          await res.raw.addStream(Stream.fromIterable([bytes]));
+          await res.raw.close();
+          return;
+        }
+      }
+
+      res.raw.statusCode = 404;
+      res.raw.write('swagger.json not found');
       await res.raw.close();
       return;
     });
+
+    try {
+      final swaggerDir = await _resolveSwaggerUiDir();
+      if (swaggerDir == null) {
+        Log.debug(
+            '[FLINT] ⚠️ Warning: Swagger UI directory not found. /swagger.json remains available.');
+        get('/docs', (req, res) async {
+          res.raw.statusCode = 404;
+          res.raw.write(
+              'Swagger UI not found. Use /swagger.json or provide swagger-ui assets.');
+          await res.raw.close();
+          return;
+        });
+        return;
+      }
+
+      Log.debug('[DEBUG] Swagger UI directory: ${swaggerDir.absolute.path}');
+      static('/swagger-ui', swaggerDir.path);
+
+      get('/docs', (req, res) async {
+        final file = File(path.join(swaggerDir.path, 'index.html'));
+        if (await file.exists()) {
+          var content = await file.readAsString();
+          content = content.replaceAll('href="./', 'href="/swagger-ui/');
+          content = content.replaceAll('src="./', 'src="/swagger-ui/');
+          content = content.replaceAll(
+              'href="index.css"', 'href="/swagger-ui/index.css"');
+
+          res.raw.headers.contentType = ContentType.html;
+          res.raw.write(content);
+        } else {
+          res.raw.statusCode = 404;
+          res.raw.write('Swagger UI not found');
+        }
+        await res.raw.close();
+        return;
+      });
+    } catch (e) {
+      Log.debug(
+          '[FLINT] ⚠️ Swagger docs bootstrap failed: $e. /swagger.json may still be available.');
+    }
+  }
+
+  Future<Directory?> _resolveSwaggerUiDir() async {
+    final candidates = <String>[];
+    final explicitDir = Platform.environment['FLINT_SWAGGER_UI_DIR'];
+    if (explicitDir != null && explicitDir.trim().isNotEmpty) {
+      candidates.add(explicitDir.trim());
+    }
+
+    // Prefer project-local UI assets first (dev/build output).
+    candidates.add(path.join(Directory.current.path, 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'public', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'build', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, 'build', 'public', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, '..', 'swagger-ui'));
+    candidates
+        .add(path.join(Directory.current.path, 'lib', 'swagger', 'swagger-ui'));
+    candidates.add(path.join(
+        Directory.current.path, 'flint_dart', 'lib', 'swagger', 'swagger-ui'));
+    candidates.add(path.join(Directory.current.path, '..', 'flint_dart', 'lib',
+        'swagger', 'swagger-ui'));
+
+    // Final fallback: framework-bundled assets from package cache.
+    final flintLibPath = await _getFlintDartLibPath();
+    if (flintLibPath != null) {
+      candidates.add(path.join(flintLibPath, 'swagger', 'swagger-ui'));
+    }
+
+    for (final dirPath in candidates) {
+      final dir = Directory(dirPath);
+      if (await dir.exists()) {
+        return dir;
+      }
+    }
+    return null;
   }
 
   final Router _router = Router();
   final List<Middleware> _middlewares = [];
+  final FlintAi _ai = FlintAi(
+    memoryStore: FlintAutoAiMemoryStore(),
+    repository: FlintAutoAiRepository(),
+  );
 
   bool _dbInitialized = false;
+  late final CacheStore? _fallbackCache;
+  CacheStore? _cache;
+  RedisCacheStore? _redisCache;
+  Future<RedisCacheStore>? _redisConnection;
 
   /// Returns `true` if the database connection has been established.
   bool get isDatabaseConnected => _dbInitialized;
+
+  /// Returns `true` once Flint has established its Redis connection.
+  bool get isRedisConnected => _redisCache != null;
+
+  /// The application cache shared by routes, middleware, and controllers.
+  ///
+  /// This is immediately available for memory and file drivers. A Redis
+  /// driver becomes available after Flint starts or [connectRedis] completes.
+  CacheStore get cache {
+    final value = _cache;
+    if (value == null) {
+      throw StateError(
+        'The Redis cache is not connected. Start Flint or call '
+        'await app.connectRedis() before accessing app.cache.',
+      );
+    }
+    return value;
+  }
+
+  /// Connects [cache] using a URL, explicit connection fields, or `REDIS_URL`.
+  ///
+  /// Concurrent and repeated calls reuse the connection owned by this app.
+  Future<RedisCacheStore> connectRedis({
+    String? url,
+    String? host,
+    int port = 6379,
+    bool secure = false,
+    String? username,
+    String? password,
+    int? database,
+    String prefix = 'flint:cache:',
+  }) async {
+    final connected = _redisCache;
+    if (connected != null) return connected;
+
+    final pending = _redisConnection;
+    if (pending != null) return pending;
+
+    final future = _openRedis(
+      url: url,
+      host: host,
+      port: port,
+      secure: secure,
+      username: username,
+      password: password,
+      database: database,
+      prefix: prefix,
+    );
+    _redisConnection = future;
+    try {
+      return await future;
+    } finally {
+      if (identical(_redisConnection, future)) {
+        _redisConnection = null;
+      }
+    }
+  }
+
+  Future<RedisCacheStore> _openRedis({
+    String? url,
+    String? host,
+    required int port,
+    required bool secure,
+    String? username,
+    String? password,
+    int? database,
+    required String prefix,
+  }) async {
+    if (url != null && host != null) {
+      throw ArgumentError('Provide either url or host, not both.');
+    }
+
+    late final RedisCacheStore store;
+    if (url != null) {
+      if (url.trim().isEmpty) {
+        throw StateError('Redis URL cannot be empty.');
+      }
+      store = await RedisCacheStore.connectFromUrl(
+        url,
+        prefix: prefix,
+      );
+    } else if (host != null) {
+      store = await RedisCacheStore.connect(
+        host: host,
+        port: port,
+        secure: secure,
+        username: username,
+        password: password,
+        database: database,
+        prefix: prefix,
+      );
+    } else {
+      final redisUrl = FlintEnv.get('REDIS_URL').trim();
+      if (redisUrl.isEmpty) {
+        throw StateError(
+          'Redis is not configured. Set REDIS_URL or pass host to '
+          'app.connectRedis().',
+        );
+      }
+      store = await RedisCacheStore.connectFromUrl(
+        redisUrl,
+        prefix: prefix,
+      );
+    }
+
+    _redisCache = store;
+    _cache = store;
+    Log.debug('[FLINT] Redis cache connected');
+    return store;
+  }
+
+  /// Closes this app's Redis connection, if one is open.
+  Future<void> closeRedis() async {
+    final store = _redisCache;
+    _redisCache = null;
+    if (identical(_cache, store)) {
+      _cache = _fallbackCache;
+    }
+    if (store != null) await store.close();
+  }
+
+  Future<void> _ensureCacheReady() async {
+    if (cacheDriver == CacheDriver.redis && !isRedisConnected) {
+      await connectRedis();
+    }
+  }
+
+  FlintAi get ai => _ai;
+
+  ControllerRouteBuilder<T> controller<T extends controller_api.Controller>(
+    controller_api.ControllerFactory<T> factory,
+  ) {
+    return ControllerRouteBuilder<T>(this, factory);
+  }
 
   // ===== HTTP ROUTES =====
   /// Registers a **GET** HTTP route on the application.
@@ -224,15 +653,15 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.get('/users', (req, res) async {
-  ///   return res.json({'message': 'All users'});
+  /// app.get('/users', (Context ctx) async {
+  ///   return ctx.res?.json({'message': 'All users'});
   /// });
   /// ```
   ///
   /// ### Chaining middleware
   /// ```dart
   /// app.get('/profile', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -242,8 +671,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance that can be used to attach
   /// route-specific middleware or additional configuration.
-  RouteBuilder get(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'GET', path, handler);
+  RouteBuilder get(String path, Object handler) {
+    final rb = RouteBuilder(_router, 'GET', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -260,9 +689,9 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.post('/users', (req, res) async {
-  ///   final data = await req.json();
-  ///   return res.json({
+  /// app.post('/users', (Context ctx) async {
+  ///   final data = await ctx.req.json();
+  ///   return ctx.res?.json({
   ///     'success': true,
   ///     'user': data,
   ///   });
@@ -272,8 +701,8 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.post('/login', handler)
-  ///    .use(ValidateBodyMiddleware())
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(ValidateBodyMiddleware())
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -283,8 +712,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder post(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'POST', path, handler);
+  RouteBuilder post(String path, Object handler) {
+    final rb = RouteBuilder(_router, 'POST', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -301,11 +730,11 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.put('/users/:id', (req, res) async {
-  ///   final id = req.params['id'];
-  ///   final data = await req.json();
+  /// app.put('/users/:id', (Context ctx) async {
+  ///   final id = ctx.req.params['id'];
+  ///   final data = await ctx.req.json();
   ///
-  ///   return res.json({
+  ///   return ctx.res?.json({
   ///     'updated': true,
   ///     'id': id,
   ///     'data': data,
@@ -316,7 +745,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.put('/profile/:id', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -326,8 +755,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder put(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'PUT', path, handler);
+  RouteBuilder put(String path, Object handler) {
+    final rb = RouteBuilder(_router, 'PUT', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -344,10 +773,10 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.delete('/users/:id', (req, res) async {
-  ///   final id = req.params['id'];
+  /// app.delete('/users/:id', (Context ctx) async {
+  ///   final id = ctx.req.params['id'];
   ///
-  ///   return res.json({
+  ///   return ctx.res?.json({
   ///     'deleted': true,
   ///     'id': id,
   ///   });
@@ -357,7 +786,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.delete('/posts/:id', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -367,8 +796,9 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder delete(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'DELETE', path, handler);
+  RouteBuilder delete(String path, Object handler) {
+    final rb =
+        RouteBuilder(_router, 'DELETE', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -385,11 +815,11 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.patch('/users/:id', (req, res) async {
-  ///   final id = req.params['id'];
-  ///   final updates = await req.json();
+  /// app.patch('/users/:id', (Context ctx) async {
+  ///   final id = ctx.req.params['id'];
+  ///   final updates = await ctx.req.json();
   ///
-  ///   return res.json({
+  ///   return ctx.res?.json({
   ///     'patched': true,
   ///     'id': id,
   ///     'updates': updates,
@@ -400,7 +830,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.patch('/settings', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -410,8 +840,21 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder patch(String path, Handler handler) {
-    final rb = RouteBuilder(_router, 'PATCH', path, handler);
+  RouteBuilder patch(String path, Object handler) {
+    final rb =
+        RouteBuilder(_router, 'PATCH', path, _coerceHttpHandler(handler));
+    rb.register();
+    return rb;
+  }
+
+  /// Registers a **QUERY** HTTP route on the application.
+  ///
+  /// QUERY requests are safe and idempotent like GET, but can carry request
+  /// content like POST. This is useful for complex search/filter operations
+  /// where the query expression belongs in the request body.
+  RouteBuilder query(String path, Object handler) {
+    final rb =
+        RouteBuilder(_router, 'QUERY', path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -428,7 +871,9 @@ class Flint {
   ///
   /// ### Example
   /// ```dart
-  /// app.route('OPTIONS', '/users', (req, res) async {
+  /// app.route('OPTIONS', '/users', (Context ctx) async {
+  ///   final res = ctx.res;
+  ///   if (res == null) return null;
   ///   res.raw.headers.add('Allow', 'GET, POST, PUT, DELETE');
   ///   return res.send('');
   /// });
@@ -437,7 +882,7 @@ class Flint {
   /// ### Chaining middleware
   /// ```dart
   /// app.route('HEAD', '/health', handler)
-  ///    .use(AuthMiddleware());
+  ///    .useMiddleware(AuthMiddleware());
   /// ```
   ///
   /// ### Parameters
@@ -448,8 +893,8 @@ class Flint {
   /// ### Returns
   /// A [RouteBuilder] instance for attaching middleware or
   /// performing additional route configuration.
-  RouteBuilder route(String method, String path, Handler handler) {
-    final rb = RouteBuilder(_router, method, path, handler);
+  RouteBuilder route(String method, String path, Object handler) {
+    final rb = RouteBuilder(_router, method, path, _coerceHttpHandler(handler));
     rb.register();
     return rb;
   }
@@ -460,11 +905,16 @@ class Flint {
   /// Registers a WebSocket route.
   ///
   /// [path] is the WebSocket endpoint (e.g. `/chat`).
-  /// [handler] is the callback for connected clients.
-  /// [auth] is an optional authentication middleware that runs
-  /// before upgrading the connection.
-  void websocket(String path, WsHandler handler, {WsAuthMiddleware? auth}) {
-    _wsRoutes.add(WsRoute(path, handler, auth));
+  /// [handler] is the callback for connected clients and receives
+  /// the [Request] built from the upgrade handshake.
+  void websocket(
+    String path,
+    Object handler, {
+    List<Middleware> middlewares = const [],
+  }) {
+    _wsRoutes.add(
+      WsRoute(path, _coerceWebSocketHandler(handler), middlewares),
+    );
   }
 
   // ===== STATIC FILES =====
@@ -502,8 +952,8 @@ class Flint {
 
   /// Adds a global [middleware] to the application.
   ///
-  /// Middlewares registered with this method are executed for **every
-  /// incoming HTTP request**, in the exact order they are added.
+  /// Middlewares registered with this method are executed for HTTP requests
+  /// and WebSocket routes.
   /// Each middleware can inspect, modify, or short-circuit the request
   /// and response lifecycle.
   ///
@@ -528,7 +978,8 @@ class Flint {
   /// ```
   ///
   /// ### Notes
-  /// - Middleware order matters; earlier middlewares wrap later ones.
+  /// - Middleware order matters; the last middleware in a list is the
+  ///   outermost wrapper and runs first on the way in.
   /// - Use route-specific middleware when logic should not apply globally.
   ///
   /// ### Parameters
@@ -597,7 +1048,9 @@ class Flint {
       final fullWsPath =
           cleanPrefix == '/' ? cleanWsPath : '$cleanPrefix$cleanWsPath';
 
-      _wsRoutes.add(WsRoute(fullWsPath, wsRoute.handler, wsRoute.auth));
+      _wsRoutes.add(
+        WsRoute(fullWsPath, wsRoute.handler, wsRoute.middlewares),
+      );
     }
   }
 
@@ -654,10 +1107,28 @@ class Flint {
   /// - Child groups inherit the parent group's prefix and middleware.
   /// - Supports deep nesting of route groups for modular API design.
   /// - Recommended for organizing large applications with multiple logical route sections.
+  /// The active application flavor.
+  String get flavor => FlintEnv.flavor;
+
+  /// Whether the active application flavor matches [name] (case-insensitive).
+  bool isFlavor(String name) => FlintEnv.isFlavor(name);
+
+  /// Registers routes that are only active when running under the specified [flavorName].
+  void forFlavor(String flavorName, void Function(Flint app) callback) {
+    if (FlintEnv.isFlavor(flavorName)) {
+      callback(this);
+    }
+  }
+
   void routes(
     RouteGroup group, {
     List<RouteGroup> children = const [],
   }) {
+    // Skip registration if group is scoped to another flavor
+    if (group.flavor != null && !FlintEnv.isFlavor(group.flavor!)) {
+      return;
+    }
+
     // Normalize prefix: empty string or "/" is treated the same
     String cleanPrefix = group.prefix.isEmpty ? '/' : group.prefix;
 
@@ -676,9 +1147,8 @@ class Flint {
     );
   }
 
-  _registerFlintTemReload() {
-    websocket('/flint_reload',
-        (FlintWebSocket client, Map<String, String> params) {
+  void _registerFlintTemReload() {
+    websocket('/flint_reload', (Request req, FlintWebSocket client) {
       // client.onClose(() {
       //   connectedClients.remove(client.id);
       //   Log.debug('[FLINT] Client disconnected: ${client.id}');
@@ -692,24 +1162,27 @@ class Flint {
       try {
         final body = await req.json();
         final templateName = body['template'] as String?;
-        final htmlContent = body['html'] as String?;
+        final htmlContent = body['html']?.toString() ?? '';
+        final source = body['source']?.toString();
+        final event = body['event']?.toString() ?? 'flint:reload';
+        final message = body['message']?.toString();
 
-        if (templateName == null || htmlContent == null) {
-          return res.status(400).json({
-            'success': false,
-            'error': 'Missing template or html in request body'
-          });
+        if (templateName == null) {
+          return res.status(400).json(
+              {'success': false, 'error': 'Missing template in request body'});
         }
 
         // Emit to all WebSocket clients in THIS process
-        wsManager.emitToAll('flint:reload', {
+        wsManager.emitToAll(event, {
           'template': templateName,
           'html': htmlContent,
+          if (message != null) 'message': message,
         });
 
         return res.json({
           'success': true,
           'message': 'Hot reload event sent',
+          'source': source,
           'clients': wsManager.clients.length,
           'timestamp': DateTime.now().toIso8601String()
         });
@@ -721,46 +1194,58 @@ class Flint {
     });
   }
 
-  /// Starts the HTTP & WebSocket server on [port].
+  /// Starts the HTTP & WebSocket server.
   ///
   /// - Attempts to auto-connect to the database via `.env` unless already connected.
   /// - Runs with hot reload during development unless hotReload is set to true in listen.
   /// - Handles both HTTP and WebSocket upgrade requests.
-  /// Starts the HTTP & WebSocket server on [port].
-  Future<void> listen(int port, {bool hotReload = true}) async {
+  ///
+  /// If [port] is not provided, it will use `env('PORT', 3001)`.
+  Future<void> listen({int? port, bool hotReload = true}) async {
+    final resolvedPort = port ?? (env('PORT', 3001) as int);
+    final hotFlag = env('FLINT_HOT', '').toString().toLowerCase().trim();
+    final hotReloadDisabled = hotFlag == '0' || hotFlag == 'false';
+    final isHotReloadWorker = hotFlag == '1';
+    final shouldUseHotReload = hotReload && !hotReloadDisabled;
+
     // 1. Register hot reload websocket route if enabled
-    if (hotReload) {
+    if (shouldUseHotReload) {
       _registerFlintTemReload();
       _registerHotReloadEndpoint();
-      Log.debug('[FLINT] ⚠️ Hot reload is ENABLED.');
     }
 
     // 2. THE LAUNCHER CHECK
     // If we are in the Parent Process, start the watcher and STOP here.
-    if (hotReload && Platform.environment['FLINT_HOT'] != '1') {
-      await _startHotReloadLauncher(port);
+    if (shouldUseHotReload && !isHotReloadWorker) {
+      await _startHotReloadLauncher(resolvedPort);
       return; // CRITICAL: Parent process returns here and never runs the server.
     }
 
     // 3. THE ACTUAL SERVER (Worker Process)
     // If we reach here, we are either in the child process or hot reload is off.
-    await _runServer(port);
+    await _runServer(resolvedPort);
   }
 
   /// Handles the Process forking for hot reload
   Future<void> _startHotReloadLauncher(int port) async {
-    Log.debug('[FLINT] Starting Parent Launcher (PID: $pid)...');
+    final debugVmService =
+        Platform.environment['FLINT_DEBUG_VM_SERVICE']?.toLowerCase().trim();
+    final enableVmService = debugVmService == '1' ||
+        debugVmService == 'true' ||
+        debugVmService == 'yes';
 
     final child = await Process.start(
       'dart',
       [
-        '--enable-vm-service',
+        if (enableVmService) '--enable-vm-service',
         'run',
         'flint_dart:hot_reload',
         rootPath,
-        '--port=$port'
+        '--port=$port',
+        if (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+          '--flavor=${FlintEnv.flavor}',
       ],
-      environment: {'FLINT_HOT': '1'},
+      environment: {'FLINT_HOT': '1', 'APP_FLAVOR': FlintEnv.flavor, 'FLAVOR': FlintEnv.flavor},
       mode: ProcessStartMode.inheritStdio,
       runInShell: true,
     );
@@ -775,15 +1260,19 @@ class Flint {
 
   /// Binds the server and starts the request loop
   Future<void> _runServer(int port) async {
+    await _ensureCacheReady();
+
     HttpServer? server;
     try {
-      server =
-          await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
-      Log.debug(
+      await _ensureMigrationsIfEnabled();
+      await _runSeedersIfEnabled();
+      await _registerJobSchedulesIfConfigured();
+      server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+      Log.info(
           '[FLINT] Server Worker running on http://localhost:$port (PID: $pid)');
 
-      if (autoConnectDb) _connectDatabaseInBackground();
-      MailConfig.load();
+      if (autoConnectDb) unawaited(_connectDatabaseInBackground());
+      if (autoConnectMail) MailConfig.load();
     } on SocketException catch (e) {
       Log.debug('[FLINT] ❌ ERROR: Could not bind to port $port: ${e.message}');
       exit(1);
@@ -793,16 +1282,189 @@ class Flint {
     ProcessSignal.sigint.watch().listen((_) async {
       Log.debug('\n[FLINT] Worker shutting down...');
       await server?.close(force: true);
+      await closeRedis();
       exit(0);
     });
 
     await for (var req in server) {
-      _handleIncomingRequest(req);
+      unawaited(_handleIncomingRequest(req));
     }
   }
 
+  Future<void> _ensureMigrationsIfEnabled() async {
+    final enabled = autoMigrate ??
+        FlintMigrations.enabledFromEnv(
+            'FLINT_AUTO_MIGRATE', autoMigrateDefault);
+    if (!enabled) return;
+
+    final hotFlag = env('FLINT_HOT', '').toString().toLowerCase().trim();
+    final isHotReloadWorker = hotFlag == '1';
+    if (isHotReloadWorker && !autoMigrateDuringHotReload) {
+      Log.debug('[FLINT] Auto migration skipped during hot reload worker.');
+      return;
+    }
+
+    await FlintMigrations.ensure(
+      enabled: true,
+      createDatabase:
+          autoMigrateCreateDatabase || FlintMigrations.createDatabaseFromEnv(),
+      verbose: autoMigrateVerbose || FlintMigrations.verboseFromEnv(),
+      tables: _migrationTables(),
+    );
+  }
+
+  Future<void> _registerJobSchedulesIfConfigured() async {
+    if (_jobSchedulesRegistered) return;
+    final registry = jobsRegistry;
+    if (registry == null) return;
+    await registry.registerSchedules();
+    _jobSchedulesRegistered = true;
+  }
+
+  Future<void> _runSeedersIfEnabled() async {
+    if (!autoSeed) return;
+    await seed(closeConnection: closeSeederConnection);
+  }
+
+  /// Runs this app's configured migrations before `listen()`.
+  ///
+  /// This uses [tableRegistry] and automatically adds Flint job tables when
+  /// [jobsRegistry] is configured. Calling this is useful when the app needs
+  /// database tables before registering routes or running bootstraps.
+  Future<void> ensureMigrations() async {
+    await _ensureMigrationsIfEnabled();
+    await _registerJobSchedulesIfConfigured();
+  }
+
+  /// Runs this app's configured [SeederRegistry].
+  ///
+  /// Seeders are not run automatically unless [autoSeed] is enabled because
+  /// they may create or mutate application data.
+  Future<void> seed({bool closeConnection = true}) async {
+    final registry = seederRegistry;
+    if (registry == null) {
+      throw StateError('No SeederRegistry configured for this Flint app.');
+    }
+
+    await registry.registerSeeders(closeConnection: closeConnection);
+  }
+
+  Future<void> startJobs({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration pollInterval = const Duration(minutes: 1),
+    Duration staleRunningAfter = const Duration(minutes: 15),
+    bool runImmediately = true,
+  }) async {
+    await _registerJobSchedulesIfConfigured();
+    FlintJobs.startRuntime(
+      queue: queue,
+      limit: limit,
+      scheduleLimit: scheduleLimit,
+      workerId: workerId,
+      pollInterval: pollInterval,
+      staleRunningAfter: staleRunningAfter,
+      runImmediately: runImmediately,
+    );
+  }
+
+  /// Runs a dedicated jobs worker process for this app.
+  ///
+  /// This boots migrations and registered schedules, starts the Flint jobs
+  /// runtime, and keeps the process alive until SIGINT or SIGTERM is received.
+  Future<void> runJobsWorker({
+    String queue = 'default',
+    int limit = 20,
+    int scheduleLimit = 100,
+    String? workerId,
+    Duration pollInterval = const Duration(minutes: 1),
+    Duration staleRunningAfter = const Duration(minutes: 15),
+    bool runImmediately = true,
+    bool ensureMigrations = true,
+  }) async {
+    final resolvedWorkerId = workerId ?? FlintJobs.randomWorkerId();
+    await _ensureCacheReady();
+    if (ensureMigrations) {
+      await _ensureMigrationsIfEnabled();
+    }
+    await startJobs(
+      queue: queue,
+      limit: limit,
+      scheduleLimit: scheduleLimit,
+      workerId: resolvedWorkerId,
+      pollInterval: pollInterval,
+      staleRunningAfter: staleRunningAfter,
+      runImmediately: runImmediately,
+    );
+    if (autoConnectMail) {
+      MailConfig.load();
+    }
+
+    Log.info(
+      '[FLINT] Jobs worker running queue=$queue workerId=$resolvedWorkerId',
+      tag: 'jobs',
+    );
+
+    final shutdown = Completer<void>();
+    void requestShutdown(ProcessSignal signal) {
+      if (!shutdown.isCompleted) {
+        Log.info(
+          '[FLINT] Jobs worker shutting down after ${signal.name}',
+          tag: 'jobs',
+        );
+        shutdown.complete();
+      }
+    }
+
+    final subscriptions = <StreamSubscription<ProcessSignal>>[
+      ProcessSignal.sigint.watch().listen(requestShutdown),
+      if (!Platform.isWindows)
+        ProcessSignal.sigterm.watch().listen(requestShutdown),
+    ];
+
+    try {
+      await shutdown.future;
+    } finally {
+      stopJobs();
+      for (final subscription in subscriptions) {
+        await subscription.cancel();
+      }
+      if (autoConnectDb && DB.isConnected) {
+        await DB.close();
+      }
+      await closeRedis();
+    }
+  }
+
+  void stopJobs() {
+    FlintJobs.stopRuntime();
+  }
+
+  List<schema.Table>? _migrationTables() {
+    final tables = <schema.Table>[];
+    final tableRegistryTables = tableRegistry?.tables;
+    if (tableRegistryTables != null) {
+      tables.addAll(tableRegistryTables);
+    }
+
+    if (includeJobTablesInMigrations && jobsRegistry != null) {
+      final names = tables.map((table) => table.name).toSet();
+      for (final table in flintJobTables()) {
+        if (names.add(table.name)) {
+          tables.add(table);
+        }
+      }
+    }
+
+    return tables.isEmpty ? null : tables;
+  }
+
   /// Dispatches requests to WebSockets or HTTP Routes
-  void _handleIncomingRequest(HttpRequest req) async {
+  Future<void> _handleIncomingRequest(HttpRequest req) async {
+    await _ensureCacheReady();
+
     // ===== WebSocket check =====
     if (WebSocketTransformer.isUpgradeRequest(req)) {
       await _handleWebSocketUpgrade(req);
@@ -811,29 +1473,74 @@ class Flint {
 
     // ===== HTTP Request handling =====
     final request = Request(req);
-    final response = Response(req.response);
+    final response = Response(
+      req.response,
+      request: request,
+      flintPageServerRenderer: _flintPageServerRenderer,
+      serverRenderFlintPages: _serverRenderFlintPages,
+    );
 
-    final handler = _router.match(request.method, request.path, request.params);
+    final normalizedPath = normalizePath(request.path);
+
+    final handler =
+        _router.match(request.method, normalizedPath, request.params);
 
     final pipeline = _middlewares.fold<Handler>(
-      handler ?? ((req, res) async => res.send('404 Not Found', status: 404)),
+      handler ??
+          ((ctx) async {
+            final res = ctx.res;
+            if (res == null) return null;
+            return res.send('404 Not Found', status: 404);
+          }),
       (prev, middleware) => middleware.handle(prev),
     );
 
+    final ctx = Context(req: request, res: response);
+    ctx.write<FlintAi>(_ai);
+    ctx.write<CacheStore>(cache);
+
     try {
-      await pipeline(request, response);
+      final result = await pipeline(ctx);
+      if (!response.isClosed && result != null) {
+        await _applyHandlerResult(result, response);
+      }
       if (!response.isClosed) {
         await response.close();
-        await req.response.close();
       }
     } catch (e, st) {
       if (!response.isClosed) {
-        response.raw.statusCode = 500;
-        response.raw.write('Internal Server Error: $e');
-        await response.close();
+        try {
+          response.raw.statusCode = HttpStatus.internalServerError;
+          response.raw.write('Internal Server Error: $e');
+        } on StateError {
+          // Headers were already sent; best effort is to close the response.
+        }
+        try {
+          await response.close();
+        } on StateError {
+          // Underlying response was already closed externally.
+        }
       }
       Log.debug('[FLINT] ❌ Handler error: $e\n$st');
     }
+  }
+
+  /// Handles a single request through the full Flint pipeline.
+  /// Intended for testing and internal tooling.
+  Future<void> handleRequest(HttpRequest req) async {
+    await _handleIncomingRequest(req);
+  }
+
+  String normalizePath(String path) {
+    // Collapse multiple slashes: /// → /
+    path = path.replaceAll(RegExp(r'/+'), '/');
+
+    // Remove trailing slash (except root)
+    if (path.length > 1 && path.endsWith('/')) {
+      path = path.substring(0, path.length - 1);
+    }
+
+    return path;
   }
 
   /// Specialized handler for WebSocket Upgrades
@@ -845,23 +1552,33 @@ class Flint {
       if (params != null) {
         matched = true;
 
-        if (route.auth != null) {
-          final allowed = await route.auth!(req);
-          if (!allowed) {
-            req.response.statusCode = HttpStatus.unauthorized;
-            await req.response.close();
-            return;
-          }
-        }
+        final wsRequest = Request(req, params: params);
 
         final socket = await WebSocketTransformer.upgrade(req);
         final clientId = DateTime.now().microsecondsSinceEpoch.toString();
+        final namespace = normalizePath(req.uri.path);
 
         // This is now guaranteed to be in the same process as the server
-        final client = FlintWebSocket(socket, clientId);
-        wsManager.addClient(clientId, client);
+        final client = FlintWebSocket(socket, clientId, namespace: namespace);
 
-        route.handler(client, params);
+        final handlerWithRouteMiddleware = route.middlewares.fold<Handler>(
+          route.handler,
+          (prev, middleware) => middleware.handle(prev),
+        );
+
+        final pipeline = _middlewares.fold<Handler>(
+          handlerWithRouteMiddleware,
+          (prev, middleware) => middleware.handle(prev),
+        );
+
+        try {
+          final ctx = Context(req: wsRequest, socket: client);
+          ctx.write<FlintAi>(_ai);
+          ctx.write<CacheStore>(cache);
+          await pipeline(ctx);
+        } catch (e, st) {
+          Log.debug('[FLINT] ❌ WebSocket handler error: $e\n$st');
+        }
         return;
       }
     }
@@ -872,13 +1589,64 @@ class Flint {
     }
   }
 
-  void _connectDatabaseInBackground() async {
+  Future<void> _connectDatabaseInBackground() async {
     try {
-      DB.autoConnect();
+      await DB.autoConnect();
       _dbInitialized = true;
       Log.debug('[FLINT] Database auto-connected via .env');
     } catch (e) {
+      Log.debug(
+        '[FLINT] Database auto-connect failed: $e\n'
+        '[FLINT] Tip: set autoConnectDb: false and call DB.connect(...) inside try/catch.',
+      );
       Future.delayed(const Duration(seconds: 10), _connectDatabaseInBackground);
     }
+  }
+
+  Future<void> _applyHandlerResult(Object result, Response res) async {
+    if (result is Response) return;
+    if (result is Model || _hasToMapOrToJson(result)) {
+      await res.json(result);
+      return;
+    }
+    await res.respond(result);
+  }
+
+  bool _hasToMapOrToJson(Object value) {
+    try {
+      final dynamic dyn = value;
+      final toMapMethod = dyn.toMap;
+      if (toMapMethod is Function) return true;
+      final toJsonMethod = dyn.toJson;
+      if (toJsonMethod is Function) return true;
+    } catch (_) {}
+    return false;
+  }
+
+  Handler _coerceHttpHandler(Object handler) {
+    if (handler is Handler) return handler;
+    if (handler is LegacyHandler) return adaptHttp(handler);
+    if (handler is Function) {
+      return (ctx) async {
+        final res = ctx.res;
+        if (res == null) return null;
+        final result = Function.apply(handler, [ctx.req, res]);
+        if (result is Future) {
+          return await result;
+        }
+        return result;
+      };
+    }
+    throw ArgumentError(
+      'HTTP handler must be a Handler or LegacyHandler',
+    );
+  }
+
+  Handler _coerceWebSocketHandler(Object handler) {
+    if (handler is Handler) return handler;
+    if (handler is WsHandler) return adaptWebSocket(handler);
+    throw ArgumentError(
+      'WebSocket handler must be a Handler or WsHandler',
+    );
   }
 }

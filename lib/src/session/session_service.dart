@@ -1,6 +1,4 @@
 import 'package:flint_dart/flint_dart.dart';
-import 'cookie_service.dart';
-import 'session.dart';
 
 /// A service to manage session data key-by-key.
 class SessionService {

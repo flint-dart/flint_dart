@@ -1,12 +1,17 @@
 import 'dart:io';
 
-import 'package:flint_dart/flint_dart.dart';
-import 'package:flint_dart/src/error/base_http_error.dart';
+import 'package:flint_dart/src/error/base_exception.dart';
+import 'package:flint_dart/src/response.dart';
 
-class ForbiddenErorr extends BaseHttpResponseErorr {
-  ForbiddenErorr({
+class ForbiddenException extends BaseException {
+  ForbiddenException({
     super.message = 'Forbidden',
     super.code = HttpStatus.forbidden,
     super.responseType = RespondType.json,
   });
 }
+
+typedef ForbiddenError = ForbiddenException;
+
+@Deprecated('Use ForbiddenError instead.')
+typedef ForbiddenErorr = ForbiddenException;

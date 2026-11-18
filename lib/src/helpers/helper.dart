@@ -8,7 +8,8 @@ String url(String path) => '${env('APP_URL')}/$path';
 
 String assets(String src) => url(src);
 
-env(String key, [dynamic defaultValue]) => FlintEnv.get(key, defaultValue);
+dynamic env(String key, [dynamic defaultValue]) =>
+    FlintEnv.get(key, defaultValue);
 
 // String trans(String key, {Map<String, dynamic>? args, String? locale}) =>
 //     Localization().trans(key, args, locale);
@@ -21,7 +22,7 @@ void abort(int code, String message) {
 
 Future<void> setSession(String key, dynamic value) async {}
 
-Future getSession(String key) async {
+Future<dynamic> getSession(String key) async {
   return;
 }
 

@@ -1,0 +1,248 @@
+# Models And Database
+
+The database layer is split across `DB`, `QueryBuilder`, `Model`, schema definitions, migrations, and table registries.
+
+## Connecting
+
+`DB.autoConnect()` reads environment values through `FlintEnv`:
+
+```text
+DB_CONNECTION=mysql|postgres
+DB_HOST
+DB_PORT
+DB_NAME
+DB_USER
+DB_PASSWORD
+DB_SECURE
+```
+
+`Flint(autoConnectDb: true)` enables lazy auto-connect and also attempts background connection after the server binds. If `autoConnectDb: false`, database calls throw unless you call `DB.connect(...)` or `DB.autoConnect()`.
+
+```dart
+await DB.connect(database: 'my_app');
+final rows = await DB.query(
+  'SELECT * FROM users WHERE email = :email',
+  namedParams: {'email': 'ada@example.com'},
+);
+```
+
+`DB.normalizeQuery()` converts named or positional parameters for MySQL and PostgreSQL. PostgreSQL placeholders become `$1`, `$2`; MySQL uses `?`.
+
+## Defining Models
+
+Models extend `Model<T>` and provide a `Table`. The sample `example/lib/models/post_model.dart`:
+
+```dart
+class PostModel extends Model<PostModel> {
+  PostModel() : super(() => PostModel());
+
+  String? title;
+  String? subTitle;
+
+  @override
+  PostModel fromMap(Map<dynamic, dynamic> map) => PostModel()
+    ..title = map['title']?.toString()
+    ..subTitle = map['subTitle']?.toString();
+
+  @override
+  Map<String, dynamic> toMap() {
+    return {
+      'title': title,
+      'subTitle': subTitle,
+    };
+  }
+
+  @override
+  Table get table => Table(
+        name: 'post_models',
+        columns: [
+          Column(name: 'title', type: ColumnType.string),
+          Column(name: 'subTitle', type: ColumnType.string, isNullable: true),
+        ],
+      );
+}
+```
+
+The generated model template uses attribute getters instead:
+
+```dart
+String? get name => getAttribute("name");
+```
+
+Both patterns exist in this repo. Prefer `getAttribute`/`setAttribute` for new code when you want built-in type coercion and concealed fields.
+
+## Schema
+
+`Table` and `Column` are defined in `lib/src/database/orm/schema.dart`.
+
+```dart
+Table(
+  name: 'users',
+  columns: [
+    Column(name: 'email', type: ColumnType.string, isUnique: true),
+    Column(name: 'settings', type: ColumnType.json, isNullable: true),
+  ],
+  indexes: [
+    Index(name: 'users_email_index', columns: ['email'], isUnique: true),
+  ],
+)
+```
+
+If a table has no primary key column, `Table` automatically inserts a string `id` primary key column.
+
+Supported column types are `integer`, `string`, `text`, `boolean`, `double`, `datetime`, `timestamp`, `enumeration`, and `json`.
+
+## CRUD And Queries
+
+`Model` and its extensions provide:
+
+```dart
+final post = await PostModel().create({
+  'title': 'Hello',
+  'subTitle': 'World',
+});
+
+final first = await PostModel()
+    .where('title', 'Hello')
+    .orderBy('created_at', desc: true)
+    .first();
+
+final page = await PostModel().paginate(1, 15);
+
+await PostModel().update(id: post?.id, data: {'title': 'Updated'});
+await PostModel().delete(post?.id);
+```
+
+`QueryBuilder.update()` and `QueryBuilder.delete()` require a where clause. `Model.update()` requires either a primary key or an existing query where clause.
+
+`Model.update(data: ...)` and `save()` write included null attributes as SQL `NULL`. Leave a field out of the update map, or unset on a partial model, to keep its stored value. For example, `hosting.setAttribute('cancellationReason', null); await hosting.save();` clears the reason.
+
+## Database API
+
+The model and query layers are the normal tools for backend workflows. Flint also
+has a secure Database API resource layer for exposing selected models through a
+bounded JSON protocol.
+
+Use the Database API when a client needs controlled CRUD/query access to model
+resources:
+
+```dart
+final api = FlintDatabaseApi(
+  config: FlintDatabaseApiConfig(
+    auth: const FlintDbAuth.enabled(defaultRole: 'user'),
+  ),
+  resources: [
+    Course.new.resource,
+  ],
+);
+
+app.databaseApi(api);
+```
+
+A registered resource controls:
+
+- which model is exposed
+- which operations are allowed
+- which fields are readable
+- which fields are writable
+- which fields are hidden or concealed
+- which owner, parent, role, or read-filter policies apply
+
+Read `docs/database-api.md` before exposing a model through
+`FlintDatabaseApi`. Do not use the Database API for business workflows that need
+custom decisions, side effects, audit logic, or multi-step behavior; put those in
+controllers and action classes.
+
+## Migrations
+
+`DBMigrateCommand` loads table definitions from `lib/config/table_registry.dart` unless tables are passed directly. The sample registry:
+
+```dart
+void main(dynamic data, SendPort? sendPort) {
+  runTableRegistry([
+    ...flintAiTables,
+    User().table,
+    PostModel().table,
+  ], data, sendPort);
+}
+```
+
+`flintAiTables` are the built-in AI persistence tables for runs, traces,
+artifacts, and thread memory. Read `docs/ai.md` before adding, removing, or
+depending on those tables.
+
+The migration command:
+
+- ensures the database exists when requested
+- injects missing `created_at` and `updated_at`
+- injects auth provider columns for the configured auth table
+- creates missing tables
+- adds missing columns
+- supports explicit column renames through `Column(renamedFrom: ...)`
+- drops columns that are no longer declared, except protected timestamp/auth columns
+- syncs declared indexes
+- creates PostgreSQL `updated_at` triggers
+
+## Seeders
+
+Seeders are classes that extend `Seeder` and implement `Future<void> run()`.
+They are used to create or update predictable data such as roles, permissions,
+settings, admin users, lookup tables, demo records, and test fixtures.
+
+Create a seeder with:
+
+```bash
+dart run flint_dart:flint --make-seeder RoleSeeder
+```
+
+The generator creates `lib/seeders/role_seeder.dart`. If
+`lib/config/seeder_registry.dart` does not exist, it creates a modern registry:
+
+```dart
+class AppSeederRegistry extends SeederRegistry {
+  const AppSeederRegistry();
+
+  @override
+  Iterable<Seeder> get seeders => [
+        RoleSeeder(),
+      ];
+}
+
+Future<void> main() => const AppSeederRegistry().registerAll();
+```
+
+Run registered seeders with:
+
+```bash
+dart run flint_dart:flint seed
+```
+
+The `seed` command runs `lib/config/seeder_registry.dart` as a Dart script. The
+registry order is the seeding order, so put dependency records first. `RoleSeeder`
+should run before `AdminUserSeeder` if the admin user references a role.
+
+In an app process, configure seeders through `Flint`:
+
+```dart
+final app = Flint(
+  seederRegistry: const AppSeederRegistry(),
+  autoSeed: true,
+  closeSeederConnection: false,
+);
+```
+
+`autoSeed` runs during startup after enabled migrations and before the HTTP
+server binds. It is disabled by default because seeders mutate application data.
+Only enable startup seeding for idempotent seeders.
+
+Prefer `upsert`, `upsertMany`, or `firstOrCreate` inside seeders so running the
+same seeder twice updates stable rows instead of creating duplicates.
+
+See `docs/seeders.md` for the full seeder guide.
+
+## Important Limits
+
+- `belongsToMany` and `hasManyThrough` relation loaders currently set empty lists; they are not implemented.
+- The migration system can drop columns missing from schema definitions. Be careful when editing `Table` definitions.
+- `Table` auto-adds an `id` if no primary key exists, so generated SQL may include columns not listed in your model file.
+- `Model.create()` auto-generates a UUID for non-auto-increment string primary keys.

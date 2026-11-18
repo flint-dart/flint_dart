@@ -1,11 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flint_dart/flint_ui.dart' hide FlintTemplate;
-import 'package:flint_dart/logs.dart';
-import 'package:flint_dart/mail.dart';
+import 'package:flint_dart/src/cli/web_ui_builder.dart';
 import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
+import 'package:flint_dart/src/ui/component.dart';
+import 'package:flint_dart/src/ui/component_registry.dart';
 import 'package:path/path.dart' as p;
 
 import '../flint_dart.dart';
@@ -20,7 +21,57 @@ enum RespondType {
 
   /// Plain text (text/plain)
   plain,
-  flint,
+}
+
+/// Renders a Flint page component to server-side HTML.
+typedef FlintPageServerRenderer = String? Function(
+  String component,
+  Map<String, dynamic> props,
+);
+
+class _FlintPageScriptResolution {
+  const _FlintPageScriptResolution(this.script, {this.isBuilding = false});
+
+  final String script;
+  final bool isBuilding;
+}
+
+class FlintPageMeta {
+  final String? title;
+  final String? description;
+  final String? canonicalUrl;
+  final String? imageUrl;
+  final String? iconUrl;
+  final String? appleTouchIconUrl;
+  final String type;
+  final String? siteName;
+  final String? locale;
+  final String twitterCard;
+  final String? twitterSite;
+  final bool noIndex;
+  final Map<String, String> meta;
+  final Map<String, String> openGraph;
+  final Map<String, String> twitter;
+  final Map<String, Object?>? structuredData;
+
+  const FlintPageMeta({
+    this.title,
+    this.description,
+    this.canonicalUrl,
+    this.imageUrl,
+    this.iconUrl,
+    this.appleTouchIconUrl,
+    this.type = 'website',
+    this.siteName,
+    this.locale,
+    this.twitterCard = 'summary_large_image',
+    this.twitterSite,
+    this.noIndex = false,
+    this.meta = const {},
+    this.openGraph = const {},
+    this.twitter = const {},
+    this.structuredData,
+  });
 }
 
 /// A wrapper around [HttpResponse] for sending HTTP responses in Flint Dart.
@@ -42,13 +93,123 @@ enum RespondType {
 /// });
 /// ```
 class Response {
+  static String? defaultIconUrl;
+  static String? defaultAppleTouchIconUrl;
+
   /// The underlying raw [HttpResponse] object.
   final HttpResponse raw;
+  final Request? request;
+  final FlintPageServerRenderer? _flintPageServerRenderer;
+  final bool _flintPageServerRenderingEnabled;
   bool _closed = false;
 
+  /// Optional app-level renderer used by [flintPage] to send initial HTML.
+  static FlintPageServerRenderer? flintPageServerRenderer;
+
+  /// Enables app-level server rendering for Flint pages when a renderer exists.
+  static bool flintPageServerRenderingEnabled = false;
+
+  static final Set<String> _flintPageBundlesBuilding = {};
+  static final Set<String> _flintPageBundlesUnavailable = {};
+
+  /// Current HTTP status code for this response.
+  int get statusCode => raw.statusCode;
+
   /// Creates a new [Response] instance with the given [HttpResponse].
-  Response(this.raw);
+  Response(
+    this.raw, {
+    this.request,
+    FlintPageServerRenderer? flintPageServerRenderer,
+    bool? serverRenderFlintPages,
+  })  : _flintPageServerRenderer = flintPageServerRenderer,
+        _flintPageServerRenderingEnabled = serverRenderFlintPages ?? false;
   bool get isClosed => _closed;
+
+  Response header(String name, Object value) {
+    raw.headers.set(name, value);
+    return this;
+  }
+
+  Response cachePublic(
+    Duration maxAge, {
+    Duration? sharedMaxAge,
+    bool immutable = false,
+    bool mustRevalidate = false,
+  }) {
+    return _setCacheControl(
+      public: true,
+      maxAge: maxAge,
+      sharedMaxAge: sharedMaxAge,
+      immutable: immutable,
+      mustRevalidate: mustRevalidate,
+    );
+  }
+
+  Response cachePrivate(
+    Duration maxAge, {
+    bool mustRevalidate = false,
+  }) {
+    return _setCacheControl(
+      public: false,
+      maxAge: maxAge,
+      mustRevalidate: mustRevalidate,
+    );
+  }
+
+  Response revalidate() {
+    raw.headers.set(
+      HttpHeaders.cacheControlHeader,
+      'no-cache, must-revalidate',
+    );
+    return this;
+  }
+
+  Response noStore() {
+    raw.headers.set(
+      HttpHeaders.cacheControlHeader,
+      'no-store, no-cache, must-revalidate',
+    );
+    raw.headers.set(HttpHeaders.pragmaHeader, 'no-cache');
+    raw.headers.set(HttpHeaders.expiresHeader, '0');
+    return this;
+  }
+
+  Response etag(String value, {bool weak = false}) {
+    if (value.startsWith('W/')) {
+      raw.headers.set(HttpHeaders.etagHeader, value);
+      return this;
+    }
+
+    final tag = value.startsWith('"') ? value : '"$value"';
+    raw.headers.set(HttpHeaders.etagHeader, weak ? 'W/$tag' : tag);
+    return this;
+  }
+
+  Response lastModified(DateTime value) {
+    raw.headers.set(
+      HttpHeaders.lastModifiedHeader,
+      HttpDate.format(value.toUtc()),
+    );
+    return this;
+  }
+
+  Response _setCacheControl({
+    required bool public,
+    required Duration maxAge,
+    Duration? sharedMaxAge,
+    bool immutable = false,
+    bool mustRevalidate = false,
+  }) {
+    final directives = <String>[
+      public ? 'public' : 'private',
+      'max-age=${maxAge.inSeconds}',
+      if (sharedMaxAge != null) 's-maxage=${sharedMaxAge.inSeconds}',
+      if (immutable) 'immutable',
+      if (mustRevalidate) 'must-revalidate',
+    ];
+    raw.headers.set(HttpHeaders.cacheControlHeader, directives.join(', '));
+    return this;
+  }
 
   Future<void> close() async {
     if (!_closed) {
@@ -74,10 +235,10 @@ class Response {
     } catch (e) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to send response: Invalid content.');
+      raw.write('âŒ Failed to send response: Invalid content.');
     }
     close();
-    return this; // ✅ return Response
+    return this; // âœ… return Response
   }
 
   /// Sends a JSON response with a [Map] or [List].
@@ -114,15 +275,21 @@ class Response {
         // For custom classes
         try {
           final toMapMethod = (value as dynamic).toMap;
-          if (toMapMethod is Function) return sanitize(toMapMethod());
+          if (toMapMethod is Function) return await sanitize(toMapMethod());
 
           final toJsonMethod = (value as dynamic).toJson;
-          if (toJsonMethod is Function) return sanitize(toJsonMethod());
+          if (toJsonMethod is Function) return await sanitize(toJsonMethod());
         } catch (_) {}
 
         return value; // primitives or unsupported objects
       }
 
+      if (data is Exception) {
+        data = {
+          'error': data.runtimeType.toString(),
+          'message': data.toString(),
+        };
+      }
       final safeData = await sanitize(data);
       final encoded = jsonEncode(safeData);
 
@@ -132,7 +299,7 @@ class Response {
     } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to encode JSON response: ${e.runtimeType}');
+      raw.write('âŒ Failed to encode JSON response: ${e.runtimeType}');
       Log.debug('[Flint] JSON Error: $e\n$stack');
     }
 
@@ -143,7 +310,7 @@ class Response {
   /// Sends a response automatically based on [RespondType] or inferred type.
   ///
   /// - If [type] is provided, it is used directly.
-  /// - If not, the type is inferred from [data] (Map/List → JSON, HTML tags → HTML, otherwise plain text).
+  /// - If not, the type is inferred from [data] (Map/List â†’ JSON, HTML tags â†’ HTML, otherwise plain text).
   Future<Response> respond(
     dynamic data, {
     int? status,
@@ -172,24 +339,11 @@ class Response {
         case RespondType.plain:
           send(data.toString(), status: status, contentType: 'text/plain');
           break;
-
-        case RespondType.flint:
-          if (data is FlintWidget) {
-            render(
-              data,
-              title: title,
-              status: status,
-              includePreview: includePreview == true,
-            );
-          } else {
-            throw ArgumentError('Data must be a FlintWidget for flint type');
-          }
-          break;
       }
     } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to send response: ${e.runtimeType}');
+      raw.write('âŒ Failed to send response: ${e.runtimeType}');
       Log.debug('[Flint] respond() Error: $e\n$stack');
     }
 
@@ -199,19 +353,15 @@ class Response {
 
   /// Attempts to guess the best [RespondType] based on [data].
   ///
-  /// - Map/List → JSON
-  /// - HTML-like string → HTML
-  /// - Otherwise → Plain text
-  /// Now includes FlintWidget detection
+  /// - Map/List â†’ JSON
+  /// - HTML-like string â†’ HTML
+  /// - Otherwise â†’ Plain text
   Future<RespondType> _inferRespondType(dynamic data) async {
     // Await if it's a Future
     if (data is Future) {
       data = await data;
     }
-
-    if (data is FlintWidget) {
-      return RespondType.flint;
-    } else if (data is Map || data is List) {
+    if (data is Map || data is List) {
       return RespondType.json;
     } else if (data is Model) {
       return RespondType.json;
@@ -223,30 +373,722 @@ class Response {
     }
   }
 
-  Response render(
-    FlintWidget widget, {
+  Response flintPage(
+    String component, {
+    Object? props = const <String, dynamic>{},
+    String rootId = 'app',
+    String? script,
+    List<String>? stylesheets,
+    bool preloadScript = true,
     String? title,
+    FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
     int? status,
-    bool includePreview = false,
+    String? flavor,
   }) {
     try {
-      raw.statusCode = status ?? raw.statusCode;
-      raw.headers.contentType = ContentType.html;
+      final normalizedProps = _normalizePageProps(props);
+      final page = {
+        'component': component,
+        'props': _jsonSafeValue(normalizedProps),
+        if (request != null) 'url': request!.uri.toString(),
+      };
+      final scriptResolution = script == null
+          ? _flintPageScriptForComponent(component)
+          : _FlintPageScriptResolution(script);
+      final isBuildingPageBundle = scriptResolution.isBuilding;
+      final resolvedScript = scriptResolution.script;
+      final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
+      final currentFlavor = (flavor != null && flavor.trim().isNotEmpty)
+          ? flavor.trim().toLowerCase()
+          : (request?.flavor ?? FlintEnv.flavor);
+      final safeFlavor = _escapeHtmlAttribute(currentFlavor);
+      final encodedPage = _escapeHtmlAttribute(jsonEncode(page));
+      final safeRootId = _escapeHtmlAttribute(rootId);
+      final renderedHtml = serverHtml ??
+          _renderFlintPageOnServer(
+            component,
+            Map<String, dynamic>.from(page['props'] as Map),
+            serverRender: serverRender,
+          );
+      final versionedScript = _versionedAssetUrl(resolvedScript);
+      final safeScript = _escapeHtmlAttribute(versionedScript);
+      final resolvedMeta =
+          meta ?? (title == null ? null : FlintPageMeta(title: title));
+      final headTags = _renderFlintPageHead(
+        title: title ?? resolvedMeta?.title ?? component,
+        stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
+        scriptPreloads: preloadScript && !isBuildingPageBundle
+            ? [versionedScript]
+            : const [],
+        meta: resolvedMeta,
+        requestUrl: request?.uri.toString(),
+      );
 
-      final html = includePreview
-          ? _generatePreviewHtml(widget, title ?? 'Flint Render')
-          : widget.toHtml();
-      var test = File("test.html").create(recursive: true);
-      test.then((v) => v.writeAsString(html));
-      raw.write(html);
-    } catch (e) {
+      raw.statusCode = status ??
+          (isBuildingPageBundle ? HttpStatus.accepted : raw.statusCode);
+      raw.headers.contentType = ContentType.html;
+      if (isBuildingPageBundle) {
+        raw.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
+      }
+      final hotReloadScript = _hotReloadScript();
+      final serviceWorkerScript = _flintServiceWorkerScript();
+      final buildOverlayScript =
+          isBuildingPageBundle ? _lazyPageBuildOverlayScript(component) : '';
+      final pageScriptTag = isBuildingPageBundle
+          ? ''
+          : '    <script defer src="$safeScript"></script>';
+      raw.write('''
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="flint-flavor" content="$safeFlavor">
+$headTags
+  </head>
+  <body>
+    <main id="$safeRootId" data-flint-page="$encodedPage" data-flint-flavor="$safeFlavor">$renderedHtml</main>
+$pageScriptTag
+$buildOverlayScript
+$serviceWorkerScript
+$hotReloadScript
+  </body>
+</html>
+''');
+    } catch (e, stack) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to render FlintWidget: ${e.runtimeType}');
-      Log.debug('[Flint] Render Error: $e');
+      raw.write('Failed to render Flint page: ${e.runtimeType}');
+      Log.debug('[Flint] flintPage() Error: $e\n$stack');
     }
+
     close();
     return this;
+  }
+
+  Map<String, dynamic> _normalizePageProps(Object? props) {
+    if (props == null) return const {};
+    if (props is FlintProps) return props.toJson();
+    if (props is Map<String, dynamic>) return props;
+    if (props is Map) {
+      return props.map((key, value) => MapEntry(key.toString(), value));
+    }
+    try {
+      final jsonValue = (props as dynamic).toJson();
+      if (jsonValue is Map<String, dynamic>) return jsonValue;
+      if (jsonValue is Map) {
+        return jsonValue.map((key, value) => MapEntry(key.toString(), value));
+      }
+    } catch (_) {}
+    throw ArgumentError.value(
+      props,
+      'props',
+      'Expected Map<String, dynamic> or FlintProps',
+    );
+  }
+
+  dynamic _jsonSafeValue(dynamic value) {
+    if (value == null || value is String || value is num || value is bool) {
+      return value;
+    }
+    if (value is DateTime) return value.toIso8601String();
+    if (value is Uri) return value.toString();
+    if (value is Enum) return value.name;
+    if (value is Model) return _jsonSafeValue(value.toMap());
+    if (value is FlintProps) return _jsonSafeValue(value.toJson());
+    if (value is Map) {
+      return value.map(
+        (key, mapValue) => MapEntry(key.toString(), _jsonSafeValue(mapValue)),
+      );
+    }
+    if (value is Iterable) {
+      return value.map(_jsonSafeValue).toList(growable: false);
+    }
+
+    try {
+      final jsonValue = (value as dynamic).toJson();
+      if (!identical(jsonValue, value)) return _jsonSafeValue(jsonValue);
+    } catch (_) {}
+
+    try {
+      final mapValue = (value as dynamic).toMap();
+      if (!identical(mapValue, value)) return _jsonSafeValue(mapValue);
+    } catch (_) {}
+
+    return value.toString();
+  }
+
+  Response page(
+    String component, {
+    Object? props = const <String, dynamic>{},
+    String rootId = 'app',
+    String? script,
+    List<String>? stylesheets,
+    bool preloadScript = true,
+    String? title,
+    FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
+    int? status,
+    String? flavor,
+  }) =>
+      flintPage(
+        component,
+        props: props,
+        rootId: rootId,
+        script: script,
+        stylesheets: stylesheets,
+        preloadScript: preloadScript,
+        title: title,
+        meta: meta,
+        serverHtml: serverHtml,
+        serverRender: serverRender,
+        status: status,
+        flavor: flavor,
+      );
+
+  /// Renders a strongly-typed [FlintPageRoute] with compile-time verified [props].
+  Response pageRoute<TProps extends FlintProps>(
+    FlintPageRoute<TProps> route,
+    TProps props, {
+    String rootId = 'app',
+    String? script,
+    List<String>? stylesheets,
+    bool preloadScript = true,
+    String? title,
+    FlintPageMeta? meta,
+    String? serverHtml,
+    bool? serverRender,
+    int? status,
+    String? flavor,
+  }) =>
+      flintPage(
+        route.name,
+        props: props.toJson(),
+        rootId: rootId,
+        script: script,
+        stylesheets: stylesheets,
+        preloadScript: preloadScript,
+        title: title,
+        meta: meta,
+        serverHtml: serverHtml,
+        serverRender: serverRender,
+        status: status,
+      );
+
+  String _renderFlintPageOnServer(
+    String component,
+    Map<String, dynamic> props, {
+    bool? serverRender,
+  }) {
+    final shouldRender = serverRender ??
+        (_flintPageServerRenderingEnabled ||
+            Response.flintPageServerRenderingEnabled);
+    final renderer =
+        _flintPageServerRenderer ?? Response.flintPageServerRenderer;
+    if (!shouldRender || renderer == null) return '';
+
+    try {
+      return renderer(component, props) ?? '';
+    } catch (e, stack) {
+      Log.debug('[Flint] Server render failed for "$component": $e\n$stack');
+      return '';
+    }
+  }
+
+  String _renderFlintPageHead({
+    required String title,
+    required List<String> stylesheets,
+    List<String> scriptPreloads = const [],
+    required FlintPageMeta? meta,
+    required String? requestUrl,
+  }) {
+    final resolvedTitle = meta?.title ?? title;
+    final description = meta?.description;
+    final canonicalUrl = meta?.canonicalUrl ?? requestUrl;
+    final imageUrl = meta?.imageUrl;
+    final iconUrl = _resolveIconUrl(meta?.iconUrl ?? defaultIconUrl);
+    final appleTouchIconUrl = _resolveIconUrl(
+      meta?.appleTouchIconUrl ?? defaultAppleTouchIconUrl ?? defaultIconUrl,
+      preferPng: true,
+    );
+    final tags = <String>[
+      '    <meta charset="utf-8">',
+      '    <meta name="viewport" content="width=device-width, initial-scale=1">',
+      '    <title>${_escapeHtmlText(resolvedTitle)}</title>',
+      if (description != null && description.trim().isNotEmpty)
+        _metaName('description', description),
+      if (meta?.noIndex == true) _metaName('robots', 'noindex, nofollow'),
+      if (canonicalUrl != null && canonicalUrl.trim().isNotEmpty)
+        _linkTag('canonical', canonicalUrl),
+      if (iconUrl != null) _linkTag('icon', iconUrl),
+      if (appleTouchIconUrl != null)
+        _linkTag('apple-touch-icon', appleTouchIconUrl),
+      _metaProperty('og:title', resolvedTitle),
+      if (description != null && description.trim().isNotEmpty)
+        _metaProperty('og:description', description),
+      _metaProperty('og:type', meta?.type ?? 'website'),
+      if (canonicalUrl != null && canonicalUrl.trim().isNotEmpty)
+        _metaProperty('og:url', canonicalUrl),
+      if (imageUrl != null && imageUrl.trim().isNotEmpty)
+        _metaProperty('og:image', imageUrl),
+      if (meta?.siteName != null && meta!.siteName!.trim().isNotEmpty)
+        _metaProperty('og:site_name', meta.siteName!),
+      if (meta?.locale != null && meta!.locale!.trim().isNotEmpty)
+        _metaProperty('og:locale', meta.locale!),
+      _metaName('twitter:card', meta?.twitterCard ?? 'summary_large_image'),
+      _metaName('twitter:title', resolvedTitle),
+      if (description != null && description.trim().isNotEmpty)
+        _metaName('twitter:description', description),
+      if (imageUrl != null && imageUrl.trim().isNotEmpty)
+        _metaName('twitter:image', imageUrl),
+      if (meta?.twitterSite != null && meta!.twitterSite!.trim().isNotEmpty)
+        _metaName('twitter:site', meta.twitterSite!),
+      if (meta != null) ...[
+        for (final entry in meta.meta.entries)
+          _metaName(entry.key, entry.value),
+        for (final entry in meta.openGraph.entries)
+          _metaProperty(entry.key, entry.value),
+        for (final entry in meta.twitter.entries)
+          _metaName(entry.key, entry.value),
+      ],
+      for (final href in stylesheets) _linkTag('stylesheet', href),
+      for (final href in scriptPreloads) _preloadScriptTag(href),
+      if (meta?.structuredData != null)
+        _jsonLdTag(jsonEncode(meta!.structuredData)),
+    ];
+
+    return tags.join('\n');
+  }
+
+  String _metaName(String name, String content) {
+    return '    <meta name="${_escapeHtmlAttribute(name)}" content="${_escapeHtmlAttribute(content)}">';
+  }
+
+  String _metaProperty(String property, String content) {
+    return '    <meta property="${_escapeHtmlAttribute(property)}" content="${_escapeHtmlAttribute(content)}">';
+  }
+
+  String _linkTag(String rel, String href) {
+    return '    <link rel="${_escapeHtmlAttribute(rel)}" href="${_escapeHtmlAttribute(href)}">';
+  }
+
+  String _preloadScriptTag(String href) {
+    return '    <link rel="preload" as="script" href="${_escapeHtmlAttribute(href)}">';
+  }
+
+  String _jsonLdTag(String json) {
+    final safeJson = json.replaceAll('</script', '<\\/script');
+    return '    <script type="application/ld+json">$safeJson</script>';
+  }
+
+  String _versionedAssetUrl(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('data:')) {
+      return url;
+    }
+
+    final parsed = Uri.tryParse(trimmed);
+    final pathOnly = parsed?.path ?? trimmed.split('?').first.split('#').first;
+    if (!pathOnly.startsWith('/')) return url;
+    if (_isHashedFlintAssetPath(pathOnly)) return url;
+
+    final publicPath = p.joinAll([
+      'public',
+      ...pathOnly.split('/').where((part) => part.isNotEmpty),
+    ]);
+    final file = File(publicPath);
+    if (!file.existsSync()) return url;
+
+    final version = file.lastModifiedSync().millisecondsSinceEpoch.toString();
+    final separator = trimmed.contains('?') ? '&' : '?';
+    return '$trimmed${separator}v=$version';
+  }
+
+  String _lazyPageBuildOverlayScript(String component) {
+    final safeJsonComponent = jsonEncode(component).replaceAll('</', '<\\/');
+    return '''
+    <script>
+      (function () {
+        window.__FLINT_BUILDING_PAGE__ = $safeJsonComponent;
+
+        function ensureFlintLazyBuildIndicator() {
+          var overlay = document.getElementById('flint-hot-reload-indicator');
+          if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'flint-hot-reload-indicator';
+            overlay.setAttribute('role', 'status');
+            overlay.setAttribute('aria-live', 'polite');
+            overlay.innerHTML = '<span class="flint-hot-reload-spinner"></span><span class="flint-hot-reload-text">Building Flint UI...</span>';
+
+            var style = document.createElement('style');
+            style.textContent = `
+              #flint-hot-reload-indicator {
+                align-items: center;
+                backdrop-filter: blur(14px);
+                background: rgba(15, 23, 42, 0.86);
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 12px;
+                box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
+                color: #ffffff;
+                display: none;
+                font: 700 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                gap: 10px;
+                left: 50%;
+                max-width: calc(100vw - 32px);
+                padding: 12px 14px;
+                position: fixed;
+                top: 18px;
+                transform: translateX(-50%);
+                z-index: 2147483647;
+              }
+
+              #flint-hot-reload-indicator[data-visible="true"] {
+                display: inline-flex;
+              }
+
+              .flint-hot-reload-spinner {
+                animation: flint-hot-reload-spin 0.75s linear infinite;
+                border: 2px solid rgba(255, 255, 255, 0.28);
+                border-top-color: #38bdf8;
+                border-radius: 999px;
+                height: 16px;
+                width: 16px;
+              }
+
+              @keyframes flint-hot-reload-spin {
+                to { transform: rotate(360deg); }
+              }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(overlay);
+          }
+
+          var text = overlay.querySelector('.flint-hot-reload-text');
+          if (text) text.textContent = 'Building Flint UI...';
+          overlay.dataset.visible = 'true';
+          return overlay;
+        }
+
+        ensureFlintLazyBuildIndicator();
+        window.setTimeout(function () {
+          window.location.reload();
+        }, 1500);
+      })();
+    </script>''';
+  }
+
+  _FlintPageScriptResolution _flintPageScriptForComponent(String component) {
+    final pageScript = _scriptFromFlintUiManifest(
+      component,
+      includeFallback: false,
+      requireExistingFile: true,
+    );
+    if (pageScript != null) return _FlintPageScriptResolution(pageScript);
+
+    if (Platform.environment['FLINT_HOT'] == '1' &&
+        !_flintPageBundlesUnavailable.contains(component)) {
+      if (_buildFlintPageBundleOnDemand(component)) {
+        return _FlintPageScriptResolution(
+          _defaultFlintPageScript(),
+          isBuilding: true,
+        );
+      }
+    }
+
+    return _FlintPageScriptResolution(
+      _scriptFromFlintUiManifest(
+            component,
+            requireExistingFile: true,
+          ) ??
+          _defaultFlintPageScript(),
+    );
+  }
+
+  bool _buildFlintPageBundleOnDemand(String component) {
+    if (Platform.environment['FLINT_HOT'] != '1') return false;
+    final effectiveFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+        ? FlintEnv.flavor.toLowerCase().trim()
+        : null;
+    final bundleKey = effectiveFlavor != null ? '$component:$effectiveFlavor' : component;
+    if (_flintPageBundlesBuilding.contains(bundleKey)) return true;
+    if (_flintPageBundlesUnavailable.contains(bundleKey)) return false;
+
+    final build = FlintWebUiBuilder.resolve();
+    if (build == null) return false;
+
+    _flintPageBundlesBuilding.add(bundleKey);
+    unawaited(
+      Future<void>(() async {
+        try {
+          final flavorSuffix = effectiveFlavor != null ? ' ($effectiveFlavor)' : '';
+          Log.info('Building Flint UI page: $component$flavorSuffix...');
+          await FlintWebUiBuilder.compilePageBundles(build,
+              onlyPage: component);
+          Log.info('Done building Flint UI page: $component$flavorSuffix.');
+        } on StateError catch (e) {
+          _flintPageBundlesUnavailable.add(bundleKey);
+          Log.debug(
+              'Flint UI page bundle skipped for "$component": ${e.message}');
+        } catch (e, stack) {
+          Log.debug('Flint UI page bundle failed for "$component": $e\n$stack');
+        } finally {
+          _flintPageBundlesBuilding.remove(bundleKey);
+        }
+      }),
+    );
+    return true;
+  }
+
+  String? _scriptFromFlintUiManifest(
+    String component, {
+    bool includeFallback = true,
+    bool requireExistingFile = false,
+  }) {
+    final effectiveFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+        ? FlintEnv.flavor.toLowerCase().trim()
+        : null;
+
+    final manifestFiles = [
+      if (effectiveFlavor != null) ...[
+        File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest-$effectiveFlavor.json')),
+        if (effectiveFlavor == 'farmsbenefit')
+          File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest-farmbenefit.json')),
+        if (effectiveFlavor == 'farmbenefit')
+          File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest-farmsbenefit.json')),
+      ],
+      File(p.join('public', 'assets', 'js', 'flint-ui', 'manifest.json')),
+    ];
+
+    for (final manifestFile in manifestFiles) {
+      if (!manifestFile.existsSync()) continue;
+      try {
+        final decoded = jsonDecode(manifestFile.readAsStringSync());
+        if (decoded is! Map) continue;
+
+        if (decoded['mode'] == 'shared-runtime') {
+          final runtime = decoded['runtime'];
+          if (_isUsableManifestScript(
+            runtime,
+            requireExistingFile: requireExistingFile,
+          )) {
+            return runtime.toString().trim();
+          }
+        }
+
+        final pages = decoded['pages'];
+        if (pages is Map) {
+          final script = pages[component];
+          if (_isUsableManifestScript(
+            script,
+            requireExistingFile: requireExistingFile,
+          )) {
+            return script.toString().trim();
+          }
+        }
+
+        if (includeFallback) {
+          final fallback = decoded['fallback'];
+          if (_isUsableManifestScript(
+            fallback,
+            requireExistingFile: requireExistingFile,
+          )) {
+            return fallback.toString().trim();
+          }
+        }
+      } catch (e) {
+        Log.debug('[Flint] Failed to read Flint UI manifest: $e');
+      }
+    }
+
+    return null;
+  }
+
+  bool _isUsableManifestScript(
+    Object? value, {
+    required bool requireExistingFile,
+  }) {
+    if (value is! String || value.trim().isEmpty) return false;
+    if (!requireExistingFile) return true;
+    return _publicAssetExists(value.trim());
+  }
+
+  bool _publicAssetExists(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty ||
+        trimmed.startsWith('http://') ||
+        trimmed.startsWith('https://') ||
+        trimmed.startsWith('//') ||
+        trimmed.startsWith('data:')) {
+      return true;
+    }
+
+    final parsed = Uri.tryParse(trimmed);
+    final pathOnly = parsed?.path ?? trimmed.split('?').first.split('#').first;
+    if (!pathOnly.startsWith('/')) return true;
+
+    final publicPath = p.joinAll([
+      'public',
+      ...pathOnly.split('/').where((part) => part.isNotEmpty),
+    ]);
+    return File(publicPath).existsSync();
+  }
+
+  String? _resolveIconUrl(String? explicitUrl, {bool preferPng = false}) {
+    if (explicitUrl != null && explicitUrl.trim().isNotEmpty) {
+      return explicitUrl;
+    }
+
+    final activeFlavor = FlintEnv.flavor;
+    if (activeFlavor != 'default' && activeFlavor.isNotEmpty) {
+      final flavorCandidates = preferPng
+          ? [
+              'favicon-$activeFlavor.png',
+              'favicon.$activeFlavor.png',
+              'favicon-farm.png',
+              '$activeFlavor-favicon.png',
+            ]
+          : [
+              'favicon-$activeFlavor.ico',
+              'favicon-$activeFlavor.png',
+              'favicon-farm.ico',
+              'favicon-farm.png',
+              'favicon.$activeFlavor.ico',
+            ];
+      for (final candidate in flavorCandidates) {
+        if (File(p.join('public', candidate)).existsSync()) {
+          return '/$candidate';
+        }
+      }
+    }
+
+    final candidates = preferPng
+        ? const ['favicon.png', 'apple-touch-icon.png', 'favicon.ico']
+        : const ['favicon.ico', 'favicon.png', 'favicon.svg'];
+
+    for (final candidate in candidates) {
+      if (File(p.join('public', candidate)).existsSync()) {
+        return '/$candidate';
+      }
+    }
+
+    return null;
+  }
+
+  String _defaultFlintPageScript() {
+    final appOwnedScript = _findFlintUiAsset(
+      p.join('public', 'assets', 'js', 'flint-ui'),
+      'main',
+    );
+    if (appOwnedScript != null) {
+      return appOwnedScript;
+    }
+    if (File(p.join('flint_ui', 'web', 'main.dart.js')).existsSync()) {
+      return '/web/main.dart.js';
+    }
+    if (File(p.join('web', 'main.dart.js')).existsSync()) {
+      return '/web/main.dart.js';
+    }
+    if (File(p.join('public', 'main.dart.js')).existsSync()) {
+      return '/main.dart.js';
+    }
+    return '/main.dart.js';
+  }
+
+  String? _findFlintUiAsset(String directoryPath, String stem) {
+    final directory = Directory(directoryPath);
+    if (!directory.existsSync()) return null;
+
+    final exact = File(p.join(directory.path, '$stem.dart.js'));
+    if (exact.existsSync()) {
+      return '/${p.split(p.relative(exact.path, from: 'public')).join('/')}';
+    }
+
+    final hashedPattern = RegExp(
+      '^${RegExp.escape(stem)}\\.[a-f0-9]{12}\\.dart\\.js\$',
+    );
+    final matches = directory
+        .listSync()
+        .whereType<File>()
+        .where((file) => hashedPattern.hasMatch(p.basename(file.path)))
+        .toList()
+      ..sort((a, b) {
+        return b.lastModifiedSync().compareTo(a.lastModifiedSync());
+      });
+
+    if (matches.isEmpty) return null;
+    return '/${p.split(p.relative(matches.first.path, from: 'public')).join('/')}';
+  }
+
+  List<String> _defaultFlintPageStylesheets() {
+    if (File(p.join('public', 'assets', 'css', 'flint-ui', 'style.css'))
+        .existsSync()) {
+      return const ['/assets/css/flint-ui/style.css'];
+    }
+    if (File(p.join('flint_ui', 'web', 'style.css')).existsSync()) {
+      return const ['/web/style.css'];
+    }
+    if (File(p.join('web', 'style.css')).existsSync()) {
+      return const ['/web/style.css'];
+    }
+    if (File(p.join('public', 'style.css')).existsSync()) {
+      return const ['/style.css'];
+    }
+    return const [];
+  }
+
+  String _flintServiceWorkerScript() {
+    if (Platform.environment['FLINT_HOT'] == '1') return '';
+    final file = File(p.join('public', 'flint-sw.js'));
+    if (!file.existsSync()) return '';
+    final scriptUrl = _escapeHtmlAttribute(_versionedAssetUrl('/flint-sw.js'));
+    return '''
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          const startFlintServiceWorker = () => {
+            navigator.serviceWorker.register('$scriptUrl', { scope: '/' }).then(registration => {
+              const worker = registration.active || registration.waiting || registration.installing;
+              if (worker) worker.postMessage({ type: 'FLINT_PREFETCH' });
+            }).catch(() => {});
+          };
+          if ('requestIdleCallback' in window) {
+            window.requestIdleCallback(startFlintServiceWorker, { timeout: 4000 });
+          } else {
+            window.setTimeout(startFlintServiceWorker, 2000);
+          }
+        });
+      }
+    </script>''';
+  }
+
+  bool _isHashedFlintAssetPath(String pathOnly) {
+    if (!pathOnly.startsWith('/assets/js/flint-ui/') &&
+        !pathOnly.startsWith('/assets/css/flint-ui/')) {
+      return false;
+    }
+
+    return RegExp(r'\.[a-f0-9]{12}\.[^/]+$').hasMatch(pathOnly);
+  }
+
+  String _escapeHtmlAttribute(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
+  }
+
+  String _escapeHtmlText(String value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
   }
 
   /// Renders a Mailable email template to HTML preview.
@@ -261,16 +1103,20 @@ class Response {
       raw.statusCode = 200;
       raw.headers.contentType = ContentType.html;
 
+      final renderData = includePreview
+          ? mailable.resolvePreviewData()
+          : mailable.data;
+
       final html = TemplateEngine().render(
         mailable.view,
-        mailable.data,
+        renderData,
       );
 
       raw.write(html);
     } catch (e) {
       raw.statusCode = 500;
       raw.headers.contentType = ContentType.text;
-      raw.write('❌ Failed to render email: ${e.runtimeType}');
+      raw.write('âŒ Failed to render email: ${e.runtimeType}');
       Log.debug('[Flint] Render Email Error: $e');
     }
 
@@ -291,7 +1137,7 @@ class Response {
 
   /// Streams the contents of a [File] directly to the response body.
   ///
-  /// Does not set the content type automatically — you should set it before calling.
+  /// Does not set the content type automatically â€” you should set it before calling.
   /// Streams a file to the response, optionally with byte range.
   Future<void> streamFile(File file, {int start = 0, int? end}) async {
     try {
@@ -354,8 +1200,8 @@ class Response {
   /// Redirects the client to a different [location] (URL or path).
   ///
   /// [status] defaults to `302` (Found). You can use:
-  /// - `301` → Permanent Redirect
-  /// - `302` → Temporary Redirect
+  /// - `301` â†’ Permanent Redirect
+  /// - `302` â†’ Temporary Redirect
   ///
   /// Example:
   /// ```dart
@@ -366,16 +1212,51 @@ class Response {
     try {
       raw.statusCode = status;
       raw.headers.set(HttpHeaders.locationHeader, location);
-      raw.write(
-          '<html><body><a href="$location">Redirecting to $location...</a></body></html>');
     } catch (e) {
       raw.statusCode = 500;
-      raw.write('❌ Redirect failed: ${e.runtimeType}');
+      raw.write('âŒ Redirect failed: ${e.runtimeType}');
       Log.debug('[Flint] Redirect Error: $e');
     }
-    close();
     return this;
   }
+
+  /// Redirects the user to the previous page using the Referer header.
+  /// Falls back to [fallback] when Referer is missing.
+  Response back({
+    String fallback = '/',
+    int status = HttpStatus.found,
+  }) {
+    final refererHeader =
+        request?.headers['referer'] ?? request?.headers['Referer'];
+    final location = (refererHeader != null && refererHeader.trim().isNotEmpty)
+        ? refererHeader
+        : fallback;
+    return redirect(location, status: status);
+  }
+
+  /// Adds a flash message to the next view render.
+  Response withFlash(
+    String key,
+    String message, {
+    int maxAgeSeconds = 120,
+  }) {
+    final normalizedKey = key.trim().toLowerCase();
+    if (normalizedKey.isEmpty) return this;
+    final cookieName = _flashCookieName(normalizedKey);
+    return setCookie(
+      cookieName,
+      Uri.encodeComponent(message),
+      maxAge: maxAgeSeconds,
+      path: '/',
+      httpOnly: true,
+    );
+  }
+
+  /// Shortcut for success flash.
+  Response withSuccess(String message) => withFlash('success', message);
+
+  /// Shortcut for error flash.
+  Response withError(String message) => withFlash('error', message);
 
   /// Sends a predefined HTTP status message and closes the response.
   ///
@@ -391,7 +1272,7 @@ class Response {
 
   /// Renders an HTML view from a file.
   ///
-  /// [filePath] can be absolute or relative to your project's `views` directory.
+  /// [templateName] can be absolute or relative to your project's `views` directory.
   /// Optionally, you can pass [data] for simple variable replacement in the template.
 
   Future<Response> view(String templateName,
@@ -411,60 +1292,67 @@ class Response {
 
     if (file == null) {
       raw.statusCode = 404;
-      raw.write('❌ View not found: $templateName');
+      raw.write('âŒ View not found: $templateName');
       await raw.close();
       return this;
     }
 
     String content;
     try {
+      final flash = _readFlashFromCookies();
+      final mergedData = <String, dynamic>{...(data ?? const {})};
+      if (flash.isNotEmpty) {
+        mergedData['flash'] = flash;
+        for (final entry in flash.entries) {
+          mergedData[entry.key] = entry.value;
+        }
+        TemplateEngine().sessions.addAll(flash);
+      }
+
       // Render template using TemplateEngine
-      content = TemplateEngine().render(templateName, data ?? {});
+      content = TemplateEngine().render(templateName, mergedData);
+
+      for (final key in flash.keys) {
+        clearCookie(_flashCookieName(key));
+      }
     } catch (e) {
       // Fallback to raw file content if template rendering fails
       content = await file.readAsString();
     }
 
-// Wrap in main-content container for hot reload
-// Wrap in main-content container for hot reload
-    content = '<div id="main-content">$content</div>';
+    final trimmedContent = content.trimLeft();
+    final isFullHtmlDocument =
+        RegExp(r'^<!doctype\s+html', caseSensitive: false)
+                .hasMatch(trimmedContent) ||
+            (RegExp(r'<html[\s>]', caseSensitive: false).hasMatch(content) &&
+                RegExp(r'<head[\s>]', caseSensitive: false).hasMatch(content) &&
+                RegExp(r'<body[\s>]', caseSensitive: false).hasMatch(content));
+
+    // For partial templates we keep the wrapper used by hot-reload updates.
+    // For full HTML documents, do not wrap because it breaks <head>/<meta>.
+    if (!isFullHtmlDocument) {
+      content = '<div id="main-content">$content</div>';
+    }
 
 // Inject hot reload WebSocket script (only for development)
     if (Platform.environment['FLINT_HOT'] == '1') {
-      content += '''
-<script>
-function connectHotReload() {
-  const socket = new WebSocket('ws://localhost:3000/flint_reload');
-
-  socket.addEventListener('open', () => {
-    console.log('[FLINT] Hot reload WebSocket connected');
-  });
-
-  socket.addEventListener('message', event => {
-    const data = JSON.parse(event.data);
-    if (data.event === 'flint:reload') {
-      console.log('[FLINT] Hot reload triggered');
-      window.location.reload();
-    }
-  });
-
-  socket.addEventListener('close', () => {
-    console.log('[FLINT] WebSocket disconnected, retrying in 1s...');
-    setTimeout(connectHotReload, 1000); // reconnect after 1 second
-  });
-
-  socket.addEventListener('error', err => {
-    console.error('[FLINT] WebSocket error:', err);
-    socket.close(); // close and trigger reconnect
-  });
-}
-
-// start connection
-connectHotReload();
-</script>
-
-
-''';
+      final hotReloadScript = _hotReloadScript();
+      if (hotReloadScript.isEmpty) {
+        raw.statusCode = 200;
+        raw.headers.contentType = ContentType.html;
+        raw.write(content);
+        await raw.close();
+        return this;
+      }
+      if (isFullHtmlDocument &&
+          RegExp(r'</body>', caseSensitive: false).hasMatch(content)) {
+        content = content.replaceFirst(
+          RegExp(r'</body>', caseSensitive: false),
+          '$hotReloadScript</body>',
+        );
+      } else {
+        content += hotReloadScript;
+      }
     }
 
     raw.statusCode = 200;
@@ -475,181 +1363,143 @@ connectHotReload();
     return this;
   }
 
-  /// Convert absolute file path to template name relative to views directory
+  String _hotReloadScript() {
+    if (Platform.environment['FLINT_HOT'] != '1') return '';
 
-  /// Generates a preview HTML wrapper for FlintWidget content
-  String _generatePreviewHtml(FlintWidget content, String title) {
     return '''
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview: $title</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
-        }
-        
-        .preview-container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .preview-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 12px 12px 0 0;
-            margin-bottom: 0;
-        }
-        
-        .preview-header h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        
-        .device-preview {
-            background: white;
-            border-radius: 0 0 12px 12px;
-            padding: 40px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        
-        .preview-controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .preview-controls button {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            backdrop-filter: blur(10px);
-            transition: all 0.2s;
-        }
-        
-        .preview-controls button:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-1px);
-        }
-        
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
-            color: #007cba;
-            text-decoration: none;
-            padding: 8px 16px;
-            border: 1px solid #007cba;
-            border-radius: 6px;
-        }
-        
-        .back-link:hover {
-            background: #007cba;
-            color: white;
-        }
-        
-        @media (max-width: 768px) {
-            .preview-controls {
-                flex-direction: column;
-            }
-            
-            .device-preview {
-                padding: 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="preview-container">
-        <div class="preview-header">
-            <h1>📧 $title</h1>
-            <p>Flint Widget Preview</p>
-            <div class="preview-controls">
-                <button onclick="copyHtml()">Copy HTML</button>
-                <button onclick="showHtml()">Show HTML Source</button>
-                <button onclick="showText()">Show Text Version</button>
-                <button onclick="showJson()">Show JSON</button>
-                <button onclick="downloadHtml()">Download HTML</button>
-            </div>
-        </div>
-        
-        <div class="device-preview">
-            ${content.toHtml()}
-        </div>
-        
-        <a href="javascript:history.back()" class="back-link">← Back</a>
-    </div>
+<script>
+let flintHotReloadAttempts = 0;
+let flintHotReloadLoggedUnavailable = false;
 
-    <script>
-        const htmlContent = `${content.toHtml().replaceAll('`', '\\`')}`;
-        const textContent = `${content.toText().replaceAll('`', '\\`')}`;
-        const jsonContent = ${jsonEncode(content.toJson())};
-        
-        function copyHtml() {
-            navigator.clipboard.writeText(htmlContent).then(() => {
-                alert('✅ HTML copied to clipboard!');
-            }).catch(err => {
-                alert('❌ Failed to copy: ' + err);
-            });
-        }
-        
-        function showHtml() {
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(
-                '<!DOCTYPE html><html><head><title>HTML Source</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
-                htmlContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
-                '</body></html>'
-            );
-        }
-        
-        function showText() {
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(
-                '<!DOCTYPE html><html><head><title>Text Version</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
-                textContent.replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
-                '</body></html>'
-            );
-        }
-        
-        function showJson() {
-            const newWindow = window.open('', '_blank');
-            newWindow.document.write(
-                '<!DOCTYPE html><html><head><title>JSON Data</title><style>body { font-family: monospace; white-space: pre-wrap; padding: 20px; }</style></head><body>' + 
-                JSON.stringify(jsonContent, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;') + 
-                '</body></html>'
-            );
-        }
-        
-        function downloadHtml() {
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'flint-widget-${DateTime.now().millisecondsSinceEpoch}.html';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-    </script>
-</body>
-</html>
+function connectHotReload() {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = wsProtocol + '//' + window.location.host + '/flint_reload';
+  const socket = new WebSocket(wsUrl);
+
+  function ensureFlintReloadIndicator() {
+    let overlay = document.getElementById('flint-hot-reload-indicator');
+    if (overlay) return overlay;
+
+    overlay = document.createElement('div');
+    overlay.id = 'flint-hot-reload-indicator';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = '<span class="flint-hot-reload-spinner"></span><span class="flint-hot-reload-text">Rebuilding Flint UI...</span>';
+
+    const style = document.createElement('style');
+    style.textContent = `
+      #flint-hot-reload-indicator {
+        align-items: center;
+        backdrop-filter: blur(14px);
+        background: rgba(15, 23, 42, 0.86);
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 12px;
+        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
+        color: #ffffff;
+        display: none;
+        font: 700 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        gap: 10px;
+        left: 50%;
+        max-width: calc(100vw - 32px);
+        padding: 12px 14px;
+        position: fixed;
+        top: 18px;
+        transform: translateX(-50%);
+        z-index: 2147483647;
+      }
+
+      #flint-hot-reload-indicator[data-visible="true"] {
+        display: inline-flex;
+      }
+
+      .flint-hot-reload-spinner {
+        animation: flint-hot-reload-spin 0.75s linear infinite;
+        border: 2px solid rgba(255, 255, 255, 0.28);
+        border-top-color: #38bdf8;
+        border-radius: 999px;
+        height: 16px;
+        width: 16px;
+      }
+
+      @keyframes flint-hot-reload-spin {
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function showFlintReloadIndicator(message) {
+    const overlay = ensureFlintReloadIndicator();
+    const text = overlay.querySelector('.flint-hot-reload-text');
+    if (text) text.textContent = message || 'Rebuilding Flint UI...';
+    overlay.dataset.visible = 'true';
+  }
+
+  function normalizeFlintHotReloadMessage(raw) {
+    const envelope = JSON.parse(raw);
+    const payload = envelope && typeof envelope.data === 'object'
+      ? envelope.data
+      : {};
+
+    return {
+      event: envelope.event || payload.event,
+      message: envelope.message || payload.message
+    };
+  }
+
+  socket.addEventListener('open', () => {
+    flintHotReloadAttempts = 0;
+    flintHotReloadLoggedUnavailable = false;
+    console.log('[FLINT] Hot reload WebSocket connected');
+  });
+
+  socket.addEventListener('message', event => {
+    try {
+      const data = normalizeFlintHotReloadMessage(event.data);
+      if (data.event === 'flint:building') {
+        console.log('[FLINT] Flint UI rebuild started');
+        showFlintReloadIndicator(data.message);
+      }
+      if (data.event === 'flint:reload') {
+        console.log('[FLINT] Hot reload triggered');
+        showFlintReloadIndicator('Reloading...');
+        window.location.reload();
+      }
+      if (data.event === 'flint:error') {
+        console.error('[FLINT] Flint UI build failed');
+        showFlintReloadIndicator(data.message || 'Flint UI build failed.');
+      }
+    } catch (_) {
+      // Ignore non-JSON control frames.
+    }
+  });
+
+  socket.addEventListener('close', () => {
+    flintHotReloadAttempts += 1;
+    const retryDelay = Math.min(1000 * flintHotReloadAttempts, 5000);
+    if (!flintHotReloadLoggedUnavailable) {
+      console.warn('[FLINT] Hot reload WebSocket unavailable, retrying...');
+      flintHotReloadLoggedUnavailable = true;
+    }
+    setTimeout(connectHotReload, retryDelay);
+  });
+
+  socket.addEventListener('error', () => {
+    socket.close();
+  });
+}
+
+// start connection
+connectHotReload();
+</script>
+
+
 ''';
   }
+
+  /// Convert absolute file path to template name relative to views directory
 
   /// ----------------------------------------
   /// COOKIE SUPPORT
@@ -694,6 +1544,22 @@ connectHotReload();
       '$name=; Path=$path; Expires=Thu, 01 Jan 1970 00:00:00 GMT;',
     );
     return this;
+  }
+
+  static String _flashCookieName(String key) => 'FLINT_FLASH_$key';
+
+  Map<String, String> _readFlashFromCookies() {
+    final cookies = request?.cookies ?? const <String, String>{};
+    final flash = <String, String>{};
+    for (final entry in cookies.entries) {
+      const prefix = 'FLINT_FLASH_';
+      if (!entry.key.startsWith(prefix)) continue;
+      final key = entry.key.substring(prefix.length).trim().toLowerCase();
+      if (key.isEmpty) continue;
+      final value = Uri.decodeComponent(entry.value);
+      flash[key] = value;
+    }
+    return flash;
   }
 }
 

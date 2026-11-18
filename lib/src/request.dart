@@ -1,37 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flint_dart/flint_dart.dart';
 import 'package:flint_dart/src/auth/auth.dart';
-import 'package:flint_dart/src/session/session.dart';
 import 'package:mime/mime.dart';
-
-class UploadedFile {
-  final String fieldName;
-  final String filename;
-  final String? contentType;
-  final int? size; // file size in bytes
-  final String? extension; // ".png", ".jpg"
-  final DateTime uploadedAt; // auto timestamp
-  final Stream<List<int>> content;
-
-  UploadedFile({
-    required this.fieldName,
-    required this.filename,
-    this.contentType,
-    this.size,
-    this.extension,
-    DateTime? uploadedAt,
-    required this.content,
-  }) : uploadedAt = uploadedAt ?? DateTime.now();
-
-  Future<void> saveTo(String path) async {
-    final file = File(path);
-    final sink = file.openWrite();
-    await content.pipe(sink);
-    await sink.close();
-  }
-}
 
 /// Enhanced HTTP request wrapper with comprehensive parsing, validation, and session management.
 class Request {
@@ -41,17 +14,146 @@ class Request {
   /// Route parameters matched by the router (e.g. `/user/:id`).
   final Map<String, String> params;
 
+  /// Route parameters matched by the router
+  /// (e.g. `/user/:id`).
+  /// param() returns the value of a route parameter.
+  String? param(String key) => params[key];
+
+  /// Parses a route parameter into type [T] (`String`, `int`, `double`, `bool`, `num`, `DateTime`, `Uri`).
+  ///
+  /// Returns [defaultValue] when the parameter is missing or cannot be parsed.
+  T? paramTyped<T>(String key, {T? defaultValue}) {
+    return _coerceRequestValue<T>(params[key], defaultValue: defaultValue);
+  }
+
+  /// Parses a required route parameter into type [T] or throws an [HttpException] (400).
+  T requireParam<T>(String key) {
+    final rawValue = params[key];
+    if (rawValue == null || rawValue.trim().isEmpty) {
+      throw HttpException(
+        HttpStatus.badRequest,
+        'Missing required route parameter "$key".',
+      );
+    }
+    final parsed = _coerceRequestValue<T>(rawValue);
+    if (parsed == null) {
+      throw HttpException(
+        HttpStatus.badRequest,
+        'Invalid route parameter "$key": expected $T.',
+      );
+    }
+    return parsed;
+  }
+
+  /// Parses a route parameter as an [int].
+  int? paramInt(String key, {int? defaultValue}) =>
+      paramTyped<int>(key, defaultValue: defaultValue);
+
+  /// Parses a route parameter as a [bool].
+  bool? paramBool(String key, {bool? defaultValue}) =>
+      paramTyped<bool>(key, defaultValue: defaultValue);
+
+  String? queryParam(String key) => query[key];
+
+  /// Parses a query parameter into type [T] (`String`, `int`, `double`, `bool`, `num`, `DateTime`, `Uri`).
+  ///
+  /// Returns [defaultValue] when the parameter is missing or cannot be parsed.
+  T? queryParamTyped<T>(String key, {T? defaultValue}) {
+    return _coerceRequestValue<T>(query[key], defaultValue: defaultValue);
+  }
+
+  /// Returns all values for query parameter [key], supporting both repeated
+  /// query keys (`?tag=a&tag=b`) and comma-separated values (`?tag=a,b`).
+  List<String> queryList(String key) {
+    final all = raw.uri.queryParametersAll[key];
+    if (all == null || all.isEmpty) return const [];
+    return all
+        .expand((item) => item.split(','))
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  T? _coerceRequestValue<T>(String? rawValue, {T? defaultValue}) {
+    if (rawValue == null) return defaultValue;
+    final trimmed = rawValue.trim();
+    if (T == dynamic || T == Object || T == String) {
+      return rawValue as T;
+    }
+    if (trimmed.isEmpty) return defaultValue;
+    if (T == int) return (int.tryParse(trimmed) as T?) ?? defaultValue;
+    if (T == double) return (double.tryParse(trimmed) as T?) ?? defaultValue;
+    if (T == num) return (num.tryParse(trimmed) as T?) ?? defaultValue;
+    if (T == bool) {
+      final lower = trimmed.toLowerCase();
+      if (lower == 'true' || lower == '1' || lower == 'yes') return true as T;
+      if (lower == 'false' || lower == '0' || lower == 'no') return false as T;
+      return defaultValue;
+    }
+    if (T == DateTime) {
+      return (DateTime.tryParse(trimmed) as T?) ?? defaultValue;
+    }
+    if (T == Uri) {
+      return (Uri.tryParse(trimmed) as T?) ?? defaultValue;
+    }
+    return defaultValue;
+  }
+
+  /// Access route parameters using bracket notation.
+  String? operator [](String key) {
+    return params[key] ?? query[key];
+  }
+
+  Future<dynamic> input(String key) async {
+    final data = await allInput();
+    return data[key];
+  }
+
   /// Internal storage for request-scoped data
   final Map<String, dynamic> _storage = {};
 
   /// Cache for parsed body content to avoid multiple parsing
   dynamic _bodyCache;
 
+  /// Cache for the raw request body bytes so custom decoders can re-use them.
+  List<int>? _rawBodyCache;
+
   /// Singleton SessionManager instance (use your existing SessionManager).
   static final sessionManager = SessionManager();
 
   /// Constructs a [Request] with the raw [HttpRequest] and optional route [params].
   Request(this.raw, {Map<String, String>? params}) : params = params ?? {};
+  String? _flavorOverride;
+
+  /// Sets or overrides the active application flavor for this request.
+  void setFlavor(String flavor) {
+    _flavorOverride = flavor.trim().toLowerCase();
+  }
+
+  /// The active application flavor for this request (e.g. 'stokash', 'FarmsBenefit').
+  ///
+  /// Resolution priority:
+  /// 1. Explicitly set via [setFlavor]
+  /// 2. Header `X-Flint-Flavor`
+  /// 3. Query parameter `_flavor`
+  /// 4. Global environment flavor ([FlintEnv.flavor])
+  String get flavor {
+    if (_flavorOverride != null && _flavorOverride!.isNotEmpty) {
+      return _flavorOverride!;
+    }
+    final headerFlavor = raw.headers.value('x-flint-flavor');
+    if (headerFlavor != null && headerFlavor.trim().isNotEmpty) {
+      return headerFlavor.trim().toLowerCase();
+    }
+    final qFlavor = query['_flavor'];
+    if (qFlavor != null && qFlavor.trim().isNotEmpty) {
+      return qFlavor.trim().toLowerCase();
+    }
+    return FlintEnv.flavor;
+  }
+
+  /// Whether this request matches [name] flavor (case-insensitive).
+  bool isFlavor(String name) => flavor == name.trim().toLowerCase();
 
   // ==================== BASIC REQUEST PROPERTIES ====================
 
@@ -71,6 +173,51 @@ class Request {
       result[name] = values.join(', ');
     });
     return result;
+  }
+
+  /// Best-effort original client IP address.
+  ///
+  /// Checks common reverse-proxy headers before falling back
+  /// to the direct socket IP.
+  String get clientIpAddress {
+    // Cloudflare.
+    final cloudflareIp =
+        headers['cf-connecting-ip'] ?? headers['CF-Connecting-IP'];
+
+    if (cloudflareIp != null && cloudflareIp.trim().isNotEmpty) {
+      return cloudflareIp.trim();
+    }
+
+    // Standard reverse-proxy header.
+    //
+    // Example:
+    // X-Forwarded-For: 105.112.10.25, 10.0.1.4
+    //
+    // The first address is normally the original client.
+    final forwardedFor =
+        headers['x-forwarded-for'] ?? headers['X-Forwarded-For'];
+
+    if (forwardedFor != null && forwardedFor.trim().isNotEmpty) {
+      final ips = forwardedFor
+          .split(',')
+          .map((ip) => ip.trim())
+          .where((ip) => ip.isNotEmpty)
+          .toList();
+
+      if (ips.isNotEmpty) {
+        return ips.first;
+      }
+    }
+
+    // Common Nginx / reverse proxy header.
+    final realIp = headers['x-real-ip'] ?? headers['X-Real-IP'];
+
+    if (realIp != null && realIp.trim().isNotEmpty) {
+      return realIp.trim();
+    }
+
+    // Fall back to the actual TCP peer.
+    return ipAddress;
   }
 
   /// Query parameters from the URL
@@ -99,6 +246,28 @@ class Request {
     return null;
   }
 
+  /// Extract an auth token from the request.
+  ///
+  /// Authorization headers take priority. Browser-rendered Flint apps may also
+  /// provide a JWT through a readable auth cookie.
+  String? get authToken {
+    final bearer = bearerToken;
+    if (bearer != null && bearer.isNotEmpty) return bearer;
+
+    final configuredCookie = FlintEnv.get('FLINT_AUTH_COOKIE', 'auth.token');
+    final cookieNames = {
+      if (configuredCookie.isNotEmpty) configuredCookie,
+      'flint.auth.token',
+    };
+
+    for (final name in cookieNames) {
+      final token = cookies[name];
+      if (token != null && token.isNotEmpty) return token;
+    }
+
+    return null;
+  }
+
   /// JWT utility instance for token operations
   FlintJwt get jwt => FlintJwt(FlintEnv.get('JWT_SECRET'));
 
@@ -106,10 +275,17 @@ class Request {
   /// Returns the authenticated user payload from JWT or session (option C: session shape == JWT payload)
   Future<Map<String, dynamic>?> get user async {
     // 1️⃣ JWT first
-    final token = bearerToken;
+    final token = authToken;
     if (token != null) {
       try {
         final payload = Auth.verifyToken(token);
+        if (payload == null) throw const FormatException('Invalid token');
+        final s = await session;
+        if (s != null) {
+          final merged = {...s, ...payload};
+          set('user', merged);
+          return merged;
+        }
         set('user', payload);
         return payload;
       } catch (_) {
@@ -135,7 +311,12 @@ class Request {
   /// Throws an exception if no user is authenticated
   Map<String, dynamic> requireUser() {
     final u = _storage['user'];
-    if (u == null) throw Exception('Authentication required');
+    if (u == null) {
+      throw AuthException(
+        message: 'Authentication required',
+        code: HttpStatus.unauthorized,
+      );
+    }
     return Map<String, dynamic>.from(u as Map);
   }
 
@@ -213,9 +394,10 @@ class Request {
   Future<void> _parseBody() async {
     if (_bodyCache != null) return;
 
+    final rawBody = await this.rawBody();
     final contentTypeHeader = raw.headers.contentType;
     if (contentTypeHeader == null) {
-      _bodyCache = await utf8.decodeStream(raw);
+      _bodyCache = utf8.decode(rawBody);
       return;
     }
 
@@ -223,28 +405,33 @@ class Request {
 
     switch (mimeType) {
       case 'multipart/form-data':
-        await _parseMultipartFormData(contentTypeHeader);
+        await _parseMultipartFormData(contentTypeHeader, rawBody);
         break;
       case 'application/x-www-form-urlencoded':
-        await _parseUrlEncodedFormData();
+        await _parseUrlEncodedFormData(rawBody);
         break;
       case 'application/json':
-        await _parseJsonBody();
+        await _parseJsonBody(rawBody);
         break;
       default:
-        _bodyCache = await utf8.decodeStream(raw);
+        _bodyCache = utf8.decode(rawBody);
     }
   }
 
   /// Parses multipart/form-data requests (file uploads + form fields)
-  Future<void> _parseMultipartFormData(ContentType contentTypeHeader) async {
+  Future<void> _parseMultipartFormData(
+    ContentType contentTypeHeader,
+    List<int> rawBody,
+  ) async {
     final boundary = contentTypeHeader.parameters['boundary'];
     if (boundary == null) {
       throw FormatException(
           'Missing multipart boundary in Content-Type header');
     }
 
-    final parts = await MimeMultipartTransformer(boundary).bind(raw).toList();
+    final parts = await MimeMultipartTransformer(boundary)
+        .bind(Stream<List<int>>.fromIterable([rawBody]))
+        .toList();
     final files = <String, UploadedFile>{};
     final fields = <String, String>{};
 
@@ -273,17 +460,12 @@ class Request {
       final filename = _extractFilename(contentDisposition);
       final ext = filename.split('.').last;
       final contentType = part.headers['content-type']?.split(';')[0];
-
-      // Count size while buffering the stream
+      final bufferedChunks = <List<int>>[];
       int totalBytes = 0;
-      final controller = StreamController<List<int>>();
-
-      part.listen((chunk) {
+      await for (final chunk in part) {
         totalBytes += chunk.length;
-        controller.add(chunk);
-      }, onDone: () {
-        controller.close();
-      });
+        bufferedChunks.add(List<int>.from(chunk));
+      }
 
       files[fieldName] = UploadedFile(
         fieldName: fieldName,
@@ -291,7 +473,7 @@ class Request {
         contentType: contentType,
         size: totalBytes,
         extension: ext,
-        content: controller.stream,
+        content: Stream<List<int>>.fromIterable(bufferedChunks),
       );
     } else {
       // NORMAL FIELD
@@ -313,14 +495,14 @@ class Request {
   }
 
   /// Parses application/x-www-form-urlencoded data
-  Future<void> _parseUrlEncodedFormData() async {
-    final content = await utf8.decodeStream(raw);
+  Future<void> _parseUrlEncodedFormData(List<int> rawBody) async {
+    final content = utf8.decode(rawBody);
     _bodyCache = Uri.splitQueryString(content);
   }
 
   /// Parses application/json data
-  Future<void> _parseJsonBody() async {
-    final content = await utf8.decodeStream(raw);
+  Future<void> _parseJsonBody(List<int> rawBody) async {
+    final content = utf8.decode(rawBody);
     if (content.isEmpty) {
       _bodyCache = <String, dynamic>{};
     } else {
@@ -333,11 +515,25 @@ class Request {
   /// Reads and returns the raw request body as a string
   /// Note: For multipart/form-data requests, use [form()] or [files()] instead
   Future<String> body() async {
-    await _parseBody();
-    if (_bodyCache is String) {
-      return _bodyCache;
+    return utf8.decode(await rawBody());
+  }
+
+  /// Returns the raw undecoded request body bytes.
+  ///
+  /// This is useful when you want to perform custom decoding or signature
+  /// verification against the exact payload that was sent.
+  Future<List<int>> rawBody() async {
+    if (_rawBodyCache != null) {
+      return List<int>.from(_rawBodyCache!);
     }
-    return '';
+
+    final builder = BytesBuilder(copy: false);
+    await for (final chunk in raw) {
+      builder.add(chunk);
+    }
+
+    _rawBodyCache = builder.toBytes();
+    return List<int>.from(_rawBodyCache!);
   }
 
   /// Parses the body as JSON and returns a Map
@@ -369,6 +565,17 @@ class Request {
     }
 
     return {};
+  }
+
+  /// Returns normalized request input across query, body, multipart fields,
+  /// uploaded files, and route params.
+  ///
+  /// Precedence is: query < body/form fields < files < route params.
+  Future<Map<String, dynamic>> allInput() async {
+    final input = <String, dynamic>{...query};
+    input.addAll(await _bodyInput(includeFiles: true));
+    input.addAll(params);
+    return input;
   }
 
   /// Checks if a file with the given field name exists in the request
@@ -444,19 +651,131 @@ class Request {
     return {};
   }
 
+  // ==================== FILE STORAGE HELPERS ====================
+
+  /// Save a single uploaded file to disk and return the saved path.
+  ///
+  /// Defaults to `public/uploads` and preserves the original filename.
+  /// Returns null if the file field does not exist.
+  Future<String?> storeFile(
+    String fieldName, {
+    String directory = 'public/uploads',
+    String? filename,
+  }) async {
+    final upload = await file(fieldName);
+    if (upload == null) return null;
+
+    final safeName = (filename ?? upload.filename).replaceAll('/', '_');
+    final dir = Directory(directory);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    final path = '${dir.path}/$safeName';
+    await upload.saveTo(path);
+    return path;
+  }
+
+  /// Save multiple uploaded files to disk and return their saved paths.
+  ///
+  /// Defaults to `public/uploads` and preserves original filenames.
+  Future<List<String>> storeFiles(
+    String fieldName, {
+    String directory = 'public/uploads',
+  }) async {
+    final uploads = await files(fieldName);
+    if (uploads.isEmpty) return [];
+
+    final dir = Directory(directory);
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    final List<String> paths = [];
+    for (final upload in uploads) {
+      if (upload == null) continue;
+      final safeName = upload.filename.replaceAll('/', '_');
+      final path = '${dir.path}/$safeName';
+      await upload.saveTo(path);
+      paths.add(path);
+    }
+
+    return paths;
+  }
+
   // ==================== VALIDATION ====================
 
   /// Validates the request body against specified validation rules
-  Future<Map<String, dynamic>> validate(Map<String, String> rules) async {
-    final body = await json();
-    await Validator.validate(body, rules);
-    return body;
+  Future<Map<String, dynamic>> validate(
+    Map<String, String> rules, {
+    Map<String, String>? messages,
+  }) async {
+    final input = await allInput();
+    final validationData = <String, dynamic>{};
+
+    for (final entry in input.entries) {
+      if (entry.value is! UploadedFile) {
+        validationData[entry.key] = entry.value;
+      }
+    }
+
+    for (final field in rules.keys) {
+      final value = input[field];
+      if (value is UploadedFile) {
+        validationData[field] = value;
+      }
+
+      final confirmationField = '${field}_confirmation';
+      if (input.containsKey(confirmationField)) {
+        validationData[confirmationField] = input[confirmationField];
+      }
+
+      final prefixedConfirmationField = 'confirm_$field';
+      if (input.containsKey(prefixedConfirmationField)) {
+        validationData[prefixedConfirmationField] =
+            input[prefixedConfirmationField];
+      }
+    }
+
+    await Validator.validate(validationData, rules, messages: messages);
+    return validationData;
   }
 
   /// Validates form data against specified rules
-  Future<Map<String, String>> validateForm(Map<String, String> rules) async {
+  @Deprecated('Use validate() instead. It now auto-detects request input.')
+  Future<Map<String, String>> validateForm(
+    Map<String, String> rules, {
+    Map<String, String>? messages,
+  }) async {
     final formData = await form();
-    await Validator.validate(formData, rules);
+    await Validator.validate(formData, rules, messages: messages);
     return formData;
+  }
+
+  Future<Map<String, dynamic>> _bodyInput({required bool includeFiles}) async {
+    await _parseBody();
+
+    if (_bodyCache is Map && _bodyCache.containsKey('fields')) {
+      final fields = Map<String, dynamic>.from(
+        Map<String, String>.from(_bodyCache['fields']),
+      );
+
+      if (!includeFiles) {
+        return fields;
+      }
+
+      final files = Map<String, UploadedFile>.from(_bodyCache['files'] ?? {});
+      return {...fields, ...files};
+    }
+
+    if (_bodyCache is Map<String, dynamic>) {
+      return Map<String, dynamic>.from(_bodyCache);
+    }
+
+    if (_bodyCache is Map<String, String>) {
+      return Map<String, dynamic>.from(_bodyCache);
+    }
+
+    return <String, dynamic>{};
   }
 }

@@ -93,13 +93,18 @@ class RouteParser {
     final trimmed = line.trim();
 
     // Pattern 1: Variable name followed by HTTP method
-    if (RegExp(r'^\w+\s*\.\s*(get|post|put|delete|patch|options|head)\s*\(')
+    if (RegExp(
+            r'^\w+\s*\.\s*(get|post|put|delete|patch|query|options|head)\s*\(')
         .hasMatch(trimmed)) {
       return true;
     }
 
+    if (RegExp(r'^\w+\s*\.\s*websocket\s*\(').hasMatch(trimmed)) {
+      return true;
+    }
+
     // Pattern 2: Just a dot with HTTP method (for continuation)
-    if (RegExp(r'^\.\s*(get|post|put|delete|patch|options|head)\s*\(')
+    if (RegExp(r'^\.\s*(get|post|put|delete|patch|query|options|head)\s*\(')
         .hasMatch(trimmed)) {
       return true;
     }
@@ -146,6 +151,7 @@ class RouteParser {
       parameters: routeDocs['parameters'],
       auth: routeDocs['auth'],
       fullPath: fullPath,
+      isWebSocket: routeInfo['isWebSocket'] == true,
     );
 
     // Add to generator
@@ -154,6 +160,7 @@ class RouteParser {
       routeInfo['method'] ?? 'get',
       operation,
       routeDocs['servers'] ?? [],
+      isWebSocket: routeInfo['isWebSocket'] == true,
     );
   }
 

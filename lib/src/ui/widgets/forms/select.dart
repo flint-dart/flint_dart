@@ -1,0 +1,191 @@
+import '../../browser/events_stub.dart'
+    if (dart.library.js_interop) '../../browser/events.dart';
+import '../../component_props.dart';
+import '../../node.dart';
+import '../../style.dart';
+import '../shared/theme.dart';
+import 'controllers.dart';
+import 'field_helpers.dart';
+import 'validation.dart';
+
+/// Option rendered inside a [Select] field.
+class SelectOption {
+  /// Visible option label.
+  final String label;
+
+  /// Submitted option value.
+  final Object value;
+
+  /// Whether this option should be unavailable.
+  final bool disabled;
+
+  /// Creates a select option.
+  const SelectOption({
+    required this.label,
+    required this.value,
+    this.disabled = false,
+  });
+}
+
+/// Select field with options, placeholder, help text, and validation support.
+class Select extends FlintElement {
+  /// Creates a select field.
+  Select({
+    String? label,
+    String? name,
+    TextEditingController? controller,
+    Object? value,
+    String? placeholder,
+    List<SelectOption> options = const [],
+    bool required = false,
+    bool disabled = false,
+    InputVariant variant = InputVariant.outline,
+    ComponentSize size = ComponentSize.md,
+    String? error,
+    FormErrors? errors,
+    String? helpText,
+    String? className,
+    Map<String, Object?> props = const {},
+    Map<String, Object?> selectProps = const {},
+    Map<String, Object?> style = const {},
+    Map<String, Object?> labelStyle = const {},
+    Map<String, Object?> selectStyle = const {},
+    DartStyle? dartStyle,
+    DartStyle? labelDartStyle,
+    DartStyle? selectDartStyle,
+    void Function(Object event)? onChanged,
+  }) : super(
+          'div',
+          props: fieldWrapperProps(
+            props: props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: _children(
+            label: label,
+            name: name,
+            value: controller != null ? controller.text : value,
+            placeholder: placeholder,
+            options: options,
+            required: required,
+            disabled: disabled,
+            variant: variant,
+            size: size,
+            error: resolveFieldError(name: name, error: error, errors: errors),
+            helpText: helpText,
+            selectProps: selectProps,
+            labelStyle: labelStyle,
+            selectStyle: selectStyle,
+            labelDartStyle: labelDartStyle,
+            selectDartStyle: selectDartStyle,
+            onChanged: _createChangeHandler(controller, onChanged),
+          ),
+        );
+
+  static void Function(Object event)? _createChangeHandler(
+    TextEditingController? controller,
+    void Function(Object event)? onChanged,
+  ) {
+    if (controller == null && onChanged == null) return null;
+    return (event) {
+      if (controller != null) {
+        controller.text = FlintEvent.value(event);
+      }
+      onChanged?.call(event);
+    };
+  }
+
+  static List<FlintNode> _children({
+    required String? label,
+    required String? name,
+    required Object? value,
+    required String? placeholder,
+    required List<SelectOption> options,
+    required bool required,
+    required bool disabled,
+    required InputVariant variant,
+    required ComponentSize size,
+    required String? error,
+    required String? helpText,
+    required Map<String, Object?> selectProps,
+    required Map<String, Object?> labelStyle,
+    required Map<String, Object?> selectStyle,
+    required DartStyle? labelDartStyle,
+    required DartStyle? selectDartStyle,
+    required void Function(Object event)? onChanged,
+  }) {
+    final id = fieldId('select', name, selectProps);
+    final ariaDescribedBy = describedBy(
+      id: id,
+      helpText: helpText,
+      error: error,
+      describedBy: selectProps['aria-describedby']?.toString(),
+    );
+
+    return [
+      if (label != null)
+        fieldLabel(
+          id: id,
+          label: label,
+          required: required,
+          dartStyle: labelDartStyle,
+          style: labelStyle,
+        ),
+      FlintElement(
+        'select',
+        props: mergeComponentProps(
+          {
+            ...controlProps(
+              props: selectProps,
+              id: id,
+              name: name,
+              required: required,
+              disabled: disabled,
+              error: error,
+              describedBy: ariaDescribedBy,
+            ),
+            // Set 'value' directly on the <select> element so the reconciler
+            // can call element.value = ... imperatively during patch, which
+            // overrides stale browser-native selection state after setState.
+            if (value != null) 'value': value,
+            if (onChanged != null) 'onChange': onChanged,
+          },
+          defaultStyle: const {'outline': 'none'},
+          dartStyle: inputComponentStyle(
+            variant: variant,
+            size: size,
+            disabled: disabled,
+            invalid: error != null && error.isNotEmpty,
+          ).merge(selectDartStyle),
+          style: selectStyle,
+        ),
+        children: [
+          if (placeholder != null)
+            FlintElement(
+              'option',
+              props: {
+                'value': '',
+                if (value == null || value.toString().isEmpty) 'selected': true,
+                if (required) 'disabled': true,
+              },
+              children: normalizeChildren(placeholder, const []),
+            ),
+          for (final option in options)
+            FlintElement(
+              'option',
+              props: {
+                'value': option.value,
+                if (value != null &&
+                    value.toString() == option.value.toString())
+                  'selected': true,
+                if (option.disabled) 'disabled': true,
+              },
+              children: normalizeChildren(option.label, const []),
+            ),
+        ],
+      ),
+      ...fieldMessages(id: id, helpText: helpText, error: error),
+    ];
+  }
+}

@@ -1,8 +1,46 @@
+/// Cache backends supported by Flint's automatic cache configuration.
+enum CacheDriver {
+  memory,
+  file,
+  redis;
+
+  /// Parses a `CACHE_DRIVER` value.
+  static CacheDriver parse(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'memory':
+        return CacheDriver.memory;
+      case 'file':
+        return CacheDriver.file;
+      case 'redis':
+        return CacheDriver.redis;
+      default:
+        throw FormatException(
+          'Unsupported cache driver "$value". Use memory, file, or redis.',
+        );
+    }
+  }
+}
+
 abstract class CacheStore {
   Future<void> set(String key, dynamic value, {Duration? ttl});
   Future<dynamic> get(String key);
   Future<void> remove(String key);
+  Future<void> removeMany(Iterable<String> keys);
+  Future<void> removeWhere(bool Function(String key) shouldRemove);
   Future<void> clear();
+
+  Future<T> remember<T>(
+    String key,
+    Duration ttl,
+    Future<T> Function() loader,
+  ) async {
+    final cached = await get(key);
+    if (cached != null) return cached as T;
+
+    final value = await loader();
+    await set(key, value, ttl: ttl);
+    return value;
+  }
 }
 
 class MemoryCacheStore implements CacheStore {
@@ -10,6 +48,20 @@ class MemoryCacheStore implements CacheStore {
   final int maxSize;
 
   MemoryCacheStore({this.maxSize = 100});
+
+  @override
+  Future<T> remember<T>(
+    String key,
+    Duration ttl,
+    Future<T> Function() loader,
+  ) async {
+    final cached = await get(key);
+    if (cached != null) return cached as T;
+
+    final value = await loader();
+    await set(key, value, ttl: ttl);
+    return value;
+  }
 
   @override
   Future<void> set(String key, dynamic value, {Duration? ttl}) async {
@@ -36,6 +88,20 @@ class MemoryCacheStore implements CacheStore {
 
   @override
   Future<void> remove(String key) async => _cache.remove(key);
+
+  @override
+  Future<void> removeMany(Iterable<String> keys) async {
+    for (final key in keys) {
+      _cache.remove(key);
+    }
+  }
+
+  @override
+  Future<void> removeWhere(bool Function(String key) shouldRemove) async {
+    final keys = _cache.keys.where(shouldRemove).toList();
+    await removeMany(keys);
+  }
+
   @override
   Future<void> clear() async => _cache.clear();
 }

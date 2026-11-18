@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:math';
+import 'package:flint_dart/src/context.dart';
 import 'package:flint_dart/src/request.dart';
 import 'package:flint_dart/src/response.dart' show Response;
-import 'package:flint_dart/src/routing/router.dart' show Handler;
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as path;
 
@@ -26,20 +26,25 @@ class StaticFileMiddleware extends Middleware {
 
   @override
   Handler handle(Handler next) {
-    return (Request req, Response res) async {
+    return (ctx) async {
+      final res = ctx.res;
+      if (res == null) {
+        return await next(ctx);
+      }
+      final req = ctx.req;
       // Only handle GET/HEAD requests
       if (req.method != 'GET' && req.method != 'HEAD') {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Ignore known non-static routes
       if (_shouldSkip(req.path)) {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Only static files have extensions
       if (!req.path.contains('.') && req.path != '/') {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Handle root path
@@ -55,7 +60,7 @@ class StaticFileMiddleware extends Middleware {
       final file = File(filePath);
 
       if (!await file.exists()) {
-        return await next(req, res);
+        return await next(ctx);
       }
 
       // Get file stats
@@ -63,8 +68,7 @@ class StaticFileMiddleware extends Middleware {
 
       // Check file size limit
       if (fileStat.size > maxFileSize) {
-        res.status(413).send('File too large');
-        return res;
+        return res.status(413).send('File too large');
       }
 
       // Cache headers
@@ -78,7 +82,7 @@ class StaticFileMiddleware extends Middleware {
       }
 
       // Set cache headers
-      _setCacheHeaders(res, eTag, lastModified, cacheDuration, req.path);
+      _setCacheHeaders(res, eTag, lastModified, req);
 
       // Security headers
       _setSecurityHeaders(res);
@@ -86,10 +90,24 @@ class StaticFileMiddleware extends Middleware {
       // MIME type with charset for text files
       final mime = lookupMimeType(file.path) ?? 'application/octet-stream';
       _setContentType(res, mime, file.path);
+      final precompressed =
+          enableCompression ? _selectPrecompressedFile(req, file, mime) : null;
+      if (enableCompression && _canCompress(file.path, mime)) {
+        res.raw.headers.set(HttpHeaders.varyHeader, 'Accept-Encoding');
+      }
 
       // Handle HEAD request
       if (req.method == 'HEAD') {
-        res.raw.headers.contentLength = fileStat.size;
+        if (precompressed != null) {
+          final compressedStat = await precompressed.file.stat();
+          _setEncodedResponseHeaders(
+            res,
+            precompressed.encoding,
+            compressedStat.size,
+          );
+        } else {
+          res.raw.headers.contentLength = fileStat.size;
+        }
         return res;
       }
 
@@ -99,6 +117,29 @@ class StaticFileMiddleware extends Middleware {
             await _handleRangeRequest(req, res, file, fileStat.size, mime);
         if (rangeResponse != null) {
           return rangeResponse;
+        }
+      }
+
+      if (enableCompression && _canCompress(file.path, mime)) {
+        if (precompressed != null) {
+          _setEncodedResponseHeaders(
+            res,
+            precompressed.encoding,
+            await precompressed.file.length(),
+          );
+          await res.streamFile(precompressed.file);
+          return res;
+        }
+
+        final acceptEncoding =
+            req.raw.headers.value(HttpHeaders.acceptEncodingHeader) ?? '';
+        if (_acceptsEncoding(acceptEncoding, 'gzip')) {
+          final bytes = await file.readAsBytes();
+          final compressed = gzip.encode(bytes);
+          _setEncodedResponseHeaders(res, 'gzip', compressed.length);
+          res.raw.add(compressed);
+          await res.close();
+          return res;
         }
       }
 
@@ -144,17 +185,80 @@ class StaticFileMiddleware extends Middleware {
     return false;
   }
 
-  void _setCacheHeaders(Response res, String eTag, DateTime lastModified,
-      Duration duration, String filePath) {
-    // Files you want to bypass caching (e.g., for dev)
-    final bypassCacheExtensions = ['.css', '.js', '.map'];
+  bool _canCompress(String filePath, String mime) {
+    return filePath.endsWith('.js') ||
+        filePath.endsWith('.css') ||
+        filePath.endsWith('.json') ||
+        filePath.endsWith('.svg') ||
+        filePath.endsWith('.map') ||
+        filePath.endsWith('.deps') ||
+        mime.startsWith('text/') ||
+        mime.contains('json') ||
+        mime.contains('javascript') ||
+        mime.contains('xml');
+  }
 
-    // Check if file should bypass caching
-    final shouldBypass =
-        bypassCacheExtensions.any((ext) => filePath.endsWith(ext));
+  _EncodedStaticFile? _selectPrecompressedFile(
+    Request req,
+    File file,
+    String mime,
+  ) {
+    if (!_canCompress(file.path, mime)) return null;
+    final acceptEncoding =
+        req.raw.headers.value(HttpHeaders.acceptEncodingHeader) ?? '';
 
-    final cacheDuration = shouldBypass ? Duration(seconds: 0) : duration;
+    if (_acceptsEncoding(acceptEncoding, 'br')) {
+      final brFile = File('${file.path}.br');
+      if (brFile.existsSync()) {
+        return _EncodedStaticFile(brFile, 'br');
+      }
+    }
 
+    if (_acceptsEncoding(acceptEncoding, 'gzip')) {
+      final gzFile = File('${file.path}.gz');
+      if (gzFile.existsSync()) {
+        return _EncodedStaticFile(gzFile, 'gzip');
+      }
+    }
+
+    return null;
+  }
+
+  bool _acceptsEncoding(String acceptEncoding, String encoding) {
+    final expected = encoding.toLowerCase();
+    return acceptEncoding.split(',').any((part) {
+      final pieces = part.trim().split(';');
+      if (pieces.isEmpty || pieces.first.trim().toLowerCase() != expected) {
+        return false;
+      }
+      for (final parameter in pieces.skip(1)) {
+        final trimmed = parameter.trim();
+        if (trimmed.startsWith('q=')) {
+          final quality = double.tryParse(trimmed.substring(2));
+          if (quality != null && quality <= 0) return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  void _setEncodedResponseHeaders(
+    Response res,
+    String encoding,
+    int contentLength,
+  ) {
+    res.raw.headers.set(HttpHeaders.varyHeader, 'Accept-Encoding');
+    res.raw.headers.set(HttpHeaders.contentEncodingHeader, encoding);
+    res.raw.headers.contentLength = contentLength;
+  }
+
+  void _setCacheHeaders(
+      Response res, String eTag, DateTime lastModified, Request req) {
+    final filePath = req.path;
+    final shouldBypass = Platform.environment['FLINT_HOT'] == '1' ||
+        _shouldRevalidateEveryRequest(filePath);
+    final isVersioned =
+        _hasFingerprint(filePath) || req.uri.queryParameters.containsKey('v');
     res.raw.headers.set(HttpHeaders.etagHeader, eTag);
     res.raw.headers
         .set(HttpHeaders.lastModifiedHeader, HttpDate.format(lastModified));
@@ -162,7 +266,22 @@ class StaticFileMiddleware extends Middleware {
         HttpHeaders.cacheControlHeader,
         shouldBypass
             ? 'no-cache, no-store, must-revalidate'
-            : 'public, max-age=${cacheDuration.inSeconds}, immutable');
+            : isVersioned
+                ? 'public, max-age=31536000, immutable'
+                : 'public, max-age=${cacheDuration.inSeconds}');
+  }
+
+  bool _shouldRevalidateEveryRequest(String filePath) {
+    final basename = path.basename(filePath).toLowerCase();
+    return basename == 'index.html' ||
+        basename == 'manifest.json' ||
+        basename == 'flint-sw.js' ||
+        basename.endsWith('-sw.js');
+  }
+
+  bool _hasFingerprint(String filePath) {
+    final basename = path.basename(filePath).toLowerCase();
+    return RegExp(r'\.[0-9a-f]{8,}\.').hasMatch(basename);
   }
 
   void _setSecurityHeaders(Response res) {
@@ -264,4 +383,11 @@ class FileRange {
   final int end;
 
   FileRange(this.start, this.end);
+}
+
+class _EncodedStaticFile {
+  final File file;
+  final String encoding;
+
+  _EncodedStaticFile(this.file, this.encoding);
 }

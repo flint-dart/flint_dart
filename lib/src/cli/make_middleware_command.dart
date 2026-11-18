@@ -5,7 +5,7 @@ import 'package:flint_dart/src/cli/commands.dart';
 
 class MakeMiddlewareCommand extends FlintCommand {
   MakeMiddlewareCommand()
-      : super('make:middleware', 'Creates a new middleware class');
+      : super('--make-middleware', 'Creates a new middleware class');
 
   @override
   Future<void> execute(List<String> args) async {
@@ -48,13 +48,18 @@ import 'package:flint_dart/flint_dart.dart';
 class $className extends Middleware {
   @override
   Handler handle(Handler next) {
-    return (Request req, Response res) async {
-      final token = req.bearerToken;
-      if (token == null || token != "expected_token") {
-        return res.status(401).send("Unauthorized");
-        
+    return (Context ctx) async {
+      final res = ctx.res;
+      if (res == null) {
+        return await next(ctx);
       }
-     return await next(req, res);
+
+      final token = ctx.req.bearerToken;
+      if (token == null || token != 'expected_token') {
+        return res.status(401).send('Unauthorized');
+      }
+
+      return await next(ctx);
     };
   }
 }

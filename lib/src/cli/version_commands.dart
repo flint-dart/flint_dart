@@ -10,6 +10,7 @@ class VersionCommand extends FlintCommand {
 
   @override
   Future<void> execute(List<String> args) async {
-    Log.debug('🔥 Flint Dart CLI version: $flintVersion');
+    final version = await getFlintVersion();
+    Log.debug('🔥 Flint Dart CLI version: $version');
   }
 }

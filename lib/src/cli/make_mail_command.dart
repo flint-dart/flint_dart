@@ -5,14 +5,14 @@ import 'commands.dart';
 
 class MakeMailCommand extends FlintCommand {
   MakeMailCommand()
-      : super('make:mail',
+      : super('--make-mail',
             'Create a new HTML-based Flint mail class and template.');
 
   @override
   Future<void> execute(List<String> args) async {
     if (args.isEmpty) {
-      Log.debug('❌ Usage: flint make:mail <name>');
-      Log.debug('   Example: flint make:mail newsletter');
+      Log.debug('❌ Usage: flint --make-mail <name>');
+      Log.debug('   Example: flint --make-mail newsletter');
       return;
     }
 
@@ -53,8 +53,10 @@ class MakeMailCommand extends FlintCommand {
     await mailFile.writeAsString(_generateHtmlMailClass(name, className));
     await htmlFile.writeAsString(_generateHtmlView(className));
 
+    final previewSlug = name.replaceAll('_', '-');
     Log.debug('✅ Created: ${mailFile.path}');
     Log.debug('✅ Created: ${htmlFile.path}');
+    Log.debug('👀 Preview at: /mail/preview/$previewSlug');
   }
 
   /// --- Generate Dart Mail class ---
@@ -81,6 +83,13 @@ class $className extends ViewMailable {
   Map<String, dynamic> get data => {
     'recipientName': recipientName,
     'recipientEmail': recipientEmail,
+    'currentYear': DateTime.now().year,
+  };
+
+  @override
+  Map<String, dynamic> get previewData => {
+    'recipientName': 'Preview User',
+    'recipientEmail': 'preview@example.com',
     'currentYear': DateTime.now().year,
   };
 
