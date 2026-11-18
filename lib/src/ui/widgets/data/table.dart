@@ -121,9 +121,10 @@ class Table extends FlintElement {
             className: className,
             defaultStyle: const {
               'overflow-x': 'auto',
-              'border': '1px solid #e4e7ec',
+              'border': '1px solid var(--color-surfaceBorder, #e4e7ec)',
               'border-radius': '8px',
-              'background': '#ffffff',
+              'background': 'var(--color-surface, #ffffff)',
+              'color': 'var(--color-text, #0f172a)',
             },
             dartStyle: dartStyle,
             style: style,
@@ -198,9 +199,10 @@ class Table extends FlintElement {
                     'text-align': column.align ?? 'left',
                     'font-size': '12px',
                     'font-weight': 700,
-                    'color': '#475467',
-                    'border-bottom': '1px solid #e4e7ec',
-                    'background': '#f9fafb',
+                    'color': 'var(--color-muted, #475467)',
+                    'border-bottom':
+                        '1px solid var(--color-surfaceBorder, #e4e7ec)',
+                    'background': 'var(--color-surfaceMuted, #f9fafb)',
                   },
                   dartStyle: column.headerDartStyle ?? headerDartStyle,
                   style: {...headerStyle, ...column.headerStyle},
@@ -251,7 +253,12 @@ class Table extends FlintElement {
               ]),
               defaultStyle: {
                 'cursor': onRowClick == null ? 'default' : 'pointer',
-                'background': row.selected ? '#eff4ff' : '#ffffff',
+                'background': row.selected
+                    ? 'var(--color-primarySoft, #eff4ff)'
+                    : 'var(--color-surface, #ffffff)',
+                'color': row.selected
+                    ? 'var(--color-primaryText, inherit)'
+                    : 'var(--color-text, inherit)',
               },
               variantStyle: row.selected ? selectedRowStyle : const {},
               dartStyle: row.selected
@@ -272,7 +279,9 @@ class Table extends FlintElement {
                     defaultStyle: {
                       'padding': '12px',
                       'text-align': column.align ?? 'left',
-                      'border-bottom': '1px solid #f2f4f7',
+                      'border-bottom':
+                          '1px solid var(--color-surfaceBorder, #f2f4f7)',
+                      'color': 'inherit',
                     },
                     dartStyle: column.cellDartStyle ?? cellDartStyle,
                     style: {...cellStyle, ...column.cellStyle},
@@ -289,7 +298,8 @@ class Table extends FlintElement {
                     'style': {
                       'padding': '12px',
                       'text-align': 'right',
-                      'border-bottom': '1px solid #f2f4f7',
+                      'border-bottom':
+                          '1px solid var(--color-surfaceBorder, #f2f4f7)',
                     },
                   },
                   children: [toFlintNode(row.actions)],

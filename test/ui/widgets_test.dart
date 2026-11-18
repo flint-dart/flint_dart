@@ -71,6 +71,21 @@ void main() {
       expect(button.props['style'], containsPair('background', '#000'));
       expect(button.props['style'], containsPair('padding', '2px'));
     });
+
+    test('supports label and onClick aliases alongside child and onPressed',
+        () {
+      var clicked = false;
+      final button = Button(
+        label: 'Submit',
+        onClick: (_) => clicked = true,
+      );
+
+      expect((button.children.single as FlintText).value, 'Submit');
+      final clickFn = button.props['onClick'] as void Function(Object)?;
+      expect(clickFn, isNotNull);
+      clickFn!(Object());
+      expect(clicked, isTrue);
+    });
   });
 
   group('IconButton', () {
@@ -148,9 +163,9 @@ void main() {
       expect(Icons.all.map((icon) => icon.name), contains('code'));
       expect(Icons.all.map((icon) => icon.name), contains('gitBranch'));
       expect(Icons.all.map((icon) => icon.name), contains('server'));
-      expect(Icons.all.map((icon) => icon.name), contains('settings'));
-      expect(Icons.all.map((icon) => icon.name), contains('route'));
-      expect(Icons.all.map((icon) => icon.name), contains('shoppingCart'));
+      expect(Icons.all.map((icon) => icon.name), contains('settings01'));
+      expect(Icons.all.map((icon) => icon.name), contains('route01'));
+      expect(Icons.all.map((icon) => icon.name), contains('shoppingCart01'));
       expect(Icons.all.map((icon) => icon.name), contains('sparkles'));
     });
 

@@ -100,15 +100,15 @@ class HomePage extends FlintComponent {
             Row(
               children: [
                 Button(
-                  label: 'Get Started',
+                  child: 'Get Started',
                   variant: ButtonVariant.solid,
-                  onClick: () => window.alert('Welcome to Flint!'),
+                  onPressed: (_) => window.alert('Welcome to Flint!'),
                 ),
                 Spacer(width: 12),
-                Button(
-                  label: 'Documentation',
-                  variant: ButtonVariant.outline,
+                Link(
                   href: 'https://flintdart.dev',
+                  child: 'Documentation',
+                  variant: ButtonVariant.outline,
                 ),
               ],
             ),

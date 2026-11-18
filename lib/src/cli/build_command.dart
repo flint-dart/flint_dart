@@ -324,6 +324,7 @@ class BuildCommand extends FlintCommand {
       'deploy.sh',
     };
     if (topLevelSkips.contains(normalized)) return true;
+    if (base == '.gitignore' || base == '.dockerignore') return true;
     if (base == 'Dockerfile' || base.startsWith('Dockerfile.')) return true;
 
     // Never copy local secret .env files into build output

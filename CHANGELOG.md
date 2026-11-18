@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.10] - 2026-11-18
+
+### Fixed & Improved
+- **Flint UI Theme, Modal Overflow & Page Bundle Entrypoints ([#95](https://github.com/flint-dart/flint_dart/issues/95))**:
+  - Resolves all 6 issues reported in GitHub issue [#95](https://github.com/flint-dart/flint_dart/issues/95) (*"Flint UI: dark theme inconsistencies, tall modal overflow, and themeProvider lost in generated page bundles"*).
+  - **Modal CSS Variable Namespace**: Fixed Modal to resolve standard theme tokens (`var(--color-surface, ...)`, `var(--color-text, ...)`, `var(--color-surfaceBorder, ...)`, `var(--color-surfaceMuted, ...)`). Additionally, `FlintTheme.allTokens` now emits backward-compatible `--flint-color-*` aliases so existing consumer stylesheets remain unaffected.
+  - **Dark Theme Component Defaults**: Replaced hardcoded light colors across `Panel`, `Table` (container, headers, and rows), `DatePicker`, and `field_helpers.dart` (`fieldLabelStyle`, `fieldHelpStyle`, `fieldErrorStyle`, `inputBaseStyle`, `choiceRowStyle`) with theme tokens (`var(--color-surface)`, `var(--color-text)`, `var(--color-muted)`, etc.).
+  - **Semantic Tone Tokens (`Tone.info`)**: Added complete semantic tone palettes (`info*`, `success*`, `warning*`, and `danger*` for solid, soft, text, border, and focus states) to both `FlintThemes.light` and `FlintThemes.dark`. `Tone.info` alerts and badges now properly display translucent dark-mode styling instead of falling back to light mode.
+  - **Tall Modal Viewport Overflow & Scroll Containment**: Constrained the dialog `<section>` to `max-height: calc(100vh - 40px)` in a flex column, pinned header and action buttons (`flex-shrink: 0`), and added `overflow-y: auto` to both the backdrop overlay and inner modal body container. Tall modals now scroll cleanly without overflowing the viewport, eliminating the need for application-level `maxHeight: '58vh'` workarounds.
+  - **`themeProvider` in Page Bundles**: Updated `FlintWebUiBuilder` to detect `themeProvider:` passed to `createFlintApp()` in entrypoints and forward it into generated page bundles (`.dart_tool/flint_ui/page_bundles/...`) and shared runtime entrypoints. Dark theme CSS variables now survive page bundle compilation as expected.
+  - **README Quickstart & Button Ergonomics**: Updated README quickstart examples to use `Button(child: ..., onPressed: ...)` and `Link(...)`. Enhanced `Button` constructor to support `label:` and `onClick:` aliases (supporting both zero-argument `void Function()` and 1-argument `void Function(Object)` handlers).
+- **CLI Web UI Build Source Safety**:
+  - Added strict `.dart` extension protection during page bundle asset cleanup and ensured the `public/` directory is automatically created when missing so build output never pollutes or deletes `lib/ui/pages`.
+
+## [1.5.9] - 2026-11-18
+
+### Fixed & Improved
+- **Production Build Artifact Isolation (`flint build`)**:
+  - Automatically skips `.gitignore` and `.dockerignore` files recursively when copying project files into the `build/` directory.
+  - Ensures deployment containers and prebuilt build artifacts retain all necessary assets (such as precompiled Web UI bundles, `start.sh`, and Linux AOT executables) without being unintentionally excluded by repository-level ignore patterns.
+
 ## [1.5.8] - 2026-11-16
 
 ### Fixed & Improved
