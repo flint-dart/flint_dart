@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.10] - 2026-11-18
+
+### Fixed & Improved
+- **Flint UI Dark Theme Consistency & Semantic Tokens (#95)**:
+  - Resolved Modal CSS variable namespace mismatch; Modal surfaces, borders, and typography now consume standard theme tokens (`var(--color-surface)`, `var(--color-text)`, `var(--color-surfaceBorder)`) while generating backward-compatible `--flint-color-*` aliases in `FlintTheme.allTokens`.
+  - Replaced hardcoded light colors across `Panel`, `Table` (container, headers, and rows), `DatePicker`, and `field_helpers.dart` (`fieldLabelStyle`, `fieldHelpStyle`, `fieldErrorStyle`, `inputBaseStyle`, `choiceRowStyle`) with theme CSS variables.
+  - Added full semantic palettes (`info*`, `success*`, `warning*`, and `danger*` for solid, soft, text, border, and focus states) to both `FlintThemes.light` and `FlintThemes.dark`, preventing `Tone.info` alerts and badges from falling back to light mode styling.
+- **Modal Viewport Overflow & Scroll Containment (#95)**:
+  - Constrained modal dialog section with `max-height: calc(100vh - 40px)` in a flex column, pinned header and action footer with `flex-shrink: 0`, and added `overflow-y: auto` to the modal body and backdrop overlay so tall modals remain fully reachable on small viewports and mobile screens without manual `maxHeight` container workarounds.
+- **Preserve `themeProvider` in Generated Page Bundles (#95)**:
+  - Updated `FlintWebUiBuilder` to detect `themeProvider:` passed to `createFlintApp(...)` in source entrypoints and forward it into generated page bundle entrypoints (`.dart_tool/flint_ui/page_bundles/...`) and shared runtime entrypoints, ensuring page theme tokens (`--color-surface`, `--color-primarySoft`, etc.) survive build compilation.
+- **Button Ergonomics & Documentation Alignment (#95)**:
+  - Updated README quickstart examples to use `Button(child: ..., onPressed: ...)` and `Link(...)`.
+  - Enhanced `Button` constructor to support `label:` and `onClick:` aliases (accepting both zero-argument and 1-argument callbacks).
+- **CLI Web UI Build Source Safety**:
+  - Added strict `.dart` extension protection during page bundle asset cleanup and ensured `public/` directory is automatically created when missing so build output never pollutes or deletes `lib/ui/pages`.
+
+## [1.5.9] - 2026-11-18
+
+### Fixed & Improved
+- **Production Build Artifact Isolation (`flint build`)**:
+  - Automatically skips `.gitignore` and `.dockerignore` files recursively when copying project files into the `build/` directory.
+  - Ensures deployment containers and prebuilt build artifacts retain all necessary assets (such as precompiled Web UI bundles, `start.sh`, and Linux AOT executables) without being unintentionally excluded by repository-level ignore patterns.
+
 ## [1.5.8] - 2026-11-16
 
 ### Fixed & Improved
