@@ -37,8 +37,10 @@ class Tooltip extends FlintElement {
                   'z-index': 20,
                   'padding': '4px 8px',
                   'border-radius': '6px',
-                  'background': '#101828',
-                  'color': '#ffffff',
+                  'background':
+                      'var(--color-tooltipBackground, var(--color-surfaceInverse, var(--color-text, #101828)))',
+                  'color':
+                      'var(--color-tooltipText, var(--color-textInverse, var(--color-surface, #ffffff)))',
                   'font-size': '12px',
                 },
               },

@@ -12,10 +12,13 @@ void main() {
 
       final header = element.children.first as FlintElement;
       final headerStyle = header.props['style'] as Map<String, Object?>?;
-      expect(headerStyle?['border-bottom'], contains('var(--color-surfaceBorder'));
+      expect(
+          headerStyle?['border-bottom'], contains('var(--color-surfaceBorder'));
     });
 
-    test('Popover floating panel resolves surface tokens and supports panelStyle', () {
+    test(
+        'Popover floating panel resolves surface tokens and supports panelStyle',
+        () {
       final popover = Popover(
         open: true,
         trigger: 'Open',
@@ -57,7 +60,8 @@ void main() {
       final aside = shell.children.first as FlintElement;
       final asideStyle = aside.props['style'] as Map<String, Object?>?;
       expect(asideStyle?['background'], contains('var(--color-surface'));
-      expect(asideStyle?['border-right'], contains('var(--color-surfaceBorder'));
+      expect(
+          asideStyle?['border-right'], contains('var(--color-surfaceBorder'));
     });
 
     test('Topbar resolves surface, text, and muted tokens', () {
@@ -68,7 +72,9 @@ void main() {
       expect(style?['color'], contains('var(--color-text'));
     });
 
-    test('Sidebar resolves text and primarySoft tokens for active and inactive links', () {
+    test(
+        'Sidebar resolves text and primarySoft tokens for active and inactive links',
+        () {
       final sidebar = Sidebar(
         items: const [
           SidebarItem(label: 'Home', href: '/', active: true),
@@ -79,7 +85,8 @@ void main() {
       final inactiveLink = sidebar.children[1] as FlintElement;
 
       final activeStyle = activeLink.props['style'] as Map<String, Object?>?;
-      final inactiveStyle = inactiveLink.props['style'] as Map<String, Object?>?;
+      final inactiveStyle =
+          inactiveLink.props['style'] as Map<String, Object?>?;
 
       expect(activeStyle?['color'], contains('var(--color-primaryText'));
       expect(activeStyle?['background'], contains('var(--color-primarySoft'));
@@ -94,12 +101,14 @@ void main() {
 
     test('StatCard resolves muted and text tokens', () {
       final card = StatCard(label: 'Users', value: 120);
-      final headerSpan = (card.children[0] as FlintElement).children[0] as FlintElement;
+      final headerSpan =
+          (card.children[0] as FlintElement).children[0] as FlintElement;
       final headerStyle = headerSpan.props['style'] as Map<String, Object?>?;
       expect(headerStyle?['color'], contains('var(--color-muted'));
     });
 
-    test('Section resolves text and muted tokens for header and description', () {
+    test('Section resolves text and muted tokens for header and description',
+        () {
       final section = Section(title: 'Account', description: 'Manage profile');
       final header = section.children.first as FlintElement;
       final div = header.children.first as FlintElement;
@@ -121,7 +130,9 @@ void main() {
       expect(dd.props['style']?.toString(), contains('var(--color-text'));
     });
 
-    test('SearchBox input resolves inputBorder, inputSurface, and inputText tokens', () {
+    test(
+        'SearchBox input resolves inputBorder, inputSurface, and inputText tokens',
+        () {
       final search = SearchBox(label: 'Search');
       final input = search.children[1] as FlintElement;
       final inputStyle = input.props['style'] as Map<String, Object?>?;
@@ -140,7 +151,8 @@ void main() {
       );
       final ol = breadcrumbs.children.first as FlintElement;
       final separator = ol.children[1] as FlintElement;
-      expect(separator.props['style']?.toString(), contains('var(--color-muted'));
+      expect(
+          separator.props['style']?.toString(), contains('var(--color-muted'));
     });
 
     test('Tabs resolves surfaceBorder and muted tokens', () {
@@ -167,11 +179,14 @@ void main() {
 
     test('Switch resolves text, primarySolid, and surfaceMuted tokens', () {
       expect(switchRowStyle['color'], contains('var(--color-text'));
-      expect(switchTrackOnStyle['background'], contains('var(--color-primarySolid'));
-      expect(switchTrackOffStyle['background'], contains('var(--color-surfaceMuted'));
+      expect(switchTrackOnStyle['background'],
+          contains('var(--color-primarySolid'));
+      expect(switchTrackOffStyle['background'],
+          contains('var(--color-surfaceMuted'));
     });
 
-    test('FlintThemes includes infoSoftHover and backwards-compatible aliases', () {
+    test('FlintThemes includes infoSoftHover and backwards-compatible aliases',
+        () {
       final light = FlintThemes.light.cssVariables;
       final dark = FlintThemes.dark.cssVariables;
 
@@ -180,6 +195,77 @@ void main() {
       expect(dark.containsKey('--color-mutedText'), true);
       expect(dark.containsKey('--color-navText'), true);
       expect(dark.containsKey('--color-docsText'), true);
+      expect(dark.containsKey('--color-surfaceInverse'), true);
+      expect(dark.containsKey('--color-textInverse'), true);
+      expect(dark.containsKey('--color-tooltipBackground'), true);
+      expect(dark.containsKey('--color-tooltipText'), true);
+    });
+
+    test('EmptyState resolves surface, surfaceBorder, and muted tokens', () {
+      final empty = EmptyState(title: 'No items', message: 'Create one now');
+      final style = empty.props['style'] as Map<String, Object?>?;
+      expect(style?['background'], contains('var(--color-surface'));
+      expect(style?['border'], contains('var(--color-surfaceBorder'));
+      expect(style?['color'], contains('var(--color-text'));
+
+      final p = empty.children[1] as FlintElement;
+      final pStyle = p.props['style'] as Map<String, Object?>?;
+      expect(pStyle?['color'], contains('var(--color-muted'));
+    });
+
+    test('PageHeader resolves text and muted tokens for title and description',
+        () {
+      final header =
+          PageHeader(title: 'Settings', description: 'Configure preferences');
+      final div = header.children[0] as FlintElement;
+      final h1 = div.children[0] as FlintElement;
+      final p = div.children[1] as FlintElement;
+
+      expect(h1.props['style']?.toString(), contains('var(--color-text'));
+      expect(p.props['style']?.toString(), contains('var(--color-muted'));
+    });
+
+    test('Tooltip resolves tooltipBackground and tooltipText tokens', () {
+      final tooltip = Tooltip(content: 'Help text', child: 'Hover me');
+      final span = tooltip.children[1] as FlintElement;
+      final style = span.props['style'] as Map<String, Object?>?;
+      expect(style?['background'], contains('var(--color-tooltipBackground'));
+      expect(style?['color'], contains('var(--color-tooltipText'));
+    });
+
+    test(
+        'LineChart and BarChart default to primarySolid and surfaceBorder gridlines',
+        () {
+      final lineChart = LineChart(
+        data: const [10, 20, 30],
+        labels: const ['Jan', 'Feb', 'Mar'],
+      );
+      final lineSvg = lineChart.children.first as FlintElement;
+      final lineChildren = lineSvg.children;
+      final firstLine = lineChildren.first as FlintElement;
+      expect(firstLine.props['stroke'], contains('var(--color-surfaceBorder'));
+
+      final barChart = BarChart(
+        data: const [10, 20, 30],
+        labels: const ['Jan', 'Feb', 'Mar'],
+      );
+      final barSvg = barChart.children.first as FlintElement;
+      final firstBarGrid = barSvg.children.first as FlintElement;
+      expect(
+          firstBarGrid.props['stroke'], contains('var(--color-surfaceBorder'));
+    });
+
+    test('DatePicker error variant resolves dangerBorder and dangerSoft tokens',
+        () {
+      final picker = DatePicker(
+        name: 'start_date',
+        error: 'Required field',
+      );
+      final container = picker.children[0] as FlintElement;
+      final input = container.children[0] as FlintElement;
+      final inputStyle = input.props['style'] as Map<String, Object?>?;
+      expect(inputStyle?['border-color'], contains('var(--color-dangerBorder'));
+      expect(inputStyle?['box-shadow'], contains('var(--color-dangerSoft'));
     });
   });
 }

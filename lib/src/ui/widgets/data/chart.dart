@@ -12,8 +12,8 @@ class LineChartSeries {
 
   const LineChartSeries({
     required this.data,
-    this.strokeColor = '#6366f1',
-    this.fillColor = 'rgba(99, 102, 241, 0.08)',
+    this.strokeColor = 'var(--color-primarySolid, #6366f1)',
+    this.fillColor = 'var(--color-primarySoft, rgba(99, 102, 241, 0.08))',
     this.strokeWidth = 2.5,
     this.label = '',
   });
@@ -26,8 +26,8 @@ class LineChart extends FlintElement {
     required List<String> labels,
     List<LineChartSeries>? series,
     double height = 200.0,
-    String strokeColor = '#6366f1',
-    String fillColor = 'rgba(99, 102, 241, 0.08)',
+    String strokeColor = 'var(--color-primarySolid, #6366f1)',
+    String fillColor = 'var(--color-primarySoft, rgba(99, 102, 241, 0.08))',
     double strokeWidth = 2.5,
     String? className,
     Map<String, Object?> props = const {},
@@ -71,7 +71,7 @@ class LineChart extends FlintElement {
           'style': {
             'padding': '20px',
             'text-align': 'center',
-            'color': '#94a3b8',
+            'color': 'var(--color-muted, #94a3b8)',
           },
         },
         children: [FlintText('No data available')],
@@ -137,7 +137,7 @@ class LineChart extends FlintElement {
               'y2': (padTop +
                       (1.0 - (gridVal - yMin) / (yMax - yMin)) * graphHeight)
                   .toString(),
-              'stroke': 'rgba(255, 255, 255, 0.05)',
+              'stroke': 'var(--color-surfaceBorder, rgba(148, 163, 184, 0.2))',
               'stroke-width': '1',
               'stroke-dasharray': '4 4',
             },
@@ -150,7 +150,7 @@ class LineChart extends FlintElement {
                       (1.0 - (gridVal - yMin) / (yMax - yMin)) * graphHeight +
                       4)
                   .toString(),
-              'fill': '#94a3b8',
+              'fill': 'var(--color-muted, #94a3b8)',
               'font-size': '10px',
               'font-family': 'sans-serif',
               'text-anchor': 'end',
@@ -182,7 +182,7 @@ class LineChart extends FlintElement {
                           : 0.0))
                   .toString(),
               'y': (height - 8).toString(),
-              'fill': '#94a3b8',
+              'fill': 'var(--color-muted, #94a3b8)',
               'font-size': '10px',
               'font-family': 'sans-serif',
               'text-anchor': 'middle',
@@ -266,7 +266,7 @@ class LineChart extends FlintElement {
                 .toString(),
             'r': '4',
             'fill': series.strokeColor,
-            'stroke': '#1e1b4b',
+            'stroke': 'var(--color-surface, #ffffff)',
             'stroke-width': '2',
             'style': {'transition': 'all 0.15s ease', 'cursor': 'pointer'},
           },
@@ -283,7 +283,7 @@ class BarChartSeries {
 
   const BarChartSeries({
     required this.data,
-    this.barColor = '#6366f1',
+    this.barColor = 'var(--color-primarySolid, #6366f1)',
     this.label = '',
   });
 }
@@ -295,7 +295,7 @@ class BarChart extends FlintElement {
     required List<String> labels,
     List<BarChartSeries>? series,
     double height = 200.0,
-    String barColor = '#6366f1',
+    String barColor = 'var(--color-primarySolid, #6366f1)',
     String? className,
     Map<String, Object?> props = const {},
     Map<String, Object?> style = const {},
@@ -336,7 +336,7 @@ class BarChart extends FlintElement {
           'style': {
             'padding': '20px',
             'text-align': 'center',
-            'color': '#94a3b8',
+            'color': 'var(--color-muted, #94a3b8)',
           },
         },
         children: [FlintText('No data available')],
@@ -388,7 +388,7 @@ class BarChart extends FlintElement {
               'y1': (padTop + (i / 3) * graphHeight).toString(),
               'x2': (width - padRight).toString(),
               'y2': (padTop + (i / 3) * graphHeight).toString(),
-              'stroke': 'rgba(255, 255, 255, 0.05)',
+              'stroke': 'var(--color-surfaceBorder, rgba(148, 163, 184, 0.2))',
               'stroke-width': '1',
             },
           ),
@@ -410,7 +410,7 @@ class BarChart extends FlintElement {
               'x': (padLeft + (i * barSpaceWidth) + (barSpaceWidth / 2))
                   .toString(),
               'y': (height - 8).toString(),
-              'fill': '#94a3b8',
+              'fill': 'var(--color-muted, #94a3b8)',
               'font-size': '10px',
               'font-family': 'sans-serif',
               'text-anchor': 'middle',
@@ -469,7 +469,7 @@ class BarChart extends FlintElement {
         props: {
           'x': (barX + barWidth / 2).toString(),
           'y': (barY - 6).toString(),
-          'fill': '#e2e8f0',
+          'fill': 'var(--color-text, #e2e8f0)',
           'font-size': '9px',
           'font-family': 'sans-serif',
           'font-weight': 'bold',

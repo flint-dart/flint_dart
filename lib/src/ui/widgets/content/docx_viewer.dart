@@ -61,7 +61,8 @@ class DocxViewer extends StatefulComponent {
   FlintNode? loadingWidget;
 
   late final String _instanceId = 'flint-docx-viewer-${_nextId++}';
-  late final DocViewerController _effectiveController = controller ?? DocViewerController();
+  late final DocViewerController _effectiveController =
+      controller ?? DocViewerController();
 
   int _activeMatchIndex = 0;
 
@@ -93,11 +94,13 @@ class DocxViewer extends StatefulComponent {
     _effectiveController.onJumpToPage = (page) {
       final mount = web.document.getElementById('$_instanceId-mount');
       if (mount == null) return;
-      final pages = mount.querySelectorAll('.docx-wrapper > section.docx, section.docx, section');
+      final pages = mount.querySelectorAll(
+          '.docx-wrapper > section.docx, section.docx, section');
       if (page >= 1 && page <= pages.length) {
         final target = pages.item(page - 1);
         if (target != null && target is web.HTMLElement) {
-          (target as JSObject).callMethod('scrollIntoView'.toJS, {'behavior': 'smooth', 'block': 'start'}.jsify());
+          (target as JSObject).callMethod('scrollIntoView'.toJS,
+              {'behavior': 'smooth', 'block': 'start'}.jsify());
         }
       }
     };
@@ -140,7 +143,8 @@ class DocxViewer extends StatefulComponent {
       if (mount == null) return;
       final matches = mount.querySelectorAll('mark.flint-doc-match');
       if (matches.length == 0) return;
-      _activeMatchIndex = (_activeMatchIndex - 1 + matches.length) % matches.length;
+      _activeMatchIndex =
+          (_activeMatchIndex - 1 + matches.length) % matches.length;
       _focusMatch(matches, _activeMatchIndex);
     };
   }
@@ -166,7 +170,8 @@ class DocxViewer extends StatefulComponent {
       return;
     }
 
-    final elements = mount.querySelectorAll('p, span, td, th, h1, h2, h3, h4, h5, li');
+    final elements =
+        mount.querySelectorAll('p, span, td, th, h1, h2, h3, h4, h5, li');
     int matchCount = 0;
     final regex = RegExp(RegExp.escape(trimmed), caseSensitive: false);
 
@@ -190,7 +195,8 @@ class DocxViewer extends StatefulComponent {
       }
     }
 
-    _effectiveController.updateSearchMatches(current: matchCount > 0 ? 1 : 0, total: matchCount);
+    _effectiveController.updateSearchMatches(
+        current: matchCount > 0 ? 1 : 0, total: matchCount);
     _activeMatchIndex = 0;
 
     if (matchCount > 0) {
@@ -208,14 +214,16 @@ class DocxViewer extends StatefulComponent {
         if (i == index) {
           m.style.background = '#38bdf8';
           m.style.outline = '2px solid #0284c7';
-          (m as JSObject).callMethod('scrollIntoView'.toJS, {'behavior': 'smooth', 'block': 'center'}.jsify());
+          (m as JSObject).callMethod('scrollIntoView'.toJS,
+              {'behavior': 'smooth', 'block': 'center'}.jsify());
         } else {
           m.style.background = '#fde047';
           m.style.outline = 'none';
         }
       }
     }
-    _effectiveController.updateSearchMatches(current: index + 1, total: marks.length);
+    _effectiveController.updateSearchMatches(
+        current: index + 1, total: marks.length);
   }
 
   void _injectDocxStyles() {
@@ -322,9 +330,15 @@ class DocxViewer extends StatefulComponent {
     final errorEl = web.document.getElementById('$_instanceId-error');
     final fallbackEl = web.document.getElementById('$_instanceId-fallback');
 
-    if (loadingEl != null) (loadingEl as web.HTMLElement).style.display = 'flex';
-    if (errorEl != null) (errorEl as web.HTMLElement).style.display = 'none';
-    if (fallbackEl != null) (fallbackEl as web.HTMLElement).style.display = 'none';
+    if (loadingEl != null) {
+      (loadingEl as web.HTMLElement).style.display = 'flex';
+    }
+    if (errorEl != null) {
+      (errorEl as web.HTMLElement).style.display = 'none';
+    }
+    if (fallbackEl != null) {
+      (fallbackEl as web.HTMLElement).style.display = 'none';
+    }
 
     _ensureScriptsLoaded(() {
       _executeDocxRender(mount);
@@ -356,18 +370,26 @@ class DocxViewer extends StatefulComponent {
         if (url.contains('cdnjs')) {
           loadScript('https://unpkg.com/jszip@3.10.1/dist/jszip.min.js', next);
         } else if (url.contains('jsdelivr')) {
-          loadScript('https://unpkg.com/docx-preview@0.3.4/dist/docx-preview.min.js', next);
+          loadScript(
+              'https://unpkg.com/docx-preview@0.3.4/dist/docx-preview.min.js',
+              next);
         }
       }).toJS;
       web.document.head?.appendChild(s);
     }
 
     if (!hasZip) {
-      loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', () {
-        loadScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.4/dist/docx-preview.min.js', onReady);
+      loadScript(
+          'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+          () {
+        loadScript(
+            'https://cdn.jsdelivr.net/npm/docx-preview@0.3.4/dist/docx-preview.min.js',
+            onReady);
       });
     } else if (!hasDocx) {
-      loadScript('https://cdn.jsdelivr.net/npm/docx-preview@0.3.4/dist/docx-preview.min.js', onReady);
+      loadScript(
+          'https://cdn.jsdelivr.net/npm/docx-preview@0.3.4/dist/docx-preview.min.js',
+          onReady);
     } else {
       onReady();
     }
@@ -380,105 +402,110 @@ class DocxViewer extends StatefulComponent {
 
     final win = web.window as JSObject;
     if (!win.hasProperty('docx'.toJS).toDart) {
-      Future.delayed(const Duration(milliseconds: 100), () => _executeDocxRender(mount));
+      Future.delayed(
+          const Duration(milliseconds: 100), () => _executeDocxRender(mount));
       return;
     }
     final docxProp = win.getProperty('docx'.toJS);
     if (docxProp.isUndefinedOrNull) {
-      Future.delayed(const Duration(milliseconds: 100), () => _executeDocxRender(mount));
+      Future.delayed(
+          const Duration(milliseconds: 100), () => _executeDocxRender(mount));
       return;
     }
 
     final docxObj = docxProp as JSObject;
     final renderAsyncProp = docxObj.getProperty('renderAsync'.toJS);
     if (renderAsyncProp.isUndefinedOrNull) {
-      Future.delayed(const Duration(milliseconds: 100), () => _executeDocxRender(mount));
+      Future.delayed(
+          const Duration(milliseconds: 100), () => _executeDocxRender(mount));
       return;
     }
     final renderAsync = renderAsyncProp as JSFunction;
 
-    web.window
-        .fetch(src.toJS)
-        .toDart
-        .then((response) {
-          if (!response.ok) {
-            throw Exception('HTTP ${response.status}: ${response.statusText}');
-          }
-          return response.arrayBuffer().toDart;
-        })
-        .then((buf) {
-          final options = {
-            'className': 'flint-docx-paper',
-            'inWrapper': true,
-            'ignoreWidth': false,
-            'ignoreHeight': false,
-            'ignoreFonts': false,
-            'breakPages': true,
-            'useBase64URL': true,
-            'renderChanges': false,
-            'renderHeaders': true,
-            'renderFooters': true,
-            'renderFootnotes': true,
-            'renderEndnotes': true,
-            'experimental': true,
-          }.jsify();
+    web.window.fetch(src.toJS).toDart.then((response) {
+      if (!response.ok) {
+        throw Exception('HTTP ${response.status}: ${response.statusText}');
+      }
+      return response.arrayBuffer().toDart;
+    }).then((buf) {
+      final options = {
+        'className': 'flint-docx-paper',
+        'inWrapper': true,
+        'ignoreWidth': false,
+        'ignoreHeight': false,
+        'ignoreFonts': false,
+        'breakPages': true,
+        'useBase64URL': true,
+        'renderChanges': false,
+        'renderHeaders': true,
+        'renderFooters': true,
+        'renderFootnotes': true,
+        'renderEndnotes': true,
+        'experimental': true,
+      }.jsify();
 
-          mount.innerHTML = ''.toJS;
-          final promise = renderAsync.callAsFunction(
-            docxObj,
-            buf,
-            mount,
-            null,
-            options,
-          ) as JSPromise;
+      mount.innerHTML = ''.toJS;
+      final promise = renderAsync.callAsFunction(
+        docxObj,
+        buf,
+        mount,
+        null,
+        options,
+      ) as JSPromise;
 
-          return promise.toDart;
-        })
-        .then((_) {
-          if (loadingEl != null) (loadingEl as web.HTMLElement).style.display = 'none';
-          if (errorEl != null) (errorEl as web.HTMLElement).style.display = 'none';
+      return promise.toDart;
+    }).then((_) {
+      if (loadingEl != null) {
+        (loadingEl as web.HTMLElement).style.display = 'none';
+      }
+      if (errorEl != null) {
+        (errorEl as web.HTMLElement).style.display = 'none';
+      }
 
-          // Extract Headings & Total Pages for Outline
-          final pages = mount.querySelectorAll('.docx-wrapper > section.docx, section.docx, section');
-          final headings = mount.querySelectorAll('h1, h2, h3');
-          final toc = <DocTocItem>[];
+      // Extract Headings & Total Pages for Outline
+      final pages = mount.querySelectorAll(
+          '.docx-wrapper > section.docx, section.docx, section');
+      final headings = mount.querySelectorAll('h1, h2, h3');
+      final toc = <DocTocItem>[];
 
-          for (int i = 0; i < headings.length; i++) {
-            final h = headings.item(i);
-            final text = h?.textContent?.trim() ?? '';
-            if (text.isNotEmpty) {
-              // Find which page section contains this heading
-              int pageIndex = 1;
-              for (int p = 0; p < pages.length; p++) {
-                final pageEl = pages.item(p);
-                if (pageEl != null && pageEl.contains(h)) {
-                  pageIndex = p + 1;
-                  break;
-                }
-              }
-              toc.add(DocTocItem(title: text, pageNumber: pageIndex));
+      for (int i = 0; i < headings.length; i++) {
+        final h = headings.item(i);
+        final text = h?.textContent?.trim() ?? '';
+        if (text.isNotEmpty) {
+          // Find which page section contains this heading
+          int pageIndex = 1;
+          for (int p = 0; p < pages.length; p++) {
+            final pageEl = pages.item(p);
+            if (pageEl != null && pageEl.contains(h)) {
+              pageIndex = p + 1;
+              break;
             }
           }
+          toc.add(DocTocItem(title: text, pageNumber: pageIndex));
+        }
+      }
 
-          _effectiveController.updateDocumentMeta(
-            currentPage: 1,
-            totalPages: pages.length > 0 ? pages.length : 1,
-            toc: toc,
-          );
+      _effectiveController.updateDocumentMeta(
+        currentPage: 1,
+        totalPages: pages.length > 0 ? pages.length : 1,
+        toc: toc,
+      );
 
-          // Apply initial reading mode
-          _effectiveController.onSetReadingMode?.call(_effectiveController.readingMode);
-        })
-        .catchError((err) {
-          if (loadingEl != null) (loadingEl as web.HTMLElement).style.display = 'none';
-          if (fallback != null && fallbackEl != null) {
-            (fallbackEl as web.HTMLElement).style.display = 'block';
-          } else if (errorEl != null) {
-            final htmlError = errorEl as web.HTMLElement;
-            htmlError.style.display = 'block';
-            htmlError.textContent = 'Document canvas error: $err';
-          }
-        });
+      // Apply initial reading mode
+      _effectiveController.onSetReadingMode
+          ?.call(_effectiveController.readingMode);
+    }).catchError((err) {
+      if (loadingEl != null) {
+        (loadingEl as web.HTMLElement).style.display = 'none';
+      }
+      if (fallback != null && fallbackEl != null) {
+        (fallbackEl as web.HTMLElement).style.display = 'block';
+      } else if (errorEl != null) {
+        final htmlError = errorEl as web.HTMLElement;
+        htmlError.style.display = 'block';
+        htmlError.textContent = 'Document canvas error: $err';
+      }
+    });
   }
 
   @override
@@ -501,26 +528,50 @@ class DocxViewer extends StatefulComponent {
           ),
 
         // 🔹 Table of Contents / Outline Drawer
-        if (_effectiveController.showOutline && _effectiveController.tableOfContents.isNotEmpty)
+        if (_effectiveController.showOutline &&
+            _effectiveController.tableOfContents.isNotEmpty)
           Container(
             dartStyle: DartStyle(
               width: const SizeValue('min(900px, 100%)'),
               margin: const EdgeInsets.only(bottom: 20),
               padding: const EdgeInsets.all(16),
               radius: 8,
-              background: const Color('#0f172a'),
-              border: Border.all(color: const Color.rgba(56, 189, 248, 0.3)),
-              shadow: const Shadow(y: 12, blur: 32, spread: -4, color: Color.rgba(0, 0, 0, 0.5)),
+              background: ThemeToken.color('surface', fallback: '#0f172a'),
+              border: Border.all(
+                  color: ThemeToken.color('surfaceBorder',
+                      fallback: const Color.rgba(56, 189, 248, 0.3))),
+              shadow: ThemeToken.shadow('card',
+                  fallback: const Shadow(
+                      y: 12,
+                      blur: 32,
+                      spread: -4,
+                      color: Color.rgba(0, 0, 0, 0.5))),
             ),
             children: [
               Row(
-                dartStyle: DartStyle(display: Display.flex, alignItems: AlignItems.center, justifyContent: JustifyContent.between, margin: const EdgeInsets.only(bottom: 12)),
+                dartStyle: DartStyle(
+                    display: Display.flex,
+                    alignItems: AlignItems.center,
+                    justifyContent: JustifyContent.between,
+                    margin: const EdgeInsets.only(bottom: 12)),
                 children: [
                   Row(
-                    dartStyle: DartStyle(display: Display.flex, alignItems: AlignItems.center, gap: 8),
+                    dartStyle: DartStyle(
+                        display: Display.flex,
+                        alignItems: AlignItems.center,
+                        gap: 8),
                     children: [
-                      Icon(Icons.list, size: 16, color: const Color('#38bdf8')),
-                      Text.strong('TABLE OF CONTENTS', dartStyle: const DartStyle(fontSize: 12, fontWeight: 900, color: Color('#38bdf8'), letterSpacing: 0.8)),
+                      Icon(Icons.list,
+                          size: 16,
+                          color: ThemeToken.color('primarySolid',
+                              fallback: '#38bdf8')),
+                      Text.strong('TABLE OF CONTENTS',
+                          dartStyle: DartStyle(
+                              fontSize: 12,
+                              fontWeight: 900,
+                              color: ThemeToken.color('primaryText',
+                                  fallback: '#38bdf8'),
+                              letterSpacing: 0.8)),
                     ],
                   ),
                   Button(
@@ -537,16 +588,24 @@ class DocxViewer extends StatefulComponent {
                   for (final item in _effectiveController.tableOfContents)
                     Button(
                       child: Row(
-                        dartStyle: DartStyle(display: Display.flex, alignItems: AlignItems.center, justifyContent: JustifyContent.between, width: SizeValue.full),
+                        dartStyle: DartStyle(
+                            display: Display.flex,
+                            alignItems: AlignItems.center,
+                            justifyContent: JustifyContent.between,
+                            width: SizeValue.full),
                         children: [
                           Text.span(item.title),
                           Container(
                             dartStyle: DartStyle(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               radius: 4,
-                              background: const Color.rgba(255, 255, 255, 0.08),
+                              background: ThemeToken.color('surfaceMuted',
+                                  fallback:
+                                      const Color.rgba(255, 255, 255, 0.08)),
                               fontSize: 10,
-                              color: const Color('#94a3b8'),
+                              color: ThemeToken.color('muted',
+                                  fallback: '#94a3b8'),
                             ),
                             child: Text.span('p. ${item.pageNumber}'),
                           ),
@@ -554,7 +613,10 @@ class DocxViewer extends StatefulComponent {
                       ),
                       size: ComponentSize.sm,
                       variant: ButtonVariant.ghost,
-                      dartStyle: const DartStyle(justifyContent: JustifyContent.start, textAlign: TextAlign.left, color: Color('#cbd5e1')),
+                      dartStyle: DartStyle(
+                          justifyContent: JustifyContent.start,
+                          textAlign: TextAlign.left,
+                          color: ThemeToken.color('text', fallback: '#cbd5e1')),
                       onPressed: (_) {
                         _effectiveController.jumpToPage(item.pageNumber);
                       },
@@ -571,18 +633,23 @@ class DocxViewer extends StatefulComponent {
             padding: const EdgeInsets.all(24),
             margin: const EdgeInsets.only(bottom: 20),
             radius: 8,
-            background: const Color.rgba(56, 189, 248, 0.1),
-            border: Border.all(color: const Color.rgba(56, 189, 248, 0.25)),
+            background: ThemeToken.color('infoSoft',
+                fallback: const Color.rgba(56, 189, 248, 0.1)),
+            border: Border.all(
+                color: ThemeToken.color('infoBorder',
+                    fallback: const Color.rgba(56, 189, 248, 0.25))),
             display: Display.flex,
             alignItems: AlignItems.center,
             justifyContent: JustifyContent.center,
             gap: 10,
-            color: const Color('#38bdf8'),
+            color: ThemeToken.color('infoText', fallback: '#38bdf8'),
             fontWeight: 700,
             fontSize: 14,
           ),
           children: [
-            loadingWidget ?? Text.span('⚡ Rendering High-Fidelity Word Document (diagrams, tables & layout)...'),
+            loadingWidget ??
+                Text.span(
+                    '⚡ Rendering High-Fidelity Word Document (diagrams, tables & layout)...'),
           ],
         ),
 
@@ -606,9 +673,12 @@ class DocxViewer extends StatefulComponent {
             padding: const EdgeInsets.all(20),
             margin: const EdgeInsets.only(bottom: 20),
             radius: 8,
-            background: const Color.rgba(239, 68, 68, 0.1),
-            border: Border.all(color: const Color.rgba(239, 68, 68, 0.3)),
-            color: const Color('#ef4444'),
+            background: ThemeToken.color('dangerSoft',
+                fallback: const Color.rgba(239, 68, 68, 0.1)),
+            border: Border.all(
+                color: ThemeToken.color('dangerBorder',
+                    fallback: const Color.rgba(239, 68, 68, 0.3))),
+            color: ThemeToken.color('dangerText', fallback: '#ef4444'),
           ),
         ),
 

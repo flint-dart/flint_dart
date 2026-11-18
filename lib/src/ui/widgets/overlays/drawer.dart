@@ -74,7 +74,8 @@ class Drawer extends StatelessComponent {
                 'align-items': 'center',
                 'justify-content': 'space-between',
                 'padding': '16px',
-                'border-bottom': '1px solid var(--color-surfaceBorder, #e4e7ec)',
+                'border-bottom':
+                    '1px solid var(--color-surfaceBorder, #e4e7ec)',
               },
             },
             children: [

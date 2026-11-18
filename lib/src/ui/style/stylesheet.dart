@@ -186,6 +186,16 @@ class FlintTheme {
         !explicitTokens.containsKey('color.docsText')) {
       aliases['color.docsText'] = colors['text'];
     }
+    if (colors.containsKey('text') &&
+        !explicitTokens.containsKey('color.surfaceInverse')) {
+      aliases['color.surfaceInverse'] = colors['text'];
+      aliases['color.tooltipBackground'] = colors['text'];
+    }
+    if (colors.containsKey('surface') &&
+        !explicitTokens.containsKey('color.textInverse')) {
+      aliases['color.textInverse'] = colors['surface'];
+      aliases['color.tooltipText'] = colors['surface'];
+    }
 
     return ThemeTokens({
       ...explicitTokens,

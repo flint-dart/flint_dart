@@ -437,12 +437,12 @@ class Terminal extends StatefulComponent {
   Future<bool> copySelection() async {
     final text = _selectedText();
     if (text.isEmpty) {
-      _flashStatus('Select text first', '#eab308');
+      _flashStatus('Select text first', 'var(--color-warningSolid, #eab308)');
       return false;
     }
     try {
       await web.window.navigator.clipboard.writeText(text).toDart;
-      _flashStatus('Copied!', '#16a34a');
+      _flashStatus('Copied!', 'var(--color-successSolid, #16a34a)');
       focus();
       return true;
     } catch (error) {
@@ -475,18 +475,18 @@ class Terminal extends StatefulComponent {
       final text = jsText.toDart;
       if (text.isNotEmpty) {
         paste(text);
-        _flashStatus('Pasted!', '#16a34a');
+        _flashStatus('Pasted!', 'var(--color-successSolid, #16a34a)');
         focus();
         return true;
       }
-      _flashStatus('Clipboard empty', '#eab308');
+      _flashStatus('Clipboard empty', 'var(--color-warningSolid, #eab308)');
       return false;
     } catch (_) {
       try {
         final input = web.window.prompt('Paste text to send to terminal:');
         if (input != null && input.isNotEmpty) {
           paste(input);
-          _flashStatus('Pasted!', '#16a34a');
+          _flashStatus('Pasted!', 'var(--color-successSolid, #16a34a)');
           focus();
           return true;
         }
@@ -553,7 +553,7 @@ class Terminal extends StatefulComponent {
         if (clipboardData != null) {
           clipboardData.setData('text/plain', selection);
           event.preventDefault();
-          _flashStatus('Copied!', '#16a34a');
+          _flashStatus('Copied!', 'var(--color-successSolid, #16a34a)');
         }
       }
     }).toJS;
@@ -843,12 +843,13 @@ class Terminal extends StatefulComponent {
 
   String _stateColor(stub.TerminalConnectionState state) {
     return switch (state) {
-      stub.TerminalConnectionState.connected => '#16a34a',
-      stub.TerminalConnectionState.error => '#dc2626',
+      stub.TerminalConnectionState.connected =>
+        'var(--color-successSolid, #16a34a)',
+      stub.TerminalConnectionState.error => 'var(--color-dangerSolid, #dc2626)',
       stub.TerminalConnectionState.connecting ||
       stub.TerminalConnectionState.reconnecting =>
-        '#0284c7',
-      _ => '#64748b',
+        'var(--color-infoSolid, #0284c7)',
+      _ => 'var(--color-muted, #64748b)',
     };
   }
 

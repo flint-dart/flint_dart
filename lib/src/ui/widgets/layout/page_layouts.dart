@@ -343,7 +343,7 @@ class _ShellHeading extends FlintElement {
                 props: const {
                   'style': {
                     'margin': 0,
-                    'color': '#667085',
+                    'color': 'var(--color-muted, #667085)',
                     'line-height': 1.6
                   },
                 },

@@ -67,18 +67,23 @@ class DocViewerToolbar extends StatefulComponent {
             margin: const EdgeInsets.only(bottom: 20),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             radius: 8,
-            background: const Color('#131822'),
-            border: Border.all(color: const Color.rgba(255, 255, 255, 0.12)),
+            background: ThemeToken.color('surface', fallback: '#131822'),
+            border: Border.all(
+                color: ThemeToken.color('surfaceBorder',
+                    fallback: const Color.rgba(255, 255, 255, 0.12))),
             display: Display.flex,
             alignItems: AlignItems.center,
             justifyContent: JustifyContent.between,
             gap: 12,
             flexWrap: FlexWrap.wrap,
-            shadow: const Shadow(
-              y: 8,
-              blur: 24,
-              spread: -4,
-              color: Color.rgba(0, 0, 0, 0.45),
+            shadow: ThemeToken.shadow(
+              'card',
+              fallback: const Shadow(
+                y: 8,
+                blur: 24,
+                spread: -4,
+                color: Color.rgba(0, 0, 0, 0.45),
+              ),
             ),
           ),
       children: [
@@ -101,11 +106,11 @@ class DocViewerToolbar extends StatefulComponent {
             if (title != null)
               Text.strong(
                 title!,
-                dartStyle: const DartStyle(
+                dartStyle: DartStyle(
                   fontSize: 13,
                   fontWeight: 800,
-                  color: Color('#f8fafc'),
-                  maxWidth: SizeValue('200px'),
+                  color: ThemeToken.color('text', fallback: '#f8fafc'),
+                  maxWidth: const SizeValue('200px'),
                   overflow: 'hidden',
                   textOverflow: TextOverflow.ellipsis,
                   whiteSpace: 'nowrap',
@@ -131,13 +136,15 @@ class DocViewerToolbar extends StatefulComponent {
                 dartStyle: DartStyle(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  background: const Color.rgba(255, 255, 255, 0.06),
-                  border:
-                      Border.all(color: const Color.rgba(255, 255, 255, 0.1)),
+                  background: ThemeToken.color('surfaceMuted',
+                      fallback: const Color.rgba(255, 255, 255, 0.06)),
+                  border: Border.all(
+                      color: ThemeToken.color('surfaceBorder',
+                          fallback: const Color.rgba(255, 255, 255, 0.1))),
                   radius: 4,
                   fontSize: 12,
                   fontWeight: 700,
-                  color: const Color('#cbd5e1'),
+                  color: ThemeToken.color('text', fallback: '#cbd5e1'),
                 ),
                 child: Text.span(
                     'Page ${controller.currentPage} of ${controller.totalPages}'),
@@ -211,15 +218,19 @@ class DocViewerToolbar extends StatefulComponent {
                   display: Display.flex,
                   alignItems: AlignItems.center,
                   gap: 6,
-                  background: const Color.rgba(255, 255, 255, 0.05),
+                  background: ThemeToken.color('inputSurface',
+                      fallback: const Color.rgba(255, 255, 255, 0.05)),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   radius: 6,
-                  border:
-                      Border.all(color: const Color.rgba(255, 255, 255, 0.12)),
+                  border: Border.all(
+                      color: ThemeToken.color('inputBorder',
+                          fallback: const Color.rgba(255, 255, 255, 0.12))),
                 ),
                 children: [
-                  Icon(Icons.search, size: 14, color: const Color('#94a3b8')),
+                  Icon(Icons.search,
+                      size: 14,
+                      color: ThemeToken.color('muted', fallback: '#94a3b8')),
                   FlintElement(
                     'input',
                     props: {
@@ -230,7 +241,8 @@ class DocViewerToolbar extends StatefulComponent {
                         'background': 'transparent',
                         'border': 'none',
                         'outline': 'none',
-                        'color': '#f8fafc',
+                        'color':
+                            'var(--color-inputText, var(--color-text, #f8fafc))',
                         'font-size': '12px',
                         'width': '100px',
                       },
@@ -256,9 +268,10 @@ class DocViewerToolbar extends StatefulComponent {
                   if (controller.totalMatches > 0)
                     Text.span(
                       '${controller.currentMatch}/${controller.totalMatches}',
-                      dartStyle: const DartStyle(
+                      dartStyle: DartStyle(
                           fontSize: 11,
-                          color: Color('#38bdf8'),
+                          color: ThemeToken.color('primaryText',
+                              fallback: '#38bdf8'),
                           fontWeight: 700),
                     ),
                   if (controller.totalMatches > 0)
