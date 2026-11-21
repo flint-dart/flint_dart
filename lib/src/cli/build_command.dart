@@ -253,11 +253,18 @@ class BuildCommand extends FlintCommand {
         await FlintWebUiBuilder.compile(build);
       }
     } else {
-      await FlintWebUiBuilder.compile(build);
-      try {
-        await FlintWebUiBuilder.compilePageBundles(build);
-      } on StateError catch (e) {
-        Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+      final pageConfig = FlintWebUiBuilder.discoverPageBundleConfig(build);
+      if (pageConfig != null && pageConfig.pages.isNotEmpty) {
+        try {
+          await FlintWebUiBuilder.compilePageBundles(build);
+        } on StateError catch (e) {
+          Log.debug(
+            'Page-level Flint UI bundles skipped (${e.message}). Falling back to single bundle...',
+          );
+          await FlintWebUiBuilder.compile(build);
+        }
+      } else {
+        await FlintWebUiBuilder.compile(build);
       }
     }
   }

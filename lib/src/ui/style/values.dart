@@ -304,6 +304,37 @@ String _gridCssValue(Object value, {bool unitlessNumber = false}) {
   return cssValue(value, unitlessNumber: unitlessNumber);
 }
 
+/// Side configuration for a border.
+class BorderSide {
+  /// Border width.
+  final Object width;
+
+  /// Border color.
+  final Object color;
+
+  /// Border style.
+  final String style;
+
+  /// Creates a border side.
+  const BorderSide({
+    this.width = 1,
+    this.color = 'currentColor',
+    this.style = 'solid',
+  });
+
+  /// Border side with zero width and none style.
+  static const none = BorderSide(width: 0, style: 'none');
+
+  /// Converts this border side to a CSS string.
+  String toCss() {
+    if (style == 'none') return 'none';
+    return '${cssValue(width)} $style ${cssValue(color)}';
+  }
+
+  @override
+  String toString() => toCss();
+}
+
 /// Typed CSS border shorthand value.
 class Border {
   /// Border width.
@@ -315,15 +346,33 @@ class Border {
   /// Border style.
   final String style;
 
-  /// Creates a border shorthand value.
-  const Border({this.width = 1, required this.color, this.style = 'solid'});
+  /// Optional specific side overrides.
+  final BorderSide? top;
+  final BorderSide? right;
+  final BorderSide? bottom;
+  final BorderSide? left;
+
+  /// Creates a border shorthand value or directional border.
+  const Border({
+    this.width = 1,
+    this.color = 'currentColor',
+    this.style = 'solid',
+    this.top,
+    this.right,
+    this.bottom,
+    this.left,
+  });
 
   /// Creates a border for all sides.
   const Border.all({
     Object width = 1,
-    required Object color,
+    Object color = 'currentColor',
     String style = 'solid',
   }) : this(width: width, color: color, style: style);
+
+  /// Creates a border from a single [BorderSide].
+  Border.fromBorderSide(BorderSide side)
+      : this(width: side.width, color: side.color, style: side.style);
 
   /// CSS `none` border.
   static const none = Border(
@@ -337,6 +386,113 @@ class Border {
     if (style == 'none') return 'none';
     return '${cssValue(width)} $style ${cssValue(color)}';
   }
+
+  @override
+  String toString() => toCss();
+}
+
+/// CSS border radius corner dimension.
+class Radius {
+  /// Horizontal radius.
+  final Object x;
+
+  /// Vertical radius.
+  final Object y;
+
+  /// Creates a circular radius with equal horizontal and vertical dimensions.
+  const Radius.circular(Object radius) : x = radius, y = radius;
+
+  /// Creates an elliptical radius with explicit [x] and [y] dimensions.
+  const Radius.elliptical(this.x, this.y);
+
+  /// Zero radius.
+  static const zero = Radius.circular(0);
+
+  /// Converts this radius to CSS shorthand.
+  String toCss() => x == y ? cssValue(x) : '${cssValue(x)} / ${cssValue(y)}';
+
+  @override
+  String toString() => toCss();
+}
+
+/// CSS border radius shorthand representing all four corners.
+class BorderRadius {
+  /// Top-left corner radius.
+  final Radius topLeft;
+
+  /// Top-right corner radius.
+  final Radius topRight;
+
+  /// Bottom-right corner radius.
+  final Radius bottomRight;
+
+  /// Bottom-left corner radius.
+  final Radius bottomLeft;
+
+  /// Creates a border radius with equal radius on all four corners.
+  const BorderRadius.all(Radius radius)
+      : topLeft = radius,
+        topRight = radius,
+        bottomRight = radius,
+        bottomLeft = radius;
+
+  /// Creates a circular border radius for all corners from a numeric or CSS value.
+  BorderRadius.circular(Object radius)
+      : this.all(Radius.circular(radius));
+
+  /// Creates a border radius for specific corners.
+  const BorderRadius.only({
+    this.topLeft = Radius.zero,
+    this.topRight = Radius.zero,
+    this.bottomRight = Radius.zero,
+    this.bottomLeft = Radius.zero,
+  });
+
+  /// Zero border radius.
+  static const zero = BorderRadius.all(Radius.zero);
+
+  /// Converts this border radius to CSS shorthand.
+  String toCss() {
+    if (topLeft == topRight &&
+        topRight == bottomRight &&
+        bottomRight == bottomLeft) {
+      return topLeft.toCss();
+    }
+    return '${topLeft.toCss()} ${topRight.toCss()} ${bottomRight.toCss()} ${bottomLeft.toCss()}';
+  }
+
+  @override
+  String toString() => toCss();
+}
+
+/// CSS font-weight value tokens.
+class FontWeight {
+  final String value;
+  const FontWeight._(this.value);
+
+  static const w100 = FontWeight._('100');
+  static const w200 = FontWeight._('200');
+  static const w300 = FontWeight._('300');
+  static const w400 = FontWeight._('400');
+  static const w500 = FontWeight._('500');
+  static const w600 = FontWeight._('600');
+  static const w700 = FontWeight._('700');
+  static const w800 = FontWeight._('800');
+  static const w900 = FontWeight._('900');
+
+  static const thin = w100;
+  static const extraLight = w200;
+  static const light = w300;
+  static const normal = w400;
+  static const regular = w400;
+  static const medium = w500;
+  static const semiBold = w600;
+  static const bold = w700;
+  static const extraBold = w800;
+  static const black = w900;
+
+  @override
+  String toString() => value;
 }
 
 /// Typed CSS box-shadow value.
@@ -1144,16 +1300,33 @@ enum FlexDirection {
   const FlexDirection(this.css);
 }
 
+/// CSS `gap` length helper.
+class Gap {
+  /// Raw gap value.
+  final Object value;
+
+  /// Creates a gap value.
+  const Gap(this.value);
+
+  @override
+  String toString() {
+    if (value is num) return '${value}px';
+    return value.toString();
+  }
+}
+
 /// CSS align-items values.
 enum AlignItems {
   /// CSS `flex-start`.
   start('flex-start'),
+  flexStart('flex-start'),
 
   /// CSS `center`.
   center('center'),
 
   /// CSS `flex-end`.
   end('flex-end'),
+  flexEnd('flex-end'),
 
   /// CSS `stretch`.
   stretch('stretch'),
@@ -1172,21 +1345,26 @@ enum AlignItems {
 enum JustifyContent {
   /// CSS `flex-start`.
   start('flex-start'),
+  flexStart('flex-start'),
 
   /// CSS `center`.
   center('center'),
 
   /// CSS `flex-end`.
   end('flex-end'),
+  flexEnd('flex-end'),
 
   /// CSS `space-between`.
   between('space-between'),
+  spaceBetween('space-between'),
 
   /// CSS `space-around`.
   around('space-around'),
+  spaceAround('space-around'),
 
   /// CSS `space-evenly`.
-  evenly('space-evenly');
+  evenly('space-evenly'),
+  spaceEvenly('space-evenly');
 
   /// CSS keyword emitted for this value.
   final String css;
@@ -1251,6 +1429,14 @@ String cssValue(Object? value, {bool unitlessNumber = false}) {
   if (value is FlexValue) return value.toCss();
 
   if (value is Border) return value.toCss();
+
+  if (value is BorderSide) return value.toCss();
+
+  if (value is Radius) return value.toCss();
+
+  if (value is BorderRadius) return value.toCss();
+
+  if (value is FontWeight) return value.value;
 
   if (value is Shadow) return value.toCss();
 

@@ -7,7 +7,7 @@ Future<bool> isPortListening(int port) async {
     final socket = await Socket.connect(
       InternetAddress.loopbackIPv4,
       port,
-      timeout: const Duration(milliseconds: 700),
+      timeout: const Duration(milliseconds: 250),
     );
     await socket.close();
     return true;
@@ -21,9 +21,11 @@ Future<bool> waitForPortStopped(
   Duration timeout = const Duration(seconds: 10),
 }) async {
   final deadline = DateTime.now().add(timeout);
+  var delayMs = 25;
   while (DateTime.now().isBefore(deadline)) {
     if (!await isPortListening(port)) return true;
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(Duration(milliseconds: delayMs));
+    if (delayMs < 150) delayMs = (delayMs * 1.5).round();
   }
   return !await isPortListening(port);
 }

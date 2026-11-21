@@ -210,6 +210,7 @@ Future<int?> _waitForStartedServerPort({
   Duration timeout = const Duration(seconds: 45),
 }) async {
   final deadline = DateTime.now().add(timeout);
+  var delayMs = 30;
   while (DateTime.now().isBefore(deadline)) {
     if (await _isServerListening(expectedPort)) return expectedPort;
 
@@ -218,7 +219,8 @@ Future<int?> _waitForStartedServerPort({
       return workerPort;
     }
 
-    await Future.delayed(const Duration(milliseconds: 350));
+    await Future.delayed(Duration(milliseconds: delayMs));
+    if (delayMs < 150) delayMs = (delayMs * 1.5).round();
   }
 
   return null;
@@ -339,7 +341,7 @@ void watchFiles(int serverPort) {
 
     if (isUiSource) {
       _debounce?.cancel();
-      _debounce = Timer(const Duration(milliseconds: 350), () async {
+      _debounce = Timer(const Duration(milliseconds: 150), () async {
         await _queueFlintUiRebuild(event.path, serverPort);
       });
       return;
@@ -347,7 +349,7 @@ void watchFiles(int serverPort) {
 
     if (isWebAsset) {
       _debounce?.cancel();
-      _debounce = Timer(const Duration(milliseconds: 200), () async {
+      _debounce = Timer(const Duration(milliseconds: 100), () async {
         try {
           Log.debug('[HOT-RELOAD] Web asset changed: ${event.path}');
           await _triggerBrowserReload(
@@ -368,7 +370,7 @@ void watchFiles(int serverPort) {
 
     if (isTemplate) {
       _debounce?.cancel();
-      _debounce = Timer(const Duration(milliseconds: 300), () async {
+      _debounce = Timer(const Duration(milliseconds: 100), () async {
         try {
           final templateName = templateNameForHotReload(event.path);
 
@@ -392,7 +394,7 @@ void watchFiles(int serverPort) {
     }
 
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
+    _debounce = Timer(const Duration(milliseconds: 250), () async {
       Log.debug('[HOT-RELOAD] Restarting server...');
       await restartServer();
     });
@@ -518,7 +520,7 @@ Future<String?> _compileChangedUiSource(String filePath) async {
     }
   }
 
-  // 3. Inspect page files to find ALL pages importing the changed file
+  // 3. Inspect page files to find ALL pages directly importing the changed file
   if (affectedPages.isEmpty) {
     final fileBase = p.basename(filePath);
     final libRoot = p.absolute('lib');
@@ -544,6 +546,68 @@ Future<String?> _compileChangedUiSource(String filePath) async {
           } catch (_) {}
         }
       }
+    }
+  }
+
+  // 4. Transitive / recursive dependency graph search:
+  // If not directly found on the page file, crawl upward through intermediate imports
+  // (e.g. button.dart -> auth_form.dart -> login_page.dart -> "Login")
+  if (affectedPages.isEmpty) {
+    final candidateFiles = <String>{p.normalize(p.absolute(filePath))};
+    final checkedFiles = <String>{};
+    final matchedTargetPaths = <String, String>{}; // filePath -> componentName
+
+    final libRoot = p.normalize(p.absolute('lib'));
+    for (final entry in config.pageTargets.entries) {
+      final targetUri = entry.value.importUri;
+      if (targetUri.startsWith('package:')) {
+        final parts = targetUri.substring('package:'.length).split('/');
+        if (parts.length > 1) {
+          final targetPath =
+              p.normalize(p.joinAll([libRoot, ...parts.skip(1)]));
+          matchedTargetPaths[targetPath] = entry.key;
+        }
+      }
+    }
+
+    var currentCandidates = Set<String>.from(candidateFiles);
+    for (var depth = 0; depth < 4 && currentCandidates.isNotEmpty; depth++) {
+      final nextCandidates = <String>{};
+      final allDartFiles = Directory(libRoot).existsSync()
+          ? Directory(libRoot)
+              .listSync(recursive: true)
+              .whereType<File>()
+              .where((f) => f.path.endsWith('.dart'))
+              .toList()
+          : <File>[];
+
+      for (final candidate in currentCandidates) {
+        checkedFiles.add(candidate);
+        final candBase = p.basename(candidate);
+        final candStem = p.basenameWithoutExtension(candidate).toLowerCase();
+        final candImport = _packageImportForSource(candidate);
+
+        for (final dartFile in allDartFiles) {
+          final normPath = p.normalize(dartFile.path);
+          if (checkedFiles.contains(normPath)) continue;
+
+          try {
+            final content = dartFile.readAsStringSync();
+            final matches = content.contains(candBase) ||
+                content.contains('/$candStem.dart') ||
+                (candImport != null && content.contains(candImport));
+
+            if (matches) {
+              if (matchedTargetPaths.containsKey(normPath)) {
+                affectedPages.add(matchedTargetPaths[normPath]!);
+              } else {
+                nextCandidates.add(normPath);
+              }
+            }
+          } catch (_) {}
+        }
+      }
+      currentCandidates = nextCandidates;
     }
   }
 

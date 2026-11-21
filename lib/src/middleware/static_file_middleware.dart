@@ -56,8 +56,17 @@ class StaticFileMiddleware extends Middleware {
         relativePath = relativePath.substring(1);
       }
 
-      final filePath = path.join(publicFolder, relativePath);
-      final file = File(filePath);
+      final canonicalPublic = path.canonicalize(publicFolder);
+      final canonicalTarget =
+          path.canonicalize(path.join(publicFolder, relativePath));
+
+      // Reject path traversal attempts that escape the public folder.
+      if (!path.isWithin(canonicalPublic, canonicalTarget) &&
+          canonicalTarget != canonicalPublic) {
+        return await next(ctx);
+      }
+
+      final file = File(canonicalTarget);
 
       if (!await file.exists()) {
         return await next(ctx);

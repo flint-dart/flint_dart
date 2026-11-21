@@ -351,11 +351,23 @@ class Flint {
   }
 
   void _registerMailPreviewRoutes() {
-    get('/mail/preview', (req, res) {
-      return MailPreviewRegistry.handleIndex(req, res, rootPath: rootPath);
+    get('/mail/preview', (Context context) {
+      final res = context.res;
+      if (res == null) return null;
+      return MailPreviewRegistry.handleIndex(
+        context.req,
+        res,
+        rootPath: rootPath,
+      );
     });
-    get('/mail/preview/:name', (req, res) {
-      return MailPreviewRegistry.handlePreview(req, res, rootPath: rootPath);
+    get('/mail/preview/:name', (Context context) {
+      final res = context.res;
+      if (res == null) return null;
+      return MailPreviewRegistry.handlePreview(
+        context.req,
+        res,
+        rootPath: rootPath,
+      );
     });
   }
 

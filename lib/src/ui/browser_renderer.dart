@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:math' as math;
 
 import 'package:universal_web/web.dart' as web;
 
@@ -9,11 +10,14 @@ import 'widgets/primitives/canvas.dart';
 import 'widgets/primitives/media_preview.dart';
 import 'widgets/primitives/three_scene.dart';
 
+final _elementListeners = Expando<Map<String, Function>>();
+
 /// Browser DOM root that renders Flint nodes into a host element.
 class FlintRoot {
   /// Host element that receives rendered DOM nodes.
   final web.Element host;
   FlintNode? _node;
+  FlintNode? _renderedNode;
   Map<String, _ComponentMount> _componentSlots = {};
   final _registeredStyleIds = <String>{};
   bool _renderQueued = false;
@@ -44,11 +48,21 @@ class FlintRoot {
     final activeControl = _ActiveControl.capture(host);
     final previousSlots = _componentSlots;
     final nextSlots = <String, _ComponentMount>{};
-    final nextDom = _createDom(node, '0', previousSlots, nextSlots);
+
+    final oldRendered = _renderedNode;
     final firstChild =
         host.childNodes.length > 0 ? host.childNodes.item(0) : null;
-    if (firstChild != null) {
-      host.replaceChild(nextDom, firstChild);
+
+    if (oldRendered != null && firstChild != null && _mounted) {
+      _reconcileNode(
+        parentDom: host,
+        existingDom: firstChild,
+        oldNode: oldRendered,
+        newNode: node,
+        path: '0',
+        previousSlots: previousSlots,
+        nextSlots: nextSlots,
+      );
       while (host.childNodes.length > 1) {
         final last = host.childNodes.item(host.childNodes.length - 1);
         if (last != null) {
@@ -58,8 +72,23 @@ class FlintRoot {
         }
       }
     } else {
-      host.appendChild(nextDom);
+      final nextDom = _createDom(node, '0', previousSlots, nextSlots);
+      if (firstChild != null) {
+        host.replaceChild(nextDom, firstChild);
+        while (host.childNodes.length > 1) {
+          final last = host.childNodes.item(host.childNodes.length - 1);
+          if (last != null) {
+            host.removeChild(last);
+          } else {
+            break;
+          }
+        }
+      } else {
+        host.appendChild(nextDom);
+      }
     }
+
+    _renderedNode = node;
     _restoreActiveControl(activeControl, host);
     for (final entry in previousSlots.entries) {
       if (!nextSlots.containsKey(entry.key)) {
@@ -237,16 +266,58 @@ class FlintRoot {
     final activeControl = _ActiveControl.capture(mount.boundary);
 
     mount.component.ensureInitialized();
-    mount.boundary.textContent = '';
     mount.boundary.setAttribute('style', 'display: contents;');
-    mount.boundary.appendChild(
-      _createDom(
-        _normalize(mount.component.build()),
+
+    final nextNode = _normalize(mount.component.build());
+    final oldNode = mount.renderedNode;
+    final firstChild = mount.boundary.childNodes.length > 0
+        ? mount.boundary.childNodes.item(0)
+        : null;
+
+    if (oldNode is FlintFragment &&
+        nextNode is FlintFragment &&
+        mount.mounted) {
+      _reconcileChildren(
+        mount.boundary,
+        oldNode.children,
+        nextNode.children,
         'c',
         previousSlots,
         nextSlots,
-      ),
-    );
+      );
+    } else if (oldNode != null && firstChild != null && mount.mounted) {
+      _reconcileNode(
+        parentDom: mount.boundary,
+        existingDom: firstChild,
+        oldNode: oldNode,
+        newNode: nextNode,
+        path: 'c',
+        previousSlots: previousSlots,
+        nextSlots: nextSlots,
+      );
+      while (mount.boundary.childNodes.length > 1) {
+        final last = mount.boundary.childNodes.item(
+          mount.boundary.childNodes.length - 1,
+        );
+        if (last != null) {
+          mount.boundary.removeChild(last);
+        } else {
+          break;
+        }
+      }
+    } else {
+      mount.boundary.textContent = '';
+      mount.boundary.appendChild(
+        _createDom(
+          nextNode,
+          'c',
+          previousSlots,
+          nextSlots,
+        ),
+      );
+    }
+
+    mount.renderedNode = nextNode;
     _restoreActiveControl(activeControl, mount.boundary);
 
     for (final entry in previousSlots.entries) {
@@ -257,6 +328,245 @@ class FlintRoot {
 
     mount.childSlots = nextSlots;
     mount.mounted = true;
+  }
+
+  web.Node _reconcileNode({
+    required web.Node parentDom,
+    required web.Node existingDom,
+    required FlintNode oldNode,
+    required FlintNode newNode,
+    required String path,
+    required Map<String, _ComponentMount> previousSlots,
+    required Map<String, _ComponentMount> nextSlots,
+  }) {
+    // 1. Text nodes
+    if (oldNode is FlintText && newNode is FlintText) {
+      if (existingDom is web.Text) {
+        if (oldNode.value != newNode.value) {
+          existingDom.textContent = newNode.value;
+        }
+        return existingDom;
+      }
+    }
+
+    // 2. Elements with matching tag
+    if (oldNode is FlintElement && newNode is FlintElement) {
+      if (existingDom is web.Element &&
+          existingDom.tagName.toLowerCase() == newNode.tag.toLowerCase()) {
+        _patchProps(existingDom, oldNode.props, newNode.props);
+        _reconcileChildren(
+          existingDom,
+          oldNode.children,
+          newNode.children,
+          path,
+          previousSlots,
+          nextSlots,
+        );
+        if (newNode.tag == 'select' && existingDom is web.HTMLSelectElement) {
+          final selectVal = newNode.props['value']?.toString();
+          if (selectVal != null && existingDom.value != selectVal) {
+            existingDom.value = selectVal;
+          }
+        }
+        return existingDom;
+      }
+    }
+
+    // 3. Components
+    final oldComp = _extractComponent(oldNode);
+    final newComp = _extractComponent(newNode);
+    if (oldComp != null && newComp != null) {
+      return _createComponent(newComp, path, previousSlots, nextSlots);
+    }
+
+    // 4. Fallback: Types or tags do not match -> create fresh DOM and replace
+    final nextDom = _createDom(newNode, path, previousSlots, nextSlots);
+    parentDom.replaceChild(nextDom, existingDom);
+    return nextDom;
+  }
+
+  FlintComponent? _extractComponent(FlintNode node) {
+    if (node is FlintComponent) return node;
+    if (node is FlintComponentNode) return node.component;
+    return null;
+  }
+
+  void _reconcileChildren(
+    web.Element parentDom,
+    List<FlintNode> oldChildren,
+    List<FlintNode> newChildren,
+    String path,
+    Map<String, _ComponentMount> previousSlots,
+    Map<String, _ComponentMount> nextSlots,
+  ) {
+    final commonLength = math.min(oldChildren.length, newChildren.length);
+    final domChildCount = parentDom.childNodes.length;
+
+    for (var i = 0; i < commonLength; i++) {
+      final childPath = '$path.$i';
+      if (i < domChildCount) {
+        final childDom = parentDom.childNodes.item(i);
+        if (childDom != null) {
+          _reconcileNode(
+            parentDom: parentDom,
+            existingDom: childDom,
+            oldNode: oldChildren[i],
+            newNode: newChildren[i],
+            path: childPath,
+            previousSlots: previousSlots,
+            nextSlots: nextSlots,
+          );
+        }
+      } else {
+        parentDom.appendChild(
+          _createDom(newChildren[i], childPath, previousSlots, nextSlots),
+        );
+      }
+    }
+
+    if (newChildren.length > oldChildren.length) {
+      for (var i = oldChildren.length; i < newChildren.length; i++) {
+        final childPath = '$path.$i';
+        parentDom.appendChild(
+          _createDom(newChildren[i], childPath, previousSlots, nextSlots),
+        );
+      }
+    } else if (oldChildren.length > newChildren.length) {
+      while (parentDom.childNodes.length > newChildren.length) {
+        final last =
+            parentDom.childNodes.item(parentDom.childNodes.length - 1);
+        if (last != null) {
+          parentDom.removeChild(last);
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
+  void _patchProps(
+    web.Element element,
+    Map<String, Object?> oldProps,
+    Map<String, Object?> newProps,
+  ) {
+    for (final entry in oldProps.entries) {
+      final name = entry.key;
+      final oldValue = entry.value;
+      if (oldValue == null || oldValue == false) continue;
+      if (!newProps.containsKey(name) ||
+          newProps[name] == null ||
+          newProps[name] == false) {
+        _removeProp(element, name, oldValue);
+      }
+    }
+
+    for (final entry in newProps.entries) {
+      final name = entry.key;
+      final newValue = entry.value;
+      if (newValue == null || newValue == false) continue;
+      final oldValue = oldProps[name];
+      if (oldValue != newValue) {
+        _applySingleProp(element, name, newValue);
+      }
+    }
+  }
+
+  void _removeProp(web.Element element, String name, Object? oldValue) {
+    if (name == '_flintStyleCss' ||
+        name == '_flintMediaController' ||
+        name == '_flintCanvasController' ||
+        name == '_flintThreeSceneController') {
+      return;
+    }
+    if (name == 'className') {
+      element.className = '';
+      return;
+    }
+    if (name == 'style') {
+      element.removeAttribute('style');
+      return;
+    }
+    if (name.startsWith('on')) {
+      _elementListeners[element]?.remove(name.substring(2).toLowerCase());
+      return;
+    }
+    if (name == 'value') {
+      if (element is web.HTMLInputElement) element.value = '';
+      if (element is web.HTMLTextAreaElement) element.value = '';
+      if (element is web.HTMLSelectElement) element.value = '';
+      return;
+    }
+    if (name == 'checked' && element is web.HTMLInputElement) {
+      element.checked = false;
+      element.removeAttribute('checked');
+      return;
+    }
+    element.removeAttribute(name);
+  }
+
+  void _applySingleProp(web.Element element, String name, Object value) {
+    if (name == '_flintStyleCss') {
+      _registerScopedStyle(value.toString());
+      return;
+    }
+
+    if (name == '_flintMediaController') {
+      if (value is MediaElementController) {
+        value.attachTo(element);
+      }
+      return;
+    }
+
+    if (name == '_flintCanvasController') {
+      if (value is CanvasController) {
+        value.attachTo(element);
+      }
+      return;
+    }
+
+    if (name == '_flintThreeSceneController') {
+      if (value is ThreeSceneController) {
+        value.attachTo(element);
+      }
+      return;
+    }
+
+    if (name == 'className') {
+      element.className = value.toString();
+      return;
+    }
+
+    if (name == 'style') {
+      _applyStyle(element, value);
+      return;
+    }
+
+    if (_applyFormProperty(element, name, value)) {
+      return;
+    }
+
+    if (_applyMediaProperty(element, name, value)) {
+      return;
+    }
+
+    if (name.startsWith('on') && value is Function) {
+      _listen(element, name.substring(2).toLowerCase(), value);
+      return;
+    }
+
+    if (value == true) {
+      element.setAttribute(name, '');
+      return;
+    }
+
+    element.setAttribute(name, value.toString());
+  }
+
+  void _applyProps(web.Element element, Map<String, Object?> props) {
+    props.forEach((name, value) {
+      if (value == null || value == false) return;
+      _applySingleProp(element, name, value);
+    });
   }
 
   void _restoreActiveControl(_ActiveControl? activeControl, web.Element scope) {
@@ -273,68 +583,6 @@ class FlintRoot {
       _unmountComponentTree(child);
     }
     mount.component.willUnmount();
-  }
-
-  void _applyProps(web.Element element, Map<String, Object?> props) {
-    props.forEach((name, value) {
-      if (value == null || value == false) return;
-
-      if (name == '_flintStyleCss') {
-        _registerScopedStyle(value.toString());
-        return;
-      }
-
-      if (name == '_flintMediaController') {
-        if (value is MediaElementController) {
-          value.attachTo(element);
-        }
-        return;
-      }
-
-      if (name == '_flintCanvasController') {
-        if (value is CanvasController) {
-          value.attachTo(element);
-        }
-        return;
-      }
-
-      if (name == '_flintThreeSceneController') {
-        if (value is ThreeSceneController) {
-          value.attachTo(element);
-        }
-        return;
-      }
-
-      if (name == 'className') {
-        element.className = value.toString();
-        return;
-      }
-
-      if (name == 'style') {
-        _applyStyle(element, value);
-        return;
-      }
-
-      if (_applyFormProperty(element, name, value)) {
-        return;
-      }
-
-      if (_applyMediaProperty(element, name, value)) {
-        return;
-      }
-
-      if (name.startsWith('on') && value is Function) {
-        _listen(element, name.substring(2).toLowerCase(), value);
-        return;
-      }
-
-      if (value == true) {
-        element.setAttribute(name, '');
-        return;
-      }
-
-      element.setAttribute(name, value.toString());
-    });
   }
 
   bool _applyFormProperty(web.Element element, String name, Object value) {
@@ -436,12 +684,30 @@ class FlintRoot {
   }
 
   void _listen(web.Element element, String eventName, Function handler) {
-    element.addEventListener(
-      eventName,
-      ((web.Event event) {
-        handler(event);
-      }).toJS,
-    );
+    var listeners = _elementListeners[element];
+    if (listeners == null) {
+      listeners = <String, Function>{};
+      _elementListeners[element] = listeners;
+    }
+
+    final hadListener = listeners.containsKey(eventName);
+    listeners[eventName] = handler;
+
+    if (!hadListener) {
+      element.addEventListener(
+        eventName,
+        ((web.Event event) {
+          final current = _elementListeners[element]?[eventName];
+          if (current != null) {
+            if (current is void Function()) {
+              current();
+            } else {
+              current(event);
+            }
+          }
+        }).toJS,
+      );
+    }
   }
 
   FlintNode _normalize(Object? node) {
@@ -481,6 +747,7 @@ FlintRoot createRootForElement(web.Element element) => FlintRoot(element);
 class _ComponentMount {
   final FlintComponent component;
   final web.Element boundary;
+  FlintNode? renderedNode;
   Map<String, _ComponentMount> childSlots = {};
   bool renderQueued = false;
   bool mounted = false;

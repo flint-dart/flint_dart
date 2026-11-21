@@ -5,9 +5,10 @@ import '../shared/theme.dart';
 
 /// Anchor element with optional button-style variants.
 class Link extends FlintElement {
-  /// Creates a link to [href] with optional content and styles.
+  /// Creates a link to [href] or [to] with optional content and styles.
   Link({
-    required String href,
+    String? href,
+    String? to,
     Object? child,
     List<Object?> children = const [],
     String? target,
@@ -25,7 +26,7 @@ class Link extends FlintElement {
           props: mergeComponentProps(
             {
               ...props,
-              'href': href,
+              'href': href ?? to ?? '#',
               if (target != null) 'target': target,
               if (rel != null) 'rel': rel,
               if (disabled) 'aria-disabled': 'true',
