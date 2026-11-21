@@ -36,6 +36,13 @@ abstract class Model<T extends Model<T>> {
   /// Relations definition
   Map<String, RelationDefinition> get relations => {};
 
+  static final Map<Type, Map<String, RelationDefinition>> _relationsDefCache = {};
+
+  /// Cached relations definitions for this model type
+  Map<String, RelationDefinition> get cachedRelations {
+    return _relationsDefCache.putIfAbsent(runtimeType, () => relations);
+  }
+
   /// Set multiple attributes at once
   void setAttributes(Map<String, dynamic> attrs) {
     _attributes.addAll(attrs);
@@ -101,8 +108,18 @@ abstract class Model<T extends Model<T>> {
   /// ```
   void schema() {}
 
+  static final Map<Type, List<Column>> _schemaCache = {};
+
   void _initSchema() {
+    final cached = _schemaCache[runtimeType];
+    if (cached != null) {
+      _schemaColumns.addAll(cached);
+      return;
+    }
     schema();
+    if (_schemaColumns.isNotEmpty) {
+      _schemaCache[runtimeType] = List.unmodifiable(_schemaColumns);
+    }
   }
 
   /// Appends a raw or custom [Column] definition to the model's schema.
@@ -417,7 +434,7 @@ abstract class Model<T extends Model<T>> {
   T fromJson(String json) => fromMap(jsonDecode(json));
 
   dynamic _hydrateRelationValue(String key, dynamic value) {
-    final definition = relations[key];
+    final definition = cachedRelations[key];
     if (definition == null || value == null) return value;
 
     if (value is Map) {
@@ -556,19 +573,13 @@ abstract class Model<T extends Model<T>> {
     return null;
   }
 
-  /// Load a relation for this single model
+  /// Load a relation for this single model (supports nested dot notation like `user.profile`)
   Future<T> load(String relation, {List<String>? columns}) async {
-    final loaderKey = '${runtimeType.toString()}.$relation';
-    final loader = relationLoaders[loaderKey];
-
-    if (loader == null) {
-      throw Exception(
-        "Relation '$relation' not found for ${runtimeType.toString()}. "
-        "Available relations: ${relations.keys.join(', ')}",
-      );
+    final columnsMap = <String, List<String>>{};
+    if (columns != null) {
+      columnsMap[relation] = columns;
     }
-
-    await loader([this as Model], RelationConfig(columns: columns));
+    await _loadRelationTree([this as Model], [relation], columnsMap);
     return this as T;
   }
 
@@ -603,11 +614,11 @@ abstract class Model<T extends Model<T>> {
     String name, {
     void Function(QueryBuilder query)? constrain,
   }) {
-    final definition = relations[name];
+    final definition = cachedRelations[name];
     if (definition == null) {
       throw Exception(
         "Relation '$name' not found for ${runtimeType.toString()}. "
-        "Available relations: ${relations.keys.join(', ')}",
+        "Available relations: ${cachedRelations.keys.join(', ')}",
       );
     }
 
@@ -699,40 +710,106 @@ abstract class Model<T extends Model<T>> {
 
   // ========== PRIVATE METHODS ==========
 
-  /// Load relations for a list of models
+  /// Load relations for a list of models (supports nested dot notation)
   Future<void> _loadRelationsForModels(List<T> models) async {
     if (models.isEmpty || qb.withRelations.isEmpty) return;
-
-    for (final relationName in qb.withRelations) {
-      await _loadSingleRelation(models, relationName);
-    }
+    await _loadRelationTree(models.cast<Model>(), qb.withRelations, qb.withColumns);
   }
 
-  /// Load a single relation for multiple models
-  Future<void> _loadSingleRelation(List<T> models, String relationName) async {
-    final loaderKey = '${runtimeType.toString()}.$relationName';
-    final loader = relationLoaders[loaderKey];
+  /// Eagerly load a set of relation paths (supporting dot notation like `schoolClass.department`)
+  /// onto a list of parent model instances.
+  static Future<void> _loadRelationTree(
+    List<Model> models,
+    List<String> relationPaths,
+    Map<String, List<String>> columnsMap,
+  ) async {
+    if (models.isEmpty || relationPaths.isEmpty) return;
 
-    if (loader == null) {
-      throw Exception("Relation loader not found for '$relationName'");
+    // Group relation paths by their root segment (before first '.')
+    final rootToPaths = <String, List<String>>{};
+    for (final path in relationPaths) {
+      final dotIndex = path.indexOf('.');
+      final root = dotIndex == -1 ? path : path.substring(0, dotIndex);
+      rootToPaths.putIfAbsent(root, () => []).add(path);
     }
 
-    final columns = qb.getColumnsForRelation(relationName);
-    final config = RelationConfig(columns: columns);
+    for (final entry in rootToPaths.entries) {
+      final rootRelation = entry.key;
+      final paths = entry.value;
 
-    await loader(models.cast<Model>().toList(), config);
+      // 1. Load the root relation on the parent models, grouped by concrete model type
+      final byType = <Type, List<Model>>{};
+      for (final m in models) {
+        byType.putIfAbsent(m.runtimeType, () => []).add(m);
+      }
+
+      for (final group in byType.values) {
+        final sample = group.first;
+        final loaderKey = '${sample.runtimeType.toString()}.$rootRelation';
+        final loader = relationLoaders[loaderKey];
+        if (loader == null) {
+          throw Exception(
+            "Relation '$rootRelation' not found for ${sample.runtimeType.toString()}. "
+            "Available relations: ${sample.cachedRelations.keys.join(', ')}",
+          );
+        }
+
+        final columns = columnsMap[rootRelation];
+        final config = RelationConfig(columns: columns, relationName: rootRelation);
+        await loader(group, config);
+      }
+
+      // 2. Identify any nested paths under this root
+      final nestedPaths = <String>[];
+      final nestedColumnsMap = <String, List<String>>{};
+      for (final path in paths) {
+        final dotIndex = path.indexOf('.');
+        if (dotIndex != -1) {
+          final subPath = path.substring(dotIndex + 1);
+          nestedPaths.add(subPath);
+          if (columnsMap.containsKey(path)) {
+            nestedColumnsMap[subPath] = columnsMap[path]!;
+          }
+        }
+      }
+
+      // 3. If there are nested relations, collect children and recurse
+      if (nestedPaths.isNotEmpty) {
+        final children = <Model>[];
+        final seen = <Model>{};
+
+        for (final m in models) {
+          final val = m.getAttribute(rootRelation);
+          if (val is Model && seen.add(val)) {
+            children.add(val);
+          } else if (val is List) {
+            for (final item in val) {
+              if (item is Model && seen.add(item)) {
+                children.add(item);
+              }
+            }
+          }
+        }
+
+        if (children.isNotEmpty) {
+          await _loadRelationTree(children, nestedPaths, nestedColumnsMap);
+        }
+      }
+    }
   }
 
   /// Register relation loaders for this model
-  bool _relationsRegistered = false;
+  static final Set<Type> _relationsRegisteredTypes = {};
 
-  void _registerRelationLoaders() async {
-    if (_relationsRegistered || relations.isEmpty) return;
-    _relationsRegistered = true;
+  void _registerRelationLoaders() {
+    if (_relationsRegisteredTypes.contains(runtimeType)) return;
+    final rels = cachedRelations;
+    if (rels.isEmpty) return;
+    _relationsRegisteredTypes.add(runtimeType);
 
     final className = runtimeType.toString();
 
-    for (final entry in relations.entries) {
+    for (final entry in rels.entries) {
       final relationName = entry.key;
       final definition = entry.value;
       final loaderKey = '$className.$relationName';
@@ -971,9 +1048,84 @@ abstract class Model<T extends Model<T>> {
   /// Custom query builder - starts or continues a query chain.
   QueryBuilder query() => qb;
 
-  /// WHERE clause (`field = value`) - chainable.
-  T where(String field, dynamic value) {
-    qb.where(field, '=', value);
+  static const Object _modelWhereSentinel = Object();
+
+  /// WHERE clause supporting both 2-arg (`field, value`) and 3-arg (`field, operator, value`) - chainable.
+  T where(String field, dynamic operatorOrValue,
+      [dynamic value = _modelWhereSentinel]) {
+    if (identical(value, _modelWhereSentinel)) {
+      qb.where(field, operatorOrValue);
+    } else {
+      qb.where(field, operatorOrValue, value);
+    }
+    return this as T;
+  }
+
+  /// Equality condition without SQL operators: `whereEqual('status', 'active')`
+  T whereEqual(String field, dynamic value) {
+    qb.whereEqual(field, value);
+    return this as T;
+  }
+
+  /// Inequality condition without SQL operators: `whereNotEqual('status', 'archived')`
+  T whereNotEqual(String field, dynamic value) {
+    qb.whereNotEqual(field, value);
+    return this as T;
+  }
+
+  /// Boolean true condition: `whereTrue('is_active')`
+  T whereTrue(String field) {
+    qb.whereTrue(field);
+    return this as T;
+  }
+
+  /// Boolean false condition: `whereFalse('is_deleted')`
+  T whereFalse(String field) {
+    qb.whereFalse(field);
+    return this as T;
+  }
+
+  /// Greater-than condition: `whereGreaterThan('age', 18)`
+  T whereGreaterThan(String field, dynamic value) {
+    qb.whereGreaterThan(field, value);
+    return this as T;
+  }
+
+  T whereGt(String field, dynamic value) {
+    qb.whereGt(field, value);
+    return this as T;
+  }
+
+  /// Greater-than-or-equal condition: `whereGreaterThanOrEqual('age', 18)`
+  T whereGreaterThanOrEqual(String field, dynamic value) {
+    qb.whereGreaterThanOrEqual(field, value);
+    return this as T;
+  }
+
+  T whereGte(String field, dynamic value) {
+    qb.whereGte(field, value);
+    return this as T;
+  }
+
+  /// Less-than condition: `whereLessThan('price', 100)`
+  T whereLessThan(String field, dynamic value) {
+    qb.whereLessThan(field, value);
+    return this as T;
+  }
+
+  T whereLt(String field, dynamic value) {
+    qb.whereLt(field, value);
+    return this as T;
+  }
+
+  /// Less-than-or-equal condition: `whereLessThanOrEqual('price', 100)`
+  T whereLessThanOrEqual(String field, dynamic value) {
+    qb.whereLessThanOrEqual(field, value);
+    return this as T;
+  }
+
+  T whereLte(String field, dynamic value) {
+    qb.whereLte(field, value);
     return this as T;
   }
 
@@ -995,9 +1147,114 @@ abstract class Model<T extends Model<T>> {
     return this as T;
   }
 
-  /// OR WHERE clause - chainable.
-  T orWhere(String field, dynamic value) {
-    qb.orWhere(field, '=', value);
+  /// OR WHERE clause supporting both 2-arg (`field, value`) and 3-arg (`field, operator, value`) - chainable.
+  T orWhere(String field, dynamic operatorOrValue,
+      [dynamic value = _modelWhereSentinel]) {
+    if (identical(value, _modelWhereSentinel)) {
+      qb.orWhere(field, operatorOrValue);
+    } else {
+      qb.orWhere(field, operatorOrValue, value);
+    }
+    return this as T;
+  }
+
+  /// OR equality condition: `orWhereEqual('status', 'active')`
+  T orWhereEqual(String field, dynamic value) {
+    qb.orWhereEqual(field, value);
+    return this as T;
+  }
+
+  /// OR inequality condition: `orWhereNotEqual('status', 'archived')`
+  T orWhereNotEqual(String field, dynamic value) {
+    qb.orWhereNotEqual(field, value);
+    return this as T;
+  }
+
+  /// OR boolean true condition: `orWhereTrue('is_admin')`
+  T orWhereTrue(String field) {
+    qb.orWhereTrue(field);
+    return this as T;
+  }
+
+  /// OR boolean false condition: `orWhereFalse('is_blocked')`
+  T orWhereFalse(String field) {
+    qb.orWhereFalse(field);
+    return this as T;
+  }
+
+  /// Filter with named operator arguments (no raw SQL operator strings):
+  /// ```dart
+  /// await User().filter('role', equals: 'admin').get();
+  /// await User().filter('age', greaterThan: 18, lessThan: 65).get();
+  /// ```
+  T filter(
+    String field, {
+    dynamic equals,
+    dynamic notEquals,
+    dynamic greaterThan,
+    dynamic gt,
+    dynamic greaterThanOrEqual,
+    dynamic gte,
+    dynamic lessThan,
+    dynamic lt,
+    dynamic lessThanOrEqual,
+    dynamic lte,
+    dynamic contains,
+    dynamic startsWith,
+    dynamic endsWith,
+    bool? isNull,
+    bool? isNotNull,
+  }) {
+    qb.filter(
+      field,
+      equals: equals,
+      notEquals: notEquals,
+      greaterThan: greaterThan,
+      gt: gt,
+      greaterThanOrEqual: greaterThanOrEqual,
+      gte: gte,
+      lessThan: lessThan,
+      lt: lt,
+      lessThanOrEqual: lessThanOrEqual,
+      lte: lte,
+      contains: contains,
+      startsWith: startsWith,
+      endsWith: endsWith,
+      isNull: isNull,
+      isNotNull: isNotNull,
+    );
+    return this as T;
+  }
+
+  /// OR filter with named operator arguments
+  T orFilter(
+    String field, {
+    dynamic equals,
+    dynamic notEquals,
+    dynamic greaterThan,
+    dynamic gt,
+    dynamic greaterThanOrEqual,
+    dynamic gte,
+    dynamic lessThan,
+    dynamic lt,
+    dynamic lessThanOrEqual,
+    dynamic lte,
+    dynamic contains,
+  }) {
+    qb.orFilter(
+      field,
+      equals: equals,
+      notEquals: notEquals,
+      greaterThan: greaterThan,
+      gt: gt,
+      greaterThanOrEqual: greaterThanOrEqual,
+      gte: gte,
+      lessThan: lessThan,
+      lt: lt,
+      lessThanOrEqual: lessThanOrEqual,
+      lte: lte,
+      contains: contains,
+    );
     return this as T;
   }
 

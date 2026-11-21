@@ -124,6 +124,9 @@ class StateSignalListener<T> extends StatefulComponent {
   StateSignalSubscription? _unsubscribe;
 
   @override
+  bool get preserveState => true;
+
+  @override
   View build() => builder(signal.value);
 
   @override

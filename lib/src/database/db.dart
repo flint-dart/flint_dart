@@ -94,6 +94,8 @@ class DB {
         isSecure: isSecure ?? FlintEnv.getBool('DB_SECURE', false),
         allowPublicKeyRetrieval: allowPublicKeyRetrieval ??
             FlintEnv.getBool('DB_ALLOW_PUBLIC_KEY_RETRIEVAL', true),
+        maxConnections: FlintEnv.getInt(
+            'DB_POOL_SIZE', FlintEnv.getInt('DB_MAX_CONNECTIONS', 10)),
       );
       wrapper = mysql;
     }
@@ -196,6 +198,8 @@ class DB {
         password: FlintEnv.get('DB_PASSWORD', ''),
         allowPublicKeyRetrieval:
             FlintEnv.getBool('DB_ALLOW_PUBLIC_KEY_RETRIEVAL', true),
+        maxConnections: FlintEnv.getInt(
+            'DB_POOL_SIZE', FlintEnv.getInt('DB_MAX_CONNECTIONS', 10)),
       );
     }
     _isConnected = true;
@@ -237,6 +241,8 @@ class DB {
         isSecure: isSecure ?? FlintEnv.getBool('DB_SECURE', false),
         allowPublicKeyRetrieval: allowPublicKeyRetrieval ??
             FlintEnv.getBool('DB_ALLOW_PUBLIC_KEY_RETRIEVAL', true),
+        maxConnections: FlintEnv.getInt(
+            'DB_POOL_SIZE', FlintEnv.getInt('DB_MAX_CONNECTIONS', 10)),
       );
     }
 

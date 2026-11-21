@@ -219,12 +219,18 @@ class FlintWebUiBuilder {
     FlintWebUiBuild build, {
     String? configPath,
   }) async {
-    await compile(build);
-    try {
-      await compilePageBundles(build, configPath: configPath);
-    } on StateError catch (e) {
-      Log.debug('Page-level Flint UI bundles skipped: ${e.message}');
+    final pageConfig = discoverPageBundleConfig(build, configPath: configPath);
+    if (pageConfig != null && pageConfig.pages.isNotEmpty) {
+      try {
+        await compilePageBundles(build, configPath: configPath);
+        return;
+      } on StateError catch (e) {
+        Log.debug(
+          'Page-level Flint UI bundles skipped: ${e.message}. Falling back to single bundle...',
+        );
+      }
     }
+    await compile(build);
   }
 
   static Future<void> compile(FlintWebUiBuild build) async {
@@ -323,7 +329,10 @@ class FlintWebUiBuilder {
 
     final manifestPages = <String, String>{};
     final entriesList = requestedPages.entries.toList();
-    const concurrency = 4;
+    final configuredConcurrency =
+        int.tryParse(Platform.environment['FLINT_BUILD_CONCURRENCY'] ?? '');
+    final concurrency = configuredConcurrency ??
+        Platform.numberOfProcessors.clamp(2, 16);
     for (var i = 0; i < entriesList.length; i += concurrency) {
       final batch = entriesList.skip(i).take(concurrency);
       final batchResults = await Future.wait([
@@ -646,14 +655,37 @@ void main() {
     return cssText.substring(0, markerIndex).trimRight();
   }
 
-  static Future<void> _compileDartFile(String entryPath, String jsOut) async {
+  static Future<void> _compileDartFile(
+    String entryPath,
+    String jsOut, {
+    int? optimizationLevel,
+    bool? minify,
+  }) async {
     final output = File(jsOut);
     output.parent.createSync(recursive: true);
     _deleteHashedDartJsSiblings(jsOut);
 
+    final isHotOrDev = Platform.environment['FLINT_HOT'] == '1' ||
+        Platform.environment['FLINT_DEV'] == '1';
+
+    // In hot-reload/dev mode, default to -O0 with no minification for 2x-3x faster compile cycles.
+    // In production builds, default to -O2 with minification.
+    final optLevel = optimizationLevel ?? (isHotOrDev ? 0 : 2);
+    final shouldMinify = minify ?? !isHotOrDev;
+
+    final compileArgs = [
+      'compile',
+      'js',
+      '-O$optLevel',
+      if (!shouldMinify) '--no-minify',
+      entryPath,
+      '-o',
+      jsOut,
+    ];
+
     final result = await Process.run(
       'dart',
-      ['compile', 'js', entryPath, '-o', jsOut],
+      compileArgs,
       runInShell: true,
     );
 

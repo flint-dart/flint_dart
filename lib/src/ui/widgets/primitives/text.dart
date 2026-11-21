@@ -2,10 +2,26 @@ import '../../component_props.dart';
 import '../../node.dart';
 import '../../style.dart';
 
-/// Text node and semantic text element helpers.
-class Text extends FlintText {
-  /// Creates a plain text node from [value].
-  Text(Object? value) : super(value?.toString() ?? '');
+/// Text element supporting direct styling with [dartStyle], [style], [className], or plain text.
+class Text extends FlintElement {
+  /// Creates a text element from [value] with optional [dartStyle] and properties.
+  Text(
+    Object? value, {
+    String? className,
+    Map<String, Object?> props = const {},
+    Map<String, Object?> style = const {},
+    DartStyle? dartStyle,
+    String tag = 'span',
+  }) : super(
+          tag,
+          props: mergeComponentProps(
+            props,
+            className: className,
+            dartStyle: dartStyle,
+            style: style,
+          ),
+          children: [FlintText(value?.toString() ?? '')],
+        );
 
   /// Creates an `h1` text element.
   static FlintElement h1(
@@ -76,6 +92,26 @@ class Text extends FlintText {
     DartStyle? dartStyle,
   }) =>
       _element('small', value, className, props, style, dartStyle);
+
+  /// Creates a `code` text element.
+  static FlintElement code(
+    Object? value, {
+    String? className,
+    Map<String, Object?> props = const {},
+    Map<String, Object?> style = const {},
+    DartStyle? dartStyle,
+  }) =>
+      _element('code', value, className, props, style, dartStyle);
+
+  /// Creates a `pre` text element.
+  static FlintElement pre(
+    Object? value, {
+    String? className,
+    Map<String, Object?> props = const {},
+    Map<String, Object?> style = const {},
+    DartStyle? dartStyle,
+  }) =>
+      _element('pre', value, className, props, style, dartStyle);
 }
 
 FlintElement _element(

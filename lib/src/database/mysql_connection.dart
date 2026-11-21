@@ -10,6 +10,7 @@ class MySqlConnectionWrapper implements DBWrapper {
   static final Object _queueBypassKey = Object();
 
   MySQLConnection? _conn;
+  MySQLConnectionPool? _pool;
   bool _connected = false;
   String? _lastError;
   Future<void>? _reconnectFuture;
@@ -26,6 +27,10 @@ class MySqlConnectionWrapper implements DBWrapper {
   bool _allowPublicKeyRetrieval = true;
   int _timeoutSeconds = 30;
   int _keepAliveSeconds = 120;
+  int _maxConnections = 10;
+
+  MySQLPoolStatus? get poolStatus => _pool?.status();
+  MySQLConnectionPool? get pool => _pool;
 
   Future<void> connect({
     required String host,
@@ -37,6 +42,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     bool allowPublicKeyRetrieval = true,
     int timeoutSeconds = 30,
     int keepAliveSeconds = 120,
+    int maxConnections = 10,
   }) async {
     _host = host;
     _port = port;
@@ -47,15 +53,20 @@ class MySqlConnectionWrapper implements DBWrapper {
     _allowPublicKeyRetrieval = allowPublicKeyRetrieval;
     _timeoutSeconds = timeoutSeconds;
     _keepAliveSeconds = keepAliveSeconds;
+    _maxConnections = maxConnections;
 
     _keepAliveTimer?.cancel();
 
     try {
-      await _openConnection();
+      if (_maxConnections > 1) {
+        await _openPool();
+      } else {
+        await _openConnection();
+      }
       _connected = true;
       _lastError = null;
       _startKeepAliveTimer();
-      Log.debug('[DB] MySQL connected to $db@$host:$port');
+      Log.debug('[DB] MySQL connected to $db@$host:$port (pool: $_maxConnections)');
     } catch (e) {
       _connected = false;
       _lastError = e.toString();
@@ -67,7 +78,8 @@ class MySqlConnectionWrapper implements DBWrapper {
   DBDriver get driver => DBDriver.mysql;
 
   @override
-  bool get isConnected => _connected && (_conn?.connected ?? false);
+  bool get isConnected =>
+      _connected && (_pool != null || (_conn?.connected ?? false));
 
   String? get lastError => _lastError;
 
@@ -87,10 +99,21 @@ class MySqlConnectionWrapper implements DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   }) async {
-    return _runQueued(() async {
-      final (finalSql, finalParams) =
-          _processParameters(sql, positionalParams, namedParams);
+    final (finalSql, finalParams) =
+        _processParameters(sql, positionalParams, namedParams);
 
+    if (_pool != null) {
+      return _runWithReconnect(() async {
+        final result = await _pool!.withConnection((conn) {
+          return finalParams.isEmpty
+              ? conn.execute(finalSql)
+              : conn.execute(finalSql, finalParams);
+        });
+        return result.rows.map((r) => r.assoc()).toList();
+      });
+    }
+
+    return _runQueued(() async {
       return _runWithReconnect(() async {
         final result = finalParams.isEmpty
             ? await _conn!.execute(finalSql)
@@ -106,9 +129,21 @@ class MySqlConnectionWrapper implements DBWrapper {
     List<dynamic>? positionalParams,
     Map<String, dynamic>? namedParams,
   }) async {
+    final (finalSql, finalParams) =
+        _processParameters(sql, positionalParams, namedParams);
+
+    if (_pool != null) {
+      await _runWithReconnect(() async {
+        await _pool!.withConnection((conn) {
+          return finalParams.isEmpty
+              ? conn.execute(finalSql)
+              : conn.execute(finalSql, finalParams);
+        });
+      });
+      return;
+    }
+
     await _runQueued(() async {
-      final (finalSql, finalParams) =
-          _processParameters(sql, positionalParams, namedParams);
       await _runWithReconnect(() async {
         if (finalParams.isEmpty) {
           await _conn!.execute(finalSql);
@@ -145,6 +180,17 @@ class MySqlConnectionWrapper implements DBWrapper {
 
   /// Execute a batch of SQL commands
   Future<void> executeBatch(List<String> sqlCommands) async {
+    if (_pool != null) {
+      await _runWithReconnect(() async {
+        await _pool!.withConnection((conn) async {
+          for (final sql in sqlCommands) {
+            await conn.execute(sql);
+          }
+        });
+      });
+      return;
+    }
+
     await _runQueued(() async {
       for (final sql in sqlCommands) {
         await _runWithReconnect(() => _conn!.execute(sql));
@@ -262,6 +308,11 @@ class MySqlConnectionWrapper implements DBWrapper {
   Future<void> close() async {
     try {
       _keepAliveTimer?.cancel();
+      if (_pool != null) {
+        await _pool!.close();
+        _pool = null;
+        _connected = false;
+      }
       await _runQueued(() async {
         await _conn?.close();
         _conn = null;
@@ -276,6 +327,19 @@ class MySqlConnectionWrapper implements DBWrapper {
 
   /// Ping the database to check connection health
   Future<bool> ping() async {
+    if (!_connected) return false;
+
+    if (_pool != null) {
+      try {
+        await _pool!.withConnection((conn) => conn.execute('SELECT 1'));
+        return true;
+      } catch (e) {
+        _connected = false;
+        _lastError = e.toString();
+        return false;
+      }
+    }
+
     return _runQueued(() async {
       try {
         if (!_connected) return false;
@@ -323,6 +387,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     bool isSecure = false,
     int timeoutSeconds = 30,
     int keepAliveSeconds = 120,
+    int maxConnections = 10,
   }) async {
     _host = host;
     _port = port;
@@ -332,6 +397,7 @@ class MySqlConnectionWrapper implements DBWrapper {
     _isSecure = isSecure;
     _timeoutSeconds = timeoutSeconds;
     _keepAliveSeconds = keepAliveSeconds;
+    _maxConnections = maxConnections;
     await _runQueued(_reconnect);
   }
 
@@ -354,6 +420,23 @@ class MySqlConnectionWrapper implements DBWrapper {
         await ping();
       },
     );
+  }
+
+  Future<void> _openPool() async {
+    _pool = MySQLConnectionPool(
+      host: _host!,
+      port: _port!,
+      databaseName: _db!,
+      userName: _user!,
+      password: _password!,
+      maxConnections: _maxConnections,
+      secure: _isSecure,
+      allowPublicKeyRetrieval: _allowPublicKeyRetrieval,
+      timeoutMs: _timeoutSeconds * 1000,
+    );
+
+    // Warm up one connection to verify credentials and connectivity
+    await _pool!.withConnection((conn) => conn.execute('SELECT 1'));
   }
 
   Future<void> _openConnection() async {
@@ -389,10 +472,16 @@ class MySqlConnectionWrapper implements DBWrapper {
             'MySQL reconnect failed: connection config is missing.');
       }
 
-      await _conn?.close();
-      _conn = null;
+      if (_maxConnections > 1) {
+        await _pool?.close();
+        _pool = null;
+        await _openPool();
+      } else {
+        await _conn?.close();
+        _conn = null;
+        await _openConnection();
+      }
 
-      await _openConnection();
       _connected = true;
       _lastError = null;
       _startKeepAliveTimer();

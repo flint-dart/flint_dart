@@ -300,19 +300,64 @@ class QueryBuilder {
     return this;
   }
 
-  /// WHERE clause
-  QueryBuilder where(String field, String operator, dynamic value) {
+  static const Object _whereSentinel = Object();
+
+  /// WHERE clause supporting 2-arg (`field, value`), 3-arg (`field, operator, value`),
+  /// and typed conditions: `where('role', equals('admin'))` or `where('age', greaterThan(18))`.
+  QueryBuilder where(String field, dynamic operatorOrValue,
+      [dynamic value = _whereSentinel]) {
+    final String op;
+    final dynamic val;
+    if (operatorOrValue is QueryCondition && identical(value, _whereSentinel)) {
+      op = operatorOrValue.operator;
+      val = operatorOrValue.value;
+    } else if (identical(value, _whereSentinel)) {
+      op = '=';
+      val = operatorOrValue;
+    } else {
+      op = operatorOrValue.toString();
+      val = value;
+    }
+
     final paramName = 'p${_paramIndex++}';
 
     if (executor.driver == DBDriver.postgres) {
-      _addWhere('AND', '$field $operator :$paramName');
+      _addWhere('AND', '$field $op :$paramName');
     } else {
-      _addWhere('AND', '$field $operator ?');
+      _addWhere('AND', '$field $op ?');
     }
 
-    _bindings[paramName] = value;
+    _bindings[paramName] = val;
     return this;
   }
+
+  /// Add equality condition without SQL operator strings: `whereEqual('status', 'active')`
+  QueryBuilder whereEqual(String field, dynamic value) => where(field, '=', value);
+
+  /// Add inequality condition without SQL operator strings: `whereNotEqual('status', 'archived')`
+  QueryBuilder whereNotEqual(String field, dynamic value) => where(field, '!=', value);
+
+  /// Add boolean true condition: `whereTrue('is_active')`
+  QueryBuilder whereTrue(String field) => where(field, '=', true);
+
+  /// Add boolean false condition: `whereFalse('is_deleted')`
+  QueryBuilder whereFalse(String field) => where(field, '=', false);
+
+  /// Add greater-than condition: `whereGreaterThan('age', 18)`
+  QueryBuilder whereGreaterThan(String field, dynamic value) => where(field, '>', value);
+  QueryBuilder whereGt(String field, dynamic value) => where(field, '>', value);
+
+  /// Add greater-than-or-equal condition: `whereGreaterThanOrEqual('age', 18)`
+  QueryBuilder whereGreaterThanOrEqual(String field, dynamic value) => where(field, '>=', value);
+  QueryBuilder whereGte(String field, dynamic value) => where(field, '>=', value);
+
+  /// Add less-than condition: `whereLessThan('price', 100)`
+  QueryBuilder whereLessThan(String field, dynamic value) => where(field, '<', value);
+  QueryBuilder whereLt(String field, dynamic value) => where(field, '<', value);
+
+  /// Add less-than-or-equal condition: `whereLessThanOrEqual('price', 100)`
+  QueryBuilder whereLessThanOrEqual(String field, dynamic value) => where(field, '<=', value);
+  QueryBuilder whereLte(String field, dynamic value) => where(field, '<=', value);
 
   /// WHERE IN clause
   QueryBuilder whereIn(String field, List<dynamic> values) {
@@ -348,19 +393,117 @@ class QueryBuilder {
     return this;
   }
 
-  /// OR WHERE clause
-  QueryBuilder orWhere(String field, String operator, dynamic value) {
+  /// OR WHERE clause supporting 2-arg (`field, value`), 3-arg (`field, operator, value`),
+  /// and typed conditions: `orWhere('role', equals('admin'))` or `orWhere('age', greaterThan(18))`.
+  QueryBuilder orWhere(String field, dynamic operatorOrValue,
+      [dynamic value = _whereSentinel]) {
+    final String op;
+    final dynamic val;
+    if (operatorOrValue is QueryCondition && identical(value, _whereSentinel)) {
+      op = operatorOrValue.operator;
+      val = operatorOrValue.value;
+    } else if (identical(value, _whereSentinel)) {
+      op = '=';
+      val = operatorOrValue;
+    } else {
+      op = operatorOrValue.toString();
+      val = value;
+    }
+
     final paramName = 'p${_paramIndex++}';
 
     if (executor.driver == DBDriver.postgres) {
-      _addWhere('OR', '$field $operator :$paramName');
+      _addWhere('OR', '$field $op :$paramName');
     } else {
-      _addWhere('OR', '$field $operator ?');
+      _addWhere('OR', '$field $op ?');
     }
 
-    _bindings[paramName] = value;
+    _bindings[paramName] = val;
     return this;
   }
+
+  /// Filter with named operator arguments (no raw SQL operator strings):
+  /// ```dart
+  /// qb.filter('role', equals: 'admin')
+  /// qb.filter('age', greaterThan: 18, lessThan: 65)
+  /// qb.filter('status', notEquals: 'banned')
+  /// ```
+  QueryBuilder filter(
+    String field, {
+    dynamic equals,
+    dynamic notEquals,
+    dynamic greaterThan,
+    dynamic gt,
+    dynamic greaterThanOrEqual,
+    dynamic gte,
+    dynamic lessThan,
+    dynamic lt,
+    dynamic lessThanOrEqual,
+    dynamic lte,
+    dynamic contains,
+    dynamic startsWith,
+    dynamic endsWith,
+    bool? isNull,
+    bool? isNotNull,
+  }) {
+    if (equals != null) whereEqual(field, equals);
+    if (notEquals != null) whereNotEqual(field, notEquals);
+    if (greaterThan != null) whereGreaterThan(field, greaterThan);
+    if (gt != null) whereGt(field, gt);
+    if (greaterThanOrEqual != null) whereGreaterThanOrEqual(field, greaterThanOrEqual);
+    if (gte != null) whereGte(field, gte);
+    if (lessThan != null) whereLessThan(field, lessThan);
+    if (lt != null) whereLt(field, lt);
+    if (lessThanOrEqual != null) whereLessThanOrEqual(field, lessThanOrEqual);
+    if (lte != null) whereLte(field, lte);
+    if (contains != null) whereContains(field, contains.toString());
+    if (startsWith != null) whereStartsWith(field, startsWith.toString());
+    if (endsWith != null) whereEndsWith(field, endsWith.toString());
+    if (isNull == true) whereNull(field);
+    if (isNotNull == true) whereNotNull(field);
+    return this;
+  }
+
+  /// OR filter with named operator arguments:
+  QueryBuilder orFilter(
+    String field, {
+    dynamic equals,
+    dynamic notEquals,
+    dynamic greaterThan,
+    dynamic gt,
+    dynamic greaterThanOrEqual,
+    dynamic gte,
+    dynamic lessThan,
+    dynamic lt,
+    dynamic lessThanOrEqual,
+    dynamic lte,
+    dynamic contains,
+  }) {
+    if (equals != null) orWhereEqual(field, equals);
+    if (notEquals != null) orWhereNotEqual(field, notEquals);
+    if (greaterThan != null) orWhere(field, '>', greaterThan);
+    if (gt != null) orWhere(field, '>', gt);
+    if (greaterThanOrEqual != null) orWhere(field, '>=', greaterThanOrEqual);
+    if (gte != null) orWhere(field, '>=', gte);
+    if (lessThan != null) orWhere(field, '<', lessThan);
+    if (lt != null) orWhere(field, '<', lt);
+    if (lessThanOrEqual != null) orWhere(field, '<=', lessThanOrEqual);
+    if (lte != null) orWhere(field, '<=', lte);
+    if (contains != null) orWhere(field, 'LIKE', '%$contains%');
+    return this;
+  }
+
+  /// OR equality condition: `orWhereEqual('status', 'active')`
+  QueryBuilder orWhereEqual(String field, dynamic value) => orWhere(field, '=', value);
+
+  /// OR inequality condition: `orWhereNotEqual('status', 'archived')`
+  QueryBuilder orWhereNotEqual(String field, dynamic value) => orWhere(field, '!=', value);
+
+  /// OR boolean true condition: `orWhereTrue('is_admin')`
+  QueryBuilder orWhereTrue(String field) => orWhere(field, '=', true);
+
+  /// OR boolean false condition: `orWhereFalse('is_blocked')`
+  QueryBuilder orWhereFalse(String field) => orWhere(field, '=', false);
 
   /// WHERE NULL clause
   QueryBuilder whereNull(String field) {
@@ -798,18 +941,20 @@ class QueryBuilder {
 
     // Load each requested relation
     for (final relationName in _withRelations) {
-      final definition = relations[relationName];
+      final dotIndex = relationName.indexOf('.');
+      final rootName = dotIndex == -1 ? relationName : relationName.substring(0, dotIndex);
+      final definition = relations[rootName];
       if (definition == null) continue;
 
       // Find the loader
-      final loaderKey = '$className.$relationName';
+      final loaderKey = '$className.$rootName';
       final loader = relationLoaders[loaderKey];
 
       if (loader != null) {
         // Create proper RelationConfig object
         final config = RelationConfig(
-          columns: _withColumns[relationName],
-          relationName: relationName,
+          columns: _withColumns[rootName],
+          relationName: rootName,
         );
 
         // Cast the loader to the correct type
@@ -825,18 +970,20 @@ class QueryBuilder {
 
       // Include loaded relations in the map
       for (final relationName in _withRelations) {
-        final hasRelation = (model as dynamic).hasRelation(relationName);
+        final dotIndex = relationName.indexOf('.');
+        final rootRelation = dotIndex == -1 ? relationName : relationName.substring(0, dotIndex);
+        final hasRelation = (model as dynamic).hasRelation(rootRelation);
         if (hasRelation == true) {
-          final relationValue = (model as dynamic).getAttribute(relationName);
+          final relationValue = (model as dynamic).getAttribute(rootRelation);
           if (relationValue != null) {
             if (relationValue is List) {
-              map[relationName] = relationValue.map((item) {
+              map[rootRelation] = relationValue.map((item) {
                 return item is Model ? (item as dynamic).toMap() : item;
               }).toList();
             } else if (relationValue is Model) {
-              map[relationName] = (relationValue as dynamic).toMap();
+              map[rootRelation] = (relationValue as dynamic).toMap();
             } else {
-              map[relationName] = relationValue;
+              map[rootRelation] = relationValue;
             }
           }
         }

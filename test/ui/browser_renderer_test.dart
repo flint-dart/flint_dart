@@ -171,7 +171,81 @@ void main() {
       expect(host.textContent, 'Client Content');
       expect(host.textContent, isNot(contains('SSR Content')));
     });
+
+    test('preserves existing DOM element reference across setState rerenders',
+        () async {
+      final host = web.document.createElement('div');
+      web.document.body?.appendChild(host);
+      addTearDown(() => host.remove());
+
+      final component = _PreservedDomComponent();
+      final root = createRootForElement(host);
+      root.render(component);
+      await _flushRender();
+
+      final containerBefore = host.querySelector('.container-box');
+      expect(containerBefore, isNotNull);
+      expect(containerBefore?.textContent, contains('Count: 0'));
+
+      component.increment();
+      await _flushRender();
+
+      final containerAfter = host.querySelector('.container-box');
+      expect(containerAfter, isNotNull);
+      expect(containerAfter?.textContent, contains('Count: 1'));
+      // The DOM node must be identical (not destroyed and re-created)
+      expect(identical(containerBefore, containerAfter), isTrue);
+    });
+
+    test('supports zero-argument event handlers without type error', () async {
+      final host = web.document.createElement('div');
+      web.document.body?.appendChild(host);
+      addTearDown(() => host.remove());
+
+      var clicked = false;
+      final root = createRootForElement(host);
+      root.render(
+        div(
+          children: [
+            button(
+              props: {
+                'id': 'test-btn',
+                'onClick': () {
+                  clicked = true;
+                },
+              },
+              children: ['Click me'],
+            ),
+          ],
+        ),
+      );
+      await _flushRender();
+
+      final btn = host.querySelector('#test-btn') as web.HTMLButtonElement;
+      btn.click();
+      expect(clicked, isTrue);
+    });
   });
+}
+
+class _PreservedDomComponent extends StatefulComponent {
+  int count = 0;
+
+  void increment() {
+    setState(() {
+      count++;
+    });
+  }
+
+  @override
+  View build() {
+    return div(
+      props: {'className': 'container-box'},
+      children: [
+        span(children: ['Count: $count']),
+      ],
+    );
+  }
 }
 
 FlintElement _repeatedFields(String first, String second) {

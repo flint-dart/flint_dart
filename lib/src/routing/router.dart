@@ -1,65 +1,182 @@
 import 'package:flint_dart/flint_dart.dart';
 
+class _ParsedSegment {
+  final bool isParam;
+  final String text;
+  final RegExp? regex;
+
+  const _ParsedSegment({
+    required this.isParam,
+    required this.text,
+    this.regex,
+  });
+}
+
+class _ParamSegment {
+  final String name;
+  final String? pattern;
+
+  const _ParamSegment(this.name, this.pattern);
+}
+
 class Route {
   final String method;
   final String path;
   final Handler handler;
   final List<Middleware> middlewares;
 
-  Route(this.method, this.path, this.handler, [this.middlewares = const []]);
+  Handler? _cachedPipeline;
+  int _cachedMiddlewareCount = -1;
+
+  Handler get pipeline {
+    if (_cachedPipeline == null || _cachedMiddlewareCount != middlewares.length) {
+      _cachedPipeline = middlewares.fold<Handler>(
+        handler,
+        (prev, middleware) => middleware.handle(prev),
+      );
+      _cachedMiddlewareCount = middlewares.length;
+    }
+    return _cachedPipeline!;
+  }
+
+  late final bool isWildcard;
+  late final String? wildcardPrefix;
+  late final bool isStatic;
+  late final List<_ParsedSegment> _parsedSegments;
+
+  Route(this.method, this.path, this.handler, [this.middlewares = const []]) {
+    if (path.endsWith('/*')) {
+      isWildcard = true;
+      wildcardPrefix = path.substring(0, path.length - 1);
+      isStatic = false;
+      _parsedSegments = const [];
+    } else {
+      isWildcard = false;
+      wildcardPrefix = null;
+      final rawSegments = path.split('/');
+      var hasParam = false;
+      final list = <_ParsedSegment>[];
+
+      for (final raw in rawSegments) {
+        if (raw.startsWith(':')) {
+          hasParam = true;
+          final parsed = _parseParam(raw);
+          if (parsed != null) {
+            final reg = parsed.pattern != null
+                ? RegExp('^${parsed.pattern}\$')
+                : null;
+            list.add(_ParsedSegment(isParam: true, text: parsed.name, regex: reg));
+          } else {
+            list.add(_ParsedSegment(isParam: false, text: raw));
+          }
+        } else {
+          list.add(_ParsedSegment(isParam: false, text: raw));
+        }
+      }
+
+      isStatic = !hasParam;
+      _parsedSegments = list;
+    }
+  }
+
+  static _ParamSegment? _parseParam(String segment) {
+    if (!segment.startsWith(':')) return null;
+
+    final rest = segment.substring(1);
+    if (rest.isEmpty) return null;
+
+    final openIdx = rest.indexOf('(');
+    if (openIdx == -1) {
+      return _ParamSegment(rest, null);
+    }
+
+    final closeIdx = rest.lastIndexOf(')');
+    if (closeIdx <= openIdx) {
+      return _ParamSegment(rest, null);
+    }
+
+    final name = rest.substring(0, openIdx);
+    final pattern = rest.substring(openIdx + 1, closeIdx);
+    if (name.isEmpty || pattern.isEmpty) {
+      return _ParamSegment(rest, null);
+    }
+
+    return _ParamSegment(name, pattern);
+  }
+
+  bool matches(List<String> pathParts, Map<String, String>? paramsOut) {
+    if (isWildcard || isStatic) return false;
+    if (_parsedSegments.length != pathParts.length) return false;
+
+    final params = <String, String>{};
+    for (int i = 0; i < _parsedSegments.length; i++) {
+      final seg = _parsedSegments[i];
+      final part = pathParts[i];
+
+      if (seg.isParam) {
+        if (seg.regex != null && !seg.regex!.hasMatch(part)) {
+          return false;
+        }
+        params[seg.text] = part;
+      } else {
+        if (seg.text != part) return false;
+      }
+    }
+
+    if (paramsOut != null) {
+      paramsOut.addAll(params);
+    }
+    return true;
+  }
 }
 
 class Router {
   final List<Route> _routes = [];
   List<Route> get routes => _routes;
 
+  final Map<String, Map<String, Route>> _staticRoutesByMethod = {};
+  final Map<String, List<Route>> _paramRoutesByMethod = {};
+  final Map<String, List<Route>> _wildcardRoutesByMethod = {};
+
   void add(String method, String path, Object handler,
       {List<Middleware> middlewares = const []}) {
-    _routes.add(Route(
-        method.toUpperCase(), path, _coerceHandler(handler), middlewares));
+    final route = Route(
+      method.toUpperCase(),
+      path,
+      _coerceHandler(handler),
+      middlewares,
+    );
+    _routes.add(route);
+
+    if (route.isStatic) {
+      _staticRoutesByMethod
+          .putIfAbsent(route.method, () => {})[route.path] = route;
+    } else if (route.isWildcard) {
+      _wildcardRoutesByMethod
+          .putIfAbsent(route.method, () => [])
+          .add(route);
+    } else {
+      _paramRoutesByMethod
+          .putIfAbsent(route.method, () => [])
+          .add(route);
+    }
   }
 
   Handler? match(
       String method, String pathToMatch, Map<String, String> paramsOut) {
     final normalizedMethod = method.toUpperCase();
 
-    // 1) Exact/param matches (no wildcard)
-    final direct = _matchForMethod(
-      normalizedMethod,
-      pathToMatch,
-      paramsOut,
-      includeWildcard: false,
-    );
+    // 1) Direct match for requested method
+    final direct = _matchMethod(normalizedMethod, pathToMatch, paramsOut);
     if (direct != null) return direct;
 
-    // 2) Wildcard matches (only if no direct match)
-    final wildcard = _matchForMethod(
-      normalizedMethod,
-      pathToMatch,
-      paramsOut,
-      includeWildcard: true,
-    );
-    if (wildcard != null) return wildcard;
-
-    // 3) Auto HEAD from GET
+    // 2) Auto HEAD from GET
     if (normalizedMethod == 'HEAD') {
-      final headFromGet = _matchForMethod(
-        'GET',
-        pathToMatch,
-        paramsOut,
-        includeWildcard: false,
-      );
+      final headFromGet = _matchMethod('GET', pathToMatch, paramsOut);
       if (headFromGet != null) return headFromGet;
-      final headFromGetWildcard = _matchForMethod(
-        'GET',
-        pathToMatch,
-        paramsOut,
-        includeWildcard: true,
-      );
-      if (headFromGetWildcard != null) return headFromGetWildcard;
     }
 
-    // 4) OPTIONS / 405 handling
+    // 3) OPTIONS / 405 handling
     final allowedMethods = _allowedMethods(pathToMatch);
     if (allowedMethods.isEmpty) return null;
 
@@ -90,44 +207,40 @@ class Router {
     };
   }
 
-  Handler _wrapWithMiddlewares(Handler handler, List<Middleware> middlewares) {
-    return middlewares.fold<Handler>(
-      handler,
-      (prev, middleware) => middleware.handle(prev),
-    );
-  }
-
-  Handler? _matchForMethod(
+  Handler? _matchMethod(
     String method,
     String pathToMatch,
-    Map<String, String> paramsOut, {
-    required bool includeWildcard,
-  }) {
-    if (!includeWildcard) {
-      // Prefer exact static routes over parameterized routes regardless of order
-      for (final route in routes) {
-        if (route.method != method) continue;
-        if (route.path.endsWith('/*') || route.path.contains(':')) continue;
+    Map<String, String> paramsOut,
+  ) {
+    // 1. Fast O(1) static lookup
+    final staticRoute = _staticRoutesByMethod[method]?[pathToMatch];
+    if (staticRoute != null) {
+      return staticRoute.pipeline;
+    }
 
+    // 2. Parameterized routes matching (pre-split path once)
+    final paramRoutes = _paramRoutesByMethod[method];
+    if (paramRoutes != null && paramRoutes.isNotEmpty) {
+      final pathParts = pathToMatch.split('/');
+      for (final route in paramRoutes) {
         final params = <String, String>{};
-        if (_pathMatches(route.path, pathToMatch, params)) {
+        if (route.matches(pathParts, params)) {
           paramsOut.addAll(params);
-          return _wrapWithMiddlewares(route.handler, route.middlewares);
+          return route.pipeline;
         }
       }
     }
 
-    for (final route in routes) {
-      if (route.method != method) continue;
-
-      if (!includeWildcard && route.path.endsWith('/*')) continue;
-
-      final params = <String, String>{};
-      if (_pathMatches(route.path, pathToMatch, params)) {
-        paramsOut.addAll(params);
-        return _wrapWithMiddlewares(route.handler, route.middlewares);
+    // 3. Wildcard routes matching
+    final wildcardRoutes = _wildcardRoutesByMethod[method];
+    if (wildcardRoutes != null) {
+      for (final route in wildcardRoutes) {
+        if (pathToMatch.startsWith(route.wildcardPrefix!)) {
+          return route.pipeline;
+        }
       }
     }
+
     return null;
   }
 
@@ -150,81 +263,37 @@ class Router {
     );
   }
 
-  bool _pathMatches(
-    String routePath,
-    String pathToMatch,
-    Map<String, String>? paramsOut,
-  ) {
-    // Wildcard: /prefix/*
-    if (routePath.endsWith('/*')) {
-      final prefix = routePath.substring(0, routePath.length - 1);
-      return pathToMatch.startsWith(prefix);
-    }
-
-    final routeParts = routePath.split('/');
-    final pathParts = pathToMatch.split('/');
-
-    if (routeParts.length != pathParts.length) return false;
-
-    final params = <String, String>{};
-    for (int i = 0; i < routeParts.length; i++) {
-      final routeSegment = routeParts[i];
-      final pathSegment = pathParts[i];
-
-      if (routeSegment.startsWith(':')) {
-        final parsed = _parseParamSegment(routeSegment);
-        if (parsed == null) return false;
-
-        if (parsed.pattern != null) {
-          final regex = RegExp('^${parsed.pattern}\$');
-          if (!regex.hasMatch(pathSegment)) {
-            return false;
-          }
-        }
-
-        params[parsed.name] = pathSegment;
-        continue;
-      }
-
-      if (routeSegment != pathSegment) return false;
-    }
-
-    if (paramsOut != null) {
-      paramsOut.addAll(params);
-    }
-    return true;
-  }
-
-  _ParamSegment? _parseParamSegment(String segment) {
-    if (!segment.startsWith(':')) return null;
-
-    final rest = segment.substring(1);
-    if (rest.isEmpty) return null;
-
-    final openIdx = rest.indexOf('(');
-    if (openIdx == -1) {
-      return _ParamSegment(rest, null);
-    }
-
-    final closeIdx = rest.lastIndexOf(')');
-    if (closeIdx <= openIdx) {
-      return _ParamSegment(rest, null);
-    }
-
-    final name = rest.substring(0, openIdx);
-    final pattern = rest.substring(openIdx + 1, closeIdx);
-    if (name.isEmpty || pattern.isEmpty) {
-      return _ParamSegment(rest, null);
-    }
-
-    return _ParamSegment(name, pattern);
-  }
-
   List<String> _allowedMethods(String pathToMatch) {
     final methods = <String>{};
-    for (final route in routes) {
-      if (_pathMatches(route.path, pathToMatch, null)) {
-        methods.add(route.method);
+    List<String>? cachedParts;
+
+    // Check static routes
+    for (final entry in _staticRoutesByMethod.entries) {
+      if (entry.value.containsKey(pathToMatch)) {
+        methods.add(entry.key);
+      }
+    }
+
+    // Check param routes
+    for (final entry in _paramRoutesByMethod.entries) {
+      if (entry.value.isNotEmpty) {
+        cachedParts ??= pathToMatch.split('/');
+        for (final route in entry.value) {
+          if (route.matches(cachedParts, null)) {
+            methods.add(entry.key);
+            break;
+          }
+        }
+      }
+    }
+
+    // Check wildcard routes
+    for (final entry in _wildcardRoutesByMethod.entries) {
+      for (final route in entry.value) {
+        if (pathToMatch.startsWith(route.wildcardPrefix!)) {
+          methods.add(entry.key);
+          break;
+        }
       }
     }
 
@@ -261,11 +330,4 @@ class Router {
 
     return methods.join(', ');
   }
-}
-
-class _ParamSegment {
-  final String name;
-  final String? pattern;
-
-  const _ParamSegment(this.name, this.pattern);
 }

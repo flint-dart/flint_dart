@@ -24,8 +24,8 @@ class _FakeQueryBuilder extends QueryBuilder {
   _FakeQueryBuilder(String table) : super(table: table);
 
   @override
-  QueryBuilder where(String field, String operator, dynamic value) {
-    capturedWhere[field] = value;
+  QueryBuilder where(String field, dynamic operatorOrValue, [dynamic value = const Object()]) {
+    capturedWhere[field] = value is Object && !identical(value, const Object()) ? value : operatorOrValue;
     return this;
   }
 }

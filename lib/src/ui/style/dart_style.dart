@@ -167,6 +167,9 @@ class DartStyle {
   /// CSS `border-radius` value.
   final Object? radius;
 
+  /// CSS `border-radius` value (accepts [BorderRadius], [Radius], [SizeValue], num, or String).
+  final Object? borderRadius;
+
   /// CSS `border` shorthand value.
   final Border? border;
 
@@ -318,6 +321,7 @@ class DartStyle {
     this.resize,
     this.background,
     this.radius,
+    this.borderRadius,
     this.border,
     this.borderTop,
     this.borderRight,
@@ -419,12 +423,14 @@ class DartStyle {
         webkitBackgroundClip,
         unitlessNumber: true,
       ),
-      'border-radius': cssValue(radius),
+      'border-radius': borderRadius != null
+          ? cssValue(borderRadius)
+          : cssValue(radius),
       'border': border?.toCss(),
-      'border-top': borderTop?.toCss(),
-      'border-right': borderRight?.toCss(),
-      'border-bottom': borderBottom?.toCss(),
-      'border-left': borderLeft?.toCss(),
+      'border-top': borderTop?.toCss() ?? border?.top?.toCss(),
+      'border-right': borderRight?.toCss() ?? border?.right?.toCss(),
+      'border-bottom': borderBottom?.toCss() ?? border?.bottom?.toCss(),
+      'border-left': borderLeft?.toCss() ?? border?.left?.toCss(),
       'border-collapse': cssValue(borderCollapse, unitlessNumber: true),
       'outline': cssValue(outline, unitlessNumber: true),
       'box-shadow':
@@ -544,6 +550,7 @@ class DartStyle {
       resize: override.resize ?? resize,
       background: override.background ?? background,
       radius: override.radius ?? radius,
+      borderRadius: override.borderRadius ?? borderRadius,
       border: override.border ?? border,
       borderTop: override.borderTop ?? borderTop,
       borderRight: override.borderRight ?? borderRight,
