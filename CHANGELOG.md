@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.6.1] - 2026-11-21
+
+### Fixed
+- **Mail Preview Route Handler Compatibility**:
+  - Registered mail preview routes using standard `(Context context)` Handler signatures with null-safe response handling, ensuring full compatibility with custom Flint application subclasses and route inspection probes.
+
 ## [1.6.0] - 2026-11-21
 
 ### Compiler & Hot Reload Velocity
