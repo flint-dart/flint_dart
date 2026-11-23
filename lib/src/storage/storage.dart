@@ -1,161 +1,113 @@
-import 'dart:io';
+import 'package:flint_dart/src/env_parser.dart';
+import 'package:flint_dart/src/storage/s3_client.dart';
+import 'package:flint_dart/src/storage/s3_config.dart';
+import 'package:flint_dart/src/storage/storage_driver.dart';
 import 'package:flint_dart/src/storage/uploaded_file.dart';
-import 'package:uuid/uuid.dart';
+
+export 'package:flint_dart/src/storage/s3_client.dart';
+export 'package:flint_dart/src/storage/s3_config.dart';
+export 'package:flint_dart/src/storage/storage_driver.dart';
 
 /// Handles file storage operations for uploaded files in Flint Dart.
 ///
-/// Default behavior:
-/// - Files are stored in `public/uploads`
-/// - Public URL is `/uploads/<generated-filename>`
+/// Supports multiple storage drivers:
+/// - `local`: Stores files in `public/uploads` (default)
+/// - `s3` / `minio`: Uploads objects to S3 or MinIO buckets (e.g. `s3.eulogia.net`)
 ///
-/// If user passes a `subdirectory`, files go to:
-/// - `public/<subdirectory>`
-/// - URL `/subdirectory/<generated-filename>`
+/// Configure in `.env`:
+/// ```env
+/// STORAGE_DRIVER=s3 # or 'local', 'minio'
+/// S3_ENDPOINT=https://s3.eulogia.net
+/// S3_BUCKET=eulogia
+/// S3_ACCESS_KEY=your-access-key
+/// S3_SECRET_KEY=your-secret-key
+/// S3_REGION=us-east-1
+/// S3_USE_PATH_STYLE=true
+/// ```
 class Storage {
-  /// Base root directory for filesystem storage.
-  static const String _baseDir = 'public';
+  static final Map<String, StorageDriver> _disks = {};
 
-  /// The default uploads folder inside public.
-  static const String _defaultUploadsFolder = 'uploads';
+  /// Returns the configured default storage driver.
+  static StorageDriver get driver {
+    final driverKey = FlintEnv.get('STORAGE_DRIVER', 'local').trim().toLowerCase();
+    return disk(driverKey);
+  }
 
-  /// Saves an uploaded file to the server.
-  ///
-  /// [file] - The uploaded file.
-  /// [subdirectory] - Optional folder inside `/public`.
-  ///
-  /// Examples:
-  /// `Storage.create(file)` → public/uploads/
-  /// `Storage.create(file, subdirectory: 'schools/logo')`
+  /// Returns a specific named storage disk (`'local'`, `'s3'`, `'minio'`).
+  static StorageDriver disk([String? name]) {
+    final key = (name ?? FlintEnv.get('STORAGE_DRIVER', 'local')).trim().toLowerCase();
+    final normalized = (key == 'minio') ? 's3' : key;
+
+    if (_disks.containsKey(normalized)) {
+      return _disks[normalized]!;
+    }
+
+    if (normalized == 's3') {
+      final config = S3Config.fromEnv();
+      final client = S3Client(config: config);
+      final driver = S3StorageDriver(client: client);
+      _disks[normalized] = driver;
+      return driver;
+    }
+
+    final localDriver = LocalStorageDriver();
+    _disks[normalized] = localDriver;
+    return localDriver;
+  }
+
+  /// Registers or overrides a custom storage driver disk.
+  static void registerDisk(String name, StorageDriver customDriver) {
+    _disks[name.toLowerCase().trim()] = customDriver;
+  }
+
+  /// Resets cached storage driver instances (useful in tests).
+  static void reset() {
+    _disks.clear();
+  }
+
+  /// Saves an uploaded file to the active storage disk.
   static Future<String> create(
     UploadedFile file, {
     String? subdirectory,
   }) async {
-    final safeFileName = _sanitizeFileName(file.filename);
-    final uniqueFileName = '${Uuid().v4()}_$safeFileName';
+    return await driver.create(file, subdirectory: subdirectory);
+  }
 
-    final folder = _normalizeRelativePath(
-      subdirectory,
-      fallback: _defaultUploadsFolder,
-      label: 'subdirectory',
+  /// Saves raw binary bytes to the active storage disk.
+  static Future<String> putBytes(
+    List<int> bytes, {
+    required String filename,
+    String? contentType,
+    String? subdirectory,
+  }) async {
+    return await driver.putBytes(
+      bytes,
+      filename: filename,
+      contentType: contentType,
+      subdirectory: subdirectory,
     );
-
-    final directoryPath = '$_baseDir/$folder';
-
-    final Directory dir = Directory(directoryPath);
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-
-    final File newFile = File('$directoryPath/$uniqueFileName');
-    await file.content.pipe(newFile.openWrite());
-
-    // Return public URL
-    return '/$folder/$uniqueFileName';
   }
 
-  /// Deletes file using its public URL.
-  ///
-  /// Example:
-  /// `/uploads/abc.png` → deletes `public/uploads/abc.png`
+  /// Deletes a file using its public URL or key.
   static Future<void> delete(String fileUrl) async {
-    final safePath = _normalizePublicFileUrl(fileUrl);
-
-    final filePath = '$_baseDir/$safePath';
-    final fileToDelete = File(filePath);
-
-    if (await fileToDelete.exists()) {
-      await fileToDelete.delete();
-    }
+    await driver.delete(fileUrl);
   }
 
-  /// Replaces an old file with a new one.
-  ///
-  /// Deletes the old file and uploads the new one.
+  /// Replaces an old file with a new uploaded file.
   static Future<String> update(
     String oldFileUrl,
     UploadedFile newFile, {
     String? subdirectory,
   }) async {
-    await delete(oldFileUrl);
-    return await create(newFile, subdirectory: subdirectory);
-  }
-
-  static String _sanitizeFileName(String filename) {
-    final parts = filename
-        .replaceAll('\\', '/')
-        .split('/')
-        .where((part) => part.isNotEmpty)
-        .toList();
-    final baseName = parts.isEmpty ? null : parts.last.trim();
-
-    if (baseName == null ||
-        baseName.isEmpty ||
-        baseName == '.' ||
-        baseName == '..') {
-      throw ArgumentError('Uploaded filename is invalid.');
-    }
-
-    final safe = baseName
-        .replaceAll(RegExp(r'\s+'), '_')
-        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-
-    if (safe.isEmpty || safe == '.' || safe == '..') {
-      throw ArgumentError('Uploaded filename is invalid.');
-    }
-
-    return safe;
-  }
-
-  static String _normalizePublicFileUrl(String fileUrl) {
-    var path = fileUrl.trim().replaceAll('\\', '/');
-
-    while (path.startsWith('/')) {
-      path = path.substring(1);
-    }
-
-    if (path == 'public') {
-      throw ArgumentError('Storage file URL must point to a file.');
-    }
-
-    if (path.startsWith('public/')) {
-      path = path.substring('public/'.length);
-    }
-
-    final normalized = _normalizeRelativePath(
-      path,
-      label: 'fileUrl',
+    return await driver.update(
+      oldFileUrl,
+      newFile,
+      subdirectory: subdirectory,
     );
-
-    if (normalized.isEmpty || normalized.endsWith('/')) {
-      throw ArgumentError('Storage file URL must point to a file.');
-    }
-
-    return normalized;
   }
 
-  static String _normalizeRelativePath(
-    String? value, {
-    String? fallback,
-    required String label,
-  }) {
-    var path = value?.trim().replaceAll('\\', '/') ?? '';
-    if (path.isEmpty) {
-      path = fallback ?? '';
-    }
-
-    if (path.isEmpty) {
-      return path;
-    }
-
-    if (path.startsWith('/') || RegExp(r'^[A-Za-z]:').hasMatch(path)) {
-      throw ArgumentError('Storage $label must be relative to public/.');
-    }
-
-    final parts = path.split('/').where((part) => part.isNotEmpty).toList();
-    if (parts.any((part) => part == '.' || part == '..')) {
-      throw ArgumentError('Storage $label cannot contain . or .. segments.');
-    }
-
-    return parts.join('/');
+  /// Resolves the URL for a stored key or path.
+  static String url(String path) {
+    return driver.url(path);
   }
 }
