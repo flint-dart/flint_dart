@@ -96,5 +96,31 @@ void main() {
       expect(authHeader, contains('SignedHeaders=content-type;host;x-amz-content-sha256;x-amz-date'));
       expect(authHeader, contains('Signature='));
     });
+
+    test('Storage putString and getString read/write text content on LocalStorageDriver', () async {
+      Storage.reset();
+      const content = '# Competitor Briefing\n- Strengths: Fast\n- Pricing: \$10/mo';
+      final path = await Storage.disk('local').putString(
+        content,
+        filename: 'briefing_test.md',
+        subdirectory: 'test-research',
+      );
+
+      expect(path, contains('briefing_test'));
+      expect(path, endsWith('.md'));
+
+      final exists = await Storage.disk('local').exists(path);
+      expect(exists, isTrue);
+
+      final readContent = await Storage.disk('local').getString(path);
+      expect(readContent, equals(content));
+
+      final readBytes = await Storage.disk('local').getBytes(path);
+      expect(utf8.decode(readBytes), equals(content));
+
+      await Storage.disk('local').delete(path);
+      final existsAfterDelete = await Storage.disk('local').exists(path);
+      expect(existsAfterDelete, isFalse);
+    });
   });
 }

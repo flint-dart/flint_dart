@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flint_dart/src/env_parser.dart';
 import 'package:flint_dart/src/storage/s3_client.dart';
 import 'package:flint_dart/src/storage/s3_config.dart';
@@ -104,6 +105,36 @@ class Storage {
       newFile,
       subdirectory: subdirectory,
     );
+  }
+
+  /// Saves a UTF-8 string to the active storage disk.
+  static Future<String> putString(
+    String content, {
+    required String filename,
+    String? contentType,
+    String? subdirectory,
+  }) async {
+    return await driver.putString(
+      content,
+      filename: filename,
+      contentType: contentType,
+      subdirectory: subdirectory,
+    );
+  }
+
+  /// Retrieves raw binary bytes from the active storage disk or URL.
+  static Future<List<int>> getBytes(String pathOrUrl) async {
+    return await driver.getBytes(pathOrUrl);
+  }
+
+  /// Retrieves UTF-8 string text content from the active storage disk or URL.
+  static Future<String> getString(String pathOrUrl, {Encoding encoding = utf8}) async {
+    return await driver.getString(pathOrUrl, encoding: encoding);
+  }
+
+  /// Checks if a file exists on the active storage disk or URL.
+  static Future<bool> exists(String pathOrUrl) async {
+    return await driver.exists(pathOrUrl);
   }
 
   /// Resolves the URL for a stored key or path.
