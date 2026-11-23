@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flint_dart/src/storage/s3_client.dart';
@@ -20,6 +21,24 @@ abstract class StorageDriver {
 
   /// Deletes a file by its URL or key.
   Future<void> delete(String fileUrl);
+
+  /// Downloads raw bytes from storage.
+  Future<List<int>> getBytes(String pathOrUrl);
+
+  /// Downloads and decodes a text file (such as .md, .txt, .json) from storage.
+  Future<String> getString(String pathOrUrl, {Encoding encoding = utf8});
+
+  /// Saves a text string directly as a file in storage and returns its URL.
+  Future<String> putString(
+    String content, {
+    required String filename,
+    String? contentType,
+    String? subdirectory,
+    Encoding encoding = utf8,
+  });
+
+  /// Checks if a file exists in storage.
+  Future<bool> exists(String pathOrUrl);
 
   /// Replaces an existing file with a new uploaded file.
   Future<String> update(
@@ -97,6 +116,60 @@ class LocalStorageDriver implements StorageDriver {
     if (await fileToDelete.exists()) {
       await fileToDelete.delete();
     }
+  }
+
+  @override
+  Future<List<int>> getBytes(String pathOrUrl) async {
+    final filePath = _resolveLocalFilePath(pathOrUrl);
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw FileSystemException('File not found in local storage', filePath);
+    }
+    return await file.readAsBytes();
+  }
+
+  @override
+  Future<String> getString(String pathOrUrl, {Encoding encoding = utf8}) async {
+    final bytes = await getBytes(pathOrUrl);
+    return encoding.decode(bytes);
+  }
+
+  @override
+  Future<String> putString(
+    String content, {
+    required String filename,
+    String? contentType,
+    String? subdirectory,
+    Encoding encoding = utf8,
+  }) async {
+    final bytes = encoding.encode(content);
+    return await putBytes(
+      bytes,
+      filename: filename,
+      contentType: contentType ?? 'text/plain; charset=utf-8',
+      subdirectory: subdirectory,
+    );
+  }
+
+  @override
+  Future<bool> exists(String pathOrUrl) async {
+    final filePath = _resolveLocalFilePath(pathOrUrl);
+    return await File(filePath).exists();
+  }
+
+  String _resolveLocalFilePath(String pathOrUrl) {
+    var raw = pathOrUrl.trim().replaceAll('\\', '/');
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      final uri = Uri.parse(raw);
+      raw = uri.path;
+    }
+    while (raw.startsWith('/')) {
+      raw = raw.substring(1);
+    }
+    if (raw.startsWith('$_baseDir/')) {
+      return raw;
+    }
+    return '$_baseDir/$raw';
   }
 
   @override
@@ -244,6 +317,46 @@ class S3StorageDriver implements StorageDriver {
     final key = _extractKeyFromUrl(fileUrl);
     if (key.isNotEmpty) {
       await client.deleteObject(key: key);
+    }
+  }
+
+  @override
+  Future<List<int>> getBytes(String pathOrUrl) async {
+    final key = _extractKeyFromUrl(pathOrUrl);
+    return await client.getObject(key: key);
+  }
+
+  @override
+  Future<String> getString(String pathOrUrl, {Encoding encoding = utf8}) async {
+    final bytes = await getBytes(pathOrUrl);
+    return encoding.decode(bytes);
+  }
+
+  @override
+  Future<String> putString(
+    String content, {
+    required String filename,
+    String? contentType,
+    String? subdirectory,
+    Encoding encoding = utf8,
+  }) async {
+    final bytes = encoding.encode(content);
+    return await putBytes(
+      bytes,
+      filename: filename,
+      contentType: contentType ?? 'text/plain; charset=utf-8',
+      subdirectory: subdirectory,
+    );
+  }
+
+  @override
+  Future<bool> exists(String pathOrUrl) async {
+    try {
+      final key = _extractKeyFromUrl(pathOrUrl);
+      final bytes = await client.getObject(key: key);
+      return bytes.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 

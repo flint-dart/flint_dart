@@ -20,22 +20,30 @@ class S3Config {
     this.publicUrl,
   });
 
-  /// Factory loading from environment variables:
-  /// - `S3_ENDPOINT` (e.g. `https://s3.eulogia.net`)
-  /// - `S3_BUCKET` (e.g. `eulogia`)
-  /// - `S3_ACCESS_KEY`
-  /// - `S3_SECRET_KEY`
-  /// - `S3_REGION` (default: `us-east-1`)
-  /// - `S3_USE_PATH_STYLE` (default: `true` for MinIO)
-  /// - `S3_PUBLIC_URL` (optional custom CDN / public URL prefix)
+  /// Factory loading from environment variables with fallback support:
+  /// - `S3_ENDPOINT` / `MINIO_ENDPOINT` (e.g. `https://s3.example.com`)
+  /// - `S3_BUCKET` / `MINIO_BUCKET` (e.g. `my-bucket`)
+  /// - `S3_ACCESS_KEY` / `MINIO_ACCESS_KEY` / `AWS_ACCESS_KEY_ID`
+  /// - `S3_SECRET_KEY` / `MINIO_SECRET_KEY` / `AWS_SECRET_ACCESS_KEY`
+  /// - `S3_REGION` / `MINIO_REGION` / `AWS_DEFAULT_REGION` (default: `us-east-1`)
+  /// - `S3_USE_PATH_STYLE` / `MINIO_USE_PATH_STYLE` (default: `true` for MinIO)
+  /// - `S3_PUBLIC_URL` / `MINIO_PUBLIC_URL` (optional custom CDN / public URL prefix)
   factory S3Config.fromEnv() {
-    final endpoint = FlintEnv.get('S3_ENDPOINT', 'https://s3.eulogia.net').trim();
-    final bucket = FlintEnv.get('S3_BUCKET', 'eulogia').trim();
-    final accessKey = FlintEnv.get('S3_ACCESS_KEY', '').trim();
-    final secretKey = FlintEnv.get('S3_SECRET_KEY', '').trim();
-    final region = FlintEnv.get('S3_REGION', 'us-east-1').trim();
-    final usePathStyle = FlintEnv.getBool('S3_USE_PATH_STYLE', true);
-    final publicUrlRaw = FlintEnv.get('S3_PUBLIC_URL', '').trim();
+    String firstOf(List<String> keys, [String defaultValue = '']) {
+      for (final k in keys) {
+        final val = FlintEnv.get(k, '').trim();
+        if (val.isNotEmpty) return val;
+      }
+      return defaultValue;
+    }
+
+    final endpoint = firstOf(['S3_ENDPOINT', 'MINIO_ENDPOINT'], '');
+    final bucket = firstOf(['S3_BUCKET', 'MINIO_BUCKET'], '');
+    final accessKey = firstOf(['S3_ACCESS_KEY', 'MINIO_ACCESS_KEY', 'AWS_ACCESS_KEY_ID'], '');
+    final secretKey = firstOf(['S3_SECRET_KEY', 'MINIO_SECRET_KEY', 'AWS_SECRET_ACCESS_KEY'], '');
+    final region = firstOf(['S3_REGION', 'MINIO_REGION', 'AWS_DEFAULT_REGION', 'AWS_REGION'], 'us-east-1');
+    final usePathStyle = FlintEnv.getBool('S3_USE_PATH_STYLE', FlintEnv.getBool('MINIO_USE_PATH_STYLE', true));
+    final publicUrlRaw = firstOf(['S3_PUBLIC_URL', 'MINIO_PUBLIC_URL'], '');
 
     return S3Config(
       endpoint: endpoint,

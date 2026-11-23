@@ -13,13 +13,13 @@ export 'package:flint_dart/src/storage/storage_driver.dart';
 ///
 /// Supports multiple storage drivers:
 /// - `local`: Stores files in `public/uploads` (default)
-/// - `s3` / `minio`: Uploads objects to S3 or MinIO buckets (e.g. `s3.eulogia.net`)
+/// - `s3` / `minio`: Uploads objects to S3 or MinIO buckets (e.g. `s3.example.com`)
 ///
 /// Configure in `.env`:
 /// ```env
 /// STORAGE_DRIVER=s3 # or 'local', 'minio'
-/// S3_ENDPOINT=https://s3.eulogia.net
-/// S3_BUCKET=eulogia
+/// S3_ENDPOINT=https://s3.example.com
+/// S3_BUCKET=my-bucket
 /// S3_ACCESS_KEY=your-access-key
 /// S3_SECRET_KEY=your-secret-key
 /// S3_REGION=us-east-1
