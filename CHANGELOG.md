@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.6.2] - 2026-11-23
+
+### Added
+- **Native S3 and MinIO Storage Driver with AWS SigV4 Signing**:
+  - Added lightweight native `S3Client` implementing AWS Signature Version 4 request signing (HMAC-SHA256, canonical headers, URI encoding, payload digests) without external AWS SDK dependencies.
+  - Added `S3Config` supporting standard environment variables with fallback resolution (`S3_ENDPOINT` / `MINIO_ENDPOINT`, `S3_BUCKET` / `MINIO_BUCKET`, `S3_ACCESS_KEY` / `MINIO_ACCESS_KEY` / `AWS_ACCESS_KEY_ID`, `S3_SECRET_KEY` / `MINIO_SECRET_KEY` / `AWS_SECRET_ACCESS_KEY`, `S3_REGION` / `MINIO_REGION`, `S3_USE_PATH_STYLE` / `MINIO_USE_PATH_STYLE`, `S3_PUBLIC_URL` / `MINIO_PUBLIC_URL`).
+  - Added `S3StorageDriver` implementing `StorageDriver` with support for AWS S3, MinIO, Wasabi, and Cloudflare R2 object storage.
+  - `Storage.disk('s3')` and `Storage.disk('minio')` automatically route to `S3StorageDriver`.
+- **Direct Text & Document Storage Facade (`putString`, `getString`, `getBytes`, `exists`)**:
+  - `Storage.putString(content, filename: ..., subdirectory: ...)`: Persist string/Markdown/JSON content directly to storage without requiring an `UploadedFile` object.
+  - `Storage.getString(pathOrUrl)`: Download and decode text documents directly into memory for RAG, AI pipelines, and report synthesis.
+  - `Storage.getBytes(pathOrUrl)`: Retrieve raw binary buffers directly from storage.
+  - `Storage.exists(pathOrUrl)`: Check file existence in local storage or remote object storage.
+  - Implemented across both `LocalStorageDriver` and `S3StorageDriver`.
+
 ## [1.6.1] - 2026-11-21
 
 ### Fixed
