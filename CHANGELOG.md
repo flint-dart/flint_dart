@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.6.3] - 2026-11-24
+
+### Fixed
+- **UI Component Reconciliation & Automatic State Preservation**:
+  - `browser_renderer.dart`: Fixed child component reconciliation bug where a newly created component boundary DOM element was not inserted into `parentDom` when replacing an existing component boundary (`parentDom.replaceChild(compDom, existingDom)`).
+  - `component.dart`: Made `StatefulComponent` default `preserveState => true` automatically, ensuring all pages and stateful components retain their state, controllers, and live data across parent re-renders without requiring manual overrides.
+
 ## [1.6.2] - 2026-11-23
 
 ### Added

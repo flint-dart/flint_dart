@@ -147,6 +147,9 @@ abstract class StatefulComponent<TProps> extends FlintComponent {
   set props(covariant TProps value) => _props = value;
 
   @override
+  bool get preserveState => true;
+
+  @override
   void updateFrom(covariant StatefulComponent<TProps> next) {
     _props = next._props;
   }
