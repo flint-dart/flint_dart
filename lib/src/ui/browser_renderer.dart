@@ -376,7 +376,11 @@ class FlintRoot {
     final oldComp = _extractComponent(oldNode);
     final newComp = _extractComponent(newNode);
     if (oldComp != null && newComp != null) {
-      return _createComponent(newComp, path, previousSlots, nextSlots);
+      final compDom = _createComponent(newComp, path, previousSlots, nextSlots);
+      if (compDom != existingDom) {
+        parentDom.replaceChild(compDom, existingDom);
+      }
+      return compDom;
     }
 
     // 4. Fallback: Types or tags do not match -> create fresh DOM and replace
