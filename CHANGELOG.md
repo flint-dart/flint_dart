@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.6.5] - 2026-11-26
+
+### Fixed
+- **Shared & Managed MySQL/PostgreSQL Migrations (`DBAdmin.databaseExists`)**:
+  - `db_admin_commands.dart`: Check connectivity directly against the configured `DB_NAME` first before falling back to the `mysql` / `postgres` admin system database, fixing `MySQLServerException [1044]: Access denied ... to database 'mysql'` on Plesk, cPanel, and managed database hosts.
+
 ## [1.6.4] - 2026-11-26
 
 ### Improved
