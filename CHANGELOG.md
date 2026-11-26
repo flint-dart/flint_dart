@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.6.4] - 2026-11-26
+
+### Improved
+- **Zero-Downtime Web UI Rebuilds & Smart Hot-Reload**:
+  - `web_ui_builder.dart` & `hot_reload.dart`: Added `isUpToDate()` / `latestSourceMtime()` checks to skip redundant initial Flint Web UI builds when assets are already fresh.
+  - Preserved existing hashed page bundles during compilation and cleaned obsolete bundles only after manifest generation so live browser requests never 404 mid-rebuild.
+  - `response.dart`: Added `flint:building` / `flint:reload` WebSocket notifications for on-demand page bundle builds and refined the bottom-right hot-reload indicator pill.
+
+### Fixed
+- **Directional `Border` CSS Generation**:
+  - `values.dart` & `dart_style.dart`: Added `Border.hasIndividualSides` so `DartStyle` does not emit a conflicting 4-sided `border:` shorthand when individual directional sides (`top`/`right`/`bottom`/`left`) are specified.
+
 ## [1.6.3] - 2026-11-24
 
 ### Fixed
