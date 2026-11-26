@@ -426,7 +426,9 @@ class DartStyle {
       'border-radius': borderRadius != null
           ? cssValue(borderRadius)
           : cssValue(radius),
-      'border': border?.toCss(),
+      'border': (border != null && !border!.hasIndividualSides)
+          ? border?.toCss()
+          : null,
       'border-top': borderTop?.toCss() ?? border?.top?.toCss(),
       'border-right': borderRight?.toCss() ?? border?.right?.toCss(),
       'border-bottom': borderBottom?.toCss() ?? border?.bottom?.toCss(),

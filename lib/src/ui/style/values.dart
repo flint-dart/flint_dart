@@ -363,6 +363,10 @@ class Border {
     this.left,
   });
 
+  /// Whether this border specifies individual directional sides rather than a uniform 4-sided shorthand.
+  bool get hasIndividualSides =>
+      top != null || right != null || bottom != null || left != null;
+
   /// Creates a border for all sides.
   const Border.all({
     Object width = 1,

@@ -234,11 +234,12 @@ class FlintWebUiBuilder {
   }
 
   static Future<void> compile(FlintWebUiBuild build) async {
-    _cleanCompiledAssetFamily(build.jsOut);
     await _compileTailwind(build);
     await _compileRootDesignCss(build);
     await _compileDart(build);
     final hashedJsOut = _hashDartJsAssetFamily(build.jsOut);
+    _deleteHashedDartJsSiblings(build.jsOut, keepHashedPath: hashedJsOut);
+    _deleteDeferredPartSiblings(build.jsOut);
     await _compressAssetFamily(hashedJsOut);
     if (build.cssOut != null) {
       await _compressAssetIfUseful(File(build.cssOut!));
@@ -294,13 +295,8 @@ class FlintWebUiBuilder {
           ? path.join(path.dirname(build.jsOut), 'pages', effectiveFlavor)
           : path.join(path.dirname(build.jsOut), 'pages'),
     )..createSync(recursive: true);
-    if (!isPartialBuild && pagesOutDir.existsSync()) {
-      for (final entity in pagesOutDir.listSync()) {
-        if (entity is File && !entity.path.endsWith('.dart')) {
-          _deleteFileIfExists(entity);
-        }
-      }
-    }
+    // Note: Existing page bundles are kept during compilation so ongoing browser requests
+    // continue to be served smoothly. Obsolete bundles are cleaned up after manifest generation.
     final generatedDir = Directory(path.join(
         '.dart_tool', 'flint_ui', 'page_bundles', effectiveFlavor ?? 'default'))
       ..createSync(recursive: true);
@@ -331,8 +327,8 @@ class FlintWebUiBuilder {
     final entriesList = requestedPages.entries.toList();
     final configuredConcurrency =
         int.tryParse(Platform.environment['FLINT_BUILD_CONCURRENCY'] ?? '');
-    final concurrency = configuredConcurrency ??
-        Platform.numberOfProcessors.clamp(2, 16);
+    final concurrency =
+        configuredConcurrency ?? Platform.numberOfProcessors.clamp(2, 16);
     for (var i = 0; i < entriesList.length; i += concurrency) {
       final batch = entriesList.skip(i).take(concurrency);
       final batchResults = await Future.wait([
@@ -357,6 +353,10 @@ class FlintWebUiBuilder {
       manifestPages: manifestPages,
     );
     _logVerbose('Flint UI manifest generated: ${manifestFile.path}');
+    _cleanObsoletePageBundles(pagesOutDir, {
+      ...existingPages,
+      ...manifestPages,
+    });
     if (!isPartialBuild) {
       await _compressAssetIfUseful(manifestFile);
     }
@@ -544,6 +544,193 @@ class FlintWebUiBuilder {
       if (latest == null || mtime.isAfter(latest)) latest = mtime;
     }
     return latest;
+  }
+
+  /// Returns the most recent last-modified timestamp of all UI source files,
+  /// including [build.uiDir], the bundle config, and tailwind CSS input.
+  static DateTime? latestSourceMtime(
+    FlintWebUiBuild build, {
+    String? configPath,
+  }) {
+    DateTime? latest = _latestMtimeInDir(build.uiDir);
+
+    final configFile = File(configPath ?? 'flint_ui.yaml');
+    if (configFile.existsSync()) {
+      final configMtime = configFile.lastModifiedSync();
+      if (latest == null || configMtime.isAfter(latest)) {
+        latest = configMtime;
+      }
+    }
+
+    final tailwind = build.tailwindInput;
+    if (tailwind != null && tailwind.existsSync()) {
+      final tailwindMtime = tailwind.lastModifiedSync();
+      if (latest == null || tailwindMtime.isAfter(latest)) {
+        latest = tailwindMtime;
+      }
+    }
+
+    return latest;
+  }
+
+  /// Checks whether the compiled Flint Web UI assets on disk are up to date
+  /// with respect to source file modification timestamps.
+  ///
+  /// If [page] is specified, only that page's compiled bundle is checked.
+  /// [tolerance] allows a small threshold for filesystem clock jitter or rounding.
+  static bool isUpToDate(
+    FlintWebUiBuild build, {
+    String? configPath,
+    String? page,
+    Duration tolerance = const Duration(seconds: 2),
+  }) {
+    final sourceModified = latestSourceMtime(build, configPath: configPath);
+    if (sourceModified == null) return false;
+
+    final effectiveFlavor =
+        (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+            ? FlintEnv.flavor.toLowerCase().trim()
+            : null;
+
+    final pageConfig = discoverPageBundleConfig(build, configPath: configPath);
+    if (pageConfig != null && pageConfig.pages.isNotEmpty) {
+      final manifestFileName = effectiveFlavor != null
+          ? 'manifest-$effectiveFlavor.json'
+          : 'manifest.json';
+      final manifestFile =
+          File(path.join(path.dirname(build.jsOut), manifestFileName));
+      if (!manifestFile.existsSync()) return false;
+
+      Map<String, dynamic> pagesMap = {};
+      try {
+        final decoded = jsonDecode(manifestFile.readAsStringSync());
+        if (decoded is Map && decoded['pages'] is Map) {
+          pagesMap = Map<String, dynamic>.from(decoded['pages'] as Map);
+        }
+      } catch (_) {
+        return false;
+      }
+
+      if (page != null) {
+        final relativeUrl = pagesMap[page]?.toString();
+        if (relativeUrl == null) return false;
+        final pageJsPath = path.normalize(path.join(
+          build.webDir.path,
+          relativeUrl
+              .replaceFirst(RegExp(r'^/+'), '')
+              .replaceAll('/', path.separator),
+        ));
+        final pageJsFile = File(pageJsPath);
+        if (!pageJsFile.existsSync()) return false;
+
+        DateTime pageSourceMtime = sourceModified;
+        final target = pageConfig.pageTargets[page];
+        if (target != null) {
+          final registryFile = _findRegistryFile();
+          final specificSource = _resolveImportedFile(
+            target.importUri,
+            registryFile?.parent ?? build.uiDir,
+          );
+          if (specificSource != null && specificSource.existsSync()) {
+            final entryMtime = build.entry.existsSync()
+                ? build.entry.lastModifiedSync()
+                : null;
+            final fileMtime = specificSource.lastModifiedSync();
+            final regMtime = registryFile?.existsSync() == true
+                ? registryFile!.lastModifiedSync()
+                : null;
+            var maxMtime = fileMtime;
+            if (entryMtime != null && entryMtime.isAfter(maxMtime)) {
+              maxMtime = entryMtime;
+            }
+            if (regMtime != null && regMtime.isAfter(maxMtime)) {
+              maxMtime = regMtime;
+            }
+            pageSourceMtime = maxMtime;
+          }
+        }
+
+        final pageJsMtime = pageJsFile.lastModifiedSync();
+        if (pageJsMtime.isAfter(pageSourceMtime) ||
+            pageSourceMtime.difference(pageJsMtime) <= tolerance) {
+          return true;
+        }
+        return false;
+      }
+
+      final manifestMtime = manifestFile.lastModifiedSync();
+      if (!manifestMtime.isAfter(sourceModified) &&
+          sourceModified.difference(manifestMtime) > tolerance) {
+        return false;
+      }
+
+      for (final pageName in pageConfig.pages.keys) {
+        final relativeUrl = pagesMap[pageName]?.toString();
+        if (relativeUrl == null) return false;
+        final pageJsPath = path.normalize(path.join(
+          build.webDir.path,
+          relativeUrl
+              .replaceFirst(RegExp(r'^/+'), '')
+              .replaceAll('/', path.separator),
+        ));
+        final pageJsFile = File(pageJsPath);
+        if (!pageJsFile.existsSync()) return false;
+        final pageJsMtime = pageJsFile.lastModifiedSync();
+        if (!pageJsMtime.isAfter(sourceModified) &&
+            sourceModified.difference(pageJsMtime) > tolerance) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    final currentJsPath = _currentHashedDartJsAsset(build.jsOut);
+    if (currentJsPath == null) return false;
+    final jsFile = File(currentJsPath);
+    if (!jsFile.existsSync()) return false;
+
+    final jsMtime = jsFile.lastModifiedSync();
+    if (jsMtime.isAfter(sourceModified) ||
+        sourceModified.difference(jsMtime) <= tolerance) {
+      return true;
+    }
+    return false;
+  }
+
+  static File? _resolveImportedFile(String importUri, Directory baseDir) {
+    final packageName = _readPackageName();
+    if (importUri.startsWith('package:$packageName/')) {
+      final subPath = importUri.substring('package:$packageName/'.length);
+      return File(path.normalize(path.join('lib', subPath)));
+    } else if (!importUri.startsWith('package:')) {
+      return File(path.normalize(path.join(baseDir.path, importUri)));
+    }
+    return null;
+  }
+
+  static void _cleanObsoletePageBundles(
+    Directory pagesOutDir,
+    Map<String, String> currentPages,
+  ) {
+    if (!pagesOutDir.existsSync()) return;
+    final validFileNames = <String>{};
+    for (final relativeUrl in currentPages.values) {
+      final base = path.basename(relativeUrl);
+      validFileNames.add(base);
+      validFileNames.add('$base.map');
+      validFileNames.add('$base.deps');
+      validFileNames.add('$base.gz');
+      validFileNames.add('$base.br');
+    }
+    for (final entity in pagesOutDir.listSync()) {
+      if (entity is! File) continue;
+      final name = path.basename(entity.path);
+      if (name.endsWith('.dart')) continue;
+      if (!validFileNames.contains(name)) {
+        _deleteFileIfExists(entity);
+      }
+    }
   }
 
   static File? _resolveTailwindInput(Directory uiDir) {
@@ -1296,18 +1483,22 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}${themeProv
     final mapFile = File('$jsOut.map');
     if (mapFile.existsSync()) {
       hashedMapFile.parent.createSync(recursive: true);
-      if (hashedMapFile.existsSync()) hashedMapFile.deleteSync();
-      mapFile.renameSync(hashedMapFile.path);
+      if (hashedMapFile.existsSync()) _deleteFileIfExists(hashedMapFile);
+      try {
+        mapFile.renameSync(hashedMapFile.path);
+      } catch (_) {}
     }
 
     final depsFile = File('$jsOut.deps');
     if (depsFile.existsSync()) {
       hashedDepsFile.parent.createSync(recursive: true);
-      if (hashedDepsFile.existsSync()) hashedDepsFile.deleteSync();
-      depsFile.renameSync(hashedDepsFile.path);
+      if (hashedDepsFile.existsSync()) _deleteFileIfExists(hashedDepsFile);
+      try {
+        depsFile.renameSync(hashedDepsFile.path);
+      } catch (_) {}
     }
 
-    jsFile.deleteSync();
+    _deleteFileIfExists(jsFile);
     _logVerbose('Hashed Flint UI asset: ${hashedJsFile.path}');
     return hashedJsFile.path;
   }
@@ -1332,14 +1523,25 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}${themeProv
     return matches.isEmpty ? null : matches.first.path;
   }
 
-  static void _deleteHashedDartJsSiblings(String jsOut) {
+  static void _deleteHashedDartJsSiblings(
+    String jsOut, {
+    String? keepHashedPath,
+  }) {
     final dir = Directory(path.dirname(jsOut));
     if (!dir.existsSync()) return;
 
     final basename = path.basename(jsOut);
     final pattern = _hashedDartJsSiblingPattern(basename);
+    final keepBasename =
+        keepHashedPath != null ? path.basename(keepHashedPath) : null;
+
     for (final file in dir.listSync().whereType<File>()) {
-      if (pattern.hasMatch(path.basename(file.path))) {
+      final name = path.basename(file.path);
+      if (keepBasename != null &&
+          (name == keepBasename || name.startsWith('$keepBasename.'))) {
+        continue;
+      }
+      if (pattern.hasMatch(name)) {
         _deleteFileIfExists(file);
       }
     }
@@ -1452,11 +1654,13 @@ ${rootDesignName == null ? '' : '    rootDesign: $rootDesignName,\n'}${themeProv
 
       final mapFile = File('${chunk.path}.map');
       if (mapFile.existsSync()) {
-        if (hashedMapFile.existsSync()) hashedMapFile.deleteSync();
-        mapFile.renameSync(hashedMapFile.path);
+        if (hashedMapFile.existsSync()) _deleteFileIfExists(hashedMapFile);
+        try {
+          mapFile.renameSync(hashedMapFile.path);
+        } catch (_) {}
       }
 
-      chunk.deleteSync();
+      _deleteFileIfExists(chunk);
       replacements[oldName] = hashedName;
       hashedChunks.add(hashedFile);
       _logVerbose('Hashed Flint UI deferred asset: ${hashedFile.path}');

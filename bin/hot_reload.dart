@@ -701,26 +701,30 @@ Future<void> main(List<String> args) async {
   if (_webBuild != null &&
       !_initialUiBuildDisabled &&
       await _isServerListening(_serverPort)) {
-    try {
-      Log.info('[HOT-RELOAD] Building Flint Web UI...');
-      await FlintWebUiBuilder.compileDefault(_webBuild!);
-      await _triggerBrowserReload(
-        _serverPort,
-        sourceName: 'flint_ui:initial',
-      );
-    } catch (e, stack) {
-      await _notifyServerHotReload(
-        'flint_ui:initial',
-        '',
-        _serverPort,
-        event: 'flint:error',
-        message: 'Flint UI build failed. Check the terminal.',
-      );
-      Log.error(
-        '[HOT-RELOAD] Error rebuilding Flint UI',
-        error: e,
-        stackTrace: stack,
-      );
+    if (FlintWebUiBuilder.isUpToDate(_webBuild!)) {
+      Log.info('[HOT-RELOAD] Flint Web UI is up to date. Skipping initial build.');
+    } else {
+      try {
+        Log.info('[HOT-RELOAD] Building Flint Web UI...');
+        await FlintWebUiBuilder.compileDefault(_webBuild!);
+        await _triggerBrowserReload(
+          _serverPort,
+          sourceName: 'flint_ui:initial',
+        );
+      } catch (e, stack) {
+        await _notifyServerHotReload(
+          'flint_ui:initial',
+          '',
+          _serverPort,
+          event: 'flint:error',
+          message: 'Flint UI build failed. Check the terminal.',
+        );
+        Log.error(
+          '[HOT-RELOAD] Error rebuilding Flint UI',
+          error: e,
+          stackTrace: stack,
+        );
+      }
     }
   } else if (_webBuild != null) {
     _logVerbose(

@@ -7,6 +7,7 @@ import 'package:flint_dart/src/template_engine/template.dart';
 import 'package:flint_dart/src/template_engine/template_engine.dart';
 import 'package:flint_dart/src/ui/component.dart';
 import 'package:flint_dart/src/ui/component_registry.dart';
+import 'package:flint_dart/src/websocket/ws_manager_instance.dart';
 import 'package:path/path.dart' as p;
 
 import '../flint_dart.dart';
@@ -30,10 +31,15 @@ typedef FlintPageServerRenderer = String? Function(
 );
 
 class _FlintPageScriptResolution {
-  const _FlintPageScriptResolution(this.script, {this.isBuilding = false});
+  const _FlintPageScriptResolution(
+    this.script, {
+    this.isBuilding = false,
+    this.hasExistingScript = false,
+  });
 
   final String script;
   final bool isBuilding;
+  final bool hasExistingScript;
 }
 
 class FlintPageMeta {
@@ -398,6 +404,7 @@ class Response {
           ? _flintPageScriptForComponent(component)
           : _FlintPageScriptResolution(script);
       final isBuildingPageBundle = scriptResolution.isBuilding;
+      final hasExistingScript = scriptResolution.hasExistingScript;
       final resolvedScript = scriptResolution.script;
       final resolvedStylesheets = stylesheets ?? _defaultFlintPageStylesheets();
       final currentFlavor = (flavor != null && flavor.trim().isNotEmpty)
@@ -416,10 +423,12 @@ class Response {
       final safeScript = _escapeHtmlAttribute(versionedScript);
       final resolvedMeta =
           meta ?? (title == null ? null : FlintPageMeta(title: title));
+      final isBlockingBuild = isBuildingPageBundle && !hasExistingScript;
+
       final headTags = _renderFlintPageHead(
         title: title ?? resolvedMeta?.title ?? component,
         stylesheets: resolvedStylesheets.map(_versionedAssetUrl).toList(),
-        scriptPreloads: preloadScript && !isBuildingPageBundle
+        scriptPreloads: preloadScript && !isBlockingBuild
             ? [versionedScript]
             : const [],
         meta: resolvedMeta,
@@ -427,16 +436,17 @@ class Response {
       );
 
       raw.statusCode = status ??
-          (isBuildingPageBundle ? HttpStatus.accepted : raw.statusCode);
+          (isBlockingBuild ? HttpStatus.accepted : raw.statusCode);
       raw.headers.contentType = ContentType.html;
-      if (isBuildingPageBundle) {
+      if (isBlockingBuild) {
         raw.headers.set(HttpHeaders.cacheControlHeader, 'no-store');
       }
       final hotReloadScript = _hotReloadScript();
       final serviceWorkerScript = _flintServiceWorkerScript();
-      final buildOverlayScript =
-          isBuildingPageBundle ? _lazyPageBuildOverlayScript(component) : '';
-      final pageScriptTag = isBuildingPageBundle
+      final buildOverlayScript = isBuildingPageBundle
+          ? _lazyPageBuildOverlayScript(component, blocking: isBlockingBuild)
+          : '';
+      final pageScriptTag = isBlockingBuild
           ? ''
           : '    <script defer src="$safeScript"></script>';
       raw.write('''
@@ -709,8 +719,16 @@ $hotReloadScript
     return '$trimmed${separator}v=$version';
   }
 
-  String _lazyPageBuildOverlayScript(String component) {
+  String _lazyPageBuildOverlayScript(String component, {bool blocking = false}) {
     final safeJsonComponent = jsonEncode(component).replaceAll('</', '<\\/');
+    final timeoutScript = blocking
+        ? '''
+        window.setTimeout(function () {
+          window.location.reload();
+        }, 2000);
+        '''
+        : '';
+
     return '''
     <script>
       (function () {
@@ -729,35 +747,43 @@ $hotReloadScript
             style.textContent = `
               #flint-hot-reload-indicator {
                 align-items: center;
-                backdrop-filter: blur(14px);
-                background: rgba(15, 23, 42, 0.86);
-                border: 1px solid rgba(148, 163, 184, 0.28);
-                border-radius: 12px;
-                box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
-                color: #ffffff;
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+                background: rgba(15, 23, 42, 0.92);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 9999px;
+                box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.2);
+                color: #f8fafc;
                 display: none;
-                font: 700 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-                gap: 10px;
-                left: 50%;
-                max-width: calc(100vw - 32px);
-                padding: 12px 14px;
+                font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                gap: 8px;
+                padding: 8px 14px;
                 position: fixed;
-                top: 18px;
-                transform: translateX(-50%);
+                bottom: 24px;
+                right: 24px;
                 z-index: 2147483647;
+                pointer-events: none;
+                user-select: none;
+                letter-spacing: 0.02em;
+                transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+                transform: translateY(6px);
+                opacity: 0;
               }
 
               #flint-hot-reload-indicator[data-visible="true"] {
                 display: inline-flex;
+                transform: translateY(0);
+                opacity: 1;
               }
 
               .flint-hot-reload-spinner {
-                animation: flint-hot-reload-spin 0.75s linear infinite;
-                border: 2px solid rgba(255, 255, 255, 0.28);
+                animation: flint-hot-reload-spin 0.65s linear infinite;
+                border: 2px solid rgba(255, 255, 255, 0.25);
                 border-top-color: #38bdf8;
-                border-radius: 999px;
-                height: 16px;
-                width: 16px;
+                border-radius: 9999px;
+                height: 12px;
+                width: 12px;
+                flex-shrink: 0;
               }
 
               @keyframes flint-hot-reload-spin {
@@ -775,61 +801,126 @@ $hotReloadScript
         }
 
         ensureFlintLazyBuildIndicator();
-        window.setTimeout(function () {
-          window.location.reload();
-        }, 1500);
+        $timeoutScript
       })();
     </script>''';
   }
 
   _FlintPageScriptResolution _flintPageScriptForComponent(String component) {
-    final pageScript = _scriptFromFlintUiManifest(
+    final effectiveFlavor =
+        (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+            ? FlintEnv.flavor.toLowerCase().trim()
+            : null;
+    final bundleKey =
+        effectiveFlavor != null ? '$component:$effectiveFlavor' : component;
+
+    final exactPageScript = _scriptFromFlintUiManifest(
       component,
       includeFallback: false,
       requireExistingFile: true,
     );
-    if (pageScript != null) return _FlintPageScriptResolution(pageScript);
+    final fallbackScript = _scriptFromFlintUiManifest(
+      component,
+      includeFallback: true,
+      requireExistingFile: true,
+    );
+    final existingScript = exactPageScript ?? fallbackScript;
+
+    final isCurrentlyBuilding = _flintPageBundlesBuilding.contains(bundleKey);
+
+    if (isCurrentlyBuilding) {
+      if (existingScript != null) {
+        return _FlintPageScriptResolution(
+          existingScript,
+          isBuilding: true,
+          hasExistingScript: true,
+        );
+      }
+      return _FlintPageScriptResolution(
+        _defaultFlintPageScript(),
+        isBuilding: true,
+        hasExistingScript: false,
+      );
+    }
 
     if (Platform.environment['FLINT_HOT'] == '1' &&
-        !_flintPageBundlesUnavailable.contains(component)) {
-      if (_buildFlintPageBundleOnDemand(component)) {
-        return _FlintPageScriptResolution(
-          _defaultFlintPageScript(),
-          isBuilding: true,
-        );
+        !_flintPageBundlesUnavailable.contains(bundleKey)) {
+      final build = FlintWebUiBuilder.resolve();
+      final isFresh = build != null &&
+          FlintWebUiBuilder.isUpToDate(build, page: component);
+
+      if (!isFresh) {
+        if (_buildFlintPageBundleOnDemand(component)) {
+          if (existingScript != null) {
+            return _FlintPageScriptResolution(
+              existingScript,
+              isBuilding: true,
+              hasExistingScript: true,
+            );
+          }
+          return _FlintPageScriptResolution(
+            _defaultFlintPageScript(),
+            isBuilding: true,
+            hasExistingScript: false,
+          );
+        }
       }
     }
 
+    if (existingScript != null) {
+      return _FlintPageScriptResolution(
+        existingScript,
+        isBuilding: false,
+        hasExistingScript: true,
+      );
+    }
+
     return _FlintPageScriptResolution(
-      _scriptFromFlintUiManifest(
-            component,
-            requireExistingFile: true,
-          ) ??
-          _defaultFlintPageScript(),
+      _defaultFlintPageScript(),
+      isBuilding: false,
+      hasExistingScript: false,
     );
   }
 
   bool _buildFlintPageBundleOnDemand(String component) {
     if (Platform.environment['FLINT_HOT'] != '1') return false;
-    final effectiveFlavor = (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
-        ? FlintEnv.flavor.toLowerCase().trim()
-        : null;
-    final bundleKey = effectiveFlavor != null ? '$component:$effectiveFlavor' : component;
+    final effectiveFlavor =
+        (FlintEnv.flavor != 'default' && FlintEnv.flavor.isNotEmpty)
+            ? FlintEnv.flavor.toLowerCase().trim()
+            : null;
+    final bundleKey =
+        effectiveFlavor != null ? '$component:$effectiveFlavor' : component;
     if (_flintPageBundlesBuilding.contains(bundleKey)) return true;
     if (_flintPageBundlesUnavailable.contains(bundleKey)) return false;
 
     final build = FlintWebUiBuilder.resolve();
     if (build == null) return false;
 
+    final pageConfig = FlintWebUiBuilder.discoverPageBundleConfig(build);
+    if (pageConfig == null || !pageConfig.pages.containsKey(component)) {
+      _flintPageBundlesUnavailable.add(bundleKey);
+      return false;
+    }
+
     _flintPageBundlesBuilding.add(bundleKey);
+    wsManager.emitToAll('flint:building', {
+      'message': 'Rebuilding Flint UI...',
+      'template': 'flint_ui:page:$component',
+    });
+
     unawaited(
       Future<void>(() async {
         try {
-          final flavorSuffix = effectiveFlavor != null ? ' ($effectiveFlavor)' : '';
+          final flavorSuffix =
+              effectiveFlavor != null ? ' ($effectiveFlavor)' : '';
           Log.info('Building Flint UI page: $component$flavorSuffix...');
           await FlintWebUiBuilder.compilePageBundles(build,
               onlyPage: component);
           Log.info('Done building Flint UI page: $component$flavorSuffix.');
+          wsManager.emitToAll('flint:reload', {
+            'template': 'flint_ui:page:$component',
+            'html': '',
+          });
         } on StateError catch (e) {
           _flintPageBundlesUnavailable.add(bundleKey);
           Log.debug(
@@ -1390,35 +1481,43 @@ function connectHotReload() {
     style.textContent = `
       #flint-hot-reload-indicator {
         align-items: center;
-        backdrop-filter: blur(14px);
-        background: rgba(15, 23, 42, 0.86);
-        border: 1px solid rgba(148, 163, 184, 0.28);
-        border-radius: 12px;
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.32);
-        color: #ffffff;
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        background: rgba(15, 23, 42, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 9999px;
+        box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.2);
+        color: #f8fafc;
         display: none;
-        font: 700 13px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        gap: 10px;
-        left: 50%;
-        max-width: calc(100vw - 32px);
-        padding: 12px 14px;
+        font: 600 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        gap: 8px;
+        padding: 8px 14px;
         position: fixed;
-        top: 18px;
-        transform: translateX(-50%);
+        bottom: 24px;
+        right: 24px;
         z-index: 2147483647;
+        pointer-events: none;
+        user-select: none;
+        letter-spacing: 0.02em;
+        transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: translateY(6px);
+        opacity: 0;
       }
 
       #flint-hot-reload-indicator[data-visible="true"] {
         display: inline-flex;
+        transform: translateY(0);
+        opacity: 1;
       }
 
       .flint-hot-reload-spinner {
-        animation: flint-hot-reload-spin 0.75s linear infinite;
-        border: 2px solid rgba(255, 255, 255, 0.28);
+        animation: flint-hot-reload-spin 0.65s linear infinite;
+        border: 2px solid rgba(255, 255, 255, 0.25);
         border-top-color: #38bdf8;
-        border-radius: 999px;
-        height: 16px;
-        width: 16px;
+        border-radius: 9999px;
+        height: 12px;
+        width: 12px;
+        flex-shrink: 0;
       }
 
       @keyframes flint-hot-reload-spin {
