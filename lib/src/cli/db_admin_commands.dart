@@ -39,6 +39,14 @@ class DBAdmin {
 
   static Future<bool> databaseExists(String dbName) async {
     final driver = FlintEnv.get('DB_CONNECTION', 'mysql').trim().toLowerCase();
+
+    // Try connecting directly to the target database first so shared/managed
+    // database hosts (Plesk, cPanel, RDS) where the user cannot access the
+    // `mysql` or `postgres` system database still succeed cleanly.
+    if (await _canConnectToTargetDatabase(driver, dbName)) {
+      return true;
+    }
+
     await _connectToAdminDatabase(driver);
     try {
       final rows = driver == 'postgres'
@@ -51,6 +59,34 @@ class DBAdmin {
               positionalParams: [dbName],
             );
       return rows.isNotEmpty;
+    } finally {
+      await _safeClose();
+    }
+  }
+
+  static Future<bool> _canConnectToTargetDatabase(
+    String driver,
+    String dbName,
+  ) async {
+    final host = FlintEnv.get('DB_HOST', 'localhost');
+    final port = driver == 'postgres'
+        ? FlintEnv.getInt('DB_PORT', 5432)
+        : FlintEnv.getInt('DB_PORT', 3306);
+    final user =
+        FlintEnv.get('DB_USER', driver == 'postgres' ? 'postgres' : 'root');
+    final password = FlintEnv.get('DB_PASSWORD', '');
+
+    try {
+      await DB.connect(
+        database: dbName,
+        host: host,
+        port: port,
+        username: user,
+        password: password,
+      );
+      return true;
+    } catch (_) {
+      return false;
     } finally {
       await _safeClose();
     }
